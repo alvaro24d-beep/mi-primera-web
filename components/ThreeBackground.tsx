@@ -148,7 +148,19 @@ export default function ThreeBackground() {
         postZoom = Math.max(0, Math.min(1, (sy - zs.top) / zs.height));
       }
 
-      return { activeSec, secT, preZoom, postZoom, pastZoom };
+      // 0 while still inside the intro sphere, ramping to 1 over a scroll
+      // window right after it — lets the sphere's rotation/breathing relax
+      // into free floating gradually instead of snapping to it the instant
+      // "servicios" becomes the active section.
+      let introRelease = 1;
+      const introDom = dom["nxr-intro"];
+      if (introDom) {
+        const introBottom = introDom.top + introDom.height;
+        const progressPastIntro = sy + vh * 0.4 - introBottom;
+        introRelease = progressPastIntro <= 0 ? 0 : Math.min(1, progressPastIntro / (vh * 0.8));
+      }
+
+      return { activeSec, secT, preZoom, postZoom, pastZoom, introRelease };
     }
 
     const ss3 = (t: number) => t * t * (3 - 2 * t);
@@ -233,7 +245,7 @@ export default function ThreeBackground() {
 
       sy += (ty - sy) * 0.07;
 
-      const { activeSec, secT, preZoom, postZoom, pastZoom } = getState(sy);
+      const { activeSec, secT, preZoom, postZoom, pastZoom, introRelease } = getState(sy);
 
       if (activeSec !== prevSec) {
         prevSec = activeSec;
@@ -282,6 +294,20 @@ export default function ThreeBackground() {
               ? (isMobileNow ? 90 : 180) + secT * (isMobileNow ? 20 : 80)
               : (isMobileNow ? 180 : 260) + secT * (isMobileNow ? 60 : 100);
           targetSphere(i, m, radius, time);
+        } else if (introRelease < 1) {
+          // Just past the intro sphere: crossfade its shape into free
+          // floating over `introRelease` instead of snapping to it the
+          // instant the section boundary is crossed.
+          const introEndRadius = isMobileNow ? 240 : 360;
+          targetSphere(i, m, introEndRadius, time);
+          const sx = tgt[i].x;
+          const sy2 = tgt[i].y;
+          const sz = tgt[i].z;
+
+          targetFlow(i, m, time);
+
+          const blend = eio(introRelease);
+          tgt[i].set(sx + (tgt[i].x - sx) * blend, sy2 + (tgt[i].y - sy2) * blend, sz + (tgt[i].z - sz) * blend);
         } else {
           targetFlow(i, m, time);
         }

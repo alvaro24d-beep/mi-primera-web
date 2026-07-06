@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 
 const PASOS = [
   {
@@ -8,6 +8,11 @@ const PASOS = [
     desc: "Analizamos tu negocio, procesos y objetivos para identificar dónde la tecnología genera más impacto.",
     color: "var(--c-red)",
     bg: "rgba(239,61,13,.15)",
+    detail: [
+      "Auditoría técnica y de negocio",
+      "Entrevistas con los equipos implicados",
+      "Informe de oportunidades priorizado",
+    ],
     icon: (
       <svg viewBox="0 0 24 24">
         <circle cx="11" cy="11" r="7" />
@@ -20,6 +25,7 @@ const PASOS = [
     desc: "Diseñamos la hoja de ruta técnica: qué construir, en qué orden y con qué tecnologías.",
     color: "var(--c-salmon)",
     bg: "rgba(255,157,125,.15)",
+    detail: ["Roadmap técnico por fases", "Stack y arquitectura definidos", "Estimación de tiempos y costes"],
     icon: (
       <svg viewBox="0 0 24 24">
         <path d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6-10l6-3m0 16l5.447-2.724A1 1 0 0021 19.382V8.618a1 1 0 00-1.447-.894L15 10m0 10V10" />
@@ -31,6 +37,7 @@ const PASOS = [
     desc: "Construimos con sprints cortos y entregas frecuentes para que veas el avance desde el primer día.",
     color: "var(--c-lime)",
     bg: "rgba(168,240,74,.12)",
+    detail: ["Sprints de 1-2 semanas", "Demo funcional en cada entrega", "Canal directo de feedback"],
     icon: (
       <svg viewBox="0 0 24 24">
         <polyline points="16 18 22 12 16 6" />
@@ -43,6 +50,11 @@ const PASOS = [
     desc: "Desplegamos, probamos en producción real y nos aseguramos de que todo funciona antes de abrir al público.",
     color: "var(--c-red)",
     bg: "rgba(239,61,13,.15)",
+    detail: [
+      "Pruebas en entorno real",
+      "Checklist de rendimiento y seguridad",
+      "Acompañamiento el día del lanzamiento",
+    ],
     icon: (
       <svg viewBox="0 0 24 24">
         <path d="M4.5 16.5c-1.5 1.5-1.5 4.5 0 4.5s4.5-1.5 4.5-3L21 6a3 3 0 00-3-3L6 15c-1.5 0-3 1.5-1.5 1.5" />
@@ -54,6 +66,7 @@ const PASOS = [
     desc: "Monitorizamos, optimizamos y seguimos construyendo contigo. No desaparecemos tras el lanzamiento.",
     color: "var(--c-lime)",
     bg: "rgba(168,240,74,.12)",
+    detail: ["Monitorización continua", "Iteración basada en datos reales", "Soporte y mejoras a largo plazo"],
     icon: (
       <svg viewBox="0 0 24 24">
         <path d="M3 12a9 9 0 109 9" />
@@ -103,6 +116,8 @@ export default function Proceso() {
   const progressRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const pasoRefs = useRef<(HTMLDivElement | null)[]>([]);
+  const tiltRefs = useRef<(HTMLButtonElement | null)[]>([]);
+  const [expanded, setExpanded] = useState<number | null>(null);
 
   useEffect(() => {
     const track = trackRef.current;
@@ -198,12 +213,46 @@ export default function Proceso() {
     window.addEventListener("resize", onScroll, { passive: true });
     onScroll();
 
+    // Subtle pointer-driven 3D tilt on each card — desktop with a real mouse
+    // only, and never when the user has asked for reduced motion.
+    const canHover = window.matchMedia("(hover: hover) and (pointer: fine)").matches;
+    const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const tiltCleanups: (() => void)[] = [];
+
+    if (canHover && !reduceMotion) {
+      tiltRefs.current.filter(Boolean).forEach((card) => {
+        const node = card as HTMLButtonElement;
+        // Hit-test on the non-rotating wrapper, not the card that actually
+        // tilts — otherwise the rotating element's own edges sweep in and out
+        // from under the pointer, and the browser flickers the cursor icon
+        // between "pointer" and the default arrow as hover keeps toggling.
+        const wrapper = node.parentElement;
+        if (!wrapper) return;
+        const onMove = (e: MouseEvent) => {
+          const r = wrapper.getBoundingClientRect();
+          const px = (e.clientX - r.left) / r.width - 0.5;
+          const py = (e.clientY - r.top) / r.height - 0.5;
+          node.style.transform = `perspective(800px) rotateX(${(-py * 12).toFixed(2)}deg) rotateY(${(px * 12).toFixed(2)}deg)`;
+        };
+        const onLeave = () => {
+          node.style.transform = "perspective(800px) rotateX(0deg) rotateY(0deg)";
+        };
+        wrapper.addEventListener("mousemove", onMove);
+        wrapper.addEventListener("mouseleave", onLeave);
+        tiltCleanups.push(() => {
+          wrapper.removeEventListener("mousemove", onMove);
+          wrapper.removeEventListener("mouseleave", onLeave);
+        });
+      });
+    }
+
     return () => {
       cancelAnimationFrame(rafId);
       window.removeEventListener("resize", resizeCanvas);
       window.removeEventListener("scroll", onScroll);
       window.removeEventListener("resize", onScroll);
       io?.disconnect();
+      tiltCleanups.forEach((fn) => fn());
       particles = [];
     };
   }, []);
@@ -222,27 +271,70 @@ export default function Proceso() {
           </div>
           <p className="nxr-proceso-header-right">
             Cada proyecto sigue la misma metodología: entender bien antes de construir, construir rápido y mejorar
-            siempre. Sin reuniones infinitas, sin presupuestos que se disparan.
+            siempre. Sin reuniones infinitas, sin presupuestos que se disparan. Toca cada paso para ver el detalle.
           </p>
         </div>
 
         <div className="nxr-proceso-track" ref={trackRef}>
           <div id="nxr-proceso-progress" ref={progressRef}></div>
           <canvas id="nxr-proceso-sparks" ref={canvasRef}></canvas>
-          {PASOS.map((p, i) => (
-            <div className="nxr-paso" key={p.title} ref={(el) => { pasoRefs.current[i] = el; }}>
-              <div className="nxr-paso-num">
-                <span>{String(i + 1).padStart(2, "0")}</span>
-              </div>
-              <div className="nxr-paso-card">
-                <div className="nxr-paso-icon" style={{ background: p.bg, color: p.color }}>
-                  {p.icon}
+          {PASOS.map((p, i) => {
+            const isOpen = expanded === i;
+            const titleId = `nxr-paso-title-${i}`;
+            const detailId = `nxr-paso-detail-${i}`;
+            return (
+              <div
+                className="nxr-paso"
+                key={p.title}
+                ref={(el) => {
+                  pasoRefs.current[i] = el;
+                }}
+              >
+                <div className="nxr-paso-num">
+                  <span>{String(i + 1).padStart(2, "0")}</span>
                 </div>
-                <div className="nxr-paso-title">{p.title}</div>
-                <p className="nxr-paso-desc">{p.desc}</p>
+
+                <div className="nxr-paso-tilt">
+                  <button
+                    type="button"
+                    className="nxr-paso-card"
+                    ref={(el) => {
+                      tiltRefs.current[i] = el;
+                    }}
+                    aria-expanded={isOpen}
+                    aria-controls={detailId}
+                    onClick={() => setExpanded((cur) => (cur === i ? null : i))}
+                  >
+                    <div className="nxr-paso-icon" style={{ background: p.bg, color: p.color }}>
+                      {p.icon}
+                    </div>
+                    <div className="nxr-paso-title" id={titleId}>
+                      {p.title}
+                    </div>
+                    <p className="nxr-paso-desc">{p.desc}</p>
+                    <svg className={`nxr-paso-chevron${isOpen ? " nxr-open" : ""}`} viewBox="0 0 24 24">
+                      <path d="M6 9l6 6 6-6" />
+                    </svg>
+                  </button>
+
+                  <div
+                    id={detailId}
+                    className={`nxr-paso-detail${isOpen ? " nxr-open" : ""}`}
+                    role="region"
+                    aria-labelledby={titleId}
+                  >
+                    <div className="nxr-paso-detail-inner">
+                      <ul className="nxr-paso-detail-list">
+                        {p.detail.map((d) => (
+                          <li key={d}>{d}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  </div>
+                </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </div>
     </section>

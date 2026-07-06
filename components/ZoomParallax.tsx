@@ -117,7 +117,17 @@ export default function ZoomParallax() {
       const scrolled = -rect.top;
 
       const raw = Math.max(0, Math.min(1, scrolled / total));
-      const progress = isMobile ? Math.min(1, raw / 0.8) : raw - Math.sin(raw * Math.PI * 2) / (2 * Math.PI);
+      let progress: number;
+      if (isMobile) {
+        // Linear-then-flat (progress = raw / 0.8) used to hit 1 at constant
+        // speed and then hard-stop, which read as an abrupt snap. Ease-out
+        // cubic keeps the same 80%-of-scroll pacing but decelerates into the
+        // resting position instead of slamming into it.
+        const t = Math.min(1, raw / 0.8);
+        progress = 1 - Math.pow(1 - t, 3);
+      } else {
+        progress = raw - Math.sin(raw * Math.PI * 2) / (2 * Math.PI);
+      }
 
       // Each card's layout (width/height/position/font-size/etc.) is static
       // CSS sized for its OWN largest (start-of-scroll) state — see the

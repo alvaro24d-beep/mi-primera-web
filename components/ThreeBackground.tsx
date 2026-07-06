@@ -40,7 +40,7 @@ export default function ThreeBackground() {
     container.appendChild(renderer.domElement);
 
     const isMobile = stableW < 768;
-    const COUNT = isMobile ? 1000 : 2200;
+    const COUNT = isMobile ? 1000 : 1400;
 
     const geo = new THREE.SphereGeometry(isMobile ? 0.4 : 0.6, 6, 6);
     const mat = new THREE.MeshBasicMaterial({
@@ -134,6 +134,17 @@ export default function ThreeBackground() {
 
       const pastZoom = zs ? sy >= zs.top + zs.height * 0.85 : false;
 
+      // 0 right up to the 85% mark, ramping to 1 over a scroll window after
+      // it — lets the explosion shape crossfade into free floating gradually
+      // instead of snapping the instant `pastZoom` flips true, which is what
+      // read as an abrupt extra scatter on arrival at "proceso".
+      let zoomRelease = 0;
+      if (zs) {
+        const releaseStart = zs.top + zs.height * 0.85;
+        const progressPastRelease = sy - releaseStart;
+        zoomRelease = progressPastRelease <= 0 ? 0 : Math.min(1, progressPastRelease / (vh * 0.8));
+      }
+
       let preZoom = 0;
       if (!pastZoom && activeSec !== "nxr-zoom-parallax" && zs && ss) {
         const start = ss.top + ss.height * 0.5;
@@ -160,7 +171,7 @@ export default function ThreeBackground() {
         introRelease = progressPastIntro <= 0 ? 0 : Math.min(1, progressPastIntro / (vh * 0.8));
       }
 
-      return { activeSec, secT, preZoom, postZoom, pastZoom, introRelease };
+      return { activeSec, secT, preZoom, postZoom, pastZoom, introRelease, zoomRelease };
     }
 
     const ss3 = (t: number) => t * t * (3 - 2 * t);
@@ -245,7 +256,7 @@ export default function ThreeBackground() {
 
       sy += (ty - sy) * 0.07;
 
-      const { activeSec, secT, preZoom, postZoom, pastZoom, introRelease } = getState(sy);
+      const { activeSec, secT, preZoom, postZoom, introRelease, zoomRelease } = getState(sy);
 
       if (activeSec !== prevSec) {
         prevSec = activeSec;
@@ -265,8 +276,23 @@ export default function ThreeBackground() {
       for (let i = 0; i < COUNT; i++) {
         const m = meta[i];
 
-        if (pastZoom) {
+        if (zoomRelease >= 1) {
           targetFlow(i, m, time);
+        } else if (zoomRelease > 0) {
+          // Just past the explosion's 85% mark: crossfade its shape into
+          // free floating over `zoomRelease` instead of snapping to flow
+          // the instant the threshold is crossed — same pattern as
+          // `introRelease` above, applied to the zoom-parallax → proceso
+          // handoff.
+          targetExplosion(i, m, postZoom, time);
+          const ex = tgt[i].x;
+          const ey = tgt[i].y;
+          const ez = tgt[i].z;
+
+          targetFlow(i, m, time);
+
+          const blend = eio(zoomRelease);
+          tgt[i].set(ex + (tgt[i].x - ex) * blend, ey + (tgt[i].y - ey) * blend, ez + (tgt[i].z - ez) * blend);
         } else if (activeSec === "nxr-zoom-parallax") {
           targetExplosion(i, m, postZoom, time);
         } else if (preZoom > 0.001) {

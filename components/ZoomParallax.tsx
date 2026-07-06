@@ -6,17 +6,8 @@ const CARDS: { scale: number; content: React.ReactNode }[] = [
   {
     scale: 3.5,
     content: (
-      <div className="nxr-zp-card" style={{ gap: 4 }}>
-        <div
-          style={{
-            fontSize: "clamp(12px,1.4vw,20px)",
-            fontWeight: 700,
-            color: "var(--c-white)",
-            letterSpacing: "-.03em",
-            lineHeight: 1.3,
-            textAlign: "center",
-          }}
-        >
+      <div className="nxr-zp-card" style={{ gap: "calc(4px * var(--zp-scale, 1))" }}>
+        <div className="nxr-zp-hero-text">
           Construido con maestría.
           <br />
           <span className="nxr-gradient-text-lime">Entregado con precisión.</span>
@@ -100,6 +91,28 @@ const CARDS: { scale: number; content: React.ReactNode }[] = [
   },
 ];
 
+// Resting (scale = 1) position/size of each card as fractions of the
+// viewport, mirroring the `nth-child` rules in globals.css: [width, height, left, top].
+const DESKTOP_RECIPE: [number, number, number, number][] = [
+  [0.25, 0.25, 0.375, 0.375],
+  [0.35, 0.3, 0.53, 0.04],
+  [0.2, 0.45, 0.17, 0.12],
+  [0.25, 0.25, 0.66, 0.375],
+  [0.2, 0.25, 0.53, 0.66],
+  [0.3, 0.25, 0.07, 0.66],
+  [0.15, 0.15, 0.72, 0.7],
+];
+
+const MOBILE_RECIPE: [number, number, number, number][] = [
+  [0.5, 0.3, 0.25, 0.35], // unused: card 0 is centered dynamically below
+  [0.48, 0.14, 0.06, 0.16],
+  [0.38, 0.14, 0.58, 0.22],
+  [0.36, 0.14, 0.58, 0.42],
+  [0.36, 0.14, 0.06, 0.38],
+  [0.44, 0.14, 0.04, 0.6],
+  [0.38, 0.14, 0.58, 0.58],
+];
+
 export default function ZoomParallax() {
   const sectionRef = useRef<HTMLElement>(null);
   const stickyRef = useRef<HTMLDivElement>(null);
@@ -111,53 +124,60 @@ export default function ZoomParallax() {
     if (!section || !sticky) return;
 
     const layers = layerRefs.current.filter(Boolean) as HTMLDivElement[];
-    let isMobile = window.innerWidth <= 768;
-    const fixedH = window.innerHeight;
-    const fixedW = window.innerWidth;
-
-    if (isMobile) {
-      const centerImg = layers[0]?.querySelector<HTMLElement>(".nxr-zp-img");
-      if (centerImg) {
-        const maxScale = parseFloat(layers[0].dataset.maxScale ?? "3.5") || 3.5;
-        const targetW = fixedW * 0.88;
-        const targetH = fixedH * 0.88;
-        const cardW = targetW / maxScale;
-        const cardH = targetH / maxScale;
-        centerImg.style.width = `${cardW}px`;
-        centerImg.style.height = `${cardH}px`;
-        centerImg.style.left = `${Math.round((fixedW - cardW) / 2)}px`;
-        centerImg.style.top = `${Math.round((fixedH - cardH) / 2)}px`;
-      }
-    }
 
     function onScroll() {
+      const vw = window.innerWidth;
+      const vh = window.innerHeight;
+      const isMobile = vw <= 768;
+
       const rect = section!.getBoundingClientRect();
-      const total = section!.offsetHeight - fixedH;
+      const total = section!.offsetHeight - vh;
       const scrolled = -rect.top;
-      isMobile = window.innerWidth <= 768;
 
       const raw = Math.max(0, Math.min(1, scrolled / total));
       const progress = isMobile ? Math.min(1, raw / 0.8) : raw - Math.sin(raw * Math.PI * 2) / (2 * Math.PI);
 
-      layers.forEach((layer) => {
+      layers.forEach((layer, idx) => {
         const max = parseFloat(layer.dataset.maxScale ?? "4") || 4;
-        const card = layer.querySelector<HTMLElement>(".nxr-zp-img");
+        const img = layer.querySelector<HTMLElement>(".nxr-zp-img");
+        if (!img) return;
         const scale = max - (max - 1) * progress;
 
-        // `transform: scale()` (not `zoom`, which Firefox doesn't support and
-        // browsers implement inconsistently) so card content — including text —
-        // scales in lockstep with the box across all browsers. `.nxr-zp-layer`
-        // is `inset: 0`, so its default center-origin lines up with the
-        // viewport center, matching every card's own centered resting position.
-        layer.style.transform = `scale(${scale})`;
-        if (card) card.style.borderRadius = `${16 / scale}px`;
+        // Natural (resting, scale = 1) box in real pixels.
+        let w0: number, h0: number, x0: number, y0: number;
+        if (isMobile && idx === 0) {
+          w0 = (vw * 0.88) / max;
+          h0 = (vh * 0.88) / max;
+          x0 = (vw - w0) / 2;
+          y0 = (vh - h0) / 2;
+        } else {
+          const [wf, hf, lf, tf] = isMobile ? MOBILE_RECIPE[idx] : DESKTOP_RECIPE[idx];
+          w0 = wf * vw;
+          h0 = hf * vh;
+          x0 = lf * vw;
+          y0 = tf * vh;
+        }
+
+        // Real width/height/position (not `transform`/`zoom`) so text, icons
+        // and borders re-render crisply at every size instead of being
+        // stretched as a rasterized bitmap. Scaling is anchored on the
+        // viewport center, same as the rest of the page's other effects.
+        img.style.width = `${w0 * scale}px`;
+        img.style.height = `${h0 * scale}px`;
+        img.style.left = `${vw / 2 + (x0 - vw / 2) * scale}px`;
+        img.style.top = `${vh / 2 + (y0 - vh / 2) * scale}px`;
+        img.style.setProperty("--zp-scale", String(scale));
       });
     }
 
     window.addEventListener("scroll", onScroll, { passive: true });
+    window.addEventListener("resize", onScroll, { passive: true });
     onScroll();
 
-    return () => window.removeEventListener("scroll", onScroll);
+    return () => {
+      window.removeEventListener("scroll", onScroll);
+      window.removeEventListener("resize", onScroll);
+    };
   }, []);
 
   return (

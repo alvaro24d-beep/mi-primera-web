@@ -3784,8 +3784,6 @@ input[type="range"].nxr-ms-range::-moz-range-thumb {
 .nxr-zp-layer {
   position: absolute;
   inset: 0;
-  will-change: transform;
-  transform-origin: center center;
 }
 
 .nxr-zp-img {
@@ -3804,11 +3802,16 @@ input[type="range"].nxr-ms-range::-moz-range-thumb {
   flex-direction: column;
   justify-content: center;
   align-items: center;
-  gap: 12px;
-  padding: 24px;
+  gap: calc(12px * var(--zp-scale, 1));
+  padding: calc(24px * var(--zp-scale, 1));
   box-shadow: var(--glass-shine);
   box-sizing: border-box;
   position: relative;
+}
+
+.nxr-zp-card svg {
+  width: calc(40px * var(--zp-scale, 1));
+  height: calc(40px * var(--zp-scale, 1));
 }
 
 .nxr-zp-card::after {
@@ -3827,14 +3830,14 @@ input[type="range"].nxr-ms-range::-moz-range-thumb {
 }
 
 .nxr-zp-card-num {
-  font-size: 42px;
+  font-size: calc(42px * var(--zp-scale, 1));
   font-weight: 700;
   letter-spacing: -0.03em;
   line-height: 1;
 }
 
 .nxr-zp-card-title {
-  font-size: 18px;
+  font-size: calc(18px * var(--zp-scale, 1));
   font-weight: 700;
   letter-spacing: -0.02em;
   color: var(--c-white);
@@ -3842,10 +3845,19 @@ input[type="range"].nxr-ms-range::-moz-range-thumb {
 }
 
 .nxr-zp-card-desc {
-  font-size: 13px;
+  font-size: calc(13px * var(--zp-scale, 1));
   color: var(--c-salmon);
   text-align: center;
   line-height: 1.5;
+}
+
+.nxr-zp-hero-text {
+  font-size: calc(16px * var(--zp-scale, 1));
+  font-weight: 700;
+  color: var(--c-white);
+  letter-spacing: -0.03em;
+  line-height: 1.3;
+  text-align: center;
 }
 
 .nxr-zp-layer:nth-child(1) .nxr-zp-img {
@@ -3893,21 +3905,24 @@ input[type="range"].nxr-ms-range::-moz-range-thumb {
 
 @media (max-width: 768px) {
   .nxr-zp-card-title {
-    font-size: 14px;
+    font-size: calc(14px * var(--zp-scale, 1));
   }
   .nxr-zp-card-desc {
-    font-size: 11px;
+    font-size: calc(11px * var(--zp-scale, 1));
   }
   .nxr-zp-card-num {
-    font-size: 30px;
+    font-size: calc(30px * var(--zp-scale, 1));
   }
   .nxr-zp-card svg {
-    width: 28px;
-    height: 28px;
+    width: calc(28px * var(--zp-scale, 1));
+    height: calc(28px * var(--zp-scale, 1));
   }
   .nxr-zp-card {
-    gap: 6px;
-    padding: 12px;
+    gap: calc(6px * var(--zp-scale, 1));
+    padding: calc(12px * var(--zp-scale, 1));
+  }
+  .nxr-zp-hero-text {
+    font-size: calc(13px * var(--zp-scale, 1));
   }
 
   .nxr-zp-layer:nth-child(1) .nxr-zp-img {

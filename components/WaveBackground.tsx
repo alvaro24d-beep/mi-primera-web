@@ -42,7 +42,9 @@ export default function WaveBackground() {
     function resize(force: boolean) {
       const dw = window.innerWidth;
       const dh = window.innerHeight;
-      if (!force && Math.abs(dw - lastWidth) === 0 && Math.abs(dh - lastHeight) < 80) return;
+      // Ignore height-only changes below this threshold: that's the mobile
+      // toolbar showing/hiding, not a real resize or orientation change.
+      if (!force && dw === lastWidth && Math.abs(dh - lastHeight) < 150) return;
       lastWidth = dw;
       lastHeight = dh;
       canvas!.width = Math.round(dw * dpr);
@@ -121,7 +123,7 @@ export default function WaveBackground() {
         position: "fixed",
         inset: 0,
         width: "100%",
-        height: "100dvh",
+        height: "100svh",
         zIndex: -1000,
         pointerEvents: "none",
         overflow: "hidden",

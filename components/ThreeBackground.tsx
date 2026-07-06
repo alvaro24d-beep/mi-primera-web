@@ -22,16 +22,24 @@ export default function ThreeBackground() {
     const container = containerRef.current;
     if (!container) return;
 
+    // Mobile browsers resize the viewport (and fire `resize`) as their
+    // address/tab bar collapses on scroll. Reacting to that live would make
+    // the scene's camera/particle sizing lurch every time it happens, so we
+    // track a "stable" size that only updates on real resizes (orientation
+    // change, actual window resize) — see `onResize` below.
+    let stableW = window.innerWidth;
+    let stableH = window.innerHeight;
+
     const scene = new THREE.Scene();
-    const camera = new THREE.PerspectiveCamera(60, innerWidth / innerHeight, 1, 3000);
+    const camera = new THREE.PerspectiveCamera(60, stableW / stableH, 1, 3000);
     camera.position.z = 400;
 
     const renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
-    renderer.setSize(innerWidth, innerHeight);
+    renderer.setSize(stableW, stableH);
     renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
     container.appendChild(renderer.domElement);
 
-    const isMobile = window.innerWidth < 768;
+    const isMobile = stableW < 768;
     const COUNT = isMobile ? 1000 : 2200;
 
     const geo = new THREE.SphereGeometry(isMobile ? 0.4 : 0.6, 6, 6);
@@ -107,7 +115,7 @@ export default function ThreeBackground() {
     }
 
     function getState(sy: number) {
-      const vh = innerHeight;
+      const vh = stableH;
 
       let activeSec: SecId = SEC_IDS[0];
       let secT = 0;
@@ -196,9 +204,19 @@ export default function ThreeBackground() {
       my = e.clientY / innerHeight - 0.5;
     };
     const onResize = () => {
-      camera.aspect = innerWidth / innerHeight;
+      const w = window.innerWidth;
+      const h = window.innerHeight;
+      // Ignore height-only changes below this threshold: that's the mobile
+      // toolbar showing/hiding, not a real resize or orientation change.
+      const widthChanged = w !== stableW;
+      const heightJump = Math.abs(h - stableH) >= 150;
+      if (!widthChanged && !heightJump) return;
+
+      stableW = w;
+      stableH = h;
+      camera.aspect = stableW / stableH;
       camera.updateProjectionMatrix();
-      renderer.setSize(innerWidth, innerHeight);
+      renderer.setSize(stableW, stableH);
       detect();
     };
 
@@ -230,6 +248,8 @@ export default function ThreeBackground() {
       camera.position.y += (-my * 50 - camera.position.y) * 0.04;
       camera.lookAt(0, 0, 0);
 
+      const isMobileNow = stableW < 768;
+
       for (let i = 0; i < COUNT; i++) {
         const m = meta[i];
 
@@ -257,7 +277,6 @@ export default function ThreeBackground() {
           const blend = eio(preZoom);
           tgt[i].set(fx + (gx - fx) * blend, fy + (gy - fy) * blend, fz + (gz - fz) * blend);
         } else if (activeSec === "nxr-hero" || activeSec === "nxr-intro") {
-          const isMobileNow = window.innerWidth < 768;
           const radius =
             activeSec === "nxr-hero"
               ? (isMobileNow ? 90 : 180) + secT * (isMobileNow ? 20 : 80)
@@ -301,7 +320,7 @@ export default function ThreeBackground() {
         position: "fixed",
         inset: 0,
         width: "100%",
-        height: "100%",
+        height: "100svh",
         zIndex: 0,
         pointerEvents: "none",
         overflow: "hidden",

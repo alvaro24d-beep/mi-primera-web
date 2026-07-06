@@ -1,15 +1,23 @@
+import Header from "@/components/Header";
+import Hero from "@/components/Hero";
+import Intro from "@/components/Intro";
+import Servicios from "@/components/Servicios";
+import ZoomParallax from "@/components/ZoomParallax";
+import Proceso from "@/components/Proceso";
+import Tech from "@/components/Tech";
+import Contacto from "@/components/Contacto";
+
 export default function Home() {
   return (
-    <main className="min-h-screen bg-black text-white flex flex-col items-center justify-center p-8">
-      <h1 className="text-5xl md:text-7xl font-extrabold mb-6 text-center tracking-tight">
-        Automatiza tu éxito con <span className="text-blue-500">IA</span>
-      </h1>
-      <p className="text-xl text-slate-400 mb-10 max-w-2xl text-center">
-        Transformamos procesos complejos en flujos automáticos. ¿Listo para escalar tu agencia?
-      </p>
-      <button className="bg-white text-black px-8 py-4 rounded-full font-bold hover:bg-slate-200 transition-all transform hover:scale-105">
-        Solicitar Auditoría Gratuita
-      </button>
-    </main>
+    <>
+      <Header />
+      <Hero />
+      <Intro />
+      <Servicios />
+      <ZoomParallax />
+      <Proceso />
+      <Tech />
+      <Contacto />
+    </>
   );
 }

@@ -2,9 +2,14 @@
 
 import { useEffect, useRef } from "react";
 
-const CARDS: { scale: number; content: React.ReactNode }[] = [
+const CARDS: { scale: number; mobileScale?: number; content: React.ReactNode }[] = [
   {
     scale: 3.5,
+    // On mobile this card needs a wider resting box (see globals.css) to fit
+    // its bigger text without wrapping too much — a lower zoom-in intensity
+    // than desktop achieves that while still filling most of the screen at
+    // the start of the scroll.
+    mobileScale: 2.2,
     content: (
       <div className="nxr-zp-card" style={{ gap: "calc(4px * var(--zp-max, 1))" }}>
         <div className="nxr-zp-hero-text">
@@ -121,7 +126,8 @@ export default function ZoomParallax() {
       // there, which is GPU-composited (no reflow) and never enlarges
       // pre-rendered pixels, so it stays both smooth and crisp.
       layers.forEach((layer) => {
-        const max = parseFloat(layer.dataset.maxScale ?? "4") || 4;
+        const max =
+          parseFloat((isMobile ? layer.dataset.maxScaleMobile : undefined) ?? layer.dataset.maxScale ?? "4") || 4;
         const img = layer.querySelector<HTMLElement>(".nxr-zp-img");
         if (!img) return;
         const scale = max - (max - 1) * progress;
@@ -146,6 +152,7 @@ export default function ZoomParallax() {
           <div
             className="nxr-zp-layer"
             data-max-scale={item.scale}
+            data-max-scale-mobile={item.mobileScale ?? item.scale}
             key={i}
             ref={(el) => {
               layerRefs.current[i] = el;

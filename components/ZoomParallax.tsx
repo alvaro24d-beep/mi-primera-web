@@ -139,24 +139,18 @@ export default function ZoomParallax() {
       const raw = Math.max(0, Math.min(1, scrolled / total));
       const progress = isMobile ? Math.min(1, raw / 0.8) : raw - Math.sin(raw * Math.PI * 2) / (2 * Math.PI);
 
-      layers.forEach((layer, idx) => {
+      layers.forEach((layer) => {
         const max = parseFloat(layer.dataset.maxScale ?? "4") || 4;
         const card = layer.querySelector<HTMLElement>(".nxr-zp-img");
+        const scale = max - (max - 1) * progress;
 
-        if (isMobile && idx === 0) {
-          const scale = max - (max - 1) * progress;
-          const grow = scale - 1;
-          layer.style.zoom = String(scale);
-          layer.style.marginLeft = `-${(fixedW * grow) / 2 / scale}px`;
-          layer.style.marginTop = `-${(fixedH * grow) / 2 / scale}px`;
-          if (card) card.style.borderRadius = `${16 / scale}px`;
-        } else {
-          const scale = max - (max - 1) * progress;
-          layer.style.zoom = String(scale);
-          layer.style.marginLeft = "";
-          layer.style.marginTop = "";
-          if (card) card.style.borderRadius = `${16 / scale}px`;
-        }
+        // `transform: scale()` (not `zoom`, which Firefox doesn't support and
+        // browsers implement inconsistently) so card content — including text —
+        // scales in lockstep with the box across all browsers. `.nxr-zp-layer`
+        // is `inset: 0`, so its default center-origin lines up with the
+        // viewport center, matching every card's own centered resting position.
+        layer.style.transform = `scale(${scale})`;
+        if (card) card.style.borderRadius = `${16 / scale}px`;
       });
     }
 

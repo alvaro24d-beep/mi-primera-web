@@ -272,6 +272,12 @@ h6 {
 
 .nxr-gradient-text {
   display: inline-block;
+  /* `background-clip: text` paints the gradient only within this box's own
+     line-height — headings set a tight line-height (~1.08) for line spacing,
+     which isn't tall enough to contain descenders (g, j, p, q, y), clipping
+     them. Override it here so the box is tall enough regardless of the
+     parent's line-height. */
+  line-height: 1.45;
   -webkit-background-clip: text;
   background-clip: text;
   -webkit-text-fill-color: transparent;
@@ -288,6 +294,7 @@ h6 {
 
 .nxr-gradient-text-lime {
   display: inline-block;
+  line-height: 1.45;
   -webkit-background-clip: text;
   background-clip: text;
   -webkit-text-fill-color: transparent;
@@ -304,6 +311,7 @@ h6 {
 
 .nxr-gradient-text-salmon {
   display: inline-block;
+  line-height: 1.45;
   -webkit-background-clip: text;
   background-clip: text;
   -webkit-text-fill-color: transparent;
@@ -1752,7 +1760,7 @@ h6 {
   padding: 9px 13px;
   border-radius: 14px;
   font-size: 12.5px;
-  line-height: 1.45;
+  line-height: 1.25;
   color: var(--c-white);
 }
 

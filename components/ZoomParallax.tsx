@@ -8,16 +8,9 @@ const CARDS: { scale: number; content: React.ReactNode }[] = [
     content: (
       <div className="nxr-zp-card" style={{ gap: "calc(4px * var(--zp-max, 1))" }}>
         <div className="nxr-zp-hero-text">
-          <span className="nxr-zp-hero-full">
-            Construido con maestría.
-            <br />
-            <span className="nxr-gradient-text-lime">Entregado con precisión.</span>
-          </span>
-          <span className="nxr-zp-hero-short">
-            con maestría.
-            <br />
-            <span className="nxr-gradient-text-lime">con precisión.</span>
-          </span>
+          Construido con maestría.
+          <br />
+          <span className="nxr-gradient-text-lime">Entregado con precisión.</span>
         </div>
       </div>
     ),

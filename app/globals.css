@@ -4084,9 +4084,9 @@ input[type="range"].nxr-ms-range::-moz-range-thumb {
   .nxr-zp-layer:nth-child(1) .nxr-zp-img {
     --zp-max: 2.2;
     width: 85vw;
-    height: 85vh;
+    height: 65vh;
     left: calc(50% - 42.5vw);
-    top: calc(50% - 42.5vh);
+    top: calc(50% - 32.5vh);
     transform-origin: 50% 50%;
   }
   .nxr-zp-layer:nth-child(2) .nxr-zp-img {

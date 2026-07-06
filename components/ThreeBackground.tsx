@@ -320,7 +320,7 @@ export default function ThreeBackground() {
         position: "fixed",
         inset: 0,
         width: "100%",
-        height: "100svh",
+        height: "100lvh",
         zIndex: 0,
         pointerEvents: "none",
         overflow: "hidden",

@@ -123,7 +123,7 @@ export default function WaveBackground() {
         position: "fixed",
         inset: 0,
         width: "100%",
-        height: "100svh",
+        height: "100lvh",
         zIndex: -1000,
         pointerEvents: "none",
         overflow: "hidden",

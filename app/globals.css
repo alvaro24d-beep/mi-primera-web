@@ -3918,36 +3918,37 @@ input[type="range"].nxr-ms-range::-moz-range-thumb {
 .nxr-zp-img {
   position: absolute;
   overflow: hidden;
-  border-radius: 16px;
+  border-radius: calc(16px * var(--zp-max, 1));
+  will-change: transform;
 }
 
 .nxr-zp-card {
   background: var(--glass-bg);
   backdrop-filter: var(--glass-blur);
-  border-radius: 16px;
+  border-radius: calc(16px * var(--zp-max, 1));
   width: 100%;
   height: 100%;
   display: flex;
   flex-direction: column;
   justify-content: center;
   align-items: center;
-  gap: calc(12px * var(--zp-scale, 1));
-  padding: calc(24px * var(--zp-scale, 1));
+  gap: calc(12px * var(--zp-max, 1));
+  padding: calc(24px * var(--zp-max, 1));
   box-shadow: var(--glass-shine);
   box-sizing: border-box;
   position: relative;
 }
 
 .nxr-zp-card svg {
-  width: calc(40px * var(--zp-scale, 1));
-  height: calc(40px * var(--zp-scale, 1));
+  width: calc(40px * var(--zp-max, 1));
+  height: calc(40px * var(--zp-max, 1));
 }
 
 .nxr-zp-card::after {
   content: "";
   position: absolute;
   inset: 0;
-  border-radius: 16px;
+  border-radius: calc(16px * var(--zp-max, 1));
   padding: 1px;
   background: var(--glass-border-gradient);
   -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
@@ -3959,14 +3960,14 @@ input[type="range"].nxr-ms-range::-moz-range-thumb {
 }
 
 .nxr-zp-card-num {
-  font-size: calc(42px * var(--zp-scale, 1));
+  font-size: calc(42px * var(--zp-max, 1));
   font-weight: 700;
   letter-spacing: -0.03em;
   line-height: 1;
 }
 
 .nxr-zp-card-title {
-  font-size: calc(18px * var(--zp-scale, 1));
+  font-size: calc(18px * var(--zp-max, 1));
   font-weight: 700;
   letter-spacing: -0.02em;
   color: var(--c-white);
@@ -3974,14 +3975,14 @@ input[type="range"].nxr-ms-range::-moz-range-thumb {
 }
 
 .nxr-zp-card-desc {
-  font-size: calc(13px * var(--zp-scale, 1));
+  font-size: calc(13px * var(--zp-max, 1));
   color: var(--c-salmon);
   text-align: center;
   line-height: 1.5;
 }
 
 .nxr-zp-hero-text {
-  font-size: calc(16px * var(--zp-scale, 1));
+  font-size: calc(16px * var(--zp-max, 1));
   font-weight: 700;
   color: var(--c-white);
   letter-spacing: -0.03em;
@@ -3989,112 +3990,152 @@ input[type="range"].nxr-ms-range::-moz-range-thumb {
   text-align: center;
 }
 
+.nxr-zp-hero-text .nxr-zp-hero-short {
+  display: none;
+}
+
+/* Each card is laid out at its OWN largest (start-of-scroll) size — real,
+   crisp layout — and JS only ever animates `transform: scale()` down from
+   there (see ZoomParallax.tsx). Shrinking a transform never looks pixelated
+   the way enlarging one does, and a transform-only update avoids the reflow
+   that made the old width/height-per-frame approach stutter.
+   `transform-origin` is pre-computed so scaling still radiates from the
+   viewport center, matching each card's resting position exactly. */
 .nxr-zp-layer:nth-child(1) .nxr-zp-img {
-  width: 25vw;
-  height: 25vh;
-  left: calc(50% - 12.5vw);
-  top: calc(50% - 12.5vh);
+  --zp-max: 3.5;
+  width: 87.5vw;
+  height: 87.5vh;
+  left: calc(50% - 43.75vw);
+  top: calc(50% - 43.75vh);
+  transform-origin: 50% 50%;
 }
 .nxr-zp-layer:nth-child(2) .nxr-zp-img {
-  width: 35vw;
-  height: 30vh;
-  left: calc(50% + 3vw);
-  top: calc(50% - 46vh);
+  --zp-max: 5;
+  width: 175vw;
+  height: 150vh;
+  left: calc(50% + 15vw);
+  top: calc(50% - 230vh);
+  transform-origin: -8.571% 153.333%;
 }
 .nxr-zp-layer:nth-child(3) .nxr-zp-img {
-  width: 20vw;
-  height: 45vh;
-  left: calc(50% - 33vw);
-  top: calc(50% - 38vh);
+  --zp-max: 6;
+  width: 120vw;
+  height: 270vh;
+  left: calc(50% - 198vw);
+  top: calc(50% - 228vh);
+  transform-origin: 165% 84.444%;
 }
 .nxr-zp-layer:nth-child(4) .nxr-zp-img {
-  width: 25vw;
-  height: 25vh;
-  left: calc(50% + 16vw);
-  top: calc(50% - 12.5vh);
+  --zp-max: 8;
+  width: 200vw;
+  height: 200vh;
+  left: calc(50% + 128vw);
+  top: calc(50% - 100vh);
+  transform-origin: -64% 50%;
 }
 .nxr-zp-layer:nth-child(5) .nxr-zp-img {
-  width: 20vw;
-  height: 25vh;
-  left: calc(50% + 3vw);
-  top: calc(50% + 16vh);
+  --zp-max: 9;
+  width: 180vw;
+  height: 225vh;
+  left: calc(50% + 27vw);
+  top: calc(50% + 144vh);
+  transform-origin: -15% -64%;
 }
 .nxr-zp-layer:nth-child(6) .nxr-zp-img {
-  width: 30vw;
-  height: 25vh;
-  left: calc(50% - 43vw);
-  top: calc(50% + 16vh);
+  --zp-max: 8;
+  width: 240vw;
+  height: 200vh;
+  left: calc(50% - 344vw);
+  top: calc(50% + 128vh);
+  transform-origin: 143.333% -64%;
 }
 .nxr-zp-layer:nth-child(7) .nxr-zp-img {
-  width: 15vw;
-  height: 15vh;
-  left: calc(50% + 22vw);
-  top: calc(50% + 20vh);
+  --zp-max: 9;
+  width: 135vw;
+  height: 135vh;
+  left: calc(50% + 198vw);
+  top: calc(50% + 180vh);
+  transform-origin: -146.667% -133.333%;
 }
 
 @media (max-width: 768px) {
   .nxr-zp-card-title {
-    font-size: calc(14px * var(--zp-scale, 1));
+    font-size: calc(14px * var(--zp-max, 1));
   }
   .nxr-zp-card-desc {
-    font-size: calc(11px * var(--zp-scale, 1));
+    font-size: calc(11px * var(--zp-max, 1));
   }
   .nxr-zp-card-num {
-    font-size: calc(30px * var(--zp-scale, 1));
+    font-size: calc(30px * var(--zp-max, 1));
   }
   .nxr-zp-card svg {
-    width: calc(28px * var(--zp-scale, 1));
-    height: calc(28px * var(--zp-scale, 1));
+    width: calc(28px * var(--zp-max, 1));
+    height: calc(28px * var(--zp-max, 1));
   }
   .nxr-zp-card {
-    gap: calc(6px * var(--zp-scale, 1));
-    padding: calc(12px * var(--zp-scale, 1));
-  }
-  .nxr-zp-hero-text {
-    font-size: calc(13px * var(--zp-scale, 1));
+    gap: calc(6px * var(--zp-max, 1));
+    padding: calc(12px * var(--zp-max, 1));
   }
 
   .nxr-zp-layer:nth-child(1) .nxr-zp-img {
-    width: 50vw;
-    height: 30vh;
-    left: calc(50% - 25vw);
-    top: calc(50% - 15vh);
+    width: 88vw;
+    height: 88vh;
+    left: calc(50% - 44vw);
+    top: calc(50% - 44vh);
+    transform-origin: 50% 50%;
   }
   .nxr-zp-layer:nth-child(2) .nxr-zp-img {
-    width: 48vw;
-    height: 14vh;
-    left: calc(50% - 44vw);
-    top: calc(50% - 34vh);
+    width: 240vw;
+    height: 70vh;
+    left: calc(50% - 220vw);
+    top: calc(50% - 170vh);
+    transform-origin: 91.667% 242.857%;
   }
   .nxr-zp-layer:nth-child(3) .nxr-zp-img {
-    width: 38vw;
-    height: 14vh;
-    left: calc(50% + 8vw);
-    top: calc(50% - 28vh);
+    width: 228vw;
+    height: 84vh;
+    left: calc(50% + 48vw);
+    top: calc(50% - 168vh);
+    transform-origin: -21.053% 200%;
   }
   .nxr-zp-layer:nth-child(4) .nxr-zp-img {
-    width: 36vw;
-    height: 14vh;
-    left: calc(50% + 8vw);
-    top: calc(50% - 8vh);
+    width: 288vw;
+    height: 112vh;
+    left: calc(50% + 64vw);
+    top: calc(50% - 64vh);
+    transform-origin: -22.222% 57.143%;
   }
   .nxr-zp-layer:nth-child(5) .nxr-zp-img {
-    width: 36vw;
-    height: 14vh;
-    left: calc(50% - 44vw);
-    top: calc(50% - 12vh);
+    width: 324vw;
+    height: 126vh;
+    left: calc(50% - 396vw);
+    top: calc(50% - 108vh);
+    transform-origin: 122.222% 85.714%;
   }
   .nxr-zp-layer:nth-child(6) .nxr-zp-img {
-    width: 44vw;
-    height: 14vh;
-    left: calc(50% - 46vw);
-    top: calc(50% + 10vh);
+    width: 352vw;
+    height: 112vh;
+    left: calc(50% - 368vw);
+    top: calc(50% + 80vh);
+    transform-origin: 104.545% -71.429%;
   }
   .nxr-zp-layer:nth-child(7) .nxr-zp-img {
-    width: 38vw;
-    height: 14vh;
-    left: calc(50% + 8vw);
-    top: calc(50% + 8vh);
+    width: 342vw;
+    height: 126vh;
+    left: calc(50% + 72vw);
+    top: calc(50% + 72vh);
+    transform-origin: -21.053% -57.143%;
+  }
+
+  .nxr-zp-hero-text {
+    font-size: calc(13px * var(--zp-max, 1));
+  }
+  .nxr-zp-hero-text .nxr-zp-hero-short {
+    font-size: calc(10px * var(--zp-max, 1));
+    display: block;
+  }
+  .nxr-zp-hero-text .nxr-zp-hero-full {
+    display: none;
   }
 }
 

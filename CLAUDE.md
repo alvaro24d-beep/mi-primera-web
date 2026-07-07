@@ -36,7 +36,17 @@ When adding a new component, add its styles to `globals.css` in a clearly-commen
 
 `app/page.tsx` composes the homepage from `components/*.tsx` in a specific order: `Header, Hero, Intro, Servicios, ZoomParallax, Proceso, Tech, Contacto`. This order is duplicated in `components/ThreeBackground.tsx`'s `SEC_IDS` array, which the particle background uses to detect which section is active during scroll and change its animation/color accordingly. **If you reorder or add/remove a top-level section, update `SEC_IDS` too.**
 
-Only the homepage exists. Header/nav links to `/servicios`, `/nosotros`, `/casos`, `/contacto`, and five service detail pages are not implemented and will 404.
+Service detail pages live at top-level routes matching `Header.tsx`'s `SERVICIOS` array (`/desarrollo-web`, `/agentes-ia`, `/automatizaciones`, `/seo`, `/apps-software`), not under `/servicios/*`. `/desarrollo-web` is the first one built (see below); the other four, plus `/nosotros`, `/casos`, and a standalone `/contacto`, are not implemented yet and will 404 — the only working contact form is the `Contacto` section embedded at the bottom of pages that include it.
+
+### Service pages: React Three Fiber for new 3D work, raw Three.js stays as-is
+
+The homepage's 3D pieces (`ThreeBackground`, `WaveBackground`, and `/desarrollo-web`'s `DesarrolloWebHero`) are hand-rolled, imperative Three.js (`useEffect` + refs + a manual `requestAnimationFrame` loop) — that's deliberate and already performance-tuned/verified, so **don't rewrite them** to match new conventions.
+
+Starting with the *next* service page after `/desarrollo-web`, new 3D scenes should use `@react-three/fiber` + `@react-three/drei` + `@react-three/postprocessing` (all installed, versions pinned to React 19 / three ^0.185 peer deps) instead of hand-rolling scene setup again — in particular `drei`'s `ScrollControls`/`useScroll` for scroll-scrubbed cameras/objects, which replaces the manual `getBoundingClientRect`-based progress calculation used in `DesarrolloWebHero.tsx`. This means the site will have two 3D paradigms side by side on purpose: legacy imperative Three.js on already-shipped pieces, declarative R3F on everything new.
+
+### Shared hooks
+
+`hooks/useReducedMotion.ts` — reads `prefers-reduced-motion` via `useSyncExternalStore` (not `useState` + `useEffect`, which the `react-hooks/set-state-in-effect` lint rule flags and which also risks a hydration-mismatch/`RevealInit` race if gated behind a `ready` flag). Any new scroll-driven/animated component should render its *full* interactive markup on the initial render (matching SSR) and use this hook to swap in a static, non-animated fallback — never delay the real render behind a `ready`-style state, since `RevealInit`'s `IntersectionObserver` only ever scans the DOM once, on its own mount.
 
 ### Global fixed-position layers (mounted once, in `app/layout.tsx`)
 

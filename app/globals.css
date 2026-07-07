@@ -4332,3 +4332,757 @@ input[type="range"].nxr-ms-range::-moz-range-thumb {
     margin-bottom: 16px;
   }
 }
+
+/* ===== Desarrollo Web (service page) — Hero 3D: pila de capas ===== */
+
+#nxr-dwh-hero {
+  position: relative;
+  z-index: 1;
+}
+
+/* No manual height/position:sticky here — GSAP's ScrollTrigger `pin` (see
+   HeroScene.tsx's Rig component) pins this element and inserts its own
+   spacer sized to the scroll-scrubbed animation length. Mixing that with a
+   CSS-driven sticky/height scheme would double-manage the same concern. */
+.nxr-dwh-stage {
+  height: 100lvh;
+  overflow: hidden;
+}
+
+.nxr-dwh-canvas-wrap {
+  position: absolute;
+  inset: 0;
+}
+
+.nxr-dwh-canvas-wrap canvas {
+  display: block;
+}
+
+.nxr-dwh-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+}
+
+.nxr-dwh-head {
+  position: relative;
+  max-width: 640px;
+}
+
+/* Absolute placement only inside the animated hero overlay — the
+   reduced-motion static fallback reuses `.nxr-dwh-head` in normal flow, so
+   this must not leak there (it did once: the static facet grid overlapped a
+   taken-out-of-flow headline). */
+.nxr-dwh-overlay .nxr-dwh-head {
+  position: absolute;
+  top: 128px;
+  left: var(--pad-x);
+  max-width: 460px;
+}
+
+/* The bloom-heavy crystal scene behind can get bright enough to wash out
+   the headline at some scroll/rotation angles — a soft scrim guarantees
+   contrast regardless of what the 3D scene is doing at any given moment. */
+.nxr-dwh-head::before {
+  content: "";
+  position: absolute;
+  inset: -24px -32px;
+  background: radial-gradient(ellipse 100% 100% at 0% 30%, rgba(5, 8, 16, 0.8), transparent 72%);
+  z-index: -1;
+  pointer-events: none;
+}
+
+.nxr-dwh-h1 {
+  font-size: clamp(32px, 5vw, 60px);
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  line-height: 1.15;
+  color: var(--c-white);
+}
+
+.nxr-dwh-layers-panel {
+  position: absolute;
+  left: var(--pad-x);
+  bottom: 48px;
+  width: min(380px, 40vw);
+  background: var(--glass-bg);
+  backdrop-filter: var(--glass-blur);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--glass-shine);
+  pointer-events: auto;
+}
+
+.nxr-dwh-layers-inner {
+  position: relative;
+  padding: 22px 24px;
+  display: flex;
+  gap: 16px;
+  align-items: flex-start;
+}
+
+.nxr-dwh-layer-label {
+  position: absolute;
+  inset: 24px;
+  display: flex;
+  gap: 16px;
+  align-items: flex-start;
+  opacity: 0;
+}
+
+.nxr-dwh-layer-num {
+  font-size: 28px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  flex-shrink: 0;
+}
+
+.nxr-dwh-layer-title {
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--c-white);
+  margin-bottom: 6px;
+}
+
+.nxr-dwh-layer-desc {
+  font-size: 14px;
+  line-height: 1.5;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.nxr-dwh-scrollhint {
+  position: absolute;
+  bottom: 22px;
+  left: 0;
+  right: 0;
+  text-align: center;
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.35);
+  animation: nxr-dwh-bounce 2s ease-in-out infinite;
+}
+
+@keyframes nxr-dwh-bounce {
+  0%,
+  100% {
+    transform: translateY(0);
+    opacity: 0.35;
+  }
+  50% {
+    transform: translateY(6px);
+    opacity: 0.7;
+  }
+}
+
+/* prefers-reduced-motion fallback: static grid, no pinned scroll/WebGL/GSAP. */
+.nxr-dwh-static {
+  padding: 160px var(--pad-x) var(--section-pad);
+}
+
+.nxr-dwh-static-grid {
+  margin-top: 48px;
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 20px;
+}
+
+.nxr-dwh-static-card {
+  padding: 28px;
+  background: var(--glass-bg);
+  backdrop-filter: var(--glass-blur);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--glass-shine);
+}
+
+.nxr-dwh-static-card .nxr-glass-edge-content {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+@media (max-width: 768px) {
+  .nxr-dwh-overlay .nxr-dwh-head {
+    top: 96px;
+    left: 20px;
+    right: 20px;
+    max-width: none;
+  }
+  .nxr-dwh-layers-panel {
+    left: 20px;
+    right: 20px;
+    bottom: 96px;
+    width: auto;
+  }
+  .nxr-dwh-static {
+    padding: 130px 20px var(--section-pad);
+  }
+  .nxr-dwh-static-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ===== Desarrollo Web (service page) — Proceso (reel horizontal) ===== */
+
+.nxr-dwh-proceso {
+  position: relative;
+}
+
+/* GSAP's ScrollTrigger `pin` (see ProcesoReel.tsx) pins this and inserts its
+   own spacer sized to the horizontal scroll distance — no CSS height/sticky
+   needed, same reasoning as `.nxr-dwh-stage` above. */
+.nxr-dwh-proceso-sticky {
+  height: 100lvh;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 48px;
+  padding: 0 var(--pad-x);
+  overflow: hidden;
+}
+
+.nxr-dwh-proceso-head {
+  max-width: 600px;
+}
+
+.nxr-dwh-proceso-track {
+  display: flex;
+  gap: 24px;
+  width: max-content;
+  will-change: transform;
+}
+
+.nxr-dwh-step-card {
+  width: min(340px, 80vw);
+  flex-shrink: 0;
+  padding: 32px;
+  background: var(--glass-bg);
+  backdrop-filter: var(--glass-blur);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--glass-shine);
+}
+
+.nxr-dwh-step-inner {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.nxr-dwh-step-num {
+  font-size: 40px;
+  font-weight: 700;
+  color: var(--c-lime);
+  letter-spacing: -0.02em;
+}
+
+.nxr-dwh-step-title {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--c-white);
+}
+
+.nxr-dwh-step-desc {
+  font-size: 14.5px;
+  line-height: 1.55;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.nxr-dwh-proceso-static {
+  height: auto;
+  padding: var(--section-pad) var(--pad-x);
+}
+
+.nxr-dwh-step-list {
+  margin-top: 40px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.nxr-dwh-step-list .nxr-dwh-step-card {
+  width: 100%;
+}
+
+@media (max-width: 768px) {
+  .nxr-dwh-proceso-sticky {
+    padding: 0 20px;
+    gap: 28px;
+  }
+  .nxr-dwh-step-card {
+    width: 78vw;
+    padding: 24px;
+  }
+  .nxr-dwh-proceso-static {
+    padding: var(--section-pad) 20px;
+  }
+}
+
+/* ===== Desarrollo Web (service page) — Capacidades + stats ===== */
+
+.nxr-dwh-capacidades {
+  position: relative;
+  z-index: 1;
+  padding: var(--section-pad) var(--pad-x);
+}
+
+.nxr-dwh-capacidades-inner {
+  max-width: var(--max-w);
+  margin: 0 auto;
+}
+
+.nxr-dwh-cap-grid {
+  margin-top: 48px;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 20px;
+}
+
+.nxr-dwh-cap-card {
+  position: relative;
+  overflow: hidden;
+  padding: 32px;
+  background: var(--glass-bg);
+  backdrop-filter: var(--glass-blur);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--glass-shine);
+  transition: background 0.3s, transform 0.3s, box-shadow 0.3s;
+}
+
+.nxr-dwh-cap-card:hover {
+  background: rgba(255, 255, 255, 0.09);
+  transform: translateY(-3px);
+  box-shadow: var(--glass-shine-hover);
+}
+
+.nxr-dwh-cap-card::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(600px circle at var(--mx, 50%) var(--my, 50%), rgba(255, 255, 255, 0.04), transparent 60%);
+  opacity: 0;
+  transition: opacity 0.4s;
+  pointer-events: none;
+  border-radius: inherit;
+}
+
+.nxr-dwh-cap-card:hover::before {
+  opacity: 1;
+}
+
+.nxr-dwh-cap-inner {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.nxr-dwh-cap-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.nxr-dwh-cap-icon svg {
+  width: 22px;
+  height: 22px;
+  stroke: currentColor;
+  fill: none;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.nxr-dwh-cap-title {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--c-white);
+}
+
+.nxr-dwh-cap-desc {
+  font-size: 14.5px;
+  line-height: 1.55;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.nxr-dwh-stats-strip {
+  margin-top: 64px;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 20px;
+  padding-top: 40px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.nxr-dwh-stat {
+  text-align: center;
+}
+
+.nxr-dwh-stat-val {
+  font-size: clamp(28px, 3.4vw, 40px);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.nxr-dwh-stat-label {
+  margin-top: 6px;
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.5);
+}
+
+@media (max-width: 768px) {
+  .nxr-dwh-cap-grid {
+    grid-template-columns: 1fr;
+  }
+  .nxr-dwh-stats-strip {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 28px;
+  }
+}
+
+/* ===== Desarrollo Web — Hero: navegador que se construye (BrowserBuild) ===== */
+
+.nxr-bw-scene {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  /* Shifts the browser right-of-centre so the headline (top-left) and facet
+     panel (bottom-left) have their own space and the docked phone (right)
+     stays fully visible. Reset to centre on narrow screens below. */
+  padding-left: 20%;
+  perspective: 1500px;
+  pointer-events: none;
+}
+
+.nxr-bw-tilt,
+.nxr-bw-float {
+  transform-style: preserve-3d;
+  position: relative;
+}
+
+/* --- browser window --- */
+.nxr-bw-browser {
+  width: min(660px, 54vw);
+  border-radius: 16px;
+  background: rgba(12, 18, 30, 0.72);
+  backdrop-filter: blur(14px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 40px 130px rgba(0, 0, 0, 0.55), var(--glass-shine);
+  overflow: hidden;
+  transform: rotateY(-15deg) rotateX(6deg);
+  transform-style: preserve-3d;
+  transition: box-shadow 0.4s;
+}
+
+.nxr-bw-browser.nxr-bw-live {
+  box-shadow: 0 40px 130px rgba(0, 0, 0, 0.55), 0 0 60px rgba(168, 240, 74, 0.25), var(--glass-shine);
+}
+
+.nxr-bw-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 13px 16px;
+  background: rgba(255, 255, 255, 0.04);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+}
+
+.nxr-bw-dot {
+  width: 11px;
+  height: 11px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.nxr-bw-url {
+  margin-left: 12px;
+  flex: 1;
+  height: 26px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.05);
+  display: flex;
+  align-items: center;
+  padding: 0 12px;
+}
+
+.nxr-bw-url-text {
+  font-size: 12.5px;
+  color: rgba(255, 255, 255, 0.55);
+  font-family: ui-monospace, "SF Mono", Menlo, monospace;
+}
+
+.nxr-bw-body {
+  padding: 22px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  min-height: 320px;
+}
+
+/* skeleton pieces (fade/scale in on stage 1) */
+.nxr-bw-hero {
+  position: relative;
+  height: 118px;
+  border-radius: 12px;
+  overflow: hidden;
+}
+.nxr-bw-hero.nxr-bw-wire,
+.nxr-bw-card.nxr-bw-wire {
+  border: 1.5px dashed rgba(255, 255, 255, 0.16);
+  background: rgba(255, 255, 255, 0.02);
+}
+.nxr-bw-line.nxr-bw-wire {
+  background: rgba(255, 255, 255, 0.09);
+}
+
+/* colored fills (fade in on stage 2) */
+.nxr-bw-fill {
+  position: absolute;
+  inset: 0;
+}
+.nxr-bw-hero-fill {
+  background: linear-gradient(120deg, rgba(239, 61, 13, 0.5), rgba(168, 240, 74, 0.42), rgba(255, 157, 125, 0.5));
+}
+
+.nxr-bw-line {
+  height: 12px;
+  border-radius: 6px;
+  position: relative;
+  overflow: hidden;
+}
+.nxr-bw-line.w70 {
+  width: 70%;
+}
+.nxr-bw-line.w50 {
+  width: 50%;
+}
+.nxr-bw-line-accent {
+  background: linear-gradient(90deg, var(--c-lime), var(--c-salmon));
+}
+
+.nxr-bw-cards {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+}
+.nxr-bw-card {
+  height: 70px;
+  border-radius: 10px;
+  position: relative;
+  overflow: hidden;
+}
+.nxr-bw-card .nxr-bw-fill {
+  border-radius: inherit;
+}
+
+/* performance ring (stage 4) */
+.nxr-bw-perf {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  width: 56px;
+  height: 56px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.nxr-bw-perf svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  transform: rotate(-90deg);
+}
+.nxr-bw-perf-track {
+  fill: none;
+  stroke: rgba(255, 255, 255, 0.14);
+  stroke-width: 5;
+}
+.nxr-bw-perf-ring {
+  fill: none;
+  stroke: var(--c-lime);
+  stroke-width: 5;
+  stroke-linecap: round;
+}
+.nxr-bw-perf-num {
+  font-size: 17px;
+  font-weight: 700;
+  color: #fff;
+}
+
+/* data layer (stage 3) */
+.nxr-bw-data {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  height: 60px;
+  margin-top: 2px;
+}
+.nxr-bw-db {
+  color: var(--c-salmon);
+  width: 38px;
+  height: 38px;
+  flex-shrink: 0;
+}
+.nxr-bw-db svg {
+  width: 100%;
+  height: 100%;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.5;
+}
+.nxr-bw-wires {
+  width: 104px;
+  height: 54px;
+  flex-shrink: 0;
+}
+.nxr-bw-wires path {
+  fill: none;
+  stroke: rgba(168, 240, 74, 0.55);
+  stroke-width: 1.5;
+}
+.nxr-bw-stat {
+  display: flex;
+  flex-direction: column;
+}
+.nxr-bw-stat-num {
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--c-lime);
+  letter-spacing: -0.01em;
+}
+.nxr-bw-stat-label {
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.5);
+}
+
+/* docked phone (responsive, stage 4) */
+.nxr-bw-phone {
+  position: absolute;
+  right: -92px;
+  bottom: -6px;
+  width: 122px;
+  height: 240px;
+  border-radius: 22px;
+  background: rgba(10, 15, 26, 0.96);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  box-shadow: 0 30px 80px rgba(0, 0, 0, 0.6), var(--glass-shine);
+  transform: rotateY(-16deg) translateZ(60px);
+  transform-style: preserve-3d;
+  padding: 12px 10px;
+  overflow: hidden;
+}
+.nxr-bw-phone-notch {
+  width: 40px;
+  height: 5px;
+  border-radius: 3px;
+  background: rgba(255, 255, 255, 0.18);
+  margin: 0 auto 12px;
+}
+.nxr-bw-phone-body {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+}
+.nxr-bw-phone-hero {
+  height: 56px;
+  border-radius: 8px;
+  background: linear-gradient(120deg, rgba(168, 240, 74, 0.45), rgba(255, 157, 125, 0.45));
+}
+.nxr-bw-phone-line {
+  height: 8px;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.14);
+}
+.nxr-bw-phone-line.w80 {
+  width: 80%;
+}
+.nxr-bw-phone-line.w60 {
+  width: 60%;
+}
+.nxr-bw-phone-card {
+  height: 60px;
+  border-radius: 8px;
+  background: rgba(239, 61, 13, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+/* floating chips + cursor */
+.nxr-bw-chip {
+  position: absolute;
+  padding: 8px 12px;
+  border-radius: 12px;
+  background: rgba(12, 18, 30, 0.88);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  font-family: ui-monospace, "SF Mono", Menlo, monospace;
+  font-size: 14px;
+  font-weight: 700;
+  color: #fff;
+  box-shadow: 0 14px 44px rgba(0, 0, 0, 0.45);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.nxr-bw-chip-code {
+  top: -22px;
+  left: -34px;
+  color: var(--c-lime);
+  transform: translateZ(70px);
+}
+.nxr-bw-chip-perf {
+  bottom: 30px;
+  left: -46px;
+  color: var(--c-salmon);
+  transform: translateZ(50px);
+}
+.nxr-bw-chip-perf svg {
+  width: 14px;
+  height: 14px;
+  fill: var(--c-salmon);
+}
+.nxr-bw-cursor {
+  position: absolute;
+  width: 22px;
+  height: 22px;
+  top: 42%;
+  left: 44%;
+  filter: drop-shadow(0 2px 5px rgba(0, 0, 0, 0.5));
+}
+.nxr-bw-cursor svg {
+  width: 100%;
+  height: 100%;
+  fill: #fff;
+  stroke: rgba(0, 0, 0, 0.35);
+  stroke-width: 1;
+}
+
+@media (max-width: 900px) {
+  .nxr-bw-scene {
+    padding-left: 0;
+    align-items: flex-start;
+    padding-top: 25vh;
+  }
+  .nxr-bw-browser {
+    width: min(440px, 84vw);
+  }
+  .nxr-bw-phone {
+    right: -30px;
+    bottom: -24px;
+    width: 92px;
+    height: 184px;
+    transform: rotateY(-16deg) translateZ(20px);
+  }
+  .nxr-bw-chip-code {
+    left: -14px;
+  }
+  .nxr-bw-chip-perf {
+    left: -20px;
+  }
+}

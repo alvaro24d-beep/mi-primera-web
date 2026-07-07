@@ -1,10 +1,17 @@
 "use client";
 
 import { useEffect, useRef } from "react";
+import dynamic from "next/dynamic";
 import gsap from "gsap";
 import { useGSAP } from "@gsap/react";
-import HeroScene from "./dwh/HeroScene";
 import BrowserBuild from "./dwh/BrowserBuild";
+
+// Three.js + R3F + drei + postprocessing is by far the heaviest JS on this
+// route. Load it as a separate chunk after hydration (`ssr: false`) so it
+// doesn't block first paint / interactivity (Total Blocking Time, Speed Index).
+// The canvas is `opacity:0` until the title-intro finishes scrolling anyway, so
+// arriving a beat later is invisible.
+const HeroScene = dynamic(() => import("./dwh/HeroScene"), { ssr: false });
 import { FACETS } from "./dwh/facets";
 import { useReducedMotion } from "@/hooks/useReducedMotion";
 

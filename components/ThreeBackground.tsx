@@ -34,13 +34,21 @@ export default function ThreeBackground() {
     const camera = new THREE.PerspectiveCamera(60, stableW / stableH, 1, 3000);
     camera.position.z = 400;
 
-    const renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
+    const isMobile = stableW < 768;
+
+    // Antialias (MSAA) is expensive on mobile GPUs; skip it there. Cap the pixel
+    // ratio too — the particle field doesn't need the full 2-3x retina backing
+    // store, and that fill rate is a big part of what heats the phone.
+    const renderer = new THREE.WebGLRenderer({ alpha: true, antialias: !isMobile });
     renderer.setSize(stableW, stableH);
-    renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+    renderer.setPixelRatio(Math.min(devicePixelRatio, isMobile ? 1.5 : 2));
     container.appendChild(renderer.domElement);
 
-    const isMobile = stableW < 768;
-    const COUNT = isMobile ? 1000 : 900;
+    // Fewer particles on phones: the per-frame target/lerp/matrix loop is
+    // O(COUNT) of trig-heavy JS on the main thread, so this is the biggest
+    // lever for "minimize main-thread work" here. (Mobile used to run MORE
+    // particles than desktop, which was backwards.)
+    const COUNT = isMobile ? 450 : 800;
 
     const geo = new THREE.SphereGeometry(isMobile ? 0.4 : 0.6, 6, 6);
     const mat = new THREE.MeshBasicMaterial({
@@ -348,6 +356,22 @@ export default function ThreeBackground() {
       renderer.render(scene, camera);
     }
 
+    // Stop the whole simulation when the tab/screen is hidden — no point
+    // running a 450-800 particle loop + WebGL draw for something nobody sees.
+    let running = true;
+    const onVisibility = () => {
+      if (document.hidden) {
+        if (running) {
+          running = false;
+          cancelAnimationFrame(rafId);
+        }
+      } else if (!running) {
+        running = true;
+        rafId = requestAnimationFrame(animate);
+      }
+    };
+    document.addEventListener("visibilitychange", onVisibility);
+
     detect();
     window.addEventListener("load", detect);
     rafId = requestAnimationFrame(animate);
@@ -358,6 +382,7 @@ export default function ThreeBackground() {
       document.removeEventListener("mousemove", onMouseMove);
       window.removeEventListener("resize", onResize);
       window.removeEventListener("load", detect);
+      document.removeEventListener("visibilitychange", onVisibility);
       renderer.dispose();
       geo.dispose();
       mat.dispose();

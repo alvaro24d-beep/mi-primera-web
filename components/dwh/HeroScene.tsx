@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import { EffectComposer, Bloom, Vignette } from "@react-three/postprocessing";
 import * as THREE from "three";
@@ -116,14 +116,57 @@ function Atmosphere() {
 }
 
 export default function HeroScene() {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  // Bloom/Vignette is a per-frame, multi-pass, full-screen effect — the single
+  // most expensive thing in this scene and a prime reason phones heat up. Drop
+  // it on mobile (plus antialias, and a lower max pixel ratio). A cheap CSS
+  // radial vignette on `.nxr-dwh-canvas-wrap` stands in for the framing.
+  const [isMobile] = useState(() => typeof window !== "undefined" && window.innerWidth < 768);
+  // Only render while the hero is actually on-screen and the tab is visible —
+  // the page is very long, so this stops the WebGL loop for most of the scroll.
+  const [active, setActive] = useState(true);
+
+  useEffect(() => {
+    const el = canvasRef.current;
+    if (!el) return;
+    let inView = true;
+    let visible = document.visibilityState === "visible";
+    const update = () => setActive(inView && visible);
+    const io = new IntersectionObserver(
+      ([e]) => {
+        inView = e.isIntersecting;
+        update();
+      },
+      { rootMargin: "150px" }
+    );
+    io.observe(el);
+    const onVis = () => {
+      visible = document.visibilityState === "visible";
+      update();
+    };
+    document.addEventListener("visibilitychange", onVis);
+    return () => {
+      io.disconnect();
+      document.removeEventListener("visibilitychange", onVis);
+    };
+  }, []);
+
   return (
-    <Canvas dpr={[1, 2]} camera={{ position: [0, 0, 12], fov: 55, near: 0.1, far: 100 }} gl={{ alpha: true }}>
+    <Canvas
+      ref={canvasRef}
+      frameloop={active ? "always" : "never"}
+      dpr={isMobile ? [1, 1.25] : [1, 2]}
+      camera={{ position: [0, 0, 12], fov: 55, near: 0.1, far: 100 }}
+      gl={{ alpha: true, antialias: !isMobile, powerPreference: "high-performance" }}
+    >
       <Atmosphere />
       <GlyphField />
-      <EffectComposer>
-        <Bloom mipmapBlur luminanceThreshold={0.5} luminanceSmoothing={0.3} intensity={0.5} />
-        <Vignette eskil={false} offset={0.3} darkness={0.7} />
-      </EffectComposer>
+      {!isMobile && (
+        <EffectComposer>
+          <Bloom mipmapBlur luminanceThreshold={0.5} luminanceSmoothing={0.3} intensity={0.5} />
+          <Vignette eskil={false} offset={0.3} darkness={0.7} />
+        </EffectComposer>
+      )}
     </Canvas>
   );
 }

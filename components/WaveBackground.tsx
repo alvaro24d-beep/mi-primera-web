@@ -98,7 +98,11 @@ export default function WaveBackground() {
     const resolutionLoc = gl.getUniformLocation(program, "uResolution");
     const timeLoc = gl.getUniformLocation(program, "uTime");
 
-    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    // A soft, slow gradient doesn't need retina resolution — capping the pixel
+    // ratio (esp. on phones, where the backing store is otherwise 2-3x the CSS
+    // pixels) is the single biggest GPU/heat saving here for zero visible loss.
+    const isMobile = window.innerWidth < 768;
+    const dpr = Math.min(window.devicePixelRatio || 1, isMobile ? 1.25 : 1.75);
     let stableW = window.innerWidth;
     let stableH = window.innerHeight;
 
@@ -123,19 +127,46 @@ export default function WaveBackground() {
     };
     window.addEventListener("resize", onResize, { passive: true });
 
+    // Throttle to ~30fps: the wave animates slowly, so half the frames look
+    // identical to the eye but cost half the GPU fill. `uTime` is derived from
+    // the real timestamp (not a frame counter), so dropping frames keeps the
+    // motion perfectly time-accurate.
+    const frameInterval = 1000 / 30;
     const start = performance.now();
     let rafId = 0;
+    let lastDraw = -Infinity;
+    let running = true;
+
     function render(now: number) {
       rafId = requestAnimationFrame(render);
+      if (now - lastDraw < frameInterval) return;
+      lastDraw = now;
       gl!.uniform2f(resolutionLoc, canvas!.width, canvas!.height);
       gl!.uniform1f(timeLoc, (now - start) * 0.001);
       gl!.drawArrays(gl!.TRIANGLE_STRIP, 0, 4);
     }
+
+    // Don't burn the GPU animating a background nobody is looking at (tab in the
+    // background / screen off) — a major battery + heat win.
+    const onVisibility = () => {
+      if (document.hidden) {
+        if (running) {
+          running = false;
+          cancelAnimationFrame(rafId);
+        }
+      } else if (!running) {
+        running = true;
+        lastDraw = -Infinity;
+        rafId = requestAnimationFrame(render);
+      }
+    };
+    document.addEventListener("visibilitychange", onVisibility);
     rafId = requestAnimationFrame(render);
 
     return () => {
       cancelAnimationFrame(rafId);
       window.removeEventListener("resize", onResize);
+      document.removeEventListener("visibilitychange", onVisibility);
     };
   }, []);
 

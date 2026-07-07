@@ -4604,6 +4604,19 @@ input[type="range"].nxr-ms-range::-moz-range-thumb {
   display: block;
 }
 
+/* On phones the WebGL Vignette pass is dropped for performance (see
+   HeroScene.tsx); this cheap radial gradient reproduces its edge-darkening
+   framing for free. */
+@media (max-width: 768px) {
+  .nxr-dwh-canvas-wrap::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background: radial-gradient(ellipse at center, transparent 52%, rgba(3, 5, 10, 0.72) 100%);
+  }
+}
+
 .nxr-dwh-overlay {
   position: absolute;
   inset: 0;

@@ -9,6 +9,15 @@ gsap.registerPlugin(ScrollTrigger);
 
 export default function SmoothScroll() {
   useEffect(() => {
+    // Mobile browsers (Chrome/Safari) show/hide their address bar as you scroll,
+    // firing a `resize` that only changes viewport HEIGHT. By default that makes
+    // ScrollTrigger.refresh() recompute every pin/end, which reflows the pinned
+    // sections and visibly shoves the whole page up/down — exactly the "the bar
+    // hides and leaves an empty gap that pushes the site up" glitch. Telling
+    // ScrollTrigger to ignore that height-only mobile resize keeps the layout
+    // rock-steady while the toolbar animates (pros do this on any pinned site).
+    ScrollTrigger.config({ ignoreMobileResize: true });
+
     const lenis = new Lenis({
       autoRaf: false,
     });

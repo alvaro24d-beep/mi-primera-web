@@ -4845,12 +4845,28 @@ input[type="range"].nxr-ms-range::-moz-range-thumb {
 
 @media (max-width: 768px) {
   .nxr-dwh-proceso-sticky {
-    padding: 0 20px;
-    gap: 28px;
+    /* Top-align (not vertically-centred) on phones: the heading + reel appear
+       right as the hero scrolls away, instead of sitting in the middle of the
+       screen and leaving a tall empty band during the hero→proceso hand-off.
+       Small top padding so the heading rides near the top of the incoming
+       section (enters as early as possible in the scroll). */
+    justify-content: flex-start;
+    padding: 7vh 20px 0;
+    gap: 24px;
   }
   .nxr-dwh-step-card {
     width: 78vw;
-    padding: 24px;
+    padding: 26px;
+    /* Taller cards on phones so the horizontal reel fills the pinned viewport
+       (less dead space below it) and reads as a deliberate, roomy layout. */
+    min-height: 300px;
+    display: flex;
+    flex-direction: column;
+  }
+  .nxr-dwh-step-inner {
+    flex: 1;
+    justify-content: space-between;
+    gap: 18px;
   }
   .nxr-dwh-proceso-static {
     padding: var(--section-pad) 20px;

@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { Manrope } from "next/font/google";
 import "./globals.css";
-import ThreeBackground from "@/components/ThreeBackground";
+import ParticlesGate from "@/components/ParticlesGate";
 import WaveBackground from "@/components/WaveBackground";
 import RevealInit from "@/components/RevealInit";
 import SmoothScroll from "@/components/SmoothScroll";
@@ -27,7 +27,7 @@ export default function RootLayout({
       <body suppressHydrationWarning>
         <SmoothScroll />
         <WaveBackground />
-        <ThreeBackground />
+        <ParticlesGate />
         <RevealInit />
         {children}
       </body>

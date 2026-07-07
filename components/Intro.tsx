@@ -52,6 +52,7 @@ function GrowAnim() {
 
 export default function Intro() {
   const wrapRef = useRef<HTMLDivElement>(null);
+  const headlineRef = useRef<HTMLHeadingElement>(null);
   const textsRef = useRef<HTMLDivElement>(null);
   const card1Ref = useRef<HTMLDivElement>(null);
   const card2Ref = useRef<HTMLDivElement>(null);
@@ -59,40 +60,42 @@ export default function Intro() {
 
   useEffect(() => {
     const wrap = wrapRef.current;
+    const headline = headlineRef.current;
     const texts = textsRef.current;
     const cards = [card1Ref.current, card2Ref.current, card3Ref.current];
-    if (!wrap || !texts || cards.some((c) => !c)) return;
+    if (!wrap || !headline || !texts || cards.some((c) => !c)) return;
 
     const clamp = (v: number, a: number, b: number) => Math.max(a, Math.min(b, v));
     const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
     const ease = (t: number) => (t < 0.5 ? 2 * t * t : -1 + (4 - 2 * t) * t);
 
-    // Windmill geometry: each card is a blade pivoting on the right edge of the
-    // screen (see globals.css transform-origin). Scroll drives one rotation;
-    // the per-card OFFSET spaces the three blades apart so they sweep up through
-    // the readable (angle ≈ 0, horizontal) position one after another.
+    // Windmill geometry: every card is a blade pivoting on the SAME axis
+    // (globals.css transform-origin, now well off the right edge). Scroll drives
+    // one rotation; the per-card OFFSET spaces the three blades apart so they
+    // sweep up through the readable (angle ≈ 0, horizontal) position one after
+    // another — all along the same path.
     const START = 95; // card 0's angle at scroll=0 (well below/hidden)
     const OFFSET = 90; // wide angular spacing so only ONE blade is visible at a time
     const FADE_CORE = 18; // fully opaque within ±this angle
     const FADE_SPAN = 60; // fades to 0 over this many further degrees
 
-    // Scroll → rotation is non-linear and deliberately slow:
-    //  · rot stays ~0 until p≈0.33 so the first blade only appears AFTER the
-    //    intro paragraphs (which finish fading by p≈0.30) have gone;
-    //  · shallow-slope segments centred on rot = 95 / 185 / 275 (where cards
-    //    0/1/2 are horizontal) make each blade LINGER horizontal — easy to
-    //    read — while it sweeps faster in between.
+    // Scroll → rotation, non-linear and slow: rot stays ~0 while the intro text
+    // is up, shallow-slope segments (centred on rot 95/185/275) make each blade
+    // LINGER horizontal, and — crucially — card 2 keeps rotating OUT right up to
+    // p = 1 (it reaches opacity 0 exactly as the pin releases), so there's no
+    // frozen frame AND no empty gap before the next section: the third card is
+    // still leaving as the pin hands off.
     const ROT_KNOTS: [number, number][] = [
       [0.0, 0],
-      [0.3, 12], // blades still hidden below while the text is up
-      [0.36, 78],
-      [0.52, 150], // card 0 dwell (readable ≈ 0.40)
-      [0.58, 185],
-      [0.74, 248], // card 1 dwell (readable ≈ 0.60)
-      [0.8, 275],
-      [0.88, 300], // card 2 dwell (readable ≈ 0.81)
-      [0.95, 360], // …then card 2 keeps rotating fully OUT before the pin ends,
-      [1.0, 385], //  so nothing is frozen mid-motion when the sticky releases.
+      [0.28, 14], // blades hidden below while the text is up
+      [0.34, 78],
+      [0.46, 112], // card 0 dwell (readable ≈ 0.40)
+      [0.54, 155],
+      [0.68, 215], // card 1 dwell (readable ≈ 0.61)
+      [0.76, 250],
+      [0.88, 285], // card 2 dwell (readable ≈ 0.85) — stays fully visible…
+      [0.96, 318], // …then rotates out only in the final stretch, so it's still
+      [1.0, 355], //  leaving as the pin releases and the next section arrives.
     ];
     function rotAt(p: number) {
       for (let i = 0; i < ROT_KNOTS.length - 1; i++) {
@@ -113,6 +116,7 @@ export default function Intro() {
       const rect = wrap!.getBoundingClientRect();
       const total = wrap!.offsetHeight - window.innerHeight;
       const p = clamp(-rect.top / total, 0, 1);
+      const mobile = window.innerWidth <= 900;
 
       // Intro paragraphs fade up and out before the blades take over.
       const tMove = clamp(p / 0.28, 0, 1);
@@ -120,14 +124,23 @@ export default function Intro() {
       texts!.style.transform = `translateY(${lerp(0, -120, tMove)}px)`;
       texts!.style.opacity = String(lerp(1, 0, tFade));
 
+      // On mobile the headline must NOT stay pinned: it scrolls up and away as
+      // the section starts (finishing just as the first blade arrives). On
+      // desktop it stays put (reset any inline styles left from a resize).
+      const hOut = mobile ? ease(clamp((p - 0.14) / 0.18, 0, 1)) : 0;
+      if (hOut > 0.001) {
+        headline!.style.transform = `translateY(${lerp(0, -300, hOut)}px)`;
+        headline!.style.opacity = String(1 - hOut);
+      } else {
+        // Leave the headline to its normal flow / reveal animation.
+        headline!.style.transform = "";
+        headline!.style.opacity = "";
+      }
+
       const rot = rotAt(p);
       cards.forEach((card, i) => {
-        // Card index 1 ("02 Automatizamos") pivots on the LEFT edge instead —
-        // a second windmill mirrored across the screen (its position/origin is
-        // set in CSS; here we just mirror the rotation direction).
-        const isLeft = i === 1;
         // Negative → points down (bottom); 0 → horizontal/readable; positive →
-        // points up. Rises with scroll.
+        // points up. Rises with scroll. All blades share the same axis/path.
         const angle = -START - i * OFFSET + rot;
         const aAbs = Math.abs(angle);
         const vis = clamp(1 - (aAbs - FADE_CORE) / FADE_SPAN, 0, 1);
@@ -135,15 +148,13 @@ export default function Intro() {
         const blur = (1 - vis) * 6;
 
         // Windmill spin (rotateZ) + a pronounced 3D turn (perspective +
-        // rotateY/rotateX, baked into the SAME transform so the card's own
-        // backdrop-filter still renders — an ancestor perspective would kill
-        // the glass blur). The card turns to face you at horizontal and tips
-        // away 3D as it enters/leaves; mirrored for the left-pivot card.
-        const rz = isLeft ? -angle : angle;
-        let ry = clamp(-angle * 0.6, -42, 42);
-        if (isLeft) ry = -ry;
+        // rotateY/rotateX baked into the SAME transform, so the card's own
+        // backdrop-filter still renders — an ancestor perspective would kill the
+        // glass blur). The card turns to face you at horizontal and tips away in
+        // 3D as it enters/leaves.
+        const ry = clamp(-angle * 0.6, -42, 42);
         const rx = 8 + (1 - vis) * 12;
-        card!.style.transform = `perspective(1100px) rotate(${rz}deg) rotateY(${ry}deg) rotateX(${rx}deg) scale(${scale})`;
+        card!.style.transform = `perspective(1100px) rotate(${angle}deg) rotateY(${ry}deg) rotateX(${rx}deg) scale(${scale})`;
         card!.style.opacity = String(vis);
         card!.style.filter = blur > 0.05 ? `blur(${blur}px)` : "none";
         card!.style.zIndex = String(10 + Math.round(vis * 10));
@@ -165,7 +176,7 @@ export default function Intro() {
       <div id="nxr-intro-sticky-wrap" ref={wrapRef}>
         <div id="nxr-intro-sticky">
           <div className="nxr-intro-sticky-inner">
-            <h2 className="nxr-intro-headline nxr-reveal">
+            <h2 className="nxr-intro-headline nxr-reveal" ref={headlineRef}>
               Hacemos que
               <br />
               la tecnología

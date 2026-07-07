@@ -5,6 +5,7 @@ import ParticlesGate from "@/components/ParticlesGate";
 import WaveBackground from "@/components/WaveBackground";
 import RevealInit from "@/components/RevealInit";
 import SmoothScroll from "@/components/SmoothScroll";
+import ScrollProgress from "@/components/ScrollProgress";
 
 const manrope = Manrope({
   variable: "--font-primary",
@@ -26,6 +27,7 @@ export default function RootLayout({
     <html lang="es" className={manrope.variable}>
       <body suppressHydrationWarning>
         <SmoothScroll />
+        <ScrollProgress />
         <WaveBackground />
         <ParticlesGate />
         <RevealInit />

@@ -92,8 +92,9 @@ export default function Intro() {
       [0.46, 172], // fast
       [0.62, 198], // card 1 dwell (readable ≈ 0.54)
       [0.7, 262], // fast
-      [0.86, 288], // card 2 dwell (readable ≈ 0.78)
-      [1.0, 353], // …still rotating out as the pin releases
+      [0.92, 296], // card 2 dwell EXTENDED — readable holds ≈ 0.78→0.91
+      [1.0, 360], // steep exit: the last blade clears right as Servicios
+      //             arrives, so there's no long empty tail before it.
     ];
     function rotAt(p: number) {
       for (let i = 0; i < ROT_KNOTS.length - 1; i++) {
@@ -119,7 +120,11 @@ export default function Intro() {
       const mobile = vw <= 900;
       const cx = mobile ? vw / 2 : (headline!.getBoundingClientRect().right + vw) / 2;
       const cy = vh / 2;
-      const R = mobile ? 340 : 600; // arc radius (axis distance from the spot)
+      // Arc radius (axis distance from the readable spot). Larger = the pivot is
+      // farther away, so each blade sweeps a wider, gentler arc instead of
+      // whipping around a tight corner. Not too large though, or the blade flies
+      // far off to a corner on the way out and empties the centre.
+      const R = mobile ? 430 : 820;
       cards.forEach((card, i) => {
         const el = card!;
         const w = el.offsetWidth;

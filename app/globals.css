@@ -240,22 +240,37 @@ h6 {
   transition-delay: 0.56s;
 }
 
+/* Native scrollbar hidden — replaced by the custom red scroll-progress bar
+   (see ScrollProgress.tsx + .nxr-scrollprogress below). */
 ::-webkit-scrollbar {
-  width: 6px;
-}
-::-webkit-scrollbar-track {
-  background: transparent;
-}
-::-webkit-scrollbar-thumb {
-  background: #fcfcfc;
-  border-radius: 100px;
-}
-::-webkit-scrollbar-thumb:hover {
-  background: #fcfcfc;
+  width: 0;
+  height: 0;
 }
 * {
-  scrollbar-width: thin;
-  scrollbar-color: #fcfcfc transparent;
+  scrollbar-width: none;
+}
+
+/* Scroll-progress bar pinned to the right edge: a flat red fill (the brand
+   button red) that grows top→bottom with scroll — a progress bar, not a
+   floating pill. */
+.nxr-scrollprogress {
+  position: fixed;
+  top: 0;
+  right: 0;
+  width: 4px;
+  height: 100lvh;
+  z-index: 9998;
+  pointer-events: none;
+  background: rgba(255, 255, 255, 0.05);
+}
+.nxr-scrollprogress-fill {
+  width: 100%;
+  height: 100%;
+  transform-origin: top center;
+  transform: scaleY(0);
+  background: var(--c-red);
+  box-shadow: 0 0 10px rgba(239, 61, 13, 0.55);
+  will-change: transform;
 }
 
 @keyframes nxr-gradient-shift {
@@ -324,6 +339,14 @@ h6 {
   );
   background-size: 300% 300%;
   animation: nxr-gradient-shift 5s ease infinite;
+}
+
+/* The animated-gradient title words are set in a serif (Times New Roman) as a
+   deliberate editorial contrast against the Manrope sans used everywhere else. */
+.nxr-gradient-text,
+.nxr-gradient-text-lime,
+.nxr-gradient-text-salmon {
+  font-family: "Times New Roman", Times, serif;
 }
 
 @media (max-width: 768px) {
@@ -4520,9 +4543,11 @@ input[type="range"].nxr-ms-range::-moz-range-thumb {
 
 @media (max-width: 900px) {
   /* Windmill stays active on mobile — the sticky keeps its 100vh pin and
-     scroll range from the base rules; only sizing/placement is tuned here. */
+     scroll range from the base rules; only sizing/placement is tuned here.
+     Slightly shorter than desktop so the last blade's exit doesn't leave a
+     long empty tail before Servicios. */
   #nxr-intro-sticky-wrap {
-    height: 400vh;
+    height: 360vh;
   }
 
   #nxr-intro-sticky {
@@ -4602,19 +4627,6 @@ input[type="range"].nxr-ms-range::-moz-range-thumb {
 
 .nxr-dwh-canvas-wrap canvas {
   display: block;
-}
-
-/* On phones the WebGL Vignette pass is dropped for performance (see
-   HeroScene.tsx); this cheap radial gradient reproduces its edge-darkening
-   framing for free. */
-@media (max-width: 768px) {
-  .nxr-dwh-canvas-wrap::after {
-    content: "";
-    position: absolute;
-    inset: 0;
-    pointer-events: none;
-    background: radial-gradient(ellipse at center, transparent 52%, rgba(3, 5, 10, 0.72) 100%);
-  }
 }
 
 .nxr-dwh-overlay {
@@ -4749,6 +4761,15 @@ input[type="range"].nxr-ms-range::-moz-range-thumb {
 }
 
 @media (max-width: 768px) {
+  /* Trim 70px off the bottom of the pinned stage so the hero doesn't drag a
+     tall empty band up past the viewport as it scrolls away into Proceso. The
+     facet card's bottom offset is reduced by the same 70px (150→80) so its
+     on-screen clearance above the floating nav stays identical during the pin —
+     only the dead scroll-off band shrinks. The 70px below the stage just shows
+     the same global WaveBackground the rest of the page sits on. */
+  .nxr-dwh-stage {
+    height: calc(100lvh - 70px);
+  }
   .nxr-dwh-overlay .nxr-dwh-head {
     /* Sits high to use the vertical space (the top header scrolls away while
        the hero is pinned, so there's nothing to clear up here). */
@@ -4761,10 +4782,9 @@ input[type="range"].nxr-ms-range::-moz-range-thumb {
   .nxr-dwh-layers-panel {
     left: 20px;
     right: 20px;
-    /* Clear the floating bottom nav (which sits ~20px + safe-area from the
-       bottom and is ~56px tall) with generous room so the cards aren't glued
-       to it. */
-    bottom: calc(150px + env(safe-area-inset-bottom));
+    /* 80px here + the 70px the stage is short = same ~150px clearance above the
+       floating bottom nav as before, but a much smaller scroll-off band. */
+    bottom: calc(80px + env(safe-area-inset-bottom));
     width: auto;
   }
   .nxr-dwh-static {
@@ -4861,10 +4881,10 @@ input[type="range"].nxr-ms-range::-moz-range-thumb {
     /* Top-align (not vertically-centred) on phones: the heading + reel appear
        right as the hero scrolls away, instead of sitting in the middle of the
        screen and leaving a tall empty band during the hero→proceso hand-off.
-       Small top padding so the heading rides near the top of the incoming
+       Minimal top padding so the heading rides at the very top of the incoming
        section (enters as early as possible in the scroll). */
     justify-content: flex-start;
-    padding: 7vh 20px 0;
+    padding: 2vh 20px 0;
     gap: 24px;
   }
   .nxr-dwh-step-card {

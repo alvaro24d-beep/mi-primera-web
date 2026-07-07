@@ -71,23 +71,28 @@ export default function Intro() {
     // screen (see globals.css transform-origin). Scroll drives one rotation;
     // the per-card OFFSET spaces the three blades apart so they sweep up through
     // the readable (angle ≈ 0, horizontal) position one after another.
-    const START = 70; // card 0's angle at scroll=0 (negative = below/bottom)
-    const OFFSET = 62; // angular spacing between blades
+    const START = 95; // card 0's angle at scroll=0 (well below/hidden)
+    const OFFSET = 90; // wide angular spacing so only ONE blade is visible at a time
     const FADE_CORE = 18; // fully opaque within ±this angle
     const FADE_SPAN = 60; // fades to 0 over this many further degrees
 
-    // Scroll → rotation is non-linear: shallow-slope segments centred on
-    // rot = 70 / 132 / 194 (where cards 0/1/2 are horizontal) make each blade
-    // linger horizontal — easy to read — while it sweeps faster in between.
+    // Scroll → rotation is non-linear and deliberately slow:
+    //  · rot stays ~0 until p≈0.33 so the first blade only appears AFTER the
+    //    intro paragraphs (which finish fading by p≈0.30) have gone;
+    //  · shallow-slope segments centred on rot = 95 / 185 / 275 (where cards
+    //    0/1/2 are horizontal) make each blade LINGER horizontal — easy to
+    //    read — while it sweeps faster in between.
     const ROT_KNOTS: [number, number][] = [
       [0.0, 0],
-      [0.18, 60],
-      [0.36, 80],
-      [0.46, 122],
-      [0.64, 142],
-      [0.74, 184],
-      [0.92, 204],
-      [1.0, 230],
+      [0.3, 12], // blades still hidden below while the text is up
+      [0.36, 78],
+      [0.52, 150], // card 0 dwell (readable ≈ 0.40)
+      [0.58, 185],
+      [0.74, 248], // card 1 dwell (readable ≈ 0.60)
+      [0.8, 275],
+      [0.88, 300], // card 2 dwell (readable ≈ 0.81)
+      [0.95, 360], // …then card 2 keeps rotating fully OUT before the pin ends,
+      [1.0, 385], //  so nothing is frozen mid-motion when the sticky releases.
     ];
     function rotAt(p: number) {
       for (let i = 0; i < ROT_KNOTS.length - 1; i++) {
@@ -117,14 +122,28 @@ export default function Intro() {
 
       const rot = rotAt(p);
       cards.forEach((card, i) => {
-        // Negative → points down (bottom-right); 0 → horizontal/readable;
-        // positive → points up (top-right). Rises with scroll.
+        // Card index 1 ("02 Automatizamos") pivots on the LEFT edge instead —
+        // a second windmill mirrored across the screen (its position/origin is
+        // set in CSS; here we just mirror the rotation direction).
+        const isLeft = i === 1;
+        // Negative → points down (bottom); 0 → horizontal/readable; positive →
+        // points up. Rises with scroll.
         const angle = -START - i * OFFSET + rot;
         const aAbs = Math.abs(angle);
         const vis = clamp(1 - (aAbs - FADE_CORE) / FADE_SPAN, 0, 1);
         const scale = 0.9 + vis * 0.1;
         const blur = (1 - vis) * 6;
-        card!.style.transform = `rotate(${angle}deg) scale(${scale})`;
+
+        // Windmill spin (rotateZ) + a pronounced 3D turn (perspective +
+        // rotateY/rotateX, baked into the SAME transform so the card's own
+        // backdrop-filter still renders — an ancestor perspective would kill
+        // the glass blur). The card turns to face you at horizontal and tips
+        // away 3D as it enters/leaves; mirrored for the left-pivot card.
+        const rz = isLeft ? -angle : angle;
+        let ry = clamp(-angle * 0.6, -42, 42);
+        if (isLeft) ry = -ry;
+        const rx = 8 + (1 - vis) * 12;
+        card!.style.transform = `perspective(1100px) rotate(${rz}deg) rotateY(${ry}deg) rotateX(${rx}deg) scale(${scale})`;
         card!.style.opacity = String(vis);
         card!.style.filter = blur > 0.05 ? `blur(${blur}px)` : "none";
         card!.style.zIndex = String(10 + Math.round(vis * 10));

@@ -4155,7 +4155,7 @@ input[type="range"].nxr-ms-range::-moz-range-thumb {
 
 #nxr-intro-sticky-wrap {
   position: relative;
-  height: 280vh;
+  height: 400vh;
 }
 
 #nxr-intro-sticky {
@@ -4206,6 +4206,11 @@ input[type="range"].nxr-ms-range::-moz-range-thumb {
   font-weight: 600;
 }
 
+/* The windmill blade AND the visible glass card are the same element: the
+   glass `backdrop-filter` only renders if no ANCESTOR has a transform /
+   perspective / opacity / filter, so the 3D turn is baked into this element's
+   own transform (perspective() function in JS) rather than an ancestor
+   `perspective`, keeping the frosted-glass blur alive. */
 .nxr-intro-card {
   position: relative;
   background: var(--glass-bg);
@@ -4424,6 +4429,7 @@ input[type="range"].nxr-ms-range::-moz-range-thumb {
   right: 0;
   height: 2px;
   border-radius: 2px 2px 0 0;
+  z-index: 1;
 }
 
 #nxr-intro-card-1::before {
@@ -4495,16 +4501,16 @@ input[type="range"].nxr-ms-range::-moz-range-thumb {
     pointer-events: none;
   }
 
-  /* Each card is a windmill blade rotating around a pivot fixed on the screen's
-     right edge (vertical centre). `--arm` is the gap between that pivot and the
-     card's right edge, so the card floats out toward the centre of the screen
-     while the axis stays put: `right: var(--arm)` insets the card, and
-     `transform-origin: calc(100% + var(--arm))` puts the rotation origin back
-     out on the screen edge. Fixed height so every blade shares the pivot line. */
+  /* Windmill blade. The pivot sits `--pivot-x` INSIDE the right edge (moved
+     left off the edge), and `--arm` is the gap between the pivot and the card
+     so the card floats toward the centre. `right = pivot-x + arm` insets the
+     card; `transform-origin: calc(100% + arm)` puts the rotation origin back on
+     the pivot. Fixed height so every blade shares the pivot line. */
   .nxr-intro-card {
-    --arm: clamp(100px, 13vw, 230px);
+    --pivot-x: 130px;
+    --arm: clamp(90px, 12vw, 210px);
     position: absolute;
-    right: var(--arm);
+    right: calc(var(--pivot-x) + var(--arm));
     top: 50%;
     width: clamp(380px, 31vw, 460px);
     height: 288px;
@@ -4513,6 +4519,12 @@ input[type="range"].nxr-ms-range::-moz-range-thumb {
     will-change: transform, opacity, filter;
     pointer-events: none;
     opacity: 0;
+  }
+  /* Card 02 lives on a SECOND windmill mirrored to the left edge. */
+  #nxr-intro-card-2 {
+    right: auto;
+    left: calc(var(--pivot-x) + var(--arm));
+    transform-origin: calc(-1 * var(--arm)) center;
   }
   .nxr-intro-col-title {
     font-size: 22px;
@@ -4523,7 +4535,7 @@ input[type="range"].nxr-ms-range::-moz-range-thumb {
   /* Windmill stays active on mobile — the sticky keeps its 100vh pin and
      scroll range from the base rules; only sizing/placement is tuned here. */
   #nxr-intro-sticky-wrap {
-    height: 240vh;
+    height: 340vh;
   }
 
   #nxr-intro-sticky {
@@ -4564,15 +4576,21 @@ input[type="range"].nxr-ms-range::-moz-range-thumb {
     pointer-events: none;
   }
   .nxr-intro-card {
-    --arm: 16px;
+    --pivot-x: 34px;
+    --arm: 14px;
     position: absolute;
-    right: var(--arm);
+    right: calc(var(--pivot-x) + var(--arm));
     top: 60%;
     width: min(300px, 82vw);
     height: 268px;
     margin-top: -134px;
     transform-origin: calc(100% + var(--arm)) center;
     opacity: 0;
+  }
+  #nxr-intro-card-2 {
+    right: auto;
+    left: calc(var(--pivot-x) + var(--arm));
+    transform-origin: calc(-1 * var(--arm)) center;
   }
   .nxr-intro-anim {
     height: 66px;

@@ -40,7 +40,7 @@ export default function ThreeBackground() {
     container.appendChild(renderer.domElement);
 
     const isMobile = stableW < 768;
-    const COUNT = isMobile ? 1000 : 1400;
+    const COUNT = isMobile ? 1000 : 900;
 
     const geo = new THREE.SphereGeometry(isMobile ? 0.4 : 0.6, 6, 6);
     const mat = new THREE.MeshBasicMaterial({

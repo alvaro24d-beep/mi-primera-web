@@ -4,7 +4,6 @@ import { useEffect, useRef } from "react";
 
 export default function Intro() {
   const wrapRef = useRef<HTMLDivElement>(null);
-  const rightRef = useRef<HTMLDivElement>(null);
   const textsRef = useRef<HTMLDivElement>(null);
   const card1Ref = useRef<HTMLDivElement>(null);
   const card2Ref = useRef<HTMLDivElement>(null);
@@ -12,84 +11,86 @@ export default function Intro() {
 
   useEffect(() => {
     const wrap = wrapRef.current;
-    const right = rightRef.current;
     const texts = textsRef.current;
-    const card1 = card1Ref.current;
-    const card2 = card2Ref.current;
-    const card3 = card3Ref.current;
-    if (!wrap || !right || !texts || !card1 || !card2 || !card3) return;
+    const cards = [card1Ref.current, card2Ref.current, card3Ref.current];
+    if (!wrap || !texts || cards.some((c) => !c)) return;
     if (window.innerWidth <= 900) return;
 
     const clamp = (v: number, a: number, b: number) => Math.max(a, Math.min(b, v));
     const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
     const ease = (t: number) => (t < 0.5 ? 2 * t * t : -1 + (4 - 2 * t) * t);
 
-    let GAP = 0;
-    const REST_RX = 8;
-    const REST_RY = -5;
-    const START_RX = 32;
-    const START_RY = -20;
+    // Windmill geometry: each card is a blade pivoting on the right edge of the
+    // screen (transform-origin: right center, in CSS). Scroll drives a single
+    // rotation; the per-card OFFSET spaces the three blades apart so they
+    // sweep up through the readable (angle ≈ 0, horizontal) position one after
+    // another — emerging from the bottom-right, hiding at the top-right.
+    const START = 70; // card 0's angle at scroll=0 (negative side = below/bottom)
+    const OFFSET = 62; // angular spacing between blades
+    const FADE_CORE = 18; // fully opaque within ±this angle
+    const FADE_SPAN = 60; // fades to 0 over this many further degrees
 
-    function calcGap() {
-      GAP = card1!.offsetHeight + 16;
+    // Scroll → rotation is non-linear: the blade rotates SLOWLY through each
+    // readable (near-horizontal) position — the shallow-slope segments below,
+    // centred on rot = 70 / 132 / 194 (where cards 0/1/2 are horizontal) — and
+    // faster in between, so each card lingers horizontal and is easy to read.
+    const ROT_KNOTS: [number, number][] = [
+      [0.0, 0],
+      [0.18, 60],
+      [0.36, 80], // card 0 dwell (crosses 70 slowly)
+      [0.46, 122],
+      [0.64, 142], // card 1 dwell (crosses 132 slowly)
+      [0.74, 184],
+      [0.92, 204], // card 2 dwell (crosses 194 slowly)
+      [1.0, 230],
+    ];
+    function rotAt(p: number) {
+      for (let i = 0; i < ROT_KNOTS.length - 1; i++) {
+        const [p0, r0] = ROT_KNOTS[i];
+        const [p1, r1] = ROT_KNOTS[i + 1];
+        if (p <= p1) return r0 + (r1 - r0) * clamp((p - p0) / (p1 - p0), 0, 1);
+      }
+      return ROT_KNOTS[ROT_KNOTS.length - 1][1];
     }
-    calcGap();
-    const onResize = () => calcGap();
-    window.addEventListener("resize", onResize);
 
     texts.style.opacity = "1";
     texts.style.transform = "translateY(0px)";
-
-    [card1, card2, card3].forEach((card) => {
+    cards.forEach((card) => {
       card!.style.opacity = "0";
-      card!.style.filter = "blur(10px)";
-      card!.style.top = "0px";
-      card!.style.transform = `translateY(60px) rotateX(${START_RX}deg) rotateY(${START_RY}deg) scale(0.75)`;
     });
 
     function onScroll() {
       const rect = wrap!.getBoundingClientRect();
       const total = wrap!.offsetHeight - window.innerHeight;
-      const scrolled = -rect.top;
-      const p = clamp(scrolled / total, 0, 1);
+      const p = clamp(-rect.top / total, 0, 1);
 
+      // Intro paragraphs fade up and out before the blades take over (unchanged).
       const tMove = clamp(p / 0.28, 0, 1);
       const tFade = ease(clamp((p - 0.18) / 0.12, 0, 1));
       texts!.style.transform = `translateY(${lerp(0, -120, tMove)}px)`;
       texts!.style.opacity = String(lerp(1, 0, tFade));
 
-      const flatP = ease(clamp((p - 0.55) / 0.25, 0, 1));
-      right!.style.perspective = `${lerp(700, 4000, flatP)}px`;
-      const rx = lerp(REST_RX, 0, flatP);
-      const ry = lerp(REST_RY, 0, flatP);
-
-      const c1p = ease(clamp((p - 0.18) / 0.15, 0, 1));
-      card1!.style.top = "0px";
-      card1!.style.zIndex = "3";
-      card1!.style.transform = `translateY(${lerp(60, 0, c1p)}px) rotateX(${lerp(START_RX, c1p < 1 ? REST_RX : rx, c1p)}deg) rotateY(${lerp(START_RY, c1p < 1 ? REST_RY : ry, c1p)}deg) scale(${lerp(0.75, 1, c1p)})`;
-      card1!.style.opacity = String(lerp(0, 1, c1p));
-      card1!.style.filter = `blur(${lerp(10, 0, c1p)}px)`;
-
-      const c2p = ease(clamp((p - 0.28) / 0.15, 0, 1));
-      card2!.style.top = `${GAP}px`;
-      card2!.style.zIndex = "2";
-      card2!.style.transform = `translateY(${lerp(60, 0, c2p)}px) rotateX(${lerp(START_RX, c2p < 1 ? REST_RX : rx, c2p)}deg) rotateY(${lerp(START_RY, c2p < 1 ? REST_RY : ry, c2p)}deg) scale(${lerp(0.75, 1, c2p)})`;
-      card2!.style.opacity = String(lerp(0, 1, c2p));
-      card2!.style.filter = `blur(${lerp(10, 0, c2p)}px)`;
-
-      const c3p = ease(clamp((p - 0.38) / 0.15, 0, 1));
-      card3!.style.top = `${GAP * 2}px`;
-      card3!.style.zIndex = "1";
-      card3!.style.transform = `translateY(${lerp(60, 0, c3p)}px) rotateX(${lerp(START_RX, c3p < 1 ? REST_RX : rx, c3p)}deg) rotateY(${lerp(START_RY, c3p < 1 ? REST_RY : ry, c3p)}deg) scale(${lerp(0.75, 1, c3p)})`;
-      card3!.style.opacity = String(lerp(0, 1, c3p));
-      card3!.style.filter = `blur(${lerp(10, 0, c3p)}px)`;
+      const rot = rotAt(p);
+      cards.forEach((card, i) => {
+        // Negative → blade points down (bottom-right); 0 → horizontal/readable;
+        // positive → points up (top-right). Increases with scroll so blades rise.
+        const angle = -START - i * OFFSET + rot;
+        const aAbs = Math.abs(angle);
+        const vis = clamp(1 - (aAbs - FADE_CORE) / FADE_SPAN, 0, 1);
+        const scale = 0.9 + vis * 0.1;
+        const blur = (1 - vis) * 6;
+        card!.style.transform = `rotate(${angle}deg) scale(${scale})`;
+        card!.style.opacity = String(vis);
+        card!.style.filter = blur > 0.05 ? `blur(${blur}px)` : "none";
+        // The blade closest to horizontal sits on top as they cross.
+        card!.style.zIndex = String(10 + Math.round(vis * 10));
+      });
     }
 
     window.addEventListener("scroll", onScroll, { passive: true });
     onScroll();
 
     return () => {
-      window.removeEventListener("resize", onResize);
       window.removeEventListener("scroll", onScroll);
     };
   }, []);
@@ -107,7 +108,7 @@ export default function Intro() {
               <span className="nxr-gradient-text-lime">trabaje por ti.</span>
             </h2>
 
-            <div className="nxr-intro-right" ref={rightRef}>
+            <div className="nxr-intro-right">
               <div className="nxr-intro-texts" ref={textsRef}>
                 <div className="nxr-intro-divider"></div>
                 <p className="nxr-intro-text">
@@ -120,32 +121,37 @@ export default function Intro() {
                   no tienen el equipo técnico para hacerlo. Nosotros somos ese equipo.
                 </p>
               </div>
+            </div>
+          </div>
 
-              <div className="nxr-intro-card" id="nxr-intro-card-1" ref={card1Ref}>
-                <span className="nxr-intro-col-num">01 — Construimos</span>
-                <div className="nxr-intro-col-title">Tu presencia digital, hecha para vender.</div>
-                <p className="nxr-intro-col-desc">
-                  Webs, aplicaciones y plataformas diseñadas desde cero para que tus clientes lleguen, entiendan lo
-                  que ofreces y contacten contigo.
-                </p>
-              </div>
+          {/* Windmill blades — full-width layer so the pivot sits on the true
+              right edge of the screen. On mobile this collapses to a normal
+              stacked column (see globals.css). */}
+          <div className="nxr-intro-wheel">
+            <div className="nxr-intro-card" id="nxr-intro-card-1" ref={card1Ref}>
+              <span className="nxr-intro-col-num">01 — Construimos</span>
+              <div className="nxr-intro-col-title">Tu presencia digital, hecha para vender.</div>
+              <p className="nxr-intro-col-desc">
+                Webs, aplicaciones y plataformas diseñadas desde cero para que tus clientes lleguen, entiendan lo que
+                ofreces y contacten contigo.
+              </p>
+            </div>
 
-              <div className="nxr-intro-card" id="nxr-intro-card-2" ref={card2Ref}>
-                <span className="nxr-intro-col-num">02 — Automatizamos</span>
-                <div className="nxr-intro-col-title">Tu negocio funcionando solo, 24/7.</div>
-                <p className="nxr-intro-col-desc">
-                  Conectamos tus herramientas y creamos agentes de IA que eliminan el trabajo manual para que tu
-                  equipo se enfoque en lo importante.
-                </p>
-              </div>
+            <div className="nxr-intro-card" id="nxr-intro-card-2" ref={card2Ref}>
+              <span className="nxr-intro-col-num">02 — Automatizamos</span>
+              <div className="nxr-intro-col-title">Tu negocio funcionando solo, 24/7.</div>
+              <p className="nxr-intro-col-desc">
+                Conectamos tus herramientas y creamos agentes de IA que eliminan el trabajo manual para que tu equipo
+                se enfoque en lo importante.
+              </p>
+            </div>
 
-              <div className="nxr-intro-card" id="nxr-intro-card-3" ref={card3Ref}>
-                <span className="nxr-intro-col-num">03 — Hacemos crecer</span>
-                <div className="nxr-intro-col-title">Más clientes encontrándote cada día.</div>
-                <p className="nxr-intro-col-desc">
-                  Posicionamos tu negocio en Google para que los clientes te encuentren a ti, no a tu competencia.
-                </p>
-              </div>
+            <div className="nxr-intro-card" id="nxr-intro-card-3" ref={card3Ref}>
+              <span className="nxr-intro-col-num">03 — Hacemos crecer</span>
+              <div className="nxr-intro-col-title">Más clientes encontrándote cada día.</div>
+              <p className="nxr-intro-col-desc">
+                Posicionamos tu negocio en Google para que los clientes te encuentren a ti, no a tu competencia.
+              </p>
             </div>
           </div>
         </div>

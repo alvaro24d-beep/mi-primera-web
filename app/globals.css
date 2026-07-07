@@ -4207,6 +4207,7 @@ input[type="range"].nxr-ms-range::-moz-range-thumb {
 }
 
 .nxr-intro-card {
+  position: relative;
   background: var(--glass-bg);
   border: 1px solid var(--glass-border);
   backdrop-filter: var(--glass-blur);
@@ -4275,8 +4276,6 @@ input[type="range"].nxr-ms-range::-moz-range-thumb {
     position: relative;
     height: 420px;
     overflow: visible;
-    perspective: 700px;
-    perspective-origin: 30% 30%;
     transform: translateY(-60px);
   }
 
@@ -4291,13 +4290,33 @@ input[type="range"].nxr-ms-range::-moz-range-thumb {
     will-change: transform, opacity;
   }
 
-  .nxr-intro-card {
+  /* Full-screen layer so the blades' pivot lands on the real right edge of
+     the viewport (the sticky's padding box == the viewport box). */
+  .nxr-intro-wheel {
     position: absolute;
-    left: 0;
-    right: 0;
-    will-change: transform, opacity;
-    transform-style: preserve-3d;
-    backface-visibility: hidden;
+    inset: 0;
+    z-index: 2;
+    pointer-events: none;
+  }
+
+  /* Each card is a windmill blade rotating around a pivot fixed on the screen's
+     right edge (vertical centre). `--arm` is the gap between that pivot and the
+     card's right edge, so the card floats out toward the centre of the screen
+     while the axis stays put: `right: var(--arm)` insets the card, and
+     `transform-origin: calc(100% + var(--arm))` puts the rotation origin back
+     out on the screen edge. Fixed height so every blade shares the pivot line. */
+  .nxr-intro-card {
+    --arm: clamp(110px, 14vw, 240px);
+    position: absolute;
+    right: var(--arm);
+    top: 50%;
+    width: 360px;
+    height: 178px;
+    margin-top: -89px;
+    transform-origin: calc(100% + var(--arm)) center;
+    will-change: transform, opacity, filter;
+    pointer-events: auto;
+    opacity: 0;
   }
 }
 
@@ -4311,6 +4330,7 @@ input[type="range"].nxr-ms-range::-moz-range-thumb {
     height: auto;
     padding: var(--section-pad) var(--pad-x);
     overflow: visible;
+    display: block;
   }
 
   .nxr-intro-sticky-inner {
@@ -4330,6 +4350,26 @@ input[type="range"].nxr-ms-range::-moz-range-thumb {
     flex-direction: column;
     gap: 20px;
     margin-bottom: 16px;
+  }
+
+  /* Windmill collapses to a plain stacked column on mobile (no pivoting).
+     !important overrides any inline transform/opacity left over from a
+     desktop→mobile resize. */
+  .nxr-intro-wheel {
+    position: static;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    margin-top: 24px;
+  }
+  .nxr-intro-card {
+    position: relative;
+    width: auto;
+    height: auto;
+    margin-top: 0;
+    transform: none !important;
+    opacity: 1 !important;
+    filter: none !important;
   }
 }
 
@@ -4404,7 +4444,7 @@ input[type="range"].nxr-ms-range::-moz-range-thumb {
 .nxr-dwh-layers-panel {
   position: absolute;
   left: var(--pad-x);
-  bottom: 48px;
+  bottom: 116px;
   width: min(380px, 40vw);
   background: var(--glass-bg);
   backdrop-filter: var(--glass-blur);
@@ -4416,14 +4456,14 @@ input[type="range"].nxr-ms-range::-moz-range-thumb {
 .nxr-dwh-layers-inner {
   position: relative;
   padding: 22px 24px;
-  display: flex;
-  gap: 16px;
-  align-items: flex-start;
+  min-height: 116px;
 }
 
+/* Four facet labels stacked in the same box; the scroll timeline crossfades
+   them with a progressive blur (see crossfadeFacet in DesarrolloWebHero). */
 .nxr-dwh-layer-label {
   position: absolute;
-  inset: 24px;
+  inset: 22px 24px;
   display: flex;
   gap: 16px;
   align-items: flex-start;
@@ -4756,7 +4796,7 @@ input[type="range"].nxr-ms-range::-moz-range-thumb {
   /* Shifts the browser right-of-centre so the headline (top-left) and facet
      panel (bottom-left) have their own space and the docked phone (right)
      stays fully visible. Reset to centre on narrow screens below. */
-  padding-left: 20%;
+  padding-left: 14%;
   perspective: 1500px;
   pointer-events: none;
 }
@@ -4769,8 +4809,8 @@ input[type="range"].nxr-ms-range::-moz-range-thumb {
 
 /* --- browser window --- */
 .nxr-bw-browser {
-  width: min(660px, 54vw);
-  border-radius: 16px;
+  width: min(500px, 42vw);
+  border-radius: 15px;
   background: rgba(12, 18, 30, 0.72);
   backdrop-filter: blur(14px);
   border: 1px solid rgba(255, 255, 255, 0.1);
@@ -4788,49 +4828,48 @@ input[type="range"].nxr-ms-range::-moz-range-thumb {
 .nxr-bw-bar {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 13px 16px;
+  gap: 7px;
+  padding: 11px 14px;
   background: rgba(255, 255, 255, 0.04);
   border-bottom: 1px solid rgba(255, 255, 255, 0.07);
 }
 
 .nxr-bw-dot {
-  width: 11px;
-  height: 11px;
+  width: 9px;
+  height: 9px;
   border-radius: 50%;
   flex-shrink: 0;
 }
 
 .nxr-bw-url {
-  margin-left: 12px;
+  margin-left: 10px;
   flex: 1;
-  height: 26px;
-  border-radius: 8px;
+  height: 22px;
+  border-radius: 7px;
   background: rgba(255, 255, 255, 0.05);
   display: flex;
   align-items: center;
-  padding: 0 12px;
+  padding: 0 11px;
 }
 
 .nxr-bw-url-text {
-  font-size: 12.5px;
+  font-size: 11px;
   color: rgba(255, 255, 255, 0.55);
   font-family: ui-monospace, "SF Mono", Menlo, monospace;
 }
 
 .nxr-bw-body {
-  padding: 22px;
+  padding: 18px;
   display: flex;
   flex-direction: column;
-  gap: 14px;
-  min-height: 320px;
+  gap: 11px;
 }
 
 /* skeleton pieces (fade/scale in on stage 1) */
 .nxr-bw-hero {
   position: relative;
-  height: 118px;
-  border-radius: 12px;
+  height: 96px;
+  border-radius: 11px;
   overflow: hidden;
 }
 .nxr-bw-hero.nxr-bw-wire,
@@ -4852,8 +4891,8 @@ input[type="range"].nxr-ms-range::-moz-range-thumb {
 }
 
 .nxr-bw-line {
-  height: 12px;
-  border-radius: 6px;
+  height: 10px;
+  border-radius: 5px;
   position: relative;
   overflow: hidden;
 }
@@ -4870,11 +4909,11 @@ input[type="range"].nxr-ms-range::-moz-range-thumb {
 .nxr-bw-cards {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 12px;
+  gap: 10px;
 }
 .nxr-bw-card {
-  height: 70px;
-  border-radius: 10px;
+  height: 56px;
+  border-radius: 9px;
   position: relative;
   overflow: hidden;
 }
@@ -4885,10 +4924,10 @@ input[type="range"].nxr-ms-range::-moz-range-thumb {
 /* performance ring (stage 4) */
 .nxr-bw-perf {
   position: absolute;
-  top: 14px;
-  right: 14px;
-  width: 56px;
-  height: 56px;
+  top: 12px;
+  right: 12px;
+  width: 48px;
+  height: 48px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -4912,7 +4951,7 @@ input[type="range"].nxr-ms-range::-moz-range-thumb {
   stroke-linecap: round;
 }
 .nxr-bw-perf-num {
-  font-size: 17px;
+  font-size: 15px;
   font-weight: 700;
   color: #fff;
 }
@@ -4921,14 +4960,14 @@ input[type="range"].nxr-ms-range::-moz-range-thumb {
 .nxr-bw-data {
   display: flex;
   align-items: center;
-  gap: 14px;
-  height: 60px;
+  gap: 12px;
+  height: 50px;
   margin-top: 2px;
 }
 .nxr-bw-db {
   color: var(--c-salmon);
-  width: 38px;
-  height: 38px;
+  width: 32px;
+  height: 32px;
   flex-shrink: 0;
 }
 .nxr-bw-db svg {
@@ -4939,8 +4978,8 @@ input[type="range"].nxr-ms-range::-moz-range-thumb {
   stroke-width: 1.5;
 }
 .nxr-bw-wires {
-  width: 104px;
-  height: 54px;
+  width: 88px;
+  height: 46px;
   flex-shrink: 0;
 }
 .nxr-bw-wires path {
@@ -4953,7 +4992,7 @@ input[type="range"].nxr-ms-range::-moz-range-thumb {
   flex-direction: column;
 }
 .nxr-bw-stat-num {
-  font-size: 24px;
+  font-size: 21px;
   font-weight: 700;
   color: var(--c-lime);
   letter-spacing: -0.01em;
@@ -4966,17 +5005,19 @@ input[type="range"].nxr-ms-range::-moz-range-thumb {
 /* docked phone (responsive, stage 4) */
 .nxr-bw-phone {
   position: absolute;
-  right: -92px;
+  right: -78px;
   bottom: -6px;
-  width: 122px;
-  height: 240px;
+  width: 116px;
+  height: 226px;
   border-radius: 22px;
-  background: rgba(10, 15, 26, 0.96);
-  border: 1px solid rgba(255, 255, 255, 0.14);
-  box-shadow: 0 30px 80px rgba(0, 0, 0, 0.6), var(--glass-shine);
-  transform: rotateY(-16deg) translateZ(60px);
+  background: rgba(10, 15, 26, 0.98);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  box-shadow: -18px 24px 70px rgba(0, 0, 0, 0.7), var(--glass-shine);
+  /* Large translateZ pushes the phone clearly in FRONT of the browser in the
+     shared preserve-3d space (it was rendering behind before). */
+  transform: rotateY(-14deg) translateZ(95px);
   transform-style: preserve-3d;
-  padding: 12px 10px;
+  padding: 11px 9px;
   overflow: hidden;
 }
 .nxr-bw-phone-notch {
@@ -5067,22 +5108,22 @@ input[type="range"].nxr-ms-range::-moz-range-thumb {
   .nxr-bw-scene {
     padding-left: 0;
     align-items: flex-start;
-    padding-top: 25vh;
+    padding-top: 24vh;
   }
   .nxr-bw-browser {
-    width: min(440px, 84vw);
+    width: min(360px, 82vw);
   }
   .nxr-bw-phone {
-    right: -30px;
-    bottom: -24px;
-    width: 92px;
-    height: 184px;
-    transform: rotateY(-16deg) translateZ(20px);
+    right: -44px;
+    bottom: -6px;
+    width: 84px;
+    height: 168px;
+    transform: rotateY(-14deg) translateZ(55px);
   }
   .nxr-bw-chip-code {
-    left: -14px;
+    left: -12px;
   }
   .nxr-bw-chip-perf {
-    left: -20px;
+    left: -16px;
   }
 }

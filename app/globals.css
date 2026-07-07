@@ -5518,36 +5518,36 @@ input[type="range"].nxr-ms-range::-moz-range-thumb {
     width: min(236px, 62vw);
   }
   .nxr-bw-bar {
-    padding: 8px 11px;
+    padding: 6px 11px;
     gap: 6px;
   }
   .nxr-bw-body {
-    padding: 9px 10px;
-    gap: 6px;
+    padding: 8px 10px;
+    gap: 5px;
   }
   .nxr-bw-hero {
-    height: 50px;
+    height: 42px;
   }
   .nxr-bw-hline {
-    width: 78px;
+    width: 74px;
     height: 6px;
   }
   .nxr-bw-hline.sm {
-    width: 50px;
+    width: 48px;
     height: 5px;
   }
   .nxr-bw-cta {
-    width: 44px;
-    height: 14px;
+    width: 42px;
+    height: 13px;
   }
   .nxr-bw-card {
-    height: 30px;
+    height: 26px;
   }
   .nxr-bw-data {
-    height: 30px;
+    height: 26px;
   }
   .nxr-bw-chart {
-    height: 24px;
+    height: 20px;
   }
   .nxr-bw-stat-num {
     font-size: 15px;

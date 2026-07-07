@@ -141,11 +141,6 @@ export default function BrowserBuild() {
             <span className="nxr-bw-live-dot" />
             EN VIVO
           </div>
-          <div className="nxr-bw-cursor">
-            <svg viewBox="0 0 24 24">
-              <path d="M4,2 L4,20 L9,15.5 L12,22 L15,20.5 L12,14 L18,14 Z" />
-            </svg>
-          </div>
         </div>
       </div>
     </div>

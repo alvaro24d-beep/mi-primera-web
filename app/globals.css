@@ -4737,7 +4737,9 @@ input[type="range"].nxr-ms-range::-moz-range-thumb {
 
 @media (max-width: 768px) {
   .nxr-dwh-overlay .nxr-dwh-head {
-    top: 80px;
+    /* Sits high to use the vertical space (the top header scrolls away while
+       the hero is pinned, so there's nothing to clear up here). */
+    top: 40px;
     left: 20px;
     /* Narrower than the viewport so the title-intro scale-up doesn't overflow
        the right edge on phones. */
@@ -4747,8 +4749,9 @@ input[type="range"].nxr-ms-range::-moz-range-thumb {
     left: 20px;
     right: 20px;
     /* Clear the floating bottom nav (which sits ~20px + safe-area from the
-       bottom and is ~56px tall) with room to spare. */
-    bottom: calc(124px + env(safe-area-inset-bottom));
+       bottom and is ~56px tall) with generous room so the cards aren't glued
+       to it. */
+    bottom: calc(150px + env(safe-area-inset-bottom));
     width: auto;
   }
   .nxr-dwh-static {
@@ -4982,6 +4985,17 @@ input[type="range"].nxr-ms-range::-moz-range-thumb {
 }
 
 /* ===== Desarrollo Web — Hero: navegador que se construye (BrowserBuild) ===== */
+
+/* Hidden until GSAP applies the initial (empty-wireframe, opacity:0) build
+   state inside DesarrolloWebHero's layout effect, which then flips these back
+   to visible. Without this, the finished, server-rendered browser + facet panel
+   flash on the first paint (before the layout effect runs) and then vanish.
+   Only the animated hero renders these; the reduced-motion path renders the
+   separate `.nxr-dwh-static` grid instead, so it's unaffected. */
+.nxr-dwh-hero:not(.nxr-dwh-static) .nxr-bw-scene,
+.nxr-dwh-hero:not(.nxr-dwh-static) .nxr-dwh-layers-panel {
+  visibility: hidden;
+}
 
 .nxr-bw-scene {
   position: absolute;
@@ -5486,78 +5500,73 @@ input[type="range"].nxr-ms-range::-moz-range-thumb {
   height: 14px;
   fill: var(--c-salmon);
 }
-.nxr-bw-cursor {
-  position: absolute;
-  width: 22px;
-  height: 22px;
-  top: 42%;
-  left: 44%;
-  filter: drop-shadow(0 2px 5px rgba(0, 0, 0, 0.5));
-}
-.nxr-bw-cursor svg {
-  width: 100%;
-  height: 100%;
-  fill: #fff;
-  stroke: rgba(0, 0, 0, 0.35);
-  stroke-width: 1;
-}
-
 @media (max-width: 900px) {
   .nxr-bw-scene {
     padding-left: 0;
-    align-items: flex-start;
-    padding-top: 26vh;
+    /* Centre the (smaller) browser in the band between the fixed-height title
+       (top) and the facet cards (bottom). The title reserves ~198px up top and
+       the cards+nav reserve ~266px at the bottom; padding-bottom:68px biases
+       the centred browser up by ~34px so it lands in the middle of that band on
+       ANY phone height — no per-height clamp, no title/card overlap, no big
+       empty gap. */
+    align-items: center;
+    padding-top: 0;
+    padding-bottom: 68px;
   }
-  /* Smaller browser on phones so it doesn't dominate the screen. */
+  /* Smaller browser on phones so it fits comfortably above the facet cards. */
   .nxr-bw-browser {
-    width: min(290px, 72vw);
+    width: min(236px, 62vw);
+  }
+  .nxr-bw-bar {
+    padding: 8px 11px;
+    gap: 6px;
   }
   .nxr-bw-body {
-    padding: 11px 12px;
-    gap: 8px;
+    padding: 9px 10px;
+    gap: 6px;
   }
   .nxr-bw-hero {
-    height: 66px;
+    height: 50px;
   }
   .nxr-bw-hline {
-    width: 96px;
-    height: 7px;
-  }
-  .nxr-bw-hline.sm {
-    width: 62px;
+    width: 78px;
     height: 6px;
   }
+  .nxr-bw-hline.sm {
+    width: 50px;
+    height: 5px;
+  }
   .nxr-bw-cta {
-    width: 54px;
-    height: 17px;
+    width: 44px;
+    height: 14px;
   }
   .nxr-bw-card {
-    height: 38px;
-  }
-  .nxr-bw-data {
-    height: 38px;
-  }
-  .nxr-bw-chart {
     height: 30px;
   }
+  .nxr-bw-data {
+    height: 30px;
+  }
+  .nxr-bw-chart {
+    height: 24px;
+  }
   .nxr-bw-stat-num {
-    font-size: 18px;
+    font-size: 15px;
   }
   .nxr-bw-status {
-    padding: 6px 12px;
+    padding: 5px 10px;
   }
   .nxr-bw-perf {
-    width: 42px;
-    height: 42px;
+    width: 34px;
+    height: 34px;
   }
   .nxr-bw-perf-num {
-    font-size: 13px;
+    font-size: 11px;
   }
   .nxr-bw-phone {
-    right: -34px;
+    right: -28px;
     bottom: -6px;
-    width: 70px;
-    height: 134px;
+    width: 56px;
+    height: 108px;
     transform: rotateY(-14deg) translateZ(50px);
   }
   .nxr-bw-chip-code {

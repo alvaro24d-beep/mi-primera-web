@@ -76,9 +76,14 @@ export default function DesarrolloWebHero() {
       gsap.set(q(".nxr-bw-phone"), { opacity: 0, xPercent: 45, rotateY: -45 });
       gsap.set(q(".nxr-bw-chip"), { opacity: 0, scale: 0.6 });
       gsap.set(q(".nxr-bw-livebadge"), { opacity: 0, scale: 0.6, y: -6 });
-      gsap.set(q(".nxr-bw-cursor"), { left: "48%", top: "36%" });
       gsap.set(q(".nxr-bw-progress-fill"), { scaleX: 0 });
       gsap.set(labels, { opacity: 0, filter: "blur(10px)" });
+
+      // Now that every animated piece is in its hidden start state, reveal the
+      // containers that CSS keeps `visibility:hidden` until here — this prevents
+      // the finished, server-rendered browser from flashing on first paint
+      // (before this layout effect runs) and vanishing once GSAP initialises.
+      gsap.set([q(".nxr-bw-scene"), facetPanel ?? []].flat(), { visibility: "visible" });
 
       if (statNum) statNum.textContent = "0";
       if (perfNum) perfNum.textContent = "0";
@@ -143,16 +148,13 @@ export default function DesarrolloWebHero() {
       tl.to(q(".nxr-bw-progress-fill"), { scaleX: 1, duration: 3.65, ease: "none" }, 1.4);
 
       // ===== PHASE B — the build =====
-      // Stage 1 — Diseño: wireframe skeleton (nav, hero, line, cards) + cursor
+      // Stage 1 — Diseño: wireframe skeleton (nav, hero, line, cards)
       tl.to(q(".nxr-bw-wire"), { opacity: 1, scale: 1, duration: 0.7, stagger: 0.05, ease: "power2.out" }, 1.45);
-      tl.to(q(".nxr-bw-cursor"), { left: "26%", top: "34%", duration: 0.5, ease: "power1.inOut" }, 1.5);
-      tl.to(q(".nxr-bw-cursor"), { left: "60%", top: "52%", duration: 0.6, ease: "power1.inOut" }, 2.0);
       crossfadeFacet(tl, labels, 0, 1, 2.3);
 
       // Stage 2 — Frontend: colour fills, hero image, headline, CTA, nav button
       tl.to(q(".nxr-bw-fill"), { opacity: 1, duration: 0.6, stagger: 0.045, ease: "power2.out" }, 2.35);
       tl.to(q(".nxr-bw-url-text"), { opacity: 1, duration: 0.4 }, 2.4);
-      tl.to(q(".nxr-bw-cursor"), { left: "40%", top: "44%", duration: 0.6, ease: "power1.inOut" }, 2.5);
       tl.to(q(".nxr-bw-chip-code"), { opacity: 1, scale: 1, duration: 0.5, ease: "back.out(1.6)" }, 2.7);
       crossfadeFacet(tl, labels, 1, 2, 3.3);
 
@@ -171,7 +173,6 @@ export default function DesarrolloWebHero() {
         },
         3.5
       );
-      tl.to(q(".nxr-bw-cursor"), { left: "30%", top: "78%", duration: 0.6, ease: "power1.inOut" }, 3.7);
       crossfadeFacet(tl, labels, 2, 3, 4.2);
 
       // Stage 4 — Rendimiento & SEO: perf ring sweeps to 98, phone docks

@@ -4544,10 +4544,11 @@ input[type="range"].nxr-ms-range::-moz-range-thumb {
 @media (max-width: 900px) {
   /* Windmill stays active on mobile — the sticky keeps its 100vh pin and
      scroll range from the base rules; only sizing/placement is tuned here.
-     Slightly shorter than desktop so the last blade's exit doesn't leave a
-     long empty tail before Servicios. */
+     Shorter on mobile so Servicios arrives sooner (higher up the scroll). The
+     slowness now comes from the flat dwell curve, not from extra height, and
+     the last blade stays readable to the end so there's no empty tail. */
   #nxr-intro-sticky-wrap {
-    height: 360vh;
+    height: 300vh;
   }
 
   #nxr-intro-sticky {

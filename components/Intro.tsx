@@ -80,21 +80,21 @@ export default function Intro() {
     const FADE_CORE = 20; // fully opaque within ±this angle
     const FADE_SPAN = 62;
 
-    // Scroll → rotation. Deliberately SLOW: rot barely moves while the intro
-    // text clears, then wide shallow-slope "dwell" segments (centred on
-    // rot 95/185/275) keep each blade near-horizontal for a long stretch of
-    // scroll so it's easy to read, with quick transitions between.
+    // Scroll → rotation. Deliberately VERY SLOW where it's readable: each
+    // "dwell" segment barely rotates (≈16° spread around the readable angle) so
+    // the blade sits almost still for a long stretch of scroll instead of
+    // sweeping past — then a quick ~74° snap swaps to the next blade. The last
+    // dwell is held right to p=1.0, so the third card is still readable as the
+    // section hands off to Servicios (no empty tail — it just scrolls away with
+    // the sticky, keeping the page continuous).
     const ROT_KNOTS: [number, number][] = [
-      [0.0, 0],
-      [0.15, 12],
-      [0.22, 82], // fast approach → card 0
-      [0.38, 108], // card 0 dwell (readable ≈ 0.30)
-      [0.46, 172], // fast
-      [0.62, 198], // card 1 dwell (readable ≈ 0.54)
-      [0.7, 262], // fast
-      [0.92, 296], // card 2 dwell EXTENDED — readable holds ≈ 0.78→0.91
-      [1.0, 360], // steep exit: the last blade clears right as Servicios
-      //             arrives, so there's no long empty tail before it.
+      [0.0, 55], // card 0 rising from below while the intro text clears
+      [0.24, 88], // card 0 arrives near-readable
+      [0.46, 103], // card 0 DWELL — barely moves (centred ≈ 95)
+      [0.54, 177], // quick snap → card 1
+      [0.74, 193], // card 1 DWELL (centred ≈ 185)
+      [0.82, 267], // quick snap → card 2
+      [1.0, 285], // card 2 DWELL held to the end — still readable at handoff
     ];
     function rotAt(p: number) {
       for (let i = 0; i < ROT_KNOTS.length - 1; i++) {
@@ -148,8 +148,9 @@ export default function Intro() {
       if (mobile) {
         // Title + text simply scroll up together and fade — no pinning tricks,
         // no CSS-transition lag (transition:none), so it reads as a normal
-        // upward scroll.
-        const up = clamp(p / 0.2, 0, 1);
+        // upward scroll. Cleared early (by p≈0.15) so it's gone before card 0
+        // rises into view.
+        const up = clamp(p / 0.15, 0, 1);
         const ty = lerp(0, -300, up);
         headline!.style.transition = "none";
         headline!.style.transform = `translateY(${ty}px)`;
@@ -175,16 +176,17 @@ export default function Intro() {
         const rz = leftAxis ? -angle : angle; // mirror the left windmill
         const aAbs = Math.abs(angle);
         const vis = clamp(1 - (aAbs - FADE_CORE) / FADE_SPAN, 0, 1);
-        const scale = 0.9 + vis * 0.1;
-        const blur = (1 - vis) * 6;
+        const scale = 0.94 + vis * 0.06;
+        const blur = (1 - vis) * 4;
 
-        // Windmill spin (rotateZ) + a pronounced 3D turn (perspective +
-        // rotateY/rotateX baked into the SAME transform so the card's own
-        // backdrop-filter still renders).
-        let ry = clamp(-angle * 0.6, -42, 42);
+        // Windmill spin (rotateZ) + a GENTLE 3D turn — the perspective tilt is
+        // kept subtle now (shallow rotateY/rotateX + a longer perspective) so
+        // the cards read closer to flat, per request. rotateY/rotateX stay baked
+        // into the SAME transform so each card's own backdrop-filter still works.
+        let ry = clamp(-angle * 0.28, -16, 16);
         if (leftAxis) ry = -ry;
-        const rx = 8 + (1 - vis) * 12;
-        card!.style.transform = `perspective(1100px) rotate(${rz}deg) rotateY(${ry}deg) rotateX(${rx}deg) scale(${scale})`;
+        const rx = 3 + (1 - vis) * 5;
+        card!.style.transform = `perspective(1500px) rotate(${rz}deg) rotateY(${ry}deg) rotateX(${rx}deg) scale(${scale})`;
         card!.style.opacity = String(vis);
         card!.style.filter = blur > 0.05 ? `blur(${blur}px)` : "none";
         card!.style.zIndex = String(10 + Math.round(vis * 10));

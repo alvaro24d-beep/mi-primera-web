@@ -2,6 +2,54 @@
 
 import { useEffect, useRef } from "react";
 
+// Compact looping graphic per card, each representing its service (same idea
+// as the home Servicios animations): a website building for "Construimos", an
+// automation flow with a travelling pulse for "Automatizamos", growth bars for
+// "Hacemos crecer". Pure CSS keyframes (see globals.css) so they keep looping
+// while the card rotates as a windmill blade, on desktop and mobile alike.
+function WebAnim() {
+  return (
+    <div className="nxr-intro-anim nxr-ianim-web" aria-hidden="true">
+      <div className="nxr-ianim-web-bar">
+        <i />
+        <i />
+        <i />
+      </div>
+      <div className="nxr-ianim-web-body">
+        <span className="nxr-ianim-web-line" />
+        <span className="nxr-ianim-web-line" />
+        <span className="nxr-ianim-web-line" />
+      </div>
+    </div>
+  );
+}
+
+function AutoAnim() {
+  return (
+    <div className="nxr-intro-anim nxr-ianim-auto" aria-hidden="true">
+      <span className="nxr-ianim-auto-track" />
+      <span className="nxr-ianim-auto-node n1" />
+      <span className="nxr-ianim-auto-node n2" />
+      <span className="nxr-ianim-auto-node n3" />
+      <span className="nxr-ianim-auto-pulse" />
+    </div>
+  );
+}
+
+function GrowAnim() {
+  return (
+    <div className="nxr-intro-anim nxr-ianim-grow" aria-hidden="true">
+      <span className="nxr-ianim-grow-bar" />
+      <span className="nxr-ianim-grow-bar" />
+      <span className="nxr-ianim-grow-bar" />
+      <span className="nxr-ianim-grow-bar" />
+      <svg className="nxr-ianim-grow-arrow" viewBox="0 0 24 24" aria-hidden="true">
+        <path d="M4 18L14 8M14 8H7M14 8v7" />
+      </svg>
+    </div>
+  );
+}
+
 export default function Intro() {
   const wrapRef = useRef<HTMLDivElement>(null);
   const textsRef = useRef<HTMLDivElement>(null);
@@ -14,34 +62,31 @@ export default function Intro() {
     const texts = textsRef.current;
     const cards = [card1Ref.current, card2Ref.current, card3Ref.current];
     if (!wrap || !texts || cards.some((c) => !c)) return;
-    if (window.innerWidth <= 900) return;
 
     const clamp = (v: number, a: number, b: number) => Math.max(a, Math.min(b, v));
     const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
     const ease = (t: number) => (t < 0.5 ? 2 * t * t : -1 + (4 - 2 * t) * t);
 
     // Windmill geometry: each card is a blade pivoting on the right edge of the
-    // screen (transform-origin: right center, in CSS). Scroll drives a single
-    // rotation; the per-card OFFSET spaces the three blades apart so they
-    // sweep up through the readable (angle ≈ 0, horizontal) position one after
-    // another — emerging from the bottom-right, hiding at the top-right.
-    const START = 70; // card 0's angle at scroll=0 (negative side = below/bottom)
+    // screen (see globals.css transform-origin). Scroll drives one rotation;
+    // the per-card OFFSET spaces the three blades apart so they sweep up through
+    // the readable (angle ≈ 0, horizontal) position one after another.
+    const START = 70; // card 0's angle at scroll=0 (negative = below/bottom)
     const OFFSET = 62; // angular spacing between blades
     const FADE_CORE = 18; // fully opaque within ±this angle
     const FADE_SPAN = 60; // fades to 0 over this many further degrees
 
-    // Scroll → rotation is non-linear: the blade rotates SLOWLY through each
-    // readable (near-horizontal) position — the shallow-slope segments below,
-    // centred on rot = 70 / 132 / 194 (where cards 0/1/2 are horizontal) — and
-    // faster in between, so each card lingers horizontal and is easy to read.
+    // Scroll → rotation is non-linear: shallow-slope segments centred on
+    // rot = 70 / 132 / 194 (where cards 0/1/2 are horizontal) make each blade
+    // linger horizontal — easy to read — while it sweeps faster in between.
     const ROT_KNOTS: [number, number][] = [
       [0.0, 0],
       [0.18, 60],
-      [0.36, 80], // card 0 dwell (crosses 70 slowly)
+      [0.36, 80],
       [0.46, 122],
-      [0.64, 142], // card 1 dwell (crosses 132 slowly)
+      [0.64, 142],
       [0.74, 184],
-      [0.92, 204], // card 2 dwell (crosses 194 slowly)
+      [0.92, 204],
       [1.0, 230],
     ];
     function rotAt(p: number) {
@@ -64,7 +109,7 @@ export default function Intro() {
       const total = wrap!.offsetHeight - window.innerHeight;
       const p = clamp(-rect.top / total, 0, 1);
 
-      // Intro paragraphs fade up and out before the blades take over (unchanged).
+      // Intro paragraphs fade up and out before the blades take over.
       const tMove = clamp(p / 0.28, 0, 1);
       const tFade = ease(clamp((p - 0.18) / 0.12, 0, 1));
       texts!.style.transform = `translateY(${lerp(0, -120, tMove)}px)`;
@@ -72,8 +117,8 @@ export default function Intro() {
 
       const rot = rotAt(p);
       cards.forEach((card, i) => {
-        // Negative → blade points down (bottom-right); 0 → horizontal/readable;
-        // positive → points up (top-right). Increases with scroll so blades rise.
+        // Negative → points down (bottom-right); 0 → horizontal/readable;
+        // positive → points up (top-right). Rises with scroll.
         const angle = -START - i * OFFSET + rot;
         const aAbs = Math.abs(angle);
         const vis = clamp(1 - (aAbs - FADE_CORE) / FADE_SPAN, 0, 1);
@@ -82,16 +127,17 @@ export default function Intro() {
         card!.style.transform = `rotate(${angle}deg) scale(${scale})`;
         card!.style.opacity = String(vis);
         card!.style.filter = blur > 0.05 ? `blur(${blur}px)` : "none";
-        // The blade closest to horizontal sits on top as they cross.
         card!.style.zIndex = String(10 + Math.round(vis * 10));
       });
     }
 
     window.addEventListener("scroll", onScroll, { passive: true });
+    window.addEventListener("resize", onScroll, { passive: true });
     onScroll();
 
     return () => {
       window.removeEventListener("scroll", onScroll);
+      window.removeEventListener("resize", onScroll);
     };
   }, []);
 
@@ -125,33 +171,41 @@ export default function Intro() {
           </div>
 
           {/* Windmill blades — full-width layer so the pivot sits on the true
-              right edge of the screen. On mobile this collapses to a normal
-              stacked column (see globals.css). */}
+              right edge of the screen. Active on desktop and mobile. */}
           <div className="nxr-intro-wheel">
             <div className="nxr-intro-card" id="nxr-intro-card-1" ref={card1Ref}>
-              <span className="nxr-intro-col-num">01 — Construimos</span>
-              <div className="nxr-intro-col-title">Tu presencia digital, hecha para vender.</div>
-              <p className="nxr-intro-col-desc">
-                Webs, aplicaciones y plataformas diseñadas desde cero para que tus clientes lleguen, entiendan lo que
-                ofreces y contacten contigo.
-              </p>
+              <WebAnim />
+              <div className="nxr-intro-card-text">
+                <span className="nxr-intro-col-num">01 — Construimos</span>
+                <div className="nxr-intro-col-title">Tu presencia digital, hecha para vender.</div>
+                <p className="nxr-intro-col-desc">
+                  Webs, aplicaciones y plataformas diseñadas desde cero para que tus clientes lleguen, entiendan lo que
+                  ofreces y contacten contigo.
+                </p>
+              </div>
             </div>
 
             <div className="nxr-intro-card" id="nxr-intro-card-2" ref={card2Ref}>
-              <span className="nxr-intro-col-num">02 — Automatizamos</span>
-              <div className="nxr-intro-col-title">Tu negocio funcionando solo, 24/7.</div>
-              <p className="nxr-intro-col-desc">
-                Conectamos tus herramientas y creamos agentes de IA que eliminan el trabajo manual para que tu equipo
-                se enfoque en lo importante.
-              </p>
+              <AutoAnim />
+              <div className="nxr-intro-card-text">
+                <span className="nxr-intro-col-num">02 — Automatizamos</span>
+                <div className="nxr-intro-col-title">Tu negocio funcionando solo, 24/7.</div>
+                <p className="nxr-intro-col-desc">
+                  Conectamos tus herramientas y creamos agentes de IA que eliminan el trabajo manual para que tu equipo
+                  se enfoque en lo importante.
+                </p>
+              </div>
             </div>
 
             <div className="nxr-intro-card" id="nxr-intro-card-3" ref={card3Ref}>
-              <span className="nxr-intro-col-num">03 — Hacemos crecer</span>
-              <div className="nxr-intro-col-title">Más clientes encontrándote cada día.</div>
-              <p className="nxr-intro-col-desc">
-                Posicionamos tu negocio en Google para que los clientes te encuentren a ti, no a tu competencia.
-              </p>
+              <GrowAnim />
+              <div className="nxr-intro-card-text">
+                <span className="nxr-intro-col-num">03 — Hacemos crecer</span>
+                <div className="nxr-intro-col-title">Más clientes encontrándote cada día.</div>
+                <p className="nxr-intro-col-desc">
+                  Posicionamos tu negocio en Google para que los clientes te encuentren a ti, no a tu competencia.
+                </p>
+              </div>
             </div>
           </div>
         </div>

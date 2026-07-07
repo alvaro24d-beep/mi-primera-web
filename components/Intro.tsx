@@ -69,33 +69,31 @@ export default function Intro() {
     const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
     const ease = (t: number) => (t < 0.5 ? 2 * t * t : -1 + (4 - 2 * t) * t);
 
-    // Windmill geometry: every card is a blade pivoting on the SAME axis
-    // (globals.css transform-origin, now well off the right edge). Scroll drives
-    // one rotation; the per-card OFFSET spaces the three blades apart so they
-    // sweep up through the readable (angle ≈ 0, horizontal) position one after
-    // another — all along the same path.
-    const START = 95; // card 0's angle at scroll=0 (well below/hidden)
-    const OFFSET = 90; // wide angular spacing so only ONE blade is visible at a time
-    const FADE_CORE = 18; // fully opaque within ±this angle
-    const FADE_SPAN = 60; // fades to 0 over this many further degrees
+    // Windmill geometry. All three blades reach their readable (horizontal)
+    // position at the SAME spot — the centre of the free space between the
+    // left-hand headline and the right edge on desktop, and the screen centre
+    // on mobile. Cards 0 and 2 pivot on an axis to the RIGHT of that spot; card
+    // 1 ("02 Automatizamos") pivots on an axis to the LEFT (a mirrored second
+    // windmill) but still passes through the same centre, never over the title.
+    const START = 95;
+    const OFFSET = 90; // wide spacing → only one blade visible at a time
+    const FADE_CORE = 20; // fully opaque within ±this angle
+    const FADE_SPAN = 62;
 
-    // Scroll → rotation, non-linear and slow: rot stays ~0 while the intro text
-    // is up, shallow-slope segments (centred on rot 95/185/275) make each blade
-    // LINGER horizontal, and — crucially — card 2 keeps rotating OUT right up to
-    // p = 1 (it reaches opacity 0 exactly as the pin releases), so there's no
-    // frozen frame AND no empty gap before the next section: the third card is
-    // still leaving as the pin hands off.
+    // Scroll → rotation. Deliberately SLOW: rot barely moves while the intro
+    // text clears, then wide shallow-slope "dwell" segments (centred on
+    // rot 95/185/275) keep each blade near-horizontal for a long stretch of
+    // scroll so it's easy to read, with quick transitions between.
     const ROT_KNOTS: [number, number][] = [
       [0.0, 0],
-      [0.28, 14], // blades hidden below while the text is up
-      [0.34, 78],
-      [0.46, 112], // card 0 dwell (readable ≈ 0.40)
-      [0.54, 155],
-      [0.68, 215], // card 1 dwell (readable ≈ 0.61)
-      [0.76, 250],
-      [0.88, 285], // card 2 dwell (readable ≈ 0.85) — stays fully visible…
-      [0.96, 318], // …then rotates out only in the final stretch, so it's still
-      [1.0, 355], //  leaving as the pin releases and the next section arrives.
+      [0.15, 12],
+      [0.22, 82], // fast approach → card 0
+      [0.38, 108], // card 0 dwell (readable ≈ 0.30)
+      [0.46, 172], // fast
+      [0.62, 198], // card 1 dwell (readable ≈ 0.54)
+      [0.7, 262], // fast
+      [0.86, 288], // card 2 dwell (readable ≈ 0.78)
+      [1.0, 353], // …still rotating out as the pin releases
     ];
     function rotAt(p: number) {
       for (let i = 0; i < ROT_KNOTS.length - 1; i++) {
@@ -112,62 +110,94 @@ export default function Intro() {
       card!.style.opacity = "0";
     });
 
+    // Places each card so its centre sits on the shared readable spot and sets
+    // its rotation axis (right for cards 0/2, left for card 1). Recomputed on
+    // resize.
+    function layoutCards() {
+      const vw = window.innerWidth;
+      const vh = window.innerHeight;
+      const mobile = vw <= 900;
+      const cx = mobile ? vw / 2 : (headline!.getBoundingClientRect().right + vw) / 2;
+      const cy = vh / 2;
+      const R = mobile ? 340 : 600; // arc radius (axis distance from the spot)
+      cards.forEach((card, i) => {
+        const el = card!;
+        const w = el.offsetWidth;
+        const h = el.offsetHeight;
+        el.style.left = `${cx - w / 2}px`;
+        el.style.top = `${cy - h / 2}px`;
+        el.style.right = "auto";
+        el.style.marginTop = "0";
+        const leftAxis = i === 1;
+        const ax = leftAxis ? cx - R : cx + R;
+        el.style.transformOrigin = `${ax - (cx - w / 2)}px center`;
+      });
+    }
+
     function onScroll() {
       const rect = wrap!.getBoundingClientRect();
       const total = wrap!.offsetHeight - window.innerHeight;
       const p = clamp(-rect.top / total, 0, 1);
       const mobile = window.innerWidth <= 900;
 
-      // Intro paragraphs fade up and out before the blades take over.
-      const tMove = clamp(p / 0.28, 0, 1);
-      const tFade = ease(clamp((p - 0.18) / 0.12, 0, 1));
-      texts!.style.transform = `translateY(${lerp(0, -120, tMove)}px)`;
-      texts!.style.opacity = String(lerp(1, 0, tFade));
-
-      // On mobile the headline must NOT stay pinned: it scrolls up and away as
-      // the section starts (finishing just as the first blade arrives). On
-      // desktop it stays put (reset any inline styles left from a resize).
-      const hOut = mobile ? ease(clamp((p - 0.14) / 0.18, 0, 1)) : 0;
-      if (hOut > 0.001) {
-        headline!.style.transform = `translateY(${lerp(0, -300, hOut)}px)`;
-        headline!.style.opacity = String(1 - hOut);
+      if (mobile) {
+        // Title + text simply scroll up together and fade — no pinning tricks,
+        // no CSS-transition lag (transition:none), so it reads as a normal
+        // upward scroll.
+        const up = clamp(p / 0.2, 0, 1);
+        const ty = lerp(0, -300, up);
+        headline!.style.transition = "none";
+        headline!.style.transform = `translateY(${ty}px)`;
+        headline!.style.opacity = String(1 - up);
+        texts!.style.transform = `translateY(${ty}px)`;
+        texts!.style.opacity = String(1 - up);
       } else {
-        // Leave the headline to its normal flow / reveal animation.
+        headline!.style.transition = "";
         headline!.style.transform = "";
         headline!.style.opacity = "";
+        // Desktop: only the paragraphs fade up; the headline stays put.
+        const tMove = clamp(p / 0.28, 0, 1);
+        const tFade = ease(clamp((p - 0.18) / 0.12, 0, 1));
+        texts!.style.transform = `translateY(${lerp(0, -120, tMove)}px)`;
+        texts!.style.opacity = String(lerp(1, 0, tFade));
       }
 
       const rot = rotAt(p);
       cards.forEach((card, i) => {
-        // Negative → points down (bottom); 0 → horizontal/readable; positive →
-        // points up. Rises with scroll. All blades share the same axis/path.
+        const leftAxis = i === 1;
+        // Negative → below; 0 → horizontal/readable; positive → above.
         const angle = -START - i * OFFSET + rot;
+        const rz = leftAxis ? -angle : angle; // mirror the left windmill
         const aAbs = Math.abs(angle);
         const vis = clamp(1 - (aAbs - FADE_CORE) / FADE_SPAN, 0, 1);
         const scale = 0.9 + vis * 0.1;
         const blur = (1 - vis) * 6;
 
         // Windmill spin (rotateZ) + a pronounced 3D turn (perspective +
-        // rotateY/rotateX baked into the SAME transform, so the card's own
-        // backdrop-filter still renders — an ancestor perspective would kill the
-        // glass blur). The card turns to face you at horizontal and tips away in
-        // 3D as it enters/leaves.
-        const ry = clamp(-angle * 0.6, -42, 42);
+        // rotateY/rotateX baked into the SAME transform so the card's own
+        // backdrop-filter still renders).
+        let ry = clamp(-angle * 0.6, -42, 42);
+        if (leftAxis) ry = -ry;
         const rx = 8 + (1 - vis) * 12;
-        card!.style.transform = `perspective(1100px) rotate(${angle}deg) rotateY(${ry}deg) rotateX(${rx}deg) scale(${scale})`;
+        card!.style.transform = `perspective(1100px) rotate(${rz}deg) rotateY(${ry}deg) rotateX(${rx}deg) scale(${scale})`;
         card!.style.opacity = String(vis);
         card!.style.filter = blur > 0.05 ? `blur(${blur}px)` : "none";
         card!.style.zIndex = String(10 + Math.round(vis * 10));
       });
     }
 
+    const onResize = () => {
+      layoutCards();
+      onScroll();
+    };
+    layoutCards();
     window.addEventListener("scroll", onScroll, { passive: true });
-    window.addEventListener("resize", onScroll, { passive: true });
+    window.addEventListener("resize", onResize, { passive: true });
     onScroll();
 
     return () => {
       window.removeEventListener("scroll", onScroll);
-      window.removeEventListener("resize", onScroll);
+      window.removeEventListener("resize", onResize);
     };
   }, []);
 

@@ -62,7 +62,10 @@ export default function DesarrolloWebHero() {
       // ---- Everything except the title is hidden at load ("sin nada más").
       gsap.set(canvasWrap ?? [], { opacity: 0 });
       gsap.set(facetPanel ?? [], { opacity: 0, y: 24 });
-      gsap.set(q(".nxr-bw-browser"), { opacity: 0, rotateY: -15, rotateX: 6 });
+      // Starts strongly angled + small; it turns toward you and grows across
+      // the whole build (see the long tween below) so the browser visibly
+      // MOVES with the scroll, not just fills in.
+      gsap.set(q(".nxr-bw-browser"), { opacity: 0, rotateY: -30, rotateX: 12, scale: 0.88 });
       gsap.set(q(".nxr-bw-wire"), { opacity: 0, scale: 0.9, transformOrigin: "left center" });
       gsap.set(q(".nxr-bw-fill"), { opacity: 0 });
       gsap.set(q(".nxr-bw-url-text"), { opacity: 0 });
@@ -104,6 +107,15 @@ export default function DesarrolloWebHero() {
       tl.to(canvasWrap ?? {}, { opacity: 1, duration: 0.6 }, 1.0);
       tl.to(q(".nxr-bw-browser"), { opacity: 1, duration: 0.6, ease: "power2.out" }, 1.15);
       tl.to(facetPanel ?? {}, { opacity: 1, y: 0, duration: 0.5 }, 1.25);
+
+      // Continuous scroll-driven MOTION of the whole window across the build:
+      // it turns from a steep 3/4 view toward face-on and grows to full size,
+      // with a couple of eased waypoints so the rotation keeps changing (feels
+      // alive / advancing) rather than settling early.
+      tl.to(q(".nxr-bw-browser"), { rotateY: -18, rotateX: 8, scale: 0.95, duration: 1.6, ease: "sine.inOut" }, 1.4);
+      tl.to(q(".nxr-bw-browser"), { rotateY: -13, rotateX: 5, duration: 1.4, ease: "sine.inOut" }, 3.0);
+      tl.to(q(".nxr-bw-browser"), { rotateY: -6, rotateX: 3, scale: 1, duration: 1.4, ease: "power1.inOut" }, 4.2);
+      tl.to(q(".nxr-bw-browser"), { rotateY: -9, duration: 0.6, ease: "sine.inOut" }, 5.6);
       if (labels[0]) tl.to(labels[0], { opacity: 1, filter: "blur(0px)", duration: 0.4 }, 1.3);
 
       // ===== Progress bar + status text (drives % and stage label from the

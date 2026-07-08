@@ -88,7 +88,10 @@ export default function Intro() {
         scrollTrigger: {
           trigger: texts,
           start: "top bottom",
-          end: () => (window.innerWidth < 768 ? "+=650" : "+=900"),
+          // Mobile gets noticeably more runway than desktop so the text isn't
+          // gone after just a small swipe — same phase timeline, just spread
+          // over more scroll.
+          end: () => (window.innerWidth < 768 ? "+=1250" : "+=900"),
           scrub: 0.6,
         },
       });

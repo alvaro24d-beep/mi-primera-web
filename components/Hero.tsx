@@ -98,11 +98,18 @@ export default function Hero() {
       // before this layout effect has a chance to run.
       gsap.set(mastery ?? [], { visibility: "visible" });
 
+      // One-time entrance (page load), independent of scroll: the hero starts
+      // blurred and quickly resolves to sharp, rather than snapping in fully
+      // crisp. Plays once on mount, well before the user typically starts
+      // scrolling, so it doesn't fight the scroll-driven exit blur below (both
+      // animate the same `filter` property, just at different times).
+      if (fade) gsap.from(fade, { filter: "blur(20px)", duration: 0.8, ease: "power2.out" });
+
       const tl = gsap.timeline({
         scrollTrigger: {
           trigger: section,
           start: "top top",
-          end: () => (window.innerWidth < 768 ? "+=320%" : "+=360%"),
+          end: () => (window.innerWidth < 768 ? "+=220%" : "+=360%"),
           scrub: 0.6,
           pin: stage,
           anticipatePin: 1,

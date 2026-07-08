@@ -269,14 +269,18 @@ h6 {
   }
 }
 
+/* `background-clip: text` paints the gradient only within this box's own
+   padding box. Descenders (g, j, p, q, y) can extend below it if the box
+   isn't tall enough — a taller `line-height` used to fix that, but it also
+   made this span's own baseline sit differently than its sibling (non-
+   gradient) text, since the two ended up in DIFFERENT line-height contexts —
+   exactly the "gradient part sits higher than the rest of the title" bug.
+   `padding-bottom` gives the same descender headroom without touching
+   line-height, so this text lines up with — and keeps the same line spacing
+   as — the rest of the title. */
 .nxr-gradient-text {
   display: inline-block;
-  /* `background-clip: text` paints the gradient only within this box's own
-     line-height — headings set a tight line-height (~1.08) for line spacing,
-     which isn't tall enough to contain descenders (g, j, p, q, y), clipping
-     them. Override it here so the box is tall enough regardless of the
-     parent's line-height. */
-  line-height: 1.45;
+  padding-bottom: 0.12em;
   -webkit-background-clip: text;
   background-clip: text;
   -webkit-text-fill-color: transparent;
@@ -293,7 +297,7 @@ h6 {
 
 .nxr-gradient-text-lime {
   display: inline-block;
-  line-height: 1.45;
+  padding-bottom: 0.12em;
   -webkit-background-clip: text;
   background-clip: text;
   -webkit-text-fill-color: transparent;
@@ -310,7 +314,7 @@ h6 {
 
 .nxr-gradient-text-salmon {
   display: inline-block;
-  line-height: 1.45;
+  padding-bottom: 0.12em;
   -webkit-background-clip: text;
   background-clip: text;
   -webkit-text-fill-color: transparent;
@@ -1028,6 +1032,14 @@ h6 {
 }
 
 @media (max-width: 768px) {
+  /* Both phases (hero content, then "Construido con maestría") are centred
+     via `justify-content: center` — this bias nudges that centred position up
+     a bit rather than sitting dead-centre, on both. */
+  .nxr-hero-fade,
+  .nxr-hero-mastery {
+    padding-bottom: 60px;
+  }
+
   .nxr-hero-h1 {
     font-size: clamp(44px, 11.5vw, 64px);
   }
@@ -3824,12 +3836,19 @@ input[type="range"].nxr-ms-range::-moz-range-thumb {
   #nxr-zoom-parallax {
     height: 200vh;
   }
+  /* Nudges the whole stuck layer stack up a bit — a plain transform rather
+     than re-deriving each card's individual `top: calc(50% - Xvh)` math,
+     since it shifts every card uniformly regardless of its own position. */
+  #nxr-zoom-sticky {
+    transform: translateY(-28px);
+  }
 }
 
 #nxr-zoom-sticky {
   position: sticky;
   top: 0;
   height: 100vh;
+  height: var(--vh-100, 100vh);
   overflow: hidden;
 }
 
@@ -4402,14 +4421,21 @@ input[type="range"].nxr-ms-range::-moz-range-thumb {
 @media (max-width: 900px) {
   /* Single column on phones: headline + copy on top (not sticky — a sticky
      header would sit over the cards as they scroll under it), then the cards
-     stacked below, scrolling normally. */
+     stacked below, scrolling normally. Tighter gap than desktop's 80px so the
+     presentation text (top of .nxr-intro-cards) reads as following on
+     directly from the headline, not a separate, distant block. */
   .nxr-intro-inner {
     grid-template-columns: 1fr;
-    gap: 32px;
+    gap: 14px;
   }
   .nxr-intro-left {
     position: static;
     top: auto;
+    /* The desktop sticky-centering transform (translateY(-50%)) isn't reset by
+       switching position back to static — transform still applies regardless
+       of position scheme — so without this it visually shifts the title up
+       by half its own height, opening a large gap before the text below it. */
+    transform: none;
   }
   .nxr-intro-headline {
     font-size: clamp(36px, 9.5vw, 48px);
@@ -5384,14 +5410,16 @@ input[type="range"].nxr-ms-range::-moz-range-thumb {
   .nxr-bw-scene {
     padding-left: 0;
     /* Centre the (smaller) browser in the band between the fixed-height title
-       (top) and the facet cards (bottom). The title reserves ~198px up top and
-       the cards+nav reserve ~266px at the bottom; padding-bottom:68px biases
-       the centred browser up by ~34px so it lands in the middle of that band on
-       ANY phone height — no per-height clamp, no title/card overlap, no big
-       empty gap. */
+       (top) and the facet cards (bottom). Re-tuned after the mobile title
+       grew (see .nxr-dwh-h1 below): title zone now reaches to roughly y=172,
+       cards start around y=578, so the band's centre sits at ~375 — only
+       slightly above the stage's own unbiased centre, hence the much smaller
+       bias than before. padding-bottom:Npx shifts the align-items:center
+       result up by N/2, so it lands in the middle of that band on ANY phone
+       height — no per-height clamp, no title/card overlap, no big empty gap. */
     align-items: center;
     padding-top: 0;
-    padding-bottom: 68px;
+    padding-bottom: 24px;
   }
   /* Smaller browser on phones so it fits comfortably above the facet cards. */
   .nxr-bw-browser {

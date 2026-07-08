@@ -37,26 +37,27 @@ export function useTitleReveal<T extends HTMLElement = HTMLHeadingElement>() {
       // mid-word. Also splitting by "words" groups each word's letters into a
       // single layout unit (`white-space: nowrap` internally), so line breaks can
       // only fall between words again, exactly like normal, unsplit text.
-      const split = SplitText.create(el, { type: "words, chars", mask: "chars" });
-      // Each mask is an `overflow: clip` box that SplitText sizes with an
-      // explicit `height` matching the line's own line-height — not tall
-      // enough for descenders (g, j, p, q, y), which get cut off at the
-      // bottom. Adding `padding-bottom` alone does NOT fix this: globals.css
-      // resets every element to `box-sizing: border-box`, so padding is
-      // absorbed INSIDE that fixed height instead of extending the box (this
-      // was silently a no-op for two previous attempts at this fix — verified
-      // via getComputedStyle that the rendered box height never changed).
-      // `content-box` here makes padding-bottom actually add extra height
-      // below the line, same descender headroom as `.nxr-gradient-text` in
-      // globals.css, without touching line-height (which would misalign this
-      // span's baseline against sibling, unsplit text on the same line).
-      gsap.set(split.masks, { boxSizing: "content-box", paddingBottom: "0.25em" });
-      gsap.set(split.chars, { yPercent: 115 });
+      //
+      // Deliberately NOT using SplitText's `mask` option here (previous version
+      // did). A mask wraps each char in its own `overflow: clip` box sized to
+      // the line's line-height — not tall enough for descenders (g, j, p, q,
+      // y), which get cut off at the bottom. Two rounds of padding/box-sizing
+      // fixes on that mask box still weren't reliably descender-safe across
+      // every heading/font-size/browser combination on this site. Since the
+      // clipping is a direct consequence of the mask box existing at all, the
+      // only way to make it structurally impossible — not just "tuned to not
+      // happen right now" — is to not clip anything: chars fade AND rise via
+      // opacity + y (translate), with no overflow box involved anywhere, so
+      // there is nothing for a descender to be cut off by, regardless of font
+      // metrics. Same "rises into place" read, just without a hard mask edge.
+      const split = SplitText.create(el, { type: "words, chars" });
+      gsap.set(split.chars, { opacity: 0, yPercent: 40 });
       gsap.to(split.chars, {
+        opacity: 1,
         yPercent: 0,
-        duration: 0.7,
-        ease: "power3.out",
-        stagger: 0.022,
+        duration: 0.5,
+        ease: "power2.out",
+        stagger: 0.018,
         scrollTrigger: {
           trigger: el,
           start: "top 88%",

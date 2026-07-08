@@ -75,11 +75,17 @@ export default function Hero() {
 
       const q = gsap.utils.selector(section);
       const fade = q(".nxr-hero-fade")[0] as HTMLElement | undefined;
+      const mastery = q(".nxr-hero-mastery")[0] as HTMLElement | undefined;
       const lines = q(".nxr-hero-mastery-line");
 
       // Lines start pushed one full line-height below their box; the wrapper's
       // `overflow: hidden` acts as the mask, so they're invisible at rest.
       gsap.set(lines, { yPercent: 100 });
+      // CSS keeps `.nxr-hero-mastery` `visibility: hidden` until here — without
+      // this, the text (which has no CSS-level hiding, only the JS-driven
+      // yPercent above) flashes fully visible for a frame on first paint,
+      // before this layout effect has a chance to run.
+      gsap.set(mastery ?? [], { visibility: "visible" });
 
       const tl = gsap.timeline({
         scrollTrigger: {

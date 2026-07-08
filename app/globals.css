@@ -198,6 +198,28 @@ h6 {
     var(--glass-border-gradient);
 }
 
+/* Page-load transition (see PageTransition.tsx): every page load — the first
+   one and every client-side navigation — blurs in rather than snapping in
+   sharp. `both` holds the `from` state until the animation starts and the `to`
+   state after it ends, so there's no flash of un-animated (fully sharp) content
+   on the frame before the animation kicks in. */
+@keyframes nxr-page-blur-in {
+  from {
+    filter: blur(16px);
+  }
+  to {
+    filter: blur(0);
+  }
+}
+.nxr-page-transition {
+  animation: nxr-page-blur-in 0.5s ease-out both;
+}
+@media (prefers-reduced-motion: reduce) {
+  .nxr-page-transition {
+    animation: none;
+  }
+}
+
 .nxr-reveal {
   opacity: 0;
   transform: translateY(32px);
@@ -952,7 +974,12 @@ h6 {
    same stage, on top of `.nxr-hero-fade` in DOM order. Each line's own
    `overflow: hidden` wrapper is the mask; GSAP drives `.nxr-hero-mastery-line`
    from yPercent 100 (hidden below) through 0 (visible) to -100 (hidden above)
-   in one continuous scrubbed sweep. */
+   in one continuous scrubbed sweep.
+
+   Hidden until Hero.tsx's layout effect sets the lines' initial yPercent and
+   flips this back to visible — the lines have no CSS-level hiding of their
+   own (only the JS-driven yPercent), so without this they'd flash fully
+   visible for a frame on first paint, before that effect runs. */
 .nxr-hero-mastery {
   position: absolute;
   inset: 0;
@@ -964,6 +991,7 @@ h6 {
   text-align: center;
   padding: 0 var(--pad-x);
   pointer-events: none;
+  visibility: hidden;
 }
 
 .nxr-hero-mastery-line-wrap {
@@ -1000,11 +1028,6 @@ h6 {
 }
 
 @media (max-width: 768px) {
-  .nxr-hero-fade {
-    justify-content: flex-start;
-    padding-top: 90px;
-  }
-
   .nxr-hero-h1 {
     font-size: clamp(38px, 10vw, 56px);
   }
@@ -2659,26 +2682,6 @@ h6 {
   box-shadow: inset 0 0 4px 1px rgba(255, 255, 255, 0.28);
 }
 
-.nxr-paso-num::before {
-  content: "";
-  position: absolute;
-  inset: -4px;
-  border-radius: 50%;
-  background: conic-gradient(from 0deg, var(--c-red), var(--c-lime), var(--c-salmon), var(--c-red));
-  -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 3px), #fff calc(100% - 3px));
-  mask: radial-gradient(farthest-side, transparent calc(100% - 3px), #fff calc(100% - 3px));
-  opacity: 0;
-  transition: opacity 0.4s;
-  animation: nxr-paso-ring-spin 3.5s linear infinite;
-  pointer-events: none;
-}
-
-@keyframes nxr-paso-ring-spin {
-  to {
-    transform: rotate(360deg);
-  }
-}
-
 .nxr-paso-num::after {
   content: "";
   position: absolute;
@@ -2702,10 +2705,6 @@ h6 {
 .nxr-paso.nxr-paso-active .nxr-paso-num {
   background: var(--c-red);
   color: var(--c-white);
-}
-
-.nxr-paso.nxr-paso-active .nxr-paso-num::before {
-  opacity: 1;
 }
 
 .nxr-paso:hover .nxr-paso-num {
@@ -2805,8 +2804,10 @@ h6 {
 }
 
 .nxr-paso-title {
-  font-size: 19px;
-  font-weight: 700;
+  font-family: var(--font-cormorant), serif;
+  font-size: 22px;
+  font-weight: 400;
+  font-style: normal;
   color: rgba(255, 255, 255, 0.25);
   margin-bottom: 8px;
   letter-spacing: -0.01em;
@@ -2903,8 +2904,7 @@ h6 {
 @media (prefers-reduced-motion: reduce) {
   .nxr-paso-tilt,
   .nxr-paso-card,
-  .nxr-paso-chevron,
-  .nxr-paso-num::before {
+  .nxr-paso-chevron {
     transition: none !important;
     animation: none !important;
     transform: none !important;

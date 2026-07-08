@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import Header from "@/components/Header";
 import DesarrolloWebHero from "@/components/DesarrolloWebHero";
 import ProcesoReel from "@/components/ProcesoReel";
 import CapacidadesWeb from "@/components/CapacidadesWeb";
@@ -15,7 +14,6 @@ export const metadata: Metadata = {
 export default function DesarrolloWebPage() {
   return (
     <>
-      <Header />
       <DesarrolloWebHero />
       <ProcesoReel />
       <CapacidadesWeb />

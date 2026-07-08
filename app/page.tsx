@@ -1,4 +1,3 @@
-import Header from "@/components/Header";
 import Hero from "@/components/Hero";
 import Intro from "@/components/Intro";
 import Servicios from "@/components/Servicios";
@@ -10,7 +9,6 @@ import Contacto from "@/components/Contacto";
 export default function Home() {
   return (
     <>
-      <Header />
       <Hero />
       <Intro />
       <Servicios />

@@ -4080,11 +4080,14 @@ input[type="range"].nxr-ms-range::-moz-range-thumb {
   align-items: start;
 }
 
-/* The headline + intro copy stay pinned (position: sticky) while the vertical
-   column of cards scrolls normally past them. */
+/* The headline stays pinned (position: sticky) while the vertical column of
+   cards scrolls normally past it — `top: 50%` + `translateY(-50%)` is the
+   standard way to keep a sticky element vertically centred in the viewport
+   (rather than anchored to a fixed offset from the top) while it's stuck. */
 .nxr-intro-left {
   position: sticky;
-  top: 140px;
+  top: 50%;
+  transform: translateY(-50%);
   align-self: start;
 }
 
@@ -4096,11 +4099,14 @@ input[type="range"].nxr-ms-range::-moz-range-thumb {
   color: var(--c-white);
 }
 
+/* Hidden until Intro.tsx's layout effect sets the initial scroll-sequence
+   state (opacity/y) and flips this back to visible — otherwise it'd flash
+   fully visible for a frame on first paint. */
 .nxr-intro-texts {
-  margin-top: 32px;
   display: flex;
   flex-direction: column;
   gap: 20px;
+  visibility: hidden;
 }
 
 .nxr-intro-text {
@@ -4121,7 +4127,9 @@ input[type="range"].nxr-ms-range::-moz-range-thumb {
   gap: 24px;
 }
 
-/* Plain vertical glass card (no more 3D windmill blade). */
+/* Plain vertical glass card (no more 3D windmill blade). Hidden until the
+   scroll-sequence effect reveals it, for the same reason as `.nxr-intro-texts`
+   above. */
 .nxr-intro-card {
   position: relative;
   background: var(--glass-bg);
@@ -4134,6 +4142,7 @@ input[type="range"].nxr-ms-range::-moz-range-thumb {
   gap: 16px;
   overflow: hidden;
   box-shadow: var(--glass-shine);
+  visibility: hidden;
 }
 
 .nxr-intro-card-text {

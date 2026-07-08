@@ -1,6 +1,10 @@
 "use client";
 
+import { useRef } from "react";
+import gsap from "gsap";
+import { useGSAP } from "@gsap/react";
 import { useTitleReveal } from "@/hooks/useTitleReveal";
+import { useReducedMotion } from "@/hooks/useReducedMotion";
 
 // Compact looping graphic per card, each representing its service (same idea
 // as the home Servicios animations): a website building for "Construimos", an
@@ -51,20 +55,73 @@ function GrowAnim() {
 
 export default function Intro() {
   const titleRef = useTitleReveal<HTMLHeadingElement>();
+  const sectionRef = useRef<HTMLElement>(null);
+  const textsRef = useRef<HTMLDivElement>(null);
+  const reducedMotion = useReducedMotion();
+
+  useGSAP(
+    () => {
+      // Same direct-media-query safety net as useTitleReveal: avoids running
+      // the animated setup for one tick before a reduced-motion re-render
+      // corrects it.
+      const prefersReduced = reducedMotion || window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+      const section = sectionRef.current;
+      const texts = textsRef.current;
+      if (!section || !texts) return;
+
+      const q = gsap.utils.selector(section);
+      const cards = q(".nxr-intro-card");
+
+      if (prefersReduced) {
+        gsap.set([texts, ...cards], { visibility: "visible" });
+        return;
+      }
+
+      gsap.set(texts, { opacity: 0, y: 40 });
+      gsap.set(cards, { opacity: 0, y: 40 });
+      // CSS keeps these `visibility: hidden` until here (see globals.css) —
+      // without this, they'd flash fully visible for a frame on first paint,
+      // before this layout effect has a chance to run.
+      gsap.set([texts, ...cards], { visibility: "visible" });
+
+      const tl = gsap.timeline({
+        scrollTrigger: {
+          trigger: texts,
+          start: "top bottom",
+          end: () => (window.innerWidth < 768 ? "+=650" : "+=900"),
+          scrub: 0.6,
+        },
+      });
+
+      // Phase 1 — the text rises and fades IN as it scrolls up into view.
+      tl.to(texts, { opacity: 1, y: 0, duration: 1, ease: "power2.out" }, 0);
+      // Hold — readable for a stretch of scroll.
+      tl.to({}, { duration: 1.2 }, 1);
+      // Phase 2 — the SAME upward drift continues, now fading the text back
+      // OUT, so it visibly leaves rather than just scrolling out of frame.
+      tl.to(texts, { opacity: 0, y: -40, duration: 1, ease: "power2.in" }, 2.2);
+      // Phase 3 — only once the text is fully gone do the cards rise in,
+      // one after another.
+      tl.to(cards, { opacity: 1, y: 0, duration: 0.8, stagger: 0.15, ease: "power2.out" }, 3.2);
+    },
+    { scope: sectionRef, dependencies: [reducedMotion] }
+  );
 
   return (
-    <section id="nxr-intro">
+    <section id="nxr-intro" ref={sectionRef}>
       <div className="nxr-intro-inner">
-        <div className="nxr-intro-left nxr-reveal">
-          <h2 className="nxr-intro-headline" ref={titleRef}>
+        <div className="nxr-intro-left">
+          <h2 className="nxr-intro-headline nxr-reveal" ref={titleRef}>
             Hacemos que
             <br />
             la tecnología
             <br />
             <span className="nxr-gradient-text-lime">trabaje por ti.</span>
           </h2>
+        </div>
 
-          <div className="nxr-intro-texts">
+        <div className="nxr-intro-cards">
+          <div className="nxr-intro-texts" ref={textsRef}>
             <p className="nxr-intro-text">
               Somos una agencia de <strong>software e inteligencia artificial</strong> especializada en construir
               sistemas digitales que automatizan tareas, captan clientes y hacen crecer negocios — sin que tengas que
@@ -75,10 +132,8 @@ export default function Intro() {
               tienen el equipo técnico para hacerlo. Nosotros somos ese equipo.
             </p>
           </div>
-        </div>
 
-        <div className="nxr-intro-cards">
-          <div className="nxr-intro-card nxr-reveal" id="nxr-intro-card-1">
+          <div className="nxr-intro-card" id="nxr-intro-card-1">
             <WebAnim />
             <div className="nxr-intro-card-text">
               <span className="nxr-intro-col-num">01 — Construimos</span>
@@ -90,7 +145,7 @@ export default function Intro() {
             </div>
           </div>
 
-          <div className="nxr-intro-card nxr-reveal" id="nxr-intro-card-2">
+          <div className="nxr-intro-card" id="nxr-intro-card-2">
             <AutoAnim />
             <div className="nxr-intro-card-text">
               <span className="nxr-intro-col-num">02 — Automatizamos</span>
@@ -102,7 +157,7 @@ export default function Intro() {
             </div>
           </div>
 
-          <div className="nxr-intro-card nxr-reveal" id="nxr-intro-card-3">
+          <div className="nxr-intro-card" id="nxr-intro-card-3">
             <GrowAnim />
             <div className="nxr-intro-card-text">
               <span className="nxr-intro-col-num">03 — Hacemos crecer</span>

@@ -63,7 +63,18 @@ export default function Hero() {
   const reducedMotion = useReducedMotion();
 
   useEffect(() => {
-    document.documentElement.style.setProperty("--vh-100", `${window.innerHeight}px`);
+    // Mobile browsers can still have their address bar shown at the exact
+    // moment of mount, so `window.innerHeight` here may be shorter than the
+    // real, settled viewport. Without tracking resize, `.nxr-hero-stage` stays
+    // locked to that too-short height for the whole session, and its centered
+    // content ends up reading as sitting too high once the toolbar hides and
+    // reveals the extra space below. ScrollTrigger's own pin/scroll-distance
+    // math already ignores toolbar-driven resizes (`ignoreMobileResize` in
+    // SmoothScroll.tsx), so updating this CSS variable live doesn't fight it.
+    const set = () => document.documentElement.style.setProperty("--vh-100", `${window.innerHeight}px`);
+    set();
+    window.addEventListener("resize", set, { passive: true });
+    return () => window.removeEventListener("resize", set);
   }, []);
 
   useGSAP(

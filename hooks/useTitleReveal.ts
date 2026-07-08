@@ -38,6 +38,12 @@ export function useTitleReveal<T extends HTMLElement = HTMLHeadingElement>() {
       // single layout unit (`white-space: nowrap` internally), so line breaks can
       // only fall between words again, exactly like normal, unsplit text.
       const split = SplitText.create(el, { type: "words, chars", mask: "chars" });
+      // Each mask is an `overflow: clip` box sized to the line's own line-height,
+      // which isn't tall enough for descenders (g, j, p, q, y) — without this,
+      // they get cut off at the bottom (same underlying issue documented for
+      // `.nxr-gradient-text` in globals.css, here fixed at the mask level instead
+      // of via line-height so it doesn't push sibling lines further apart).
+      gsap.set(split.masks, { paddingBottom: "0.15em" });
       gsap.set(split.chars, { yPercent: 115 });
       gsap.to(split.chars, {
         yPercent: 0,

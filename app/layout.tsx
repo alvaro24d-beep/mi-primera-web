@@ -6,6 +6,7 @@ import WaveBackground from "@/components/WaveBackground";
 import RevealInit from "@/components/RevealInit";
 import SmoothScroll from "@/components/SmoothScroll";
 import ScrollProgress from "@/components/ScrollProgress";
+import GradualBlur from "@/components/GradualBlur";
 
 const manrope = Manrope({
   variable: "--font-primary",
@@ -39,6 +40,12 @@ export default function RootLayout({
         <ScrollProgress />
         <WaveBackground />
         <RevealInit />
+        {/* Fixed to the viewport (`target="page"`), sitting above page content
+            but below Header/the floating nav (z-index 9998/9999) — content
+            scrolling underneath fades/blurs progressively instead of being
+            clipped abruptly by that fixed chrome. */}
+        <GradualBlur position="top" height="2.5rem" strength={1.5} target="page" />
+        <GradualBlur position="bottom" height="2.5rem" strength={1.4} target="page" />
         <Header />
         {children}
       </body>

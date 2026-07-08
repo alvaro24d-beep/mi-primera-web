@@ -32,7 +32,12 @@ export function useTitleReveal<T extends HTMLElement = HTMLHeadingElement>() {
       const el = ref.current;
       if (prefersReduced || !el) return;
 
-      const split = SplitText.create(el, { type: "chars", mask: "chars" });
+      // Splitting by "chars" alone turns every letter into its own inline-block,
+      // so the browser is free to wrap a line between ANY two letters — including
+      // mid-word. Also splitting by "words" groups each word's letters into a
+      // single layout unit (`white-space: nowrap` internally), so line breaks can
+      // only fall between words again, exactly like normal, unsplit text.
+      const split = SplitText.create(el, { type: "words, chars", mask: "chars" });
       gsap.set(split.chars, { yPercent: 115 });
       gsap.to(split.chars, {
         yPercent: 0,

@@ -1,3 +1,7 @@
+"use client";
+
+import { useTitleReveal } from "@/hooks/useTitleReveal";
+
 const FILA_1 = [
   { name: "OpenAI GPT-4", cat: "IA & LLMs", color: "#A8F04A" },
   { name: "n8n", cat: "Automatización", color: "#EF3D0D" },
@@ -41,13 +45,15 @@ function TechRow({ items }: { items: typeof FILA_1 }) {
 }
 
 export default function Tech() {
+  const titleRef = useTitleReveal<HTMLHeadingElement>();
+
   return (
     <section id="nxr-tech">
       <div className="nxr-tech-inner nxr-reveal">
         <div className="nxr-tech-header">
           <div>
             <p className="nxr-section-label">Tecnologías</p>
-            <h2 className="nxr-section-h2">
+            <h2 className="nxr-section-h2" ref={titleRef}>
               Las herramientas
               <br />
               que <span className="nxr-gradient-text-salmon">hacen la magia.</span>

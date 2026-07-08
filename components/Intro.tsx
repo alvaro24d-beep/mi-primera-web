@@ -1,5 +1,7 @@
 "use client";
 
+import { useTitleReveal } from "@/hooks/useTitleReveal";
+
 // Compact looping graphic per card, each representing its service (same idea
 // as the home Servicios animations): a website building for "Construimos", an
 // automation flow with a travelling pulse for "Automatizamos", growth bars for
@@ -48,11 +50,13 @@ function GrowAnim() {
 }
 
 export default function Intro() {
+  const titleRef = useTitleReveal<HTMLHeadingElement>();
+
   return (
     <section id="nxr-intro">
       <div className="nxr-intro-inner">
         <div className="nxr-intro-left nxr-reveal">
-          <h2 className="nxr-intro-headline">
+          <h2 className="nxr-intro-headline" ref={titleRef}>
             Hacemos que
             <br />
             la tecnología

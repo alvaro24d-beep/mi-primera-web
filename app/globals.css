@@ -198,28 +198,6 @@ h6 {
     var(--glass-border-gradient);
 }
 
-/* Page-load transition (see PageTransition.tsx): every page load — the first
-   one and every client-side navigation — blurs in rather than snapping in
-   sharp. `both` holds the `from` state until the animation starts and the `to`
-   state after it ends, so there's no flash of un-animated (fully sharp) content
-   on the frame before the animation kicks in. */
-@keyframes nxr-page-blur-in {
-  from {
-    filter: blur(16px);
-  }
-  to {
-    filter: blur(0);
-  }
-}
-.nxr-page-transition {
-  animation: nxr-page-blur-in 0.5s ease-out both;
-}
-@media (prefers-reduced-motion: reduce) {
-  .nxr-page-transition {
-    animation: none;
-  }
-}
-
 .nxr-reveal {
   opacity: 0;
   transform: translateY(32px);
@@ -347,6 +325,24 @@ h6 {
   animation: nxr-gradient-shift 5s ease infinite;
 }
 
+/* `useTitleReveal` (GSAP SplitText) wraps gradient words in nested mask/char
+   divs for the per-letter animation. `background-image`/`background-clip`
+   aren't inherited CSS properties, so without this, only the OUTER span kept
+   the gradient — the actual visible text moved to inner divs that inherited
+   `-webkit-text-fill-color: transparent` (making them fully invisible) with no
+   gradient to clip against. Forcing an explicit `inherit` on every descendant
+   restores the gradient at each nesting level SplitText introduces. */
+.nxr-gradient-text *,
+.nxr-gradient-text-lime *,
+.nxr-gradient-text-salmon * {
+  background-image: inherit;
+  background-size: inherit;
+  background-position: inherit;
+  -webkit-background-clip: inherit;
+  background-clip: inherit;
+  -webkit-text-fill-color: inherit;
+}
+
 /* Gradient title words inherit the site-wide Cormorant Garamond heading font
    (see the `h1, h2, h3` rule below) since they're always nested inside a
    heading — declared explicitly too so they're correct even if ever used
@@ -368,6 +364,10 @@ h6 {
   .nxr-section-label,
   .nxr-section-h2 {
     text-align: left !important;
+  }
+
+  .nxr-section-h2 {
+    font-size: clamp(36px, 9.5vw, 52px);
   }
 
   .nxr-proceso-header,
@@ -1029,7 +1029,11 @@ h6 {
 
 @media (max-width: 768px) {
   .nxr-hero-h1 {
-    font-size: clamp(38px, 10vw, 56px);
+    font-size: clamp(44px, 11.5vw, 64px);
+  }
+
+  .nxr-hero-mastery-line {
+    font-size: clamp(32px, 8.5vw, 48px);
   }
 
   .nxr-hero-actions {
@@ -4399,7 +4403,7 @@ input[type="range"].nxr-ms-range::-moz-range-thumb {
     top: auto;
   }
   .nxr-intro-headline {
-    font-size: clamp(30px, 8vw, 42px);
+    font-size: clamp(36px, 9.5vw, 48px);
   }
   .nxr-intro-anim {
     height: 72px;
@@ -4593,6 +4597,9 @@ input[type="range"].nxr-ms-range::-moz-range-thumb {
     /* Narrower than the viewport so the title-intro scale-up doesn't overflow
        the right edge on phones. */
     max-width: 280px;
+  }
+  .nxr-dwh-h1 {
+    font-size: clamp(36px, 9vw, 48px);
   }
   .nxr-dwh-layers-panel {
     left: 20px;

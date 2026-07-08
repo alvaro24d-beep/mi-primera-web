@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { useTitleReveal } from "@/hooks/useTitleReveal";
 
 const PASOS = [
   {
@@ -112,6 +113,7 @@ class Spark {
 }
 
 export default function Proceso() {
+  const titleRef = useTitleReveal<HTMLHeadingElement>();
   const trackRef = useRef<HTMLDivElement>(null);
   const progressRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -263,7 +265,7 @@ export default function Proceso() {
         <div className="nxr-proceso-header nxr-reveal">
           <div>
             <p className="nxr-section-label">Cómo trabajamos</p>
-            <h2 className="nxr-section-h2">
+            <h2 className="nxr-section-h2" ref={titleRef}>
               Un proceso claro,
               <br />
               <span className="nxr-gradient-text-lime">sin sorpresas.</span>

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
+import { useTitleReveal } from "@/hooks/useTitleReveal";
 
 const CAPACIDADES = [
   {
@@ -85,6 +86,7 @@ const STATS = [
 ];
 
 export default function CapacidadesWeb() {
+  const titleRef = useTitleReveal<HTMLHeadingElement>();
   const gridRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -110,7 +112,7 @@ export default function CapacidadesWeb() {
       <div className="nxr-dwh-capacidades-inner">
         <div className="nxr-reveal">
           <p className="nxr-section-label">Capacidades</p>
-          <h2 className="nxr-section-h2">
+          <h2 className="nxr-section-h2" ref={titleRef}>
             Todo lo que tu web necesita para{" "}
             <span className="nxr-gradient-text-lime">competir de verdad.</span>
           </h2>

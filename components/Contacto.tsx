@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useTitleReveal } from "@/hooks/useTitleReveal";
 
 const BUDGET_VALUES = [
   "< 500€",
@@ -35,6 +36,7 @@ const SERVICIO_OPTS = [
 const TOTAL_STEPS = 5;
 
 export default function Contacto() {
+  const titleRef = useTitleReveal<HTMLHeadingElement>();
   const [step, setStep] = useState(1);
   const [negocio, setNegocio] = useState<string | null>(null);
   const [servicios, setServicios] = useState<string[]>([]);
@@ -116,7 +118,7 @@ export default function Contacto() {
           <div className="nxr-contacto-left nxr-reveal">
             <div>
               <p className="nxr-section-label">Contacto</p>
-              <h2 className="nxr-section-h2">
+              <h2 className="nxr-section-h2" ref={titleRef}>
                 Cuéntanos tu
                 <br />
                 <span className="nxr-gradient-text-lime">proyecto.</span>

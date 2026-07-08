@@ -4,6 +4,7 @@ import { useRef } from "react";
 import gsap from "gsap";
 import { useGSAP } from "@gsap/react";
 import { useReducedMotion } from "@/hooks/useReducedMotion";
+import { useTitleReveal } from "@/hooks/useTitleReveal";
 
 const STEPS = [
   {
@@ -50,6 +51,7 @@ function StepCards() {
 }
 
 export default function ProcesoReel() {
+  const titleRef = useTitleReveal<HTMLHeadingElement>();
   const sectionRef = useRef<HTMLElement>(null);
   const stickyRef = useRef<HTMLDivElement>(null);
   const trackRef = useRef<HTMLDivElement>(null);
@@ -107,7 +109,7 @@ export default function ProcesoReel() {
       <div className="nxr-dwh-proceso-sticky" ref={stickyRef}>
         <div className="nxr-reveal nxr-dwh-proceso-head">
           <p className="nxr-section-label">Proceso</p>
-          <h2 className="nxr-section-h2">
+          <h2 className="nxr-section-h2" ref={titleRef}>
             De la idea al <span className="nxr-gradient-text-salmon">lanzamiento.</span>
           </h2>
         </div>

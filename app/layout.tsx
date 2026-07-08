@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
-import { Manrope } from "next/font/google";
+import { Manrope, Cormorant_Garamond } from "next/font/google";
 import "./globals.css";
-import ParticlesGate from "@/components/ParticlesGate";
 import WaveBackground from "@/components/WaveBackground";
 import RevealInit from "@/components/RevealInit";
 import SmoothScroll from "@/components/SmoothScroll";
@@ -9,6 +8,15 @@ import ScrollProgress from "@/components/ScrollProgress";
 
 const manrope = Manrope({
   variable: "--font-primary",
+  subsets: ["latin"],
+});
+
+// Serif used site-wide for headings (see the `h1, h2, h3` rule in globals.css) —
+// always regular weight/style; never bold or italic.
+const cormorant = Cormorant_Garamond({
+  variable: "--font-cormorant",
+  weight: "400",
+  style: "normal",
   subsets: ["latin"],
 });
 
@@ -24,12 +32,11 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="es" className={manrope.variable}>
+    <html lang="es" className={`${manrope.variable} ${cormorant.variable}`}>
       <body suppressHydrationWarning>
         <SmoothScroll />
         <ScrollProgress />
         <WaveBackground />
-        <ParticlesGate />
         <RevealInit />
         {children}
       </body>

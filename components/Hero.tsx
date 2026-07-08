@@ -1,162 +1,139 @@
 "use client";
 
 import { useEffect, useRef } from "react";
+import gsap from "gsap";
+import { useGSAP } from "@gsap/react";
+import { useReducedMotion } from "@/hooks/useReducedMotion";
 
-const STATS = [
-  {
-    icon: (
-      <svg viewBox="0 0 24 24">
-        <path d="M22 12h-4l-3 9L9 3l-3 9H2" />
-      </svg>
-    ),
-    bg: "rgba(239,61,13,.15)",
-    color: "var(--c-red)",
-    num: (
-      <>
-        +40 <span style={{ color: "var(--c-lime)" }}>proyectos</span>
-      </>
-    ),
-    label: "Entregados con éxito",
-  },
-  {
-    icon: (
-      <svg viewBox="0 0 24 24">
-        <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
-      </svg>
-    ),
-    bg: "rgba(168,240,74,.12)",
-    color: "var(--c-lime)",
-    num: (
-      <>
-        98<span style={{ color: "var(--c-lime)" }}>%</span>
-      </>
-    ),
-    label: "Clientes satisfechos",
-  },
-  {
-    icon: (
-      <svg viewBox="0 0 24 24">
-        <circle cx="12" cy="12" r="10" />
-        <path d="M12 6v6l4 2" />
-      </svg>
-    ),
-    bg: "rgba(255,157,125,.12)",
-    color: "var(--c-salmon)",
-    num: (
-      <>
-        24<span style={{ color: "var(--c-lime)" }}>/7</span>
-      </>
-    ),
-    label: "Agentes activos",
-  },
-  {
-    icon: (
-      <svg viewBox="0 0 24 24">
-        <path d="M3 17l4-8 4 5 3-3 4 6" />
-      </svg>
-    ),
-    bg: "rgba(239,61,13,.15)",
-    color: "var(--c-red)",
-    num: (
-      <>
-        3<span style={{ color: "var(--c-lime)" }}>x</span>
-      </>
-    ),
-    label: "ROI medio primer año",
-  },
-];
+const ARROW = (
+  <svg
+    className="nxr-hero-cta-arrow"
+    width="16"
+    height="16"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
+    <path d="M5 12h14M12 5l7 7-7 7" />
+  </svg>
+);
 
-function StatCard({ stat }: { stat: (typeof STATS)[number] }) {
+function HeroCopy() {
   return (
-    <div className="nxr-hero-stat-card nxr-glass-edge">
-      <div
-        className="nxr-hero-stat-card-icon nxr-glass-edge-content"
-        style={{ background: stat.bg, color: stat.color }}
-      >
-        {stat.icon}
-      </div>
-      <div className="nxr-glass-edge-content">
-        <div className="nxr-hero-stat-card-num">{stat.num}</div>
-        <div className="nxr-hero-stat-card-label">{stat.label}</div>
+    <div className="nxr-hero-center">
+      <h1 className="nxr-hero-h1 nxr-reveal nxr-reveal-delay-2">
+        Tu empresa en
+        <br />
+        <span className="nxr-gradient-text-lime">piloto automático.</span>
+      </h1>
+
+      <p className="nxr-hero-sub nxr-reveal nxr-reveal-delay-3">
+        Webs, agentes de IA, automatizaciones y apps que trabajan por ti mientras tú te enfocas en crecer.
+      </p>
+
+      <div className="nxr-hero-actions nxr-reveal nxr-reveal-delay-4">
+        <a href="/contacto" className="nxr-btn-secondary">
+          <span className="nxr-hero-cta-text">Empezar proyecto</span>
+          {ARROW}
+        </a>
       </div>
     </div>
   );
 }
 
+function MasteryLines() {
+  return (
+    <>
+      <span className="nxr-hero-mastery-line-wrap">
+        <span className="nxr-hero-mastery-line">Construido con maestría.</span>
+      </span>
+      <span className="nxr-hero-mastery-line-wrap">
+        <span className="nxr-hero-mastery-line">Entregado con precisión.</span>
+      </span>
+    </>
+  );
+}
+
 export default function Hero() {
-  const marqueeTrackRef = useRef<HTMLDivElement>(null);
-  const marqueeWrapRef = useRef<HTMLDivElement>(null);
+  const sectionRef = useRef<HTMLElement>(null);
+  const stageRef = useRef<HTMLDivElement>(null);
+  const reducedMotion = useReducedMotion();
 
   useEffect(() => {
     document.documentElement.style.setProperty("--vh-100", `${window.innerHeight}px`);
-
-    if (window.innerWidth <= 768 && marqueeTrackRef.current && marqueeWrapRef.current) {
-      const track = marqueeTrackRef.current;
-      const cards = Array.from(track.parentElement!.parentElement!.querySelectorAll<HTMLElement>(
-        ".nxr-hero-bottom .nxr-hero-stat-card"
-      ));
-      if (cards.length) {
-        const all = cards;
-        all.concat(all.map((c) => c.cloneNode(true) as HTMLElement)).forEach((c) => track.appendChild(c));
-        marqueeWrapRef.current.style.display = "block";
-      }
-    }
   }, []);
 
+  useGSAP(
+    () => {
+      if (reducedMotion) return;
+      const section = sectionRef.current;
+      const stage = stageRef.current;
+      if (!section || !stage) return;
+
+      const q = gsap.utils.selector(section);
+      const fade = q(".nxr-hero-fade")[0] as HTMLElement | undefined;
+      const lines = q(".nxr-hero-mastery-line");
+
+      // Lines start pushed one full line-height below their box; the wrapper's
+      // `overflow: hidden` acts as the mask, so they're invisible at rest.
+      gsap.set(lines, { yPercent: 100 });
+
+      const tl = gsap.timeline({
+        scrollTrigger: {
+          trigger: section,
+          start: "top top",
+          end: () => (window.innerWidth < 768 ? "+=320%" : "+=360%"),
+          scrub: 0.6,
+          pin: stage,
+          anticipatePin: 1,
+          invalidateOnRefresh: true,
+        },
+      });
+
+      // ===== Phase 1 — the hero stays put but grows very slightly and blurs
+      // out until it's fully gone (opacity 0). =====
+      tl.to(fade ?? {}, { scale: 1.06, filter: "blur(18px)", opacity: 0, duration: 1, ease: "power1.in" }, 0);
+
+      // ===== Phase 2 — "Construido con maestría." / "Entregado con precisión."
+      // rise up from below their own line, revealed by the mask. =====
+      tl.to(lines, { yPercent: 0, duration: 1, ease: "power2.out" }, 1.1);
+
+      // Hold so it's readable.
+      tl.to({}, { duration: 0.6 }, 2.1);
+
+      // ===== Phase 3 — the SAME upward sweep continues past 0, so the text
+      // exits by rising and getting cut off at the top edge of its line. =====
+      tl.to(lines, { yPercent: -100, duration: 1, ease: "power1.in" }, 2.7);
+    },
+    { scope: sectionRef, dependencies: [reducedMotion] }
+  );
+
+  if (reducedMotion) {
+    return (
+      <>
+        <section key="static" id="nxr-hero" className="nxr-hero-static">
+          <HeroCopy />
+        </section>
+        <div className="nxr-hero-mastery-static">
+          <p className="nxr-hero-mastery-line">Construido con maestría.</p>
+          <p className="nxr-hero-mastery-line">Entregado con precisión.</p>
+        </div>
+      </>
+    );
+  }
+
   return (
-    <section id="nxr-hero">
-      <div className="nxr-hero-center">
-        <div className="nxr-hero-badge nxr-glass-edge nxr-reveal nxr-reveal-delay-1">
-          <span className="nxr-hero-badge-dot nxr-glass-edge-content"></span>
-          <span className="nxr-glass-edge-content">Agencia de software & inteligencia artificial</span>
+    <section key="animated" id="nxr-hero" ref={sectionRef}>
+      <div className="nxr-hero-stage" ref={stageRef}>
+        <div className="nxr-hero-fade">
+          <HeroCopy />
         </div>
-
-        <h1 className="nxr-hero-h1 nxr-reveal nxr-reveal-delay-2">
-          Tu empresa en
-          <br />
-          <span className="nxr-gradient-text-lime">piloto automático.</span>
-        </h1>
-
-        <p className="nxr-hero-sub nxr-reveal nxr-reveal-delay-3">
-          Webs, agentes de IA, automatizaciones y apps que trabajan por ti mientras tú te enfocas en crecer.
-        </p>
-
-        <div className="nxr-hero-actions nxr-reveal nxr-reveal-delay-4">
-          <a href="/contacto" className="nxr-btn-primary nxr-glass-edge">
-            <svg
-              className="nxr-glass-edge-content"
-              width="16"
-              height="16"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            >
-              <path d="M5 12h14M12 5l7 7-7 7" />
-            </svg>
-            <span className="nxr-glass-edge-content">Empezar proyecto</span>
-          </a>
-          <a href="/servicios" className="nxr-btn-secondary">
-            Ver servicios
-          </a>
-        </div>
-      </div>
-
-      <div className="nxr-hero-bottom nxr-reveal nxr-reveal-delay-5">
-        <div className="nxr-hero-bottom-left">
-          <StatCard stat={STATS[0]} />
-          <StatCard stat={STATS[1]} />
-        </div>
-        <div className="nxr-hero-bottom-right">
-          <StatCard stat={STATS[2]} />
-          <StatCard stat={STATS[3]} />
-        </div>
-      </div>
-
-      <div id="nxr-hero-marquee-wrap" ref={marqueeWrapRef} style={{ display: "none" }}>
-        <div className="nxr-hero-marquee-track" ref={marqueeTrackRef}></div>
+        <h2 className="nxr-hero-mastery">
+          <MasteryLines />
+        </h2>
       </div>
     </section>
   );

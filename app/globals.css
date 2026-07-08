@@ -81,13 +81,19 @@ a {
   text-decoration: none;
 }
 
+/* Every heading site-wide uses the Cormorant Garamond serif, always regular
+   weight/style — `!important` because dozens of section-specific heading
+   classes (`.nxr-section-h2`, `.nxr-hero-h1`, etc.) set their own font-weight
+   (usually 700) that would otherwise win on specificity alone. */
 h1,
 h2,
 h3,
 h4,
 h5,
 h6 {
-  font-family: var(--font) !important;
+  font-family: var(--font-cormorant), serif !important;
+  font-weight: 400 !important;
+  font-style: normal !important;
 }
 
 .nxr-container,
@@ -163,28 +169,6 @@ h6 {
   color: var(--c-white);
   max-width: 600px;
   margin-bottom: 48px;
-}
-
-.nxr-btn-primary {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  padding: 14px 30px;
-  border-radius: 100px;
-  background: rgba(239, 61, 13, 0.75);
-  backdrop-filter: var(--glass-blur);
-  box-shadow: inset 0 0 4px 1px rgba(255, 255, 255, 0.28);
-  color: var(--c-white);
-  font-size: 15px;
-  font-weight: 700;
-  font-family: var(--font);
-  transition: opacity 0.2s, transform 0.15s;
-  border: none;
-  cursor: pointer;
-}
-.nxr-btn-primary:hover {
-  opacity: 0.88;
-  transform: scale(1.03);
 }
 
 .nxr-btn-secondary {
@@ -341,12 +325,16 @@ h6 {
   animation: nxr-gradient-shift 5s ease infinite;
 }
 
-/* The animated-gradient title words are set in a serif (Times New Roman) as a
-   deliberate editorial contrast against the Manrope sans used everywhere else. */
+/* Gradient title words inherit the site-wide Cormorant Garamond heading font
+   (see the `h1, h2, h3` rule below) since they're always nested inside a
+   heading — declared explicitly too so they're correct even if ever used
+   outside one. */
 .nxr-gradient-text,
 .nxr-gradient-text-lime,
 .nxr-gradient-text-salmon {
-  font-family: "Times New Roman", Times, serif;
+  font-family: var(--font-cormorant), serif;
+  font-weight: 400;
+  font-style: normal;
 }
 
 @media (max-width: 768px) {
@@ -882,20 +870,38 @@ h6 {
   }
 }
 
-/* ===== Hero ===== */
+/* ===== Hero =====
+   A single pinned scroll sequence (see Hero.tsx): the hero content stays put,
+   grows very slightly and blurs away to nothing; then "Construido con
+   maestría. / Entregado con precisión." rises up from below its own line,
+   holds, then exits the same way it came (continuing to rise, cut off by the
+   mask at the top). Intro follows immediately once the pin releases. */
 #nxr-hero {
   position: relative;
   z-index: 1;
+}
+
+.nxr-hero-stage {
+  position: relative;
   height: 100vh;
   height: var(--vh-100, 100vh);
   min-height: 580px;
+  overflow: hidden;
+}
+
+/* Wraps the entire original hero content — GSAP scales/blurs/fades THIS, not
+   the individual reveal-on-load elements inside, so the one-time mount fade-in
+   (`.nxr-reveal`, a CSS transition) and the scroll-driven exit (GSAP inline
+   styles) never fight over the same properties on the same element. */
+.nxr-hero-fade {
+  position: absolute;
+  inset: 0;
   display: flex;
   flex-direction: column;
   justify-content: center;
   align-items: center;
   padding: 0 var(--pad-x);
-  padding-bottom: 80px;
-  overflow: visible;
+  will-change: transform, filter, opacity;
 }
 
 .nxr-hero-center {
@@ -905,58 +911,10 @@ h6 {
   text-align: center;
   gap: 20px;
   width: 100%;
-  padding-top: 64px;
-}
-
-.nxr-hero-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  padding: 7px 16px;
-  border-radius: 100px;
-  background: var(--glass-bg);
-  backdrop-filter: var(--glass-blur);
-  font-size: 11px;
-  font-weight: 500;
-  color: var(--c-salmon);
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-  box-shadow: var(--glass-shine);
-}
-
-.nxr-hero-badge-dot {
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
-  background: var(--c-lime);
-  animation: nxr-pulse 2s infinite;
-  flex-shrink: 0;
-}
-
-@keyframes nxr-pulse {
-  0%,
-  100% {
-    opacity: 1;
-    transform: scale(1);
-  }
-  50% {
-    opacity: 0.5;
-    transform: scale(0.7);
-  }
-}
-
-@keyframes nxr-hero-marquee {
-  0% {
-    transform: translateX(0);
-  }
-  100% {
-    transform: translateX(-50%);
-  }
 }
 
 .nxr-hero-h1 {
   font-size: clamp(34px, 6vw, 82px);
-  font-weight: 700;
   line-height: 1.05;
   letter-spacing: -0.03em;
   color: var(--c-white);
@@ -979,160 +937,90 @@ h6 {
   justify-content: center;
 }
 
-.nxr-hero-bottom {
-  position: absolute;
-  bottom: 90px;
-  left: var(--pad-x);
-  right: var(--pad-x);
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  align-items: end;
-  gap: 12px;
+.nxr-hero-cta-text {
+  font-family: var(--font-cormorant), serif;
+  font-weight: 400;
+  font-style: normal;
+  font-size: 17px;
 }
 
-.nxr-hero-bottom-left,
-.nxr-hero-bottom-right {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.nxr-hero-bottom-right {
-  align-items: flex-end;
-}
-
-.nxr-hero-stat-card {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 11px 14px;
-  border-radius: var(--radius-md);
-  background: var(--glass-bg);
-  backdrop-filter: var(--glass-blur);
-  min-width: 0;
-  max-width: 230px;
-  box-shadow: var(--glass-shine);
-}
-
-.nxr-hero-stat-card-icon {
-  width: 32px;
-  height: 32px;
-  border-radius: 8px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+.nxr-hero-cta-arrow {
   flex-shrink: 0;
 }
 
-.nxr-hero-stat-card-icon svg {
-  width: 15px;
-  height: 15px;
-  stroke: currentColor;
-  fill: none;
-  stroke-width: 1.8;
-  stroke-linecap: round;
-  stroke-linejoin: round;
+/* "Construido con maestría. / Entregado con precisión." — centred over the
+   same stage, on top of `.nxr-hero-fade` in DOM order. Each line's own
+   `overflow: hidden` wrapper is the mask; GSAP drives `.nxr-hero-mastery-line`
+   from yPercent 100 (hidden below) through 0 (visible) to -100 (hidden above)
+   in one continuous scrubbed sweep. */
+.nxr-hero-mastery {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  text-align: center;
+  padding: 0 var(--pad-x);
+  pointer-events: none;
 }
 
-.nxr-hero-stat-card-num {
-  font-size: 16px;
-  font-weight: 700;
+.nxr-hero-mastery-line-wrap {
+  display: block;
+  overflow: hidden;
+}
+
+.nxr-hero-mastery-line {
+  display: block;
   color: var(--c-white);
-  letter-spacing: -0.02em;
-  line-height: 1;
+  font-size: clamp(28px, 5.5vw, 64px);
+  line-height: 1.25;
+  letter-spacing: -0.01em;
 }
 
-.nxr-hero-stat-card-label {
-  font-size: 10px;
-  color: var(--c-salmon);
-  font-weight: 400;
-  margin-top: 2px;
+/* prefers-reduced-motion fallback: hero renders normally (no pin/scale/blur),
+   the mastery statement follows as a plain static block, no reveal/exit. */
+.nxr-hero-static {
+  min-height: var(--vh-100, 100vh);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  padding: 0 var(--pad-x);
 }
 
-.nxr-hero-marquee-track {
-  display: none;
+.nxr-hero-mastery-static {
+  padding: var(--section-pad) var(--pad-x);
+  text-align: center;
+}
+
+.nxr-hero-mastery-static .nxr-hero-mastery-line {
+  display: block;
 }
 
 @media (max-width: 768px) {
-  #nxr-hero {
+  .nxr-hero-fade {
     justify-content: flex-start;
-    padding-top: 0;
-    padding-bottom: 0;
-  }
-
-  .nxr-hero-center {
     padding-top: 90px;
-    gap: 16px;
-  }
-
-  .nxr-hero-badge {
-    align-self: center;
   }
 
   .nxr-hero-h1 {
     font-size: clamp(38px, 10vw, 56px);
-    margin-top: 70px;
-  }
-
-  .nxr-hero-bottom {
-    position: static;
-    display: none;
-    margin-top: 28px;
-    margin-bottom: 24px;
   }
 
   .nxr-hero-actions {
     flex-direction: column;
     width: 100%;
-    margin-top: 28px;
+    margin-top: 12px;
     padding: 0 16px;
   }
 
-  .nxr-btn-primary,
   .nxr-btn-secondary {
     width: auto;
     min-width: 200px;
     max-width: 260px;
     justify-content: center;
-  }
-
-  #nxr-hero-marquee-wrap {
-    margin-top: 36px;
-    margin-bottom: 24px;
-    margin-left: calc(-1 * var(--pad-x));
-    margin-right: calc(-1 * var(--pad-x));
-    width: calc(100% + var(--pad-x) * 2);
-    overflow: hidden;
-    position: relative;
-    transform: translateY(8px);
-  }
-
-  .nxr-hero-marquee-track {
-    display: flex;
-    flex-direction: row;
-    gap: 10px;
-    width: max-content;
-    padding: 4px 0;
-    animation: nxr-hero-marquee 14s linear infinite;
-  }
-
-  .nxr-hero-marquee-track .nxr-hero-stat-card {
-    flex-shrink: 0;
-    min-width: 160px;
-    max-width: 190px;
-    padding: 10px 12px;
-    gap: 10px;
-  }
-
-  .nxr-hero-marquee-track .nxr-hero-stat-card-num {
-    font-size: 14px;
-  }
-  .nxr-hero-marquee-track .nxr-hero-stat-card-label {
-    font-size: 9px;
-  }
-  .nxr-hero-marquee-track .nxr-hero-stat-card-icon {
-    width: 28px;
-    height: 28px;
   }
 }
 
@@ -4170,36 +4058,30 @@ input[type="range"].nxr-ms-range::-moz-range-thumb {
   }
 }
 
-/* ===== Intro (sticky 3D) ===== */
+/* ===== Intro (sticky title + scrolling cards) ===== */
 #nxr-intro {
   position: relative;
   z-index: 1;
+  padding: calc(var(--section-pad) + 24px) 0;
 }
 
-#nxr-intro-sticky-wrap {
-  position: relative;
-  height: 460vh;
-}
-
-#nxr-intro-sticky {
-  position: sticky;
-  top: 0;
-  height: 100vh;
-  display: flex;
-  align-items: center;
-  overflow: hidden;
-  padding: 0 var(--pad-x);
-}
-
-.nxr-intro-sticky-inner {
+.nxr-intro-inner {
   max-width: var(--max-w);
   width: 100%;
   margin: 0 auto;
+  padding: 0 var(--pad-x);
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 80px;
-  align-items: center;
-  padding-top: 0;
+  align-items: start;
+}
+
+/* The headline + intro copy stay pinned (position: sticky) while the vertical
+   column of cards scrolls normally past them. */
+.nxr-intro-left {
+  position: sticky;
+  top: 140px;
+  align-self: start;
 }
 
 .nxr-intro-headline {
@@ -4210,12 +4092,11 @@ input[type="range"].nxr-ms-range::-moz-range-thumb {
   color: var(--c-white);
 }
 
-.nxr-intro-divider {
-  width: 40px;
-  height: 2px;
-  background: linear-gradient(to right, var(--c-red), var(--c-lime));
-  border-radius: 2px;
-  flex-shrink: 0;
+.nxr-intro-texts {
+  margin-top: 32px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
 }
 
 .nxr-intro-text {
@@ -4229,21 +4110,24 @@ input[type="range"].nxr-ms-range::-moz-range-thumb {
   font-weight: 600;
 }
 
-/* The windmill blade AND the visible glass card are the same element: the
-   glass `backdrop-filter` only renders if no ANCESTOR has a transform /
-   perspective / opacity / filter, so the 3D turn is baked into this element's
-   own transform (perspective() function in JS) rather than an ancestor
-   `perspective`, keeping the frosted-glass blur alive. */
+/* Vertical stack of cards, scrolling past the sticky headline. */
+.nxr-intro-cards {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+/* Plain vertical glass card (no more 3D windmill blade). */
 .nxr-intro-card {
   position: relative;
   background: var(--glass-bg);
   border: 1px solid var(--glass-border);
   backdrop-filter: var(--glass-blur);
   border-radius: var(--radius-lg);
-  padding: 16px;
+  padding: 24px;
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 16px;
   overflow: hidden;
   box-shadow: var(--glass-shine);
 }
@@ -4497,105 +4381,28 @@ input[type="range"].nxr-ms-range::-moz-range-thumb {
 }
 
 @media (min-width: 901px) {
-  .nxr-intro-right {
-    position: relative;
-    height: 420px;
-    overflow: visible;
-    transform: translateY(-60px);
-  }
-
-  .nxr-intro-texts {
-    position: absolute;
-    inset: 0;
-    display: flex;
-    flex-direction: column;
-    gap: 20px;
-    justify-content: flex-start;
-    padding-top: 150px;
-    will-change: transform, opacity;
-  }
-
-  /* Full-screen layer so the blades' pivot lands on the real right edge of
-     the viewport (the sticky's padding box == the viewport box). */
-  .nxr-intro-wheel {
-    position: absolute;
-    inset: 0;
-    z-index: 2;
-    pointer-events: none;
-  }
-
-  /* Windmill blade. Its exact position AND rotation axis are set from JS
-     (Intro.tsx layoutCards) so the three blades share one readable spot while
-     card 1 pivots from the left — measured against the real headline width and
-     viewport, recomputed on resize. Fixed size here so JS can centre it. */
-  .nxr-intro-card {
-    position: absolute;
-    width: clamp(380px, 31vw, 460px);
-    height: 288px;
-    will-change: transform, opacity, filter;
-    pointer-events: none;
-    opacity: 0;
-  }
   .nxr-intro-col-title {
     font-size: 22px;
   }
 }
 
 @media (max-width: 900px) {
-  /* Windmill stays active on mobile — the sticky keeps its 100vh pin and
-     scroll range from the base rules; only sizing/placement is tuned here.
-     Shorter on mobile so Servicios arrives sooner (higher up the scroll). The
-     slowness now comes from the flat dwell curve, not from extra height, and
-     the last blade stays readable to the end so there's no empty tail. */
-  #nxr-intro-sticky-wrap {
-    height: 300vh;
-  }
-
-  #nxr-intro-sticky {
-    align-items: flex-start;
-    padding: 0 20px;
-  }
-
-  .nxr-intro-sticky-inner {
+  /* Single column on phones: headline + copy on top (not sticky — a sticky
+     header would sit over the cards as they scroll under it), then the cards
+     stacked below, scrolling normally. */
+  .nxr-intro-inner {
     grid-template-columns: 1fr;
-    gap: 0;
-    padding-top: 84px;
-    align-items: start;
+    gap: 32px;
   }
-
+  .nxr-intro-left {
+    position: static;
+    top: auto;
+  }
   .nxr-intro-headline {
     font-size: clamp(30px, 8vw, 42px);
   }
-
-  .nxr-intro-right {
-    position: static;
-    height: auto;
-    transform: none;
-  }
-
-  .nxr-intro-texts {
-    position: static;
-    padding-top: 22px;
-    display: flex;
-    flex-direction: column;
-    gap: 16px;
-    will-change: transform, opacity;
-  }
-
-  .nxr-intro-wheel {
-    position: absolute;
-    inset: 0;
-    z-index: 2;
-    pointer-events: none;
-  }
-  .nxr-intro-card {
-    position: absolute;
-    width: min(300px, 82vw);
-    height: 268px;
-    opacity: 0;
-  }
   .nxr-intro-anim {
-    height: 66px;
+    height: 72px;
   }
   .nxr-intro-col-title {
     font-size: 18px;
@@ -4767,9 +4574,16 @@ input[type="range"].nxr-ms-range::-moz-range-thumb {
      facet card's bottom offset is reduced by the same 70px (150→80) so its
      on-screen clearance above the floating nav stays identical during the pin —
      only the dead scroll-off band shrinks. The 70px below the stage just shows
-     the same global WaveBackground the rest of the page sits on. */
+     the same global WaveBackground the rest of the page sits on.
+
+     Height is driven by `--dwh-vh` (window.innerHeight, set in
+     DesarrolloWebHero.tsx) rather than `100lvh` directly: Safari and Chrome
+     resolve "large viewport height" differently, which visibly shifted the
+     browser mockup + facet cards between the two. `100lvh` remains only as the
+     pre-hydration/no-JS fallback (matches the very first paint, before the
+     layout effect runs). */
   .nxr-dwh-stage {
-    height: calc(100lvh - 70px);
+    height: calc(var(--dwh-vh, 100lvh) - 70px);
   }
   .nxr-dwh-overlay .nxr-dwh-head {
     /* Sits high to use the vertical space (the top header scrolls away while

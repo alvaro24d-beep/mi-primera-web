@@ -56,6 +56,15 @@ export default function DesarrolloWebHero() {
       const facetPanel = q(".nxr-dwh-layers-panel")[0] as HTMLElement | undefined;
       const mobile = window.innerWidth < 768;
 
+      // The mobile `.nxr-dwh-stage` height is driven by this SAME window.innerHeight
+      // reading (see globals.css: `calc(var(--dwh-vh) - 70px)`) rather than the
+      // CSS `100lvh` unit — Safari and Chrome define/report the "large viewport"
+      // (toolbar-collapsed) height differently, which visibly shifted the browser
+      // mockup + facet cards between the two. One real JS measurement, used by
+      // both the stage box AND the title geometry below, keeps every mobile
+      // browser pixel-consistent.
+      if (mobile) section.style.setProperty("--dwh-vh", `${window.innerHeight}px`);
+
       // ---- Title-intro geometry: the headline starts BIG at mid-height and
       // shrinks to its resting top-left spot. Left-anchored (origin left top),
       // translated up to the vertical centre; only Y + scale animate (GPU).

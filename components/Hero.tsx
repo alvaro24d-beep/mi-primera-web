@@ -119,7 +119,21 @@ export default function Hero() {
 
       // ===== Phase 1 — the hero stays put but grows very slightly and blurs
       // out until it's fully gone (opacity 0). =====
-      tl.to(fade ?? {}, { scale: 1.06, filter: "blur(18px)", opacity: 0, duration: 1, ease: "power1.in" }, 0);
+      // `fromTo` (not `to`) is deliberate: the entrance blur above just set
+      // `fade`'s filter inline via a synchronous `.from()` render, moments
+      // before this tween is created. A plain `.to()` has no explicit start
+      // value, so it silently records "whatever filter is right now" —
+      // blur(20px), not the true resting `none` — as ITS start too. That
+      // froze the scrubbed range to roughly [blur(20px), blur(18px)] instead
+      // of [none, blur(18px)]: the hero read as blurry almost immediately on
+      // any scroll, and scrolling back to the top restored blur(20px) instead
+      // of sharp. Explicit `from` values sidestep the capture entirely.
+      tl.fromTo(
+        fade ?? {},
+        { scale: 1, opacity: 1, filter: "blur(0px)" },
+        { scale: 1.06, filter: "blur(18px)", opacity: 0, duration: 1, ease: "power1.in" },
+        0
+      );
 
       // ===== Phase 2 — "Construido con maestría." / "Entregado con precisión."
       // rise up from below their own line, revealed by the mask. =====

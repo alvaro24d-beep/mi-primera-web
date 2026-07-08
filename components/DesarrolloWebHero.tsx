@@ -75,6 +75,27 @@ export default function DesarrolloWebHero() {
       const y0 = vh / 2 - restTop - (hh * S) / 2;
       if (head) gsap.set(head, { transformOrigin: "left top", scale: S, y: y0 });
 
+      // ---- On mobile, centre the browser mockup in the REAL band between the
+      // title's resting bottom edge and the facet card's top edge, measured
+      // live (not an approximate fixed CSS padding-bottom) — the title's own
+      // height varies with its clamp()'d font-size, and a static guess only
+      // ever matched one specific phone height, leaving the mockup too high
+      // (or overlapping) on every other one.
+      if (mobile) {
+        const scene = q(".nxr-bw-scene")[0] as HTMLElement | undefined;
+        if (scene && facetPanel) {
+          const stageHeight = stage.offsetHeight;
+          const headBottom = restTop + hh; // resting (scale 1) position, not the big intro state
+          const panelBottomOffset = parseFloat(getComputedStyle(facetPanel).bottom) || 0;
+          const panelTop = stageHeight - panelBottomOffset - facetPanel.offsetHeight;
+          const bandCenter = (headBottom + panelTop) / 2;
+          // `align-items: center` puts the content's centre at
+          // (stageHeight - paddingBottom) / 2 when paddingTop is 0 — solve for
+          // the paddingBottom that lands that centre exactly on bandCenter.
+          scene.style.paddingBottom = `${Math.max(0, stageHeight - 2 * bandCenter)}px`;
+        }
+      }
+
       // ---- Everything except the title is hidden at load ("sin nada más").
       gsap.set(canvasWrap ?? [], { opacity: 0 });
       gsap.set(facetPanel ?? [], { opacity: 0, y: 24 });

@@ -280,7 +280,7 @@ h6 {
    as — the rest of the title. */
 .nxr-gradient-text {
   display: inline-block;
-  padding-bottom: 0.12em;
+  padding-bottom: 0.32em;
   -webkit-background-clip: text;
   background-clip: text;
   -webkit-text-fill-color: transparent;
@@ -297,7 +297,7 @@ h6 {
 
 .nxr-gradient-text-lime {
   display: inline-block;
-  padding-bottom: 0.12em;
+  padding-bottom: 0.32em;
   -webkit-background-clip: text;
   background-clip: text;
   -webkit-text-fill-color: transparent;
@@ -314,7 +314,7 @@ h6 {
 
 .nxr-gradient-text-salmon {
   display: inline-block;
-  padding-bottom: 0.12em;
+  padding-bottom: 0.32em;
   -webkit-background-clip: text;
   background-clip: text;
   -webkit-text-fill-color: transparent;
@@ -4639,9 +4639,13 @@ input[type="range"].nxr-ms-range::-moz-range-thumb {
   .nxr-dwh-layers-panel {
     left: 20px;
     right: 20px;
-    /* 80px here + the 70px the stage is short = same ~150px clearance above the
-       floating bottom nav as before, but a much smaller scroll-off band. */
-    bottom: calc(80px + env(safe-area-inset-bottom));
+    /* Sits just above the floating bottom nav, not centred in the leftover
+       space below it. `#nxr-nav` floats with its own bottom edge 20px above
+       the true viewport bottom and is ~63px tall, while this stage is 70px
+       shorter than the viewport — netting out to a ~14px gap above the nav's
+       top edge (27 - 70 + 20 + 63 ≈ 14 with a fixed nav height; if the nav's
+       height/CSS changes, re-measure via scratchpad/measure-dwh-nav-gap.mjs). */
+    bottom: calc(27px + env(safe-area-inset-bottom));
     width: auto;
   }
   .nxr-dwh-static {
@@ -5409,14 +5413,14 @@ input[type="range"].nxr-ms-range::-moz-range-thumb {
 @media (max-width: 900px) {
   .nxr-bw-scene {
     padding-left: 0;
-    /* Centre the (smaller) browser in the band between the fixed-height title
-       (top) and the facet cards (bottom). Re-tuned after the mobile title
-       grew (see .nxr-dwh-h1 below): title zone now reaches to roughly y=172,
-       cards start around y=578, so the band's centre sits at ~375 — only
-       slightly above the stage's own unbiased centre, hence the much smaller
-       bias than before. padding-bottom:Npx shifts the align-items:center
-       result up by N/2, so it lands in the middle of that band on ANY phone
-       height — no per-height clamp, no title/card overlap, no big empty gap. */
+    /* Centre the browser in the band between the title and the facet cards.
+       `padding-bottom` here is just the pre-JS fallback (invisible anyway —
+       this element stays `visibility: hidden` until the layout effect below
+       runs, see .nxr-dwh-hero:not(.nxr-dwh-static) above): DesarrolloWebHero.tsx
+       measures the title's real resting bottom edge and the facet card's real
+       top edge live and overwrites this via inline style, since a fixed guess
+       here only ever matched one specific phone/font-size combination and
+       left the mockup too high (or overlapping) on every other one. */
     align-items: center;
     padding-top: 0;
     padding-bottom: 24px;

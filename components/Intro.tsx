@@ -91,7 +91,17 @@ export default function Intro() {
           // Mobile gets noticeably more runway than desktop so the text isn't
           // gone after just a small swipe — same phase timeline, just spread
           // over more scroll.
-          end: () => (window.innerWidth < 768 ? "+=1250" : "+=900"),
+          // Nothing here is pinned, so the cards (which sit only a few px
+          // below the text in normal document flow) physically scroll up the
+          // screen by the SAME amount as whatever this range spends on the
+          // text phase — a bigger range buys the text more reading time but
+          // also drags the cards further up-screen before their own tween
+          // finishes. These values are tuned together with the cards' tween
+          // below (duration/stagger) so the text keeps the same ~930px/~670px
+          // (mobile/desktop) reading budget as before, while the cards' own
+          // fade-in now burns much less EXTRA scroll after the text is gone
+          // — see check via scratchpad/measure-intro.mjs if retuning this.
+          end: () => (window.innerWidth < 768 ? "+=1046" : "+=756"),
           scrub: 0.6,
         },
       });
@@ -103,9 +113,12 @@ export default function Intro() {
       // Phase 2 — the SAME upward drift continues, now fading the text back
       // OUT, so it visibly leaves rather than just scrolling out of frame.
       tl.to(texts, { opacity: 0, y: -40, duration: 1, ease: "power2.in" }, 2.2);
-      // Phase 3 — only once the text is fully gone do the cards rise in,
-      // one after another.
-      tl.to(cards, { opacity: 1, y: 0, duration: 0.8, stagger: 0.15, ease: "power2.out" }, 3.2);
+      // Phase 3 — only once the text is fully gone do the cards rise in, one
+      // after another. Kept short (vs. the text phases above) so they finish
+      // shortly after the text disappears rather than continuing to consume
+      // scroll — the longer this tween+stagger runs, the further the cards
+      // have already drifted up the screen by the time they're fully visible.
+      tl.to(cards, { opacity: 1, y: 0, duration: 0.2, stagger: 0.1, ease: "power2.out" }, 3.2);
     },
     { scope: sectionRef, dependencies: [reducedMotion] }
   );

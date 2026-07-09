@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { Manrope, Cormorant_Garamond } from "next/font/google";
 import "./globals.css";
 import Header from "@/components/Header";
-import WaveBackground from "@/components/WaveBackground";
+import SceneCanvas from "@/components/scene/SceneCanvas";
 import RevealInit from "@/components/RevealInit";
 import SmoothScroll from "@/components/SmoothScroll";
 import ScrollProgress from "@/components/ScrollProgress";
@@ -38,7 +38,7 @@ export default function RootLayout({
       <body suppressHydrationWarning>
         <SmoothScroll />
         <ScrollProgress />
-        <WaveBackground />
+        <SceneCanvas />
         <RevealInit />
         {/* Fixed to the viewport (`target="page"`), sitting above page content
             but below Header/the floating nav (z-index 9998/9999) — content

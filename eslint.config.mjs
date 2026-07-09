@@ -13,8 +13,11 @@ const eslintConfig = defineConfig([
   // React re-render per frame), and one-off randomized seed data in a
   // `useMemo(..., [])` is a standard, safe R3F pattern despite calling
   // `Math.random()`. Scoped to the R3F scene files only.
+  // `components/scene/**` is the home page's global R3F canvas (SceneCanvas,
+  // SceneBackground, VolumetricCard — replaces the old WaveBackground.tsx),
+  // same reasoning as `components/dwh/**`.
   {
-    files: ["components/dwh/**/*.tsx"],
+    files: ["components/dwh/**/*.tsx", "components/scene/**/*.tsx"],
     rules: {
       "react-hooks/purity": "off",
       "react-hooks/immutability": "off",

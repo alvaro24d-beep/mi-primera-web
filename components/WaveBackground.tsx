@@ -1,6 +1,9 @@
 "use client";
 
 import { useEffect, useRef } from "react";
+import { useCardDisturbance } from "@/store/useCardDisturbance";
+
+const MAX_DISTURB = 5;
 
 // Same math as the original per-pixel canvas version, translated to GLSL so
 // the GPU evaluates every pixel in parallel instead of a serial JS loop —
@@ -18,6 +21,8 @@ const FRAGMENT_SRC = `
 precision highp float;
 uniform vec2 uResolution;
 uniform float uTime;
+uniform vec2 uDisturbPos[5];
+uniform float uDisturbStrength[5];
 
 void main() {
   vec2 fc = gl_FragCoord.xy;
@@ -45,6 +50,26 @@ void main() {
   float r = (baseVal + purpAcc * 0.8) * intensity;
   float g = (baseVal + blueAcc * 0.6) * intensity;
   float b = (baseVal + blueAcc * 1.2 + purpAcc * 0.4) * intensity;
+
+  // Servicios cards (DOM, not WebGL) push their screen-space position + hover
+  // strength into store/useCardDisturbance.ts; read here each frame so
+  // hovering/tilting a glass card visibly disturbs the ambient canvas behind
+  // it — same normalized/aspect-corrected space as the wave math above, so
+  // the ripple lines up with the actual card position on screen.
+  for (int di = 0; di < 5; di++) {
+    float str = uDisturbStrength[di];
+    if (str <= 0.001) continue;
+    vec2 dScreen = vec2(uDisturbPos[di].x * uResolution.x, (1.0 - uDisturbPos[di].y) * uResolution.y);
+    float dux = (dScreen.x * 2.0 - uResolution.x) / uResolution.y;
+    float duy = (dScreen.y * 2.0 - uResolution.y) / uResolution.y;
+    float dist = distance(vec2(ux, uy), vec2(dux, duy));
+    float ripple = sin(dist * 10.0 - uTime * 2.0) * 0.5 + 0.5;
+    float falloff = smoothstep(0.9, 0.0, dist) * str;
+    float bump = falloff * (0.16 + 0.1 * ripple);
+    r += bump * 0.85;
+    g += bump * 1.0;
+    b += bump * 1.15;
+  }
 
   gl_FragColor = vec4(clamp(r, 0.0, 1.0), clamp(g, 0.0, 1.0), clamp(b, 0.0, 1.0), 1.0);
 }
@@ -97,6 +122,12 @@ export default function WaveBackground() {
 
     const resolutionLoc = gl.getUniformLocation(program, "uResolution");
     const timeLoc = gl.getUniformLocation(program, "uTime");
+    const disturbPosLoc = gl.getUniformLocation(program, "uDisturbPos");
+    const disturbStrengthLoc = gl.getUniformLocation(program, "uDisturbStrength");
+    // Reused every frame instead of allocated fresh — avoids GC churn in the
+    // render loop for what's otherwise a tiny, fixed-size payload.
+    const disturbPosArr = new Float32Array(MAX_DISTURB * 2);
+    const disturbStrengthArr = new Float32Array(MAX_DISTURB);
 
     // A soft, slow gradient doesn't need retina resolution — capping the pixel
     // ratio (esp. on phones, where the backing store is otherwise 2-3x the CSS
@@ -143,6 +174,25 @@ export default function WaveBackground() {
       lastDraw = now;
       gl!.uniform2f(resolutionLoc, canvas!.width, canvas!.height);
       gl!.uniform1f(timeLoc, (now - start) * 0.001);
+
+      // `.getState()` (not the reactive `useCardDisturbance()` hook) — this
+      // is a plain read every frame, same as `dom{}`/scroll state elsewhere
+      // in this file, so Servicios.tsx writing to the store on every
+      // mousemove never triggers a React re-render anywhere.
+      const points = useCardDisturbance.getState().points;
+      for (let i = 0; i < MAX_DISTURB; i++) {
+        const p = points[i];
+        if (p) {
+          disturbPosArr[i * 2] = p.x;
+          disturbPosArr[i * 2 + 1] = p.y;
+          disturbStrengthArr[i] = p.strength;
+        } else {
+          disturbStrengthArr[i] = 0;
+        }
+      }
+      gl!.uniform2fv(disturbPosLoc, disturbPosArr);
+      gl!.uniform1fv(disturbStrengthLoc, disturbStrengthArr);
+
       gl!.drawArrays(gl!.TRIANGLE_STRIP, 0, 4);
     }
 

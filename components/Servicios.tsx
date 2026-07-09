@@ -1,7 +1,15 @@
 "use client";
 
 import { useEffect, useRef } from "react";
+import gsap from "gsap";
+import { useGSAP } from "@gsap/react";
+import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { useTitleReveal } from "@/hooks/useTitleReveal";
+import { useReducedMotion } from "@/hooks/useReducedMotion";
+import { useCardDisturbance } from "@/store/useCardDisturbance";
+import { useServiciosCardsRegistry } from "@/store/useServiciosCardsRegistry";
+
+gsap.registerPlugin(ScrollTrigger);
 
 function Web3DAnim() {
   return (
@@ -352,38 +360,186 @@ const CARDS = [
   },
 ];
 
+// Per-card material/curvature config for the real R3F glass mesh rendered in
+// SceneCanvas.tsx (components/scene/VolumetricCard.tsx) — colors echo each
+// card's existing accent (see the `:nth-child` icon colors below) so the
+// glass itself is faintly tinted, not just its icon.
+const CARD_STYLES = [
+  { color: "#1c0f0a", material: "glass" as const, curveX: 0.07, curveY: 0 },
+  { color: "#0e150a", material: "glass" as const, curveX: 0.07, curveY: 0 },
+  { color: "#160f0a", material: "glass" as const, curveX: 0.06, curveY: 0.03 },
+  { color: "#0e150a", material: "glass" as const, curveX: 0.06, curveY: 0.03 },
+  { color: "#1c0f0a", material: "glass" as const, curveX: 0.06, curveY: 0.03 },
+];
+
 export default function Servicios() {
   const gridRef = useRef<HTMLDivElement>(null);
   const titleRef = useTitleReveal<HTMLHeadingElement>();
+  const reducedMotion = useReducedMotion();
+
+  // ---- Keeps each card's real R3F mesh (rendered in the global SceneCanvas,
+  // mounted above {children} in app/layout.tsx — outside this component's own
+  // tree) docked exactly under its DOM anchor as the page scrolls. Position
+  // only; entrance/tilt below write into the SAME registry slot's `transform`.
+  useEffect(() => {
+    const grid = gridRef.current;
+    if (!grid) return;
+    const anchors = Array.from(grid.querySelectorAll<HTMLElement>(".nxr-srv-card"));
+
+    anchors.forEach((_, i) => useServiciosCardsRegistry.getState().setStyle(i, CARD_STYLES[i] ?? CARD_STYLES[0]));
+
+    let rafId = 0;
+    const update = () => {
+      anchors.forEach((anchor, i) => {
+        const r = anchor.getBoundingClientRect();
+        useServiciosCardsRegistry.getState().setRect(i, { x: r.left, y: r.top, width: r.width, height: r.height });
+      });
+      rafId = requestAnimationFrame(update);
+    };
+    rafId = requestAnimationFrame(update);
+
+    return () => {
+      cancelAnimationFrame(rafId);
+      anchors.forEach((_, i) => useServiciosCardsRegistry.getState().clear(i));
+    };
+  }, []);
+
+  // ---- Premium volumetric cards: helical GSAP entrance and physical
+  // cursor-tilt-with-inertia, both writing into each card's registry
+  // `transform` slot (read every frame by CardSlot in
+  // components/scene/ServiciosCardsLayer.tsx) instead of a CSS transform —
+  // the actual glass object being animated is the R3F mesh, not this DOM
+  // element. Hovering also pushes this card's screen position into the
+  // shared disturbance store so the ambient canvas ripples nearby. Kept as
+  // its own effect, separate from the per-card mini-animation behaviors
+  // below (chat auto-loop, flow hover, app count-up), which are unrelated
+  // content demos and untouched by this redesign.
+  useGSAP(
+    () => {
+      const grid = gridRef.current;
+      if (!grid) return;
+      const prefersReduced = reducedMotion || window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+      const q = gsap.utils.selector(grid);
+      const cards = q(".nxr-srv-card") as HTMLElement[];
+
+      if (prefersReduced) {
+        cards.forEach((_, i) =>
+          useServiciosCardsRegistry.getState().setTransform(i, { x: 0, y: 0, z: 0, rotationX: 0, rotationY: 0, scale: 1 })
+        );
+        return;
+      }
+
+      cards.forEach((_, i) =>
+        useServiciosCardsRegistry.getState().setTransform(i, { x: 0, y: 0, z: -600, rotationX: 0, rotationY: 0, scale: 0 })
+      );
+
+      const cleanups: Array<() => void> = [];
+
+      cards.forEach((card, i) => {
+        // Mutable, shared between the entrance tween and the hover quickTo
+        // instances below, so neither clobbers the other's fields when
+        // pushing the merged transform to the registry.
+        const live = { x: 0, y: 0, z: 0, rotationX: 0, rotationY: 0, scale: 0 };
+        const push = () => useServiciosCardsRegistry.getState().setTransform(i, { ...live });
+
+        // ---- Entrance: a decaying 3D helix (never linear), converging
+        // exactly on the card's resting transform — randomised per card so
+        // no two spirals move identically.
+        const R0 = gsap.utils.random(140, 240);
+        const turns = gsap.utils.random(1.3, 2.2);
+        const angle0 = gsap.utils.random(0, Math.PI * 2);
+        const z0 = gsap.utils.random(-820, -520);
+        const rot0X = gsap.utils.random(-45, 45);
+        const rot0Y = gsap.utils.random(-70, 70);
+        const spiral = { t: 0 };
+        live.z = z0;
+        live.rotationX = rot0X;
+        live.rotationY = rot0Y;
+
+        gsap.to(spiral, {
+          t: 1,
+          duration: gsap.utils.random(1.2, 1.6),
+          delay: i * 0.12,
+          ease: "power3.out",
+          scrollTrigger: {
+            trigger: grid,
+            start: "top 82%",
+            toggleActions: "play none none none",
+          },
+          onUpdate: () => {
+            const decay = 1 - spiral.t;
+            const angle = angle0 + turns * Math.PI * 2 * decay;
+            live.x = R0 * decay * Math.cos(angle);
+            live.y = R0 * decay * Math.sin(angle) * 0.55;
+            live.z = z0 * decay;
+            live.rotationX = rot0X * decay;
+            live.rotationY = rot0Y * decay;
+            live.scale = Math.min(1, spiral.t * 2.4);
+            push();
+          },
+        });
+
+        // ---- Cursor tilt with inertia: NOT a flat instant rotateX/rotateY —
+        // quickTo gives it weight (0.9s, no snap). Hovering also pushes this
+        // card's position into the shared disturbance store so the ambient
+        // canvas ripples nearby.
+        const rotX = gsap.quickTo(live, "rotationX", { duration: 0.9, ease: "power2.out", onUpdate: push });
+        const rotY = gsap.quickTo(live, "rotationY", { duration: 0.9, ease: "power2.out", onUpdate: push });
+        const liftZ = gsap.quickTo(live, "z", { duration: 0.9, ease: "power2.out", onUpdate: push });
+
+        let decayTween: gsap.core.Tween | null = null;
+
+        const onMove = (e: MouseEvent) => {
+          const r = card.getBoundingClientRect();
+          const nx = ((e.clientX - r.left) / r.width - 0.5) * 2;
+          const ny = ((e.clientY - r.top) / r.height - 0.5) * 2;
+
+          rotY(nx * 9);
+          rotX(-ny * 7);
+          liftZ(18);
+
+          decayTween?.kill();
+          useCardDisturbance.getState().setPoint(i, e.clientX / window.innerWidth, e.clientY / window.innerHeight, 0.8);
+        };
+
+        const onLeave = () => {
+          // Slow return with a slight overshoot — never an instant snap.
+          gsap.to(live, { rotationX: 0, rotationY: 0, z: 0, duration: 1.1, ease: "elastic.out(1, 0.6)", onUpdate: push });
+
+          decayTween?.kill();
+          const r = card.getBoundingClientRect();
+          const cx = (r.left + r.width / 2) / window.innerWidth;
+          const cy = (r.top + r.height / 2) / window.innerHeight;
+          const proxy = { strength: 0.8 };
+          decayTween = gsap.to(proxy, {
+            strength: 0,
+            duration: 0.7,
+            ease: "power2.out",
+            onUpdate: () => useCardDisturbance.getState().setPoint(i, cx, cy, proxy.strength),
+            onComplete: () => useCardDisturbance.getState().clearPoint(i),
+          });
+        };
+
+        card.addEventListener("mousemove", onMove);
+        card.addEventListener("mouseleave", onLeave);
+        cleanups.push(() => {
+          card.removeEventListener("mousemove", onMove);
+          card.removeEventListener("mouseleave", onLeave);
+          decayTween?.kill();
+          useCardDisturbance.getState().clearPoint(i);
+        });
+      });
+
+      return () => cleanups.forEach((fn) => fn());
+    },
+    { scope: gridRef, dependencies: [reducedMotion] }
+  );
 
   useEffect(() => {
     const grid = gridRef.current;
     if (!grid) return;
     const cards = Array.from(grid.querySelectorAll<HTMLElement>(".nxr-srv-card"));
-
-    let srvObserver: IntersectionObserver | undefined;
-    if (window.innerWidth > 900) {
-      srvObserver = new IntersectionObserver(
-        (entries) => {
-          entries.forEach((entry) => {
-            if (entry.isIntersecting) {
-              entry.target.classList.add("nxr-srv-visible");
-              srvObserver!.unobserve(entry.target);
-            }
-          });
-        },
-        { threshold: 0.12, rootMargin: "0px 0px -60px 0px" }
-      );
-      cards.forEach((card) => srvObserver!.observe(card));
-    }
-
-    const onMouseMove = (e: MouseEvent) => {
-      const card = e.currentTarget as HTMLElement;
-      const r = card.getBoundingClientRect();
-      card.style.setProperty("--mx", `${e.clientX - r.left}px`);
-      card.style.setProperty("--my", `${e.clientY - r.top}px`);
-    };
-    cards.forEach((card) => card.addEventListener("mousemove", onMouseMove));
 
     function animCount(el: Element | null, target: number, suffix = "", duration = 1800) {
       if (!el) return;
@@ -639,8 +795,6 @@ export default function Servicios() {
     }
 
     return () => {
-      srvObserver?.disconnect();
-      cards.forEach((card) => card.removeEventListener("mousemove", onMouseMove));
       if (card3 && onEnter3 && onLeave3) {
         card3.removeEventListener("mouseenter", onEnter3);
         card3.removeEventListener("mouseleave", onLeave3);
@@ -664,13 +818,21 @@ export default function Servicios() {
           </h2>
         </div>
 
+        {/*
+          Each `.nxr-srv-card` here is a plain, normal-flow DOM anchor — it
+          IS the real, crawlable, focusable content (title/desc/mini-anim/
+          CTA), sized naturally so the section's scroll height is correct.
+          The actual "glass" look (volume, material, reflections) is the R3F
+          mesh rendered in the global SceneCanvas (app/layout.tsx), kept
+          docked to this element's live screen position by the rAF loop
+          above — see components/scene/ServiciosCardsLayer.tsx. No background/
+          border/shadow lives on this element; the mesh behind it provides
+          that, and this element must stay visually "transparent" for the
+          mesh to read as sitting behind the text.
+        */}
         <div className="nxr-servicios-grid" ref={gridRef}>
-          {CARDS.map((c, i) => (
-            <div
-              key={c.href}
-              className="nxr-srv-card nxr-glass-edge nxr-reveal"
-              style={{ transitionDelay: `${i * 0.1}s` }}
-            >
+          {CARDS.map((c) => (
+            <div key={c.href} className="nxr-srv-card">
               <div className="nxr-srv-content">
                 <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
                   <div className="nxr-srv-icon">{c.icon}</div>

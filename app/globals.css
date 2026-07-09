@@ -1082,40 +1082,23 @@ h6 {
   gap: 16px;
 }
 
+/* Cards are real R3F objects now (components/scene/VolumetricCard.tsx,
+   rendered in the global SceneCanvas mounted in app/layout.tsx) — this DOM
+   element is just the anchor: normal flow (so the section's scroll height
+   is correct), no background/border/shadow of its own (the mesh behind it
+   provides all of that), holding the real crawlable/focusable content.
+   Servicios.tsx's rAF loop feeds this element's live `getBoundingClientRect()`
+   to store/useServiciosCardsRegistry.ts every frame so the mesh stays docked
+   under it as the page scrolls; the same GSAP effect that used to animate
+   this element's own `transform` now writes into that registry's per-card
+   `transform` slot instead. */
 .nxr-srv-card {
-  background: var(--glass-bg);
-  backdrop-filter: var(--glass-blur);
-  border-radius: var(--radius-lg);
+  position: relative;
+  cursor: default;
   padding: 36px;
   display: flex;
   flex-direction: column;
   gap: 20px;
-  transition: background 0.3s, transform 0.3s, box-shadow 0.3s;
-  cursor: default;
-  overflow: hidden;
-  position: relative;
-  box-shadow: var(--glass-shine);
-}
-
-.nxr-srv-card:hover {
-  background: rgba(255, 255, 255, 0.09);
-  transform: translateY(-3px);
-  box-shadow: var(--glass-shine-hover);
-}
-
-.nxr-srv-card::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  background: radial-gradient(600px circle at var(--mx, 50%) var(--my, 50%), rgba(255, 255, 255, 0.04), transparent 60%);
-  opacity: 0;
-  transition: opacity 0.4s;
-  pointer-events: none;
-  border-radius: inherit;
-}
-
-.nxr-srv-card:hover::before {
-  opacity: 1;
 }
 
 .nxr-srv-card:nth-child(1) {
@@ -1138,6 +1121,8 @@ h6 {
   display: flex;
   flex-direction: column;
   gap: 20px;
+  position: relative;
+  z-index: 2;
   transition: opacity 0.35s, transform 0.35s;
 }
 
@@ -1233,10 +1218,6 @@ h6 {
   color: rgba(255, 255, 255, 0.5);
 }
 
-.nxr-srv-card:hover .nxr-srv-arrow {
-  opacity: 0 !important;
-}
-
 .nxr-srv-cta {
   display: inline-flex;
   align-items: center;
@@ -1321,6 +1302,7 @@ h6 {
   pointer-events: none;
   padding: 28px;
   box-sizing: border-box;
+  z-index: 2;
 }
 
 @media (min-width: 901px) {
@@ -2460,109 +2442,6 @@ h6 {
 .nxr-srv-card:hover .anim-app-stat-bar-fill:nth-child(1),
 .anim-app-stat-bar-fill.playing:nth-child(1) {
   transition-delay: 0.3s;
-}
-
-@media (min-width: 901px) {
-  .nxr-srv-card {
-    opacity: 0;
-    transform: translateY(40px) scale(0.97);
-    transition: background 0.3s, transform 0.7s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.3s,
-      opacity 0.7s cubic-bezier(0.22, 1, 0.36, 1);
-  }
-
-  .nxr-srv-card.nxr-srv-visible {
-    opacity: 1;
-    transform: translateY(0) scale(1);
-  }
-
-  .nxr-srv-card:nth-child(1) {
-    transition-delay: 0s;
-  }
-  .nxr-srv-card:nth-child(2) {
-    transition-delay: 0.12s;
-  }
-  .nxr-srv-card:nth-child(3) {
-    transition-delay: 0.08s;
-  }
-  .nxr-srv-card:nth-child(4) {
-    transition-delay: 0.18s;
-  }
-  .nxr-srv-card:nth-child(5) {
-    transition-delay: 0.28s;
-  }
-
-  .nxr-srv-card.nxr-srv-visible:hover {
-    transform: translateY(-3px) scale(1);
-  }
-
-  .nxr-srv-card .nxr-srv-icon {
-    opacity: 0;
-    transform: scale(0.6) rotate(-8deg);
-    transition: opacity 0.5s cubic-bezier(0.22, 1, 0.36, 1), transform 0.5s cubic-bezier(0.22, 1, 0.36, 1);
-    transition-delay: 0.3s;
-  }
-  .nxr-srv-card.nxr-srv-visible .nxr-srv-icon {
-    opacity: 1;
-    transform: scale(1) rotate(0deg);
-  }
-
-  .nxr-srv-card .nxr-srv-title {
-    opacity: 0;
-    transform: translateY(12px);
-    transition: opacity 0.55s cubic-bezier(0.22, 1, 0.36, 1), transform 0.55s cubic-bezier(0.22, 1, 0.36, 1);
-    transition-delay: 0.2s;
-  }
-  .nxr-srv-card.nxr-srv-visible .nxr-srv-title {
-    opacity: 1;
-    transform: translateY(0);
-  }
-
-  .nxr-srv-card .nxr-srv-desc {
-    opacity: 0;
-    transform: translateY(10px);
-    transition: opacity 0.55s cubic-bezier(0.22, 1, 0.36, 1), transform 0.55s cubic-bezier(0.22, 1, 0.36, 1);
-    transition-delay: 0.28s;
-  }
-  .nxr-srv-card.nxr-srv-visible .nxr-srv-desc {
-    opacity: 1;
-    transform: translateY(0);
-  }
-
-  .nxr-srv-card .nxr-srv-pill {
-    opacity: 0;
-    transform: translateY(8px);
-    transition: opacity 0.4s cubic-bezier(0.22, 1, 0.36, 1), transform 0.4s cubic-bezier(0.22, 1, 0.36, 1);
-  }
-  .nxr-srv-card.nxr-srv-visible .nxr-srv-pill:nth-child(1) {
-    opacity: 1;
-    transform: translateY(0);
-    transition-delay: 0.35s;
-  }
-  .nxr-srv-card.nxr-srv-visible .nxr-srv-pill:nth-child(2) {
-    opacity: 1;
-    transform: translateY(0);
-    transition-delay: 0.42s;
-  }
-  .nxr-srv-card.nxr-srv-visible .nxr-srv-pill:nth-child(3) {
-    opacity: 1;
-    transform: translateY(0);
-    transition-delay: 0.49s;
-  }
-  .nxr-srv-card.nxr-srv-visible .nxr-srv-pill:nth-child(4) {
-    opacity: 1;
-    transform: translateY(0);
-    transition-delay: 0.56s;
-  }
-
-  .nxr-srv-card::after {
-    transform-origin: left;
-    transform: scaleX(0);
-    transition: transform 0.7s cubic-bezier(0.22, 1, 0.36, 1);
-    transition-delay: 0.1s;
-  }
-  .nxr-srv-card.nxr-srv-visible::after {
-    transform: scaleX(1);
-  }
 }
 
 @media (min-width: 601px) and (max-width: 900px) {
@@ -4670,13 +4549,62 @@ input[type="range"].nxr-ms-range::-moz-range-thumb {
   display: flex;
   flex-direction: column;
   justify-content: center;
-  gap: 48px;
-  padding: 0 var(--pad-x);
   overflow: hidden;
+}
+
+/* Separate from `.nxr-dwh-proceso-sticky` (the pinned element itself) so the
+   one-shot entrance scale/fade (see ProcesoReel.tsx) never touches the box
+   GSAP's `pin` measures — transforms don't affect layout, but keeping the
+   pinned element itself untransformed removes any doubt. */
+.nxr-dwh-proceso-content {
+  display: flex;
+  flex-direction: column;
+  gap: 40px;
+  padding: 0 var(--pad-x);
 }
 
 .nxr-dwh-proceso-head {
   max-width: 600px;
+}
+
+.nxr-dwh-proceso-progress {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.nxr-dwh-proceso-progress-track {
+  position: relative;
+  height: 2px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.nxr-dwh-proceso-progress-fill {
+  position: absolute;
+  inset: 0;
+  transform-origin: left center;
+  transform: scaleX(0);
+  background: linear-gradient(90deg, var(--c-red), var(--c-lime), var(--c-salmon));
+}
+
+.nxr-dwh-proceso-dots {
+  display: flex;
+  gap: 10px;
+}
+
+.nxr-dwh-proceso-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.2);
+  transition: background 0.3s, transform 0.3s;
+}
+
+.nxr-dwh-proceso-dot.nxr-active {
+  background: var(--c-lime);
+  transform: scale(1.4);
 }
 
 .nxr-dwh-proceso-track {
@@ -4684,6 +4612,10 @@ input[type="range"].nxr-ms-range::-moz-range-thumb {
   gap: 24px;
   width: max-content;
   will-change: transform;
+  /* Headroom so cards scaled up slightly past 1 by the depth effect (if ever
+     tuned above 1) don't get clipped by the sticky container's own
+     `overflow:hidden` — harmless when scale stays <=1 as configured now. */
+  padding: 12px 4px 24px;
 }
 
 .nxr-dwh-step-card {
@@ -4745,6 +4677,8 @@ input[type="range"].nxr-ms-range::-moz-range-thumb {
        Minimal top padding so the heading rides at the very top of the incoming
        section (enters as early as possible in the scroll). */
     justify-content: flex-start;
+  }
+  .nxr-dwh-proceso-content {
     padding: 2vh 20px 0;
     gap: 24px;
   }
@@ -4790,6 +4724,11 @@ input[type="range"].nxr-ms-range::-moz-range-thumb {
 .nxr-dwh-cap-card {
   position: relative;
   overflow: hidden;
+  /* Hidden until CapacidadesWeb.tsx's layout effect sets the scattered
+     (randomised rotate/offset/scale) start state and flips this back to
+     visible — without it, the finished grid flashes fully visible for a
+     frame on first paint before the "assembling" entrance can scatter it. */
+  visibility: hidden;
   padding: 32px;
   background: var(--glass-bg);
   backdrop-filter: var(--glass-blur);
@@ -4891,6 +4830,99 @@ input[type="range"].nxr-ms-range::-moz-range-thumb {
   .nxr-dwh-stats-strip {
     grid-template-columns: repeat(2, 1fr);
     gap: 28px;
+  }
+}
+
+/* ===== Desarrollo Web — Tech stack (DwhTechStack, LogoLoop from React Bits) =====
+   DWH-specific: the tools actually used to BUILD a website (Next.js, Vercel,
+   Cloudflare...), distinct from the home page's Tech.tsx, which lists the
+   full cross-service stack (AI/automation tools included) and is untouched. */
+.nxr-dwh-tech {
+  position: relative;
+  z-index: 1;
+  padding: var(--section-pad) 0;
+  overflow: hidden;
+}
+
+.nxr-dwh-tech-inner {
+  max-width: var(--max-w);
+  margin: 0 auto 40px;
+  padding: 0 var(--pad-x);
+}
+
+/* Hidden until useGSAP's layout effect sets the hidden (opacity:0, slid
+   sideways) start state and flips this back to visible — same
+   flash-of-unanimated-content guard used sitewide (see Hero.tsx, DWH hero). */
+.nxr-dwh-tech-row {
+  visibility: hidden;
+  margin-bottom: 20px;
+}
+
+.nxr-dwh-tech-row:last-child {
+  margin-bottom: 0;
+}
+
+/* LogoLoop (React Bits) ships its own CSS (components/LogoLoop.css) with
+   generic light/dark-scheme fade colors — overridden here to match this
+   site's actual dark background instead of following the visitor's OS
+   color-scheme preference (which has nothing to do with this always-dark
+   site's own theme). */
+.nxr-dwh-tech-row .logoloop {
+  --logoloop-fadeColor: #050810;
+}
+
+.nxr-dwh-tech-pill {
+  display: inline-block;
+  background: var(--glass-bg);
+  backdrop-filter: var(--glass-blur);
+  border-radius: var(--radius-md);
+  transition: background 0.25s, transform 0.25s;
+}
+
+.logoloop--scale-hover .nxr-dwh-tech-pill:hover {
+  background: rgba(255, 255, 255, 0.09);
+}
+
+.nxr-dwh-tech-pill-inner {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 22px;
+  white-space: nowrap;
+}
+
+.nxr-dwh-tech-icon {
+  display: flex;
+  flex-shrink: 0;
+}
+
+.nxr-dwh-tech-icon svg {
+  width: 22px;
+  height: 22px;
+  stroke: currentColor;
+  fill: none;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.nxr-dwh-tech-name {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--c-white);
+}
+
+@media (max-width: 768px) {
+  .nxr-dwh-tech-pill-inner {
+    padding: 11px 16px;
+    gap: 9px;
+  }
+  .nxr-dwh-tech-icon svg {
+    width: 18px;
+    height: 18px;
+  }
+  .nxr-dwh-tech-name {
+    font-size: 13.5px;
   }
 }
 

@@ -1,7 +1,10 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useRef } from "react";
+import gsap from "gsap";
+import { useGSAP } from "@gsap/react";
 import { useTitleReveal } from "@/hooks/useTitleReveal";
+import { useReducedMotion } from "@/hooks/useReducedMotion";
 
 const CAPACIDADES = [
   {
@@ -85,27 +88,128 @@ const STATS = [
   { val: "30d", label: "Soporte post-lanzamiento", color: "var(--c-salmon)" },
 ];
 
+// Splits "e.g. -40%" into a static sign/suffix and the number to count up —
+// the count-up always animates the magnitude (0→40), keeping the sign as a
+// fixed prefix, so "-40%" reads as "-0% → -40%" rather than counting through
+// negative numbers.
+function parseStat(val: string) {
+  const m = val.match(/^([+-]?)(\d+)(.*)$/);
+  if (!m) return { prefix: "", target: 0, suffix: val };
+  const [, sign, num, suffix] = m;
+  return { prefix: sign, target: parseInt(num, 10), suffix };
+}
+
 export default function CapacidadesWeb() {
   const titleRef = useTitleReveal<HTMLHeadingElement>();
   const gridRef = useRef<HTMLDivElement>(null);
+  const statsRef = useRef<HTMLDivElement>(null);
+  const reducedMotion = useReducedMotion();
 
-  useEffect(() => {
-    const grid = gridRef.current;
-    if (!grid) return;
-    const cards = Array.from(grid.querySelectorAll<HTMLElement>(".nxr-dwh-cap-card"));
+  useGSAP(
+    () => {
+      const prefersReduced = reducedMotion || window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+      const grid = gridRef.current;
+      const statsEl = statsRef.current;
+      if (!grid || !statsEl) return;
 
-    const onMouseMove = (e: MouseEvent) => {
-      const card = e.currentTarget as HTMLElement;
-      const r = card.getBoundingClientRect();
-      card.style.setProperty("--mx", `${e.clientX - r.left}px`);
-      card.style.setProperty("--my", `${e.clientY - r.top}px`);
-    };
-    cards.forEach((card) => card.addEventListener("mousemove", onMouseMove));
+      const cards = gsap.utils.toArray<HTMLElement>(grid.querySelectorAll(".nxr-dwh-cap-card"));
+      const statVals = gsap.utils.toArray<HTMLElement>(statsEl.querySelectorAll(".nxr-dwh-stat-val"));
 
-    return () => {
-      cards.forEach((card) => card.removeEventListener("mousemove", onMouseMove));
-    };
-  }, []);
+      if (prefersReduced) {
+        gsap.set(cards, { visibility: "visible", opacity: 1, x: 0, y: 0, rotate: 0, scale: 1 });
+        statVals.forEach((el, i) => {
+          const { prefix, target, suffix } = parseStat(STATS[i].val);
+          el.textContent = `${prefix}${target}${suffix}`;
+        });
+        return;
+      }
+
+      // ---- Assembling entrance: each card starts scattered (randomised
+      // rotation/offset/scale) and converges into the grid, one-shot as the
+      // section scrolls into view — "pieces assembling into your capability
+      // grid" instead of a uniform fade-up column.
+      cards.forEach((card) => {
+        gsap.set(card, {
+          transformPerspective: 800,
+          opacity: 0,
+          x: gsap.utils.random(-70, 70),
+          y: gsap.utils.random(40, 90),
+          rotate: gsap.utils.random(-14, 14),
+          scale: 0.7,
+        });
+      });
+      // CSS keeps `.nxr-dwh-cap-card` `visibility: hidden` until here — same
+      // flash-of-unanimated-content guard used sitewide (Hero.tsx, Intro.tsx):
+      // without it, the finished grid flashes fully visible for a frame on
+      // first paint, before this layout effect has a chance to scatter it.
+      gsap.set(cards, { visibility: "visible" });
+      gsap.to(cards, {
+        opacity: 1,
+        x: 0,
+        y: 0,
+        rotate: 0,
+        scale: 1,
+        duration: 0.8,
+        ease: "power3.out",
+        stagger: 0.08,
+        scrollTrigger: {
+          trigger: grid,
+          start: "top 85%",
+          toggleActions: "play none none none",
+        },
+      });
+
+      // ---- 3D tilt on hover — same gsap.quickTo(rotationY/rotationX)
+      // technique as the browser-mockup tilt in DesarrolloWebHero.tsx,
+      // layered on top of the existing --mx/--my spotlight glow.
+      const cleanups: Array<() => void> = [];
+      cards.forEach((card) => {
+        const rotY = gsap.quickTo(card, "rotationY", { duration: 0.5, ease: "power2" });
+        const rotX = gsap.quickTo(card, "rotationX", { duration: 0.5, ease: "power2" });
+        const onMove = (e: MouseEvent) => {
+          const r = card.getBoundingClientRect();
+          card.style.setProperty("--mx", `${e.clientX - r.left}px`);
+          card.style.setProperty("--my", `${e.clientY - r.top}px`);
+          rotY(((e.clientX - r.left) / r.width - 0.5) * 10);
+          rotX(-((e.clientY - r.top) / r.height - 0.5) * 8);
+        };
+        const onLeave = () => {
+          rotY(0);
+          rotX(0);
+        };
+        card.addEventListener("mousemove", onMove);
+        card.addEventListener("mouseleave", onLeave);
+        cleanups.push(() => {
+          card.removeEventListener("mousemove", onMove);
+          card.removeEventListener("mouseleave", onLeave);
+        });
+      });
+
+      // ---- Stats count-up: numbers animate from 0 to their real value once
+      // the strip scrolls into view, keeping each stat's own sign/suffix.
+      statVals.forEach((el, i) => {
+        const { prefix, target, suffix } = parseStat(STATS[i].val);
+        const proxy = { val: 0 };
+        el.textContent = `${prefix}0${suffix}`;
+        gsap.to(proxy, {
+          val: target,
+          duration: 1.3,
+          ease: "power2.out",
+          onUpdate: () => {
+            el.textContent = `${prefix}${Math.round(proxy.val)}${suffix}`;
+          },
+          scrollTrigger: {
+            trigger: statsEl,
+            start: "top 90%",
+            toggleActions: "play none none none",
+          },
+        });
+      });
+
+      return () => cleanups.forEach((fn) => fn());
+    },
+    { dependencies: [reducedMotion] }
+  );
 
   return (
     <section id="nxr-dwh-capacidades" className="nxr-dwh-capacidades">
@@ -119,12 +223,8 @@ export default function CapacidadesWeb() {
         </div>
 
         <div className="nxr-dwh-cap-grid" ref={gridRef}>
-          {CAPACIDADES.map((c, i) => (
-            <div
-              key={c.title}
-              className="nxr-dwh-cap-card nxr-glass-edge nxr-reveal"
-              style={{ transitionDelay: `${i * 0.06}s` }}
-            >
+          {CAPACIDADES.map((c) => (
+            <div key={c.title} className="nxr-dwh-cap-card nxr-glass-edge">
               <span className="nxr-glass-edge-content nxr-dwh-cap-inner">
                 <div className="nxr-dwh-cap-icon" style={{ background: c.bg, color: c.color }}>
                   {c.icon}
@@ -136,9 +236,9 @@ export default function CapacidadesWeb() {
           ))}
         </div>
 
-        <div className="nxr-dwh-stats-strip">
-          {STATS.map((s, i) => (
-            <div key={s.label} className="nxr-dwh-stat nxr-reveal" style={{ transitionDelay: `${i * 0.08}s` }}>
+        <div className="nxr-dwh-stats-strip" ref={statsRef}>
+          {STATS.map((s) => (
+            <div key={s.label} className="nxr-dwh-stat">
               <div className="nxr-dwh-stat-val" style={{ color: s.color }}>
                 {s.val}
               </div>

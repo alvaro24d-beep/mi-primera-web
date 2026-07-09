@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import DesarrolloWebHero from "@/components/DesarrolloWebHero";
 import ProcesoReel from "@/components/ProcesoReel";
 import CapacidadesWeb from "@/components/CapacidadesWeb";
-import Tech from "@/components/Tech";
+import DwhTechStack from "@/components/DwhTechStack";
 import Contacto from "@/components/Contacto";
 
 export const metadata: Metadata = {
@@ -17,7 +17,7 @@ export default function DesarrolloWebPage() {
       <DesarrolloWebHero />
       <ProcesoReel />
       <CapacidadesWeb />
-      <Tech />
+      <DwhTechStack />
       <Contacto />
     </>
   );

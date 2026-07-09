@@ -377,7 +377,7 @@ const CARD_STYLES = [
 
 function CardInner({ c }: { c: (typeof CARDS)[number] }) {
   return (
-    <>
+    <div className="nxr-srv-inner">
       <div className="nxr-srv-content">
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
           <div className="nxr-srv-icon">{c.icon}</div>
@@ -402,7 +402,7 @@ function CardInner({ c }: { c: (typeof CARDS)[number] }) {
           </svg>
         </a>
       </div>
-    </>
+    </div>
   );
 }
 
@@ -476,16 +476,34 @@ export default function Servicios() {
       const cards = q(".nxr-srv-card") as HTMLElement[];
 
       // One live transform per card, owned by the hover-tilt quickTo
-      // instances below. The scroll-driven spiral yaw is kept in its OWN
-      // array and summed at push time — if both wrote live[i].rotationY the
-      // hover's elastic return-to-zero would erase the spiral's yaw (and
-      // vice versa) whenever hovering and scrubbing overlapped.
+      // instances below. The scroll-driven spiral yaw and the idle drift are
+      // kept in their OWN arrays and summed at push time — if they all wrote
+      // live[i].rotationY the hover's elastic return-to-zero would erase the
+      // spiral's yaw (and vice versa) whenever they overlapped.
       const live = cards.map(() => ({ x: 0, y: 0, z: 0, rotationX: 0, rotationY: 0, scale: 1 }));
       const scrollYaw = cards.map(() => 0);
-      const push = (i: number) =>
-        useServiciosCardsRegistry
-          .getState()
-          .setTransform(i, { ...live[i], rotationY: live[i].rotationY + scrollYaw[i] });
+      const idleYaw = cards.map(() => 0);
+      const idlePitch = cards.map(() => 0);
+      const inners = cards.map((card) => card.querySelector<HTMLElement>(".nxr-srv-inner"));
+
+      // Single writer for BOTH renderings of a card: the R3F glass mesh (via
+      // the registry) and the DOM content (via a matching CSS rotation on
+      // `.nxr-srv-inner`). The sticky container carries `perspective: 1000px`
+      // with its origin at the viewport centre — the exact same pinhole
+      // camera as components/scene/PixelCamera.tsx (distance 1000, 1px = 1
+      // world unit at z=0) — so the CSS projection of the rotated content and
+      // the WebGL projection of the mesh coincide and the text reads as
+      // printed ON the glass instead of floating flat above it. rotationX is
+      // negated for the DOM: CSS's y-axis points down, so the same numeric
+      // rotation about X tips the top edge away in CSS but toward the viewer
+      // in three.js; rotationY needs no flip.
+      const push = (i: number) => {
+        const rotX = live[i].rotationX + idlePitch[i];
+        const rotY = live[i].rotationY + scrollYaw[i] + idleYaw[i];
+        useServiciosCardsRegistry.getState().setTransform(i, { ...live[i], rotationX: rotX, rotationY: rotY });
+        const inner = inners[i];
+        if (inner) gsap.set(inner, { rotationX: -rotX, rotationY: rotY, z: live[i].z, scale: live[i].scale });
+      };
 
       gsap.set(content, { opacity: 0, scale: 0.92 });
       gsap.to(content, {
@@ -545,13 +563,9 @@ export default function Servicios() {
             String(gsap.utils.mapRange(0, 1.3, 1, 0.12, gsap.utils.clamp(0, 1.3, Math.abs(nx))))
           );
 
-          const contentEl = card.querySelector<HTMLElement>(".nxr-srv-content");
-          const animEl = card.querySelector<HTMLElement>(".nxr-srv-anim");
-          const focusScale = gsap.utils.mapRange(0, 1, 1, 0.84, absNx);
-          if (contentEl) gsap.set(contentEl, { scale: focusScale });
-          if (animEl) gsap.set(animEl, { scale: focusScale });
-
-          live[i].scale = focusScale;
+          // Scale rides on `.nxr-srv-inner` via push() (mesh + printed
+          // content shrink together as one object) — no per-child scaling.
+          live[i].scale = gsap.utils.mapRange(0, 1, 1, 0.84, absNx);
           scrollYaw[i] = MAX_YAW_DEG * nx;
           push(i);
         });
@@ -580,6 +594,34 @@ export default function Servicios() {
       updateSpiral();
 
       const cleanups: Array<() => void> = [];
+
+      // Idle micro-drift (±2° yaw / ±1.1° pitch, per-card phase offsets):
+      // keeps the environment reflections crawling across the convex face
+      // even when the user isn't scrolling or hovering. Without it, a domed
+      // card facing the camera dead-on renders a perfectly static highlight
+      // and is indistinguishable from a flat one — motion of the reflection
+      // IS the depth cue. Gated to the section being on screen so it costs
+      // nothing while the user is elsewhere on the page.
+      let sectionVisible = false;
+      ScrollTrigger.create({
+        trigger: section,
+        start: "top bottom",
+        end: "bottom top",
+        onToggle: (self) => {
+          sectionVisible = self.isActive;
+        },
+      });
+      const idleTick = () => {
+        if (!sectionVisible) return;
+        const t = gsap.ticker.time;
+        cards.forEach((_, i) => {
+          idleYaw[i] = 2 * Math.sin(t * 0.55 + i * 1.7);
+          idlePitch[i] = 1.1 * Math.sin(t * 0.38 + i * 2.4);
+          push(i);
+        });
+      };
+      gsap.ticker.add(idleTick);
+      cleanups.push(() => gsap.ticker.remove(idleTick));
 
       cards.forEach((card, i) => {
         // ---- Cursor tilt with inertia: NOT a flat instant rotateX/rotateY —

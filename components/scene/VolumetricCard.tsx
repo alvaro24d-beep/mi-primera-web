@@ -130,20 +130,17 @@ export default function VolumetricCard({
           color={color}
           transmission={0.55}
           thickness={thickness * 1.6}
-          // Roughness bumped from a near-perfect-mirror 0.05 up to ~0.14:
-          // at very low roughness the specular highlight from an area light
-          // is a tiny, angle-critical pinprick — near-invisible on a card
-          // facing the camera dead-on (no hover tilt/bank applied), which
-          // defeats the "convex even head-on" requirement. This spreads the
-          // highlight broadly enough to read at any viewing angle while
-          // staying glossy, not matte.
-          roughness={0.13 + roughnessJitter}
+          // ~0.10: glossy enough that the strip Lightformers reflect as
+          // DEFINED bent bands across the convex face (the primary "this is
+          // domed" cue), but not the near-perfect mirror of 0.05 whose
+          // pinprick highlight vanishes on a card facing the camera dead-on.
+          roughness={0.1 + roughnessJitter}
           clearcoat={1}
           clearcoatRoughness={0.08}
           ior={1.5}
           reflectivity={0.55}
           metalness={0.04}
-          envMapIntensity={1.6}
+          envMapIntensity={1.9}
         />
       ) : (
         <meshPhysicalMaterial

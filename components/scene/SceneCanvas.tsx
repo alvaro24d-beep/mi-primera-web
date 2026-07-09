@@ -20,22 +20,23 @@ function SceneEnvironment() {
       <Lightformer form="rect" intensity={1.4} color="#a8f04a" position={[-4, 3, 4]} scale={[4, 4, 1]} />
       <Lightformer form="rect" intensity={1.1} color="#ff9d7d" position={[4, -2, 3]} scale={[3, 5, 1]} />
       <Lightformer form="rect" intensity={0.8} color="#ef3d0d" position={[0, 4, -3]} scale={[6, 2, 1]} />
-      {/* Large, soft, roughly camera-aligned fill — without this, a card
-          facing the camera dead-on (no hover tilt/scroll yaw, e.g. the
-          reduced-motion static layout or a card mid-reel at rest) reflects
-          almost nothing bright back at the viewer and its convex bulge
-          reads as flat/invisible; angled cards don't need it since they
-          already catch the side Lightformers above. */}
-      <Lightformer form="rect" intensity={0.9} color="#ffffff" position={[0, 0, 8]} scale={[14, 14, 1]} />
+      {/* COMPACT camera-aligned fill (not a wall of light): a dome needs a
+          concentrated highlight that falls off toward the rim to read as
+          curved — a huge uniform panel lights the whole face evenly and
+          makes it look flat. Slightly off-centre so the hotspot sits off
+          the bulge apex naturally. */}
+      <Lightformer form="rect" intensity={1.6} color="#ffffff" position={[-1.5, 1, 7]} scale={[5, 5, 1]} />
       <Lightformer form="ring" intensity={0.5} color="#ffffff" position={[0, 0, 6]} scale={[8, 8, 1]} />
       {/* Thin bright strips: a straight line reflecting off a domed surface
           renders as a visibly BENT band sweeping across the face — the
           strongest available cue that the card is convex, much stronger
-          than any diffuse blob highlight. One horizontal above, one
-          brand-lime vertical off to the side, so the bend shows on both
-          curvature axes and shifts as the cards travel/turn in the reel. */}
-      <Lightformer form="rect" intensity={2.2} color="#ffffff" position={[0, 3.5, 6]} scale={[18, 0.4, 1]} />
-      <Lightformer form="rect" intensity={1.1} color="#a8f04a" position={[-5, -0.5, 5]} scale={[0.35, 9, 1]} />
+          than any diffuse blob highlight. Horizontal white above, salmon
+          below, brand-lime vertical off to the side, so the bend shows on
+          both curvature axes and shifts continuously as the cards travel,
+          turn and idle-drift in the reel. */}
+      <Lightformer form="rect" intensity={3} color="#ffffff" position={[0, 3.5, 6]} scale={[20, 0.3, 1]} />
+      <Lightformer form="rect" intensity={1.3} color="#ff9d7d" position={[0, -3, 5]} scale={[14, 0.25, 1]} />
+      <Lightformer form="rect" intensity={1.2} color="#a8f04a" position={[-5, -0.5, 5]} scale={[0.35, 9, 1]} />
     </Environment>
   );
 }

@@ -1091,6 +1091,13 @@ h6 {
   flex-direction: column;
   overflow-x: clip;
   overflow-y: visible;
+  /* Same pinhole camera as components/scene/PixelCamera.tsx (distance 1000,
+     origin at the viewport centre while pinned): the cover-flow rotation
+     GSAP applies to each card's `.nxr-srv-inner` projects EXACTLY like the
+     WebGL mesh's rotation, keeping the printed content glued to the glass.
+     Requires `transform-style: preserve-3d` on every layer between here and
+     the rotated inner (content → track → card). */
+  perspective: 1000px;
 }
 
 /* Separate from `.nxr-servicios-sticky` (the pinned element itself) so the
@@ -1101,15 +1108,39 @@ h6 {
 .nxr-servicios-content {
   flex: 1;
   min-height: 0;
+  position: relative;
   display: flex;
   flex-direction: column;
   gap: 8px;
-  padding: 7vh var(--pad-x) 0;
+  padding: 3vh var(--pad-x) 0;
+  transform-style: preserve-3d;
 }
 
 .nxr-servicios-head {
   max-width: 640px;
   flex-shrink: 0;
+}
+
+@media (min-width: 901px) {
+  /* Cards exit rising toward the top-LEFT, so on desktop the heading lives
+     top-RIGHT where the reel leaves room. Absolute (out of the column): the
+     track below then owns the full pinned height and the cards ride
+     vertically centred — noticeably higher than when the heading stacked
+     above them. pointer-events off so cards sweeping underneath on short
+     viewports stay hoverable. */
+  .nxr-servicios-head {
+    position: absolute;
+    top: 5vh;
+    right: var(--pad-x);
+    text-align: right;
+    z-index: 3;
+    max-width: 620px;
+    pointer-events: none;
+  }
+  .nxr-servicios-head .nxr-section-h2 {
+    margin-left: auto;
+    margin-bottom: 0;
+  }
 }
 
 .nxr-servicios-track {
@@ -1120,6 +1151,7 @@ h6 {
   gap: 32px;
   width: max-content;
   will-change: transform;
+  transform-style: preserve-3d;
   /* No padding: vertical position comes from the flex centering above (the
      per-card arc offset rides on top of it), and the first/last card's
      horizontal centering comes from Servicios.tsx's startX()/endX() math on
@@ -1148,32 +1180,52 @@ h6 {
   width: 560px;
   max-width: 82vw;
   aspect-ratio: 3 / 2;
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+  transform-style: preserve-3d;
+}
+
+/* The card's whole face — padding, text, mini-anim, CTA — lives on this
+   inner plane, which receives the SAME cover-flow rotation as the glass
+   mesh every frame (see push() in Servicios.tsx), so the content reads as
+   printed ON the card instead of floating flat above it. The outer
+   `.nxr-srv-card` anchor must stay unrotated: its getBoundingClientRect()
+   is what sizes/positions the mesh, and a rotated element reports an
+   inflated axis-aligned bounding box. */
+.nxr-srv-inner {
+  position: relative;
+  flex: 1;
+  min-height: 0;
   padding: 36px;
   display: flex;
   flex-direction: column;
   gap: 20px;
   box-sizing: border-box;
+  transform-origin: center;
+  will-change: transform;
 }
 
 /* Shorter viewports (small laptops, browser zoom >100%): shrink the card so
    heading + reel still fit inside the pinned 100lvh with the card fully
    visible — the card's height follows from the aspect-ratio above. */
 @media (max-height: 850px) and (min-width: 901px) {
-  .nxr-servicios-content {
-    padding-top: 4vh;
-  }
   .nxr-srv-card {
     width: 500px;
+  }
+  .nxr-servicios-head .nxr-section-h2 {
+    font-size: clamp(28px, 3vw, 40px);
   }
 }
 
 @media (max-height: 700px) and (min-width: 901px) {
   .nxr-servicios-head .nxr-section-h2 {
-    font-size: clamp(28px, 3.4vw, 38px);
-    margin-bottom: 24px;
+    font-size: clamp(26px, 2.6vw, 34px);
   }
   .nxr-srv-card {
     width: 440px;
+  }
+  .nxr-srv-inner {
     padding: 28px;
   }
 }
@@ -2532,6 +2584,8 @@ h6 {
     max-width: 380px;
     aspect-ratio: auto;
     min-height: 520px;
+  }
+  .nxr-srv-inner {
     padding: 22px;
     gap: 12px;
   }

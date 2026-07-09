@@ -130,13 +130,20 @@ export default function VolumetricCard({
           color={color}
           transmission={0.55}
           thickness={thickness * 1.6}
-          roughness={0.05 + roughnessJitter}
+          // Roughness bumped from a near-perfect-mirror 0.05 up to ~0.14:
+          // at very low roughness the specular highlight from an area light
+          // is a tiny, angle-critical pinprick — near-invisible on a card
+          // facing the camera dead-on (no hover tilt/bank applied), which
+          // defeats the "convex even head-on" requirement. This spreads the
+          // highlight broadly enough to read at any viewing angle while
+          // staying glossy, not matte.
+          roughness={0.13 + roughnessJitter}
           clearcoat={1}
           clearcoatRoughness={0.08}
           ior={1.5}
           reflectivity={0.55}
           metalness={0.04}
-          envMapIntensity={1.3}
+          envMapIntensity={1.6}
         />
       ) : (
         <meshPhysicalMaterial

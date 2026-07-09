@@ -1076,17 +1076,66 @@ h6 {
   padding: 0 var(--pad-x);
 }
 
-.nxr-servicios-grid {
-  display: grid;
-  grid-template-columns: repeat(12, 1fr);
-  gap: 16px;
+/* GSAP's ScrollTrigger `pin` (see Servicios.tsx) pins this and inserts its
+   own spacer sized to the horizontal scroll distance — no CSS height/sticky
+   needed, same pattern as `.nxr-dwh-proceso-sticky`.
+   `overflow-x` must be `clip`, NOT `hidden`: per the CSS overflow spec,
+   `hidden` on one axis forces a `visible` other axis to compute to `auto`,
+   silently turning this into an internally-scrollable box — everything
+   taller than the viewport (the cards' lower half, the hover mini-anim)
+   gets cut at the bottom with no way to see it. `clip` is the one value
+   that clips X while genuinely leaving Y visible. */
+.nxr-servicios-sticky {
+  height: 100lvh;
+  display: flex;
+  flex-direction: column;
+  overflow-x: clip;
+  overflow-y: visible;
+}
+
+/* Separate from `.nxr-servicios-sticky` (the pinned element itself) so the
+   one-shot entrance scale/fade (see Servicios.tsx) never touches the box
+   GSAP's `pin` measures. Fills the pinned viewport; the track below takes
+   the leftover height and centers the cards in it, so they can never hang
+   off the bottom edge regardless of viewport height / browser zoom. */
+.nxr-servicios-content {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 7vh var(--pad-x) 0;
+}
+
+.nxr-servicios-head {
+  max-width: 640px;
+  flex-shrink: 0;
+}
+
+.nxr-servicios-track {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  align-items: center;
+  gap: 32px;
+  width: max-content;
+  will-change: transform;
+  /* No padding: vertical position comes from the flex centering above (the
+     per-card arc offset rides on top of it), and the first/last card's
+     horizontal centering comes from Servicios.tsx's startX()/endX() math on
+     the track's own `x`. */
 }
 
 /* Cards are real R3F objects now (components/scene/VolumetricCard.tsx,
    rendered in the global SceneCanvas mounted in app/layout.tsx) — this DOM
-   element is just the anchor: normal flow (so the section's scroll height
-   is correct), no background/border/shadow of its own (the mesh behind it
-   provides all of that), holding the real crawlable/focusable content.
+   element is just the anchor: fixed, uniform size (never resized by the
+   scroll-driven "focus" falloff — see Servicios.tsx's updateSpiral, which
+   scales `.nxr-srv-content`/`.nxr-srv-anim` instead, precisely so this
+   element's measured `getBoundingClientRect()` — what VolumetricCard's
+   geometry is sized from — never changes except by real translation; a
+   change there would rebuild the mesh geometry every scrub frame), no
+   background/border/shadow of its own (the mesh behind it provides all of
+   that), holding the real crawlable/focusable content.
    Servicios.tsx's rAF loop feeds this element's live `getBoundingClientRect()`
    to store/useServiciosCardsRegistry.ts every frame so the mesh stays docked
    under it as the page scrolls; the same GSAP effect that used to animate
@@ -1095,26 +1144,38 @@ h6 {
 .nxr-srv-card {
   position: relative;
   cursor: default;
+  flex-shrink: 0;
+  width: 560px;
+  max-width: 82vw;
+  aspect-ratio: 3 / 2;
   padding: 36px;
   display: flex;
   flex-direction: column;
   gap: 20px;
+  box-sizing: border-box;
 }
 
-.nxr-srv-card:nth-child(1) {
-  grid-column: span 7;
+/* Shorter viewports (small laptops, browser zoom >100%): shrink the card so
+   heading + reel still fit inside the pinned 100lvh with the card fully
+   visible — the card's height follows from the aspect-ratio above. */
+@media (max-height: 850px) and (min-width: 901px) {
+  .nxr-servicios-content {
+    padding-top: 4vh;
+  }
+  .nxr-srv-card {
+    width: 500px;
+  }
 }
-.nxr-srv-card:nth-child(2) {
-  grid-column: span 5;
-}
-.nxr-srv-card:nth-child(3) {
-  grid-column: span 4;
-}
-.nxr-srv-card:nth-child(4) {
-  grid-column: span 4;
-}
-.nxr-srv-card:nth-child(5) {
-  grid-column: span 4;
+
+@media (max-height: 700px) and (min-width: 901px) {
+  .nxr-servicios-head .nxr-section-h2 {
+    font-size: clamp(28px, 3.4vw, 38px);
+    margin-bottom: 24px;
+  }
+  .nxr-srv-card {
+    width: 440px;
+    padding: 28px;
+  }
 }
 
 .nxr-srv-content {
@@ -1123,6 +1184,12 @@ h6 {
   gap: 20px;
   position: relative;
   z-index: 2;
+  transform-origin: center;
+  /* `--nxr-srv-focus` is written per-frame by Servicios.tsx's updateSpiral
+     (side cards fade as they turn away along the spiral). It lives in a
+     custom property, NOT an inline `opacity`, so the higher-specificity
+     `:hover` rule below still wins and fades the text out over the anim. */
+  opacity: var(--nxr-srv-focus, 1);
   transition: opacity 0.35s, transform 0.35s;
 }
 
@@ -1298,6 +1365,7 @@ h6 {
   align-items: center;
   justify-content: center;
   opacity: 0;
+  transform-origin: center;
   transition: opacity 0.35s;
   pointer-events: none;
   padding: 28px;
@@ -1316,10 +1384,10 @@ h6 {
     position: relative;
     inset: auto;
     opacity: 1;
-    height: 190px;
+    height: 150px;
     padding: 0;
-    margin-top: 4px;
-    padding-top: 16px;
+    margin-top: 0;
+    padding-top: 8px;
     box-sizing: border-box;
   }
 
@@ -2444,25 +2512,62 @@ h6 {
   transition-delay: 0.3s;
 }
 
-@media (min-width: 601px) and (max-width: 900px) {
-  .nxr-srv-card:nth-child(1),
-  .nxr-srv-card:nth-child(2) {
-    grid-column: span 6;
+@media (max-width: 900px) {
+  .nxr-servicios-content {
+    padding-top: 2vh;
   }
-  .nxr-srv-card:nth-child(3),
-  .nxr-srv-card:nth-child(4),
-  .nxr-srv-card:nth-child(5) {
-    grid-column: span 4;
+  /* Compact heading while pinned: every px the head gives up is a px the
+     card gets — on a phone the natural card content (~600px) barely fits
+     the leftover space, so the whole column is tightened together (heading
+     size/margin, card padding/gap, anim height below). */
+  .nxr-servicios-head .nxr-section-h2 {
+    font-size: 27px;
+    margin-bottom: 14px;
+  }
+  .nxr-servicios-track {
+    gap: 20px;
+  }
+  .nxr-srv-card {
+    width: 80vw;
+    max-width: 380px;
+    aspect-ratio: auto;
+    min-height: 520px;
+    padding: 22px;
+    gap: 12px;
+  }
+  .nxr-srv-content {
+    gap: 14px;
   }
 }
 
 @media (max-width: 600px) {
-  .nxr-srv-card:nth-child(1),
-  .nxr-srv-card:nth-child(2),
-  .nxr-srv-card:nth-child(3),
-  .nxr-srv-card:nth-child(4),
-  .nxr-srv-card:nth-child(5) {
-    grid-column: span 12;
+  .nxr-srv-card {
+    width: 84vw;
+    min-height: 560px;
+  }
+}
+
+/* Reduced motion: plain, non-pinned vertical stack (no horizontal scroll,
+   no scroll-driven spiral arc/bank) — same uniform cards, same real R3F
+   mesh behind each (see the rect-tracking effect in Servicios.tsx, which
+   stays active in this branch), just laid out statically. */
+.nxr-servicios-static-list {
+  margin-top: 40px;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.nxr-servicios-static-list .nxr-srv-card {
+  width: 100%;
+  max-width: none;
+  aspect-ratio: auto;
+  min-height: 340px;
+}
+
+@media (max-width: 900px) {
+  .nxr-servicios-static-list .nxr-srv-card {
+    min-height: 600px;
   }
 }
 

@@ -22,7 +22,7 @@ const DEG2RAD = Math.PI / 180;
 function CardSlot({ id }: { id: number }) {
   const groupRef = useRef<THREE.Group>(null);
   const { size } = useThree();
-  const [dims, setDims] = useState({ width: 420, height: 560 });
+  const [dims, setDims] = useState({ width: 560, height: 373 });
   const [style, setStyle] = useState<CardStyle>(DEFAULT_STYLE);
   const lastDims = useRef(dims);
   const lastStyle = useRef(style);
@@ -46,9 +46,16 @@ function CardSlot({ id }: { id: number }) {
     group.rotation.y = t.rotationY * DEG2RAD;
     group.scale.setScalar(t.scale);
 
-    if (width !== lastDims.current.width || height !== lastDims.current.height) {
-      lastDims.current = { width, height };
-      setDims({ width, height });
+    // Rounded + tolerance-gated: sub-pixel float jitter in getBoundingClientRect
+    // (e.g. while sibling GSAP transforms recompute layout during the scroll-
+    // driven spiral in Servicios.tsx) must never flip this comparison, since
+    // any change here rebuilds VolumetricCard's ExtrudeGeometry — cheap once,
+    // catastrophic if it fires every frame.
+    const rw = Math.round(width);
+    const rh = Math.round(height);
+    if (Math.abs(rw - lastDims.current.width) > 1 || Math.abs(rh - lastDims.current.height) > 1) {
+      lastDims.current = { width: rw, height: rh };
+      setDims({ width: rw, height: rh });
     }
     const st = slot.style;
     if (

@@ -42,15 +42,33 @@ function SceneEnvironment() {
 export default function SceneCanvas() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [isMobile] = useState(() => typeof window !== "undefined" && window.innerWidth < 768);
-  // Whole-page background canvas — not scoped to one section's visibility
-  // like HeroScene.tsx, only to the tab's own visibility (mirrors
-  // WaveBackground.tsx's `onVisibility`, the component this replaces).
   const [active, setActive] = useState(true);
+  // The only live content in this canvas is the Servicios glass cards, so
+  // the frameloop runs ONLY while that section is anywhere near the
+  // viewport (and the tab is visible). Everywhere else the canvas freezes
+  // on its flat dark background frame — visually identical to the page
+  // background, but the GPU goes fully idle instead of re-rendering five
+  // physical materials at 60fps for nothing (the single biggest source of
+  // heat and of scroll jank on the rest of the page).
+  const [cardsNear, setCardsNear] = useState(true);
 
   useEffect(() => {
     const onVisibility = () => setActive(document.visibilityState === "visible");
     document.addEventListener("visibilitychange", onVisibility);
     return () => document.removeEventListener("visibilitychange", onVisibility);
+  }, []);
+
+  useEffect(() => {
+    const section = document.getElementById("nxr-servicios");
+    if (!section) {
+      setCardsNear(false);
+      return;
+    }
+    const io = new IntersectionObserver(([entry]) => setCardsNear(entry.isIntersecting), {
+      rootMargin: "300px 0px",
+    });
+    io.observe(section);
+    return () => io.disconnect();
   }, []);
 
   return (
@@ -67,8 +85,8 @@ export default function SceneCanvas() {
     >
       <Canvas
         ref={canvasRef}
-        frameloop={active ? "always" : "never"}
-        dpr={isMobile ? [1, 1.25] : [1, 2]}
+        frameloop={active && cardsNear ? "always" : "never"}
+        dpr={isMobile ? [1, 1.25] : [1, 1.5]}
         camera={{ position: [0, 0, CAMERA_DISTANCE], fov: 50, near: 1, far: CAMERA_DISTANCE * 3 }}
         gl={{ alpha: true, antialias: !isMobile, powerPreference: "high-performance" }}
       >

@@ -1070,6 +1070,15 @@ h6 {
   padding: var(--section-pad) 0;
 }
 
+/* All the always-on CSS keyframe demos inside the glass cards sleep while
+   the section is off-screen — `.nxr-anims-live` is toggled by an
+   IntersectionObserver in Servicios.tsx (same gate the JS demo loops use),
+   so scrolling the REST of the page never pays for animating cards nobody
+   can see. */
+#nxr-servicios:not(.nxr-anims-live) .nxr-srv-inner * {
+  animation-play-state: paused !important;
+}
+
 .nxr-servicios-inner {
   max-width: var(--max-w);
   margin: 0 auto;

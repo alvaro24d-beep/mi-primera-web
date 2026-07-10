@@ -886,6 +886,21 @@ export default function Servicios() {
     if (!section) return;
     const cards = Array.from(section.querySelectorAll<HTMLElement>(".nxr-srv-card"));
 
+    // Everything demo-related sleeps while the section is off-screen: the
+    // JS loops below skip their DOM writes (cheap idle reschedule instead)
+    // and the `.nxr-anims-live` class gates the pure-CSS keyframe anims
+    // (see globals.css) — otherwise they all keep burning style/paint work
+    // for cards nobody can see, on every page scroll.
+    const visRef = { current: false };
+    const io = new IntersectionObserver(
+      ([entry]) => {
+        visRef.current = entry.isIntersecting;
+        section.classList.toggle("nxr-anims-live", entry.isIntersecting);
+      },
+      { rootMargin: "150px 0px" }
+    );
+    io.observe(section);
+
     function animCount(el: Element | null, target: number, suffix = "", duration = 1800) {
       if (!el) return;
       const start = Date.now();
@@ -904,6 +919,10 @@ export default function Servicios() {
     const card2 = cards[1];
     if (card2) {
       function loopChatAuto(card: HTMLElement) {
+        if (!visRef.current) {
+          timers.push(setTimeout(() => loopChatAuto(card), 1500));
+          return;
+        }
         const msgs = Array.from(card.querySelectorAll<HTMLElement>(".anim-chat-msg"));
         if (!msgs.length) return;
         msgs.forEach((m) => {
@@ -947,6 +966,10 @@ export default function Servicios() {
       };
 
       function loopFlow(card: HTMLElement) {
+        if (!visRef.current) {
+          timers.push(setTimeout(() => loopFlow(card), 1500));
+          return;
+        }
         const nodesL = Array.from(card.querySelectorAll<HTMLElement>(".anim-flow-node-l"));
         const connsL = Array.from(card.querySelectorAll<HTMLElement>(".anim-flow-conn-l"));
         const nodeC = card.querySelector<HTMLElement>(".anim-flow-node-c");
@@ -1020,6 +1043,10 @@ export default function Servicios() {
       }
 
       function loopSeo(card: HTMLElement) {
+        if (!visRef.current) {
+          timers.push(setTimeout(() => loopSeo(card), 1500));
+          return;
+        }
         const lines = Array.from(card.querySelectorAll<HTMLElement>(".anim-gsc-line-clicks, .anim-gsc-line-impr"));
         const areas = Array.from(card.querySelectorAll<HTMLElement>(".anim-gsc-area-clicks, .anim-gsc-area-impr"));
         const dot = card.querySelector<HTMLElement>(".anim-gsc-dot");
@@ -1055,6 +1082,10 @@ export default function Servicios() {
       }
 
       function loopApp(card: HTMLElement) {
+        if (!visRef.current) {
+          timers.push(setTimeout(() => loopApp(card), 1500));
+          return;
+        }
         const rows = Array.from(card.querySelectorAll<HTMLElement>(".anim-app-row"));
         const bars = Array.from(card.querySelectorAll<HTMLElement>(".anim-app-stat-bar-fill"));
         const sv = card.querySelector<HTMLElement>(".anim-app-stat-val[data-target]");
@@ -1083,6 +1114,7 @@ export default function Servicios() {
     }
 
     return () => {
+      io.disconnect();
       timers.forEach((t) => clearTimeout(t));
     };
   }, []);

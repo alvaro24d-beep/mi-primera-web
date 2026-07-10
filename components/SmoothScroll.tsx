@@ -42,6 +42,10 @@ export default function SmoothScroll() {
       // kept fighting the Servicios card snap, leaving it resting between
       // two cards with the caption half-crossfaded.
       touchInertiaExponent: 1.2,
+      // Snappier catch-up than the defaults (wheel lerp 0.1, touch 0.075):
+      // the heavier smoothing read as the page "braking" the scroll.
+      lerp: 0.14,
+      syncTouchLerp: 0.12,
     });
     window.__nxrLenis = lenis;
 

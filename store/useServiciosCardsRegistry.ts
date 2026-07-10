@@ -55,7 +55,7 @@ const emptySlot = (): Slot => ({
 // global canvas where its cards should render. Read via `.getState()` only
 // inside SceneCanvas's per-frame update (never the reactive `useServicios...()`
 // hook form), same no-re-render pattern as store/useCardDisturbance.ts.
-export const useServiciosCardsRegistry = create<Registry>((set) => ({
+export const useServiciosCardsRegistry = create<Registry>((set, get) => ({
   slots: Array.from({ length: MAX_CARDS }, emptySlot),
   setAnchor: (id, anchor) =>
     set((s) => {
@@ -69,12 +69,15 @@ export const useServiciosCardsRegistry = create<Registry>((set) => ({
       slots[id] = { ...slots[id], style };
       return { slots };
     }),
-  setTransform: (id, transform) =>
-    set((s) => {
-      const slots = s.slots.slice();
-      slots[id] = { ...slots[id], transform };
-      return { slots };
-    }),
+  // Hot path (written every frame from GSAP ticks AND the idle drift, for
+  // all five cards): a plain in-place mutation, NOT a zustand set(). Nothing
+  // subscribes reactively to transforms — the only consumer is CardSlot's
+  // useFrame reading via getState() — so immutable array copies here were
+  // pure per-frame garbage-collector churn.
+  setTransform: (id, transform) => {
+    const slot = get().slots[id];
+    if (slot) slot.transform = transform;
+  },
   clear: (id) =>
     set((s) => {
       const slots = s.slots.slice();

@@ -230,8 +230,12 @@ export default function VolumetricCard({
       {isGlass ? (
         <meshPhysicalMaterial
           color={color}
-          transmission={0.55}
-          thickness={thickness * 1.6}
+          // NO transmission, deliberately: it forces three.js into an extra
+          // whole-scene render pass per frame for refraction, and behind
+          // these cards there is only the near-black background plane — the
+          // refraction was invisible while costing more than everything
+          // else combined. The glass read comes from the env reflections +
+          // clearcoat, which stay.
           // ~0.16: the env reflection blurs into ONE broad sheen that bends
           // across the dome — the elegant "curved glass" read — instead of
           // several sharp-edged blobs (each light source wrapping into its

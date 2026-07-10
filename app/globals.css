@@ -1112,7 +1112,9 @@ h6 {
   display: flex;
   flex-direction: column;
   gap: 8px;
-  padding: 3vh var(--pad-x) 0;
+  /* Bottom padding biases the track's vertical centering UPWARD — the reel
+     reads better riding high than dead-centre under the absolute heading. */
+  padding: 3vh var(--pad-x) 10vh;
   transform-style: preserve-3d;
 }
 
@@ -2566,7 +2568,12 @@ h6 {
 
 @media (max-width: 900px) {
   .nxr-servicios-content {
-    padding-top: 1.5vh;
+    padding-top: 1vh;
+    /* Clears the fixed bottom nav pill (Header.tsx, ~110px tall zone): the
+       flex centering then centres the card in the VISIBLE area above it,
+       so the card's lower half — where the inline mini-anim lives — is
+       never hidden behind the menu bar. */
+    padding-bottom: 110px;
   }
   /* Compact heading while pinned: every px the head gives up is a px the
      card gets — on a phone the natural card content barely fits the
@@ -2607,15 +2614,38 @@ h6 {
   }
 }
 
-/* Very short phones (or landscape): the inline mini-anim is the one purely
-   decorative block — dropping it is what lets the full card (title, desc,
-   pills, CTA) still fit on screen. */
-@media (max-width: 900px) and (max-height: 700px) {
-  .nxr-srv-anim {
-    display: none;
+/* Shorter phones: compact the whole card column so the full card — inline
+   mini-anim included — still fits in the visible area above the bottom nav. */
+@media (max-width: 900px) and (max-height: 760px) {
+  .nxr-srv-inner {
+    padding: 16px;
+    gap: 8px;
+  }
+  .nxr-srv-content {
+    gap: 8px;
   }
   .nxr-srv-title {
     font-size: 22px;
+  }
+  .nxr-srv-desc {
+    font-size: 13.5px;
+    line-height: 1.5;
+  }
+  .nxr-srv-anim {
+    height: 96px;
+    padding-top: 4px;
+  }
+  .nxr-servicios-head .nxr-section-h2 {
+    font-size: 24px;
+    margin-bottom: 8px;
+  }
+}
+
+/* Truly tiny/landscape viewports only: dropping the decorative mini-anim is
+   the last resort that keeps title, desc, pills and CTA on screen. */
+@media (max-width: 900px) and (max-height: 600px) {
+  .nxr-srv-anim {
+    display: none;
   }
 }
 

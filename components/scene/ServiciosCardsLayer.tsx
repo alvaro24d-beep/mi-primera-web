@@ -75,7 +75,7 @@ function CardSlot({ id }: { id: number }) {
         width={dims.width}
         height={dims.height}
         thickness={10}
-        radius={24}
+        radius={30}
         curveX={style.curveX}
         curveY={style.curveY}
         color={style.color}

@@ -525,7 +525,14 @@ export default function Servicios() {
         return track.getBoundingClientRect().left - currentX;
       };
       const centredX = () => window.innerWidth / 2 - cardWidth() / 2 - trackBaseLeft();
-      const entryOffset = () => Math.min(sticky.clientWidth * 0.24, 340);
+      // Mobile: the first card starts FULLY OFF-SCREEN to the right (centre
+      // offset > half viewport + half card), so arriving at the section
+      // shows only the heading and the card slides in from the side as you
+      // scroll. Desktop keeps the partial peek.
+      const entryOffset = () =>
+        window.innerWidth <= 900
+          ? window.innerWidth * 0.5 + cardWidth() * 0.5 + 24
+          : Math.min(sticky.clientWidth * 0.24, 340);
       const startX = () => centredX() + entryOffset();
       const amount = () => entryOffset() + Math.max(0, track.scrollWidth - cardWidth());
       const endX = () => startX() - amount();
@@ -628,32 +635,41 @@ export default function Servicios() {
         };
         snapRaf = requestAnimationFrame(tick);
       };
+      // Analytic mapping helpers, all from the live scroll position (never
+      // from measured card rects — those carry the scrub tween's settling
+      // lag and would aim glides at a moving target): card i sits centred
+      // once progress = (entryOffset + i·step)/total, now that startX/endX
+      // are anchored to the track's real layout origin via trackBaseLeft().
+      const pOf = (i: number) => {
+        const total = amount();
+        const step = cardStep();
+        return total && step ? (entryOffset() + i * step) / total : 0;
+      };
+      const progressNow = (st: ScrollTrigger) => (window.scrollY - st.start) / (st.end - st.start);
+      const scrollAt = (st: ScrollTrigger, p: number) => st.start + p * (st.end - st.start);
+      const nearestIdx = (p: number) => {
+        let bi = 0;
+        let bd = Infinity;
+        for (let i = 0; i < cards.length; i++) {
+          const d = Math.abs(p - pOf(i));
+          if (d < bd) {
+            bd = d;
+            bi = i;
+          }
+        }
+        return bi;
+      };
+
       const trySnap = () => {
         const st = tl.scrollTrigger;
         if (!st || !st.isActive) return;
         const total = amount();
-        const step = cardStep();
-        if (!total || !step) return;
-        // Analytic, from the live scroll position (never from measured card
-        // rects — those still carry the scrub tween's settling lag when the
-        // idle timer fires, and would aim the glide at a moving target):
-        // card i sits centred once progress = (entryOffset + i·step)/total,
-        // now that startX/endX are anchored to the track's real layout
-        // origin via trackBaseLeft().
-        const progress = (window.scrollY - st.start) / (st.end - st.start);
-        let bestP = 0;
-        let bestDist = Infinity;
-        for (let i = 0; i < cards.length; i++) {
-          const p = (entryOffset() + i * step) / total;
-          const d = Math.abs(progress - p);
-          if (d < bestDist) {
-            bestDist = d;
-            bestP = p;
-          }
-        }
+        if (!total || !cardStep()) return;
+        const progress = progressNow(st);
+        const bestP = pOf(nearestIdx(progress));
         // Pixel-precise: skip only when already within ~1.5px of centre.
-        if (bestDist * total < 1.5) return;
-        glideTo(st.start + bestP * (st.end - st.start));
+        if (Math.abs(progress - bestP) * total < 1.5) return;
+        glideTo(scrollAt(st, bestP));
       };
       const cancelSnap = () => {
         cancelAnimationFrame(snapRaf);
@@ -703,6 +719,50 @@ export default function Servicios() {
         window.removeEventListener("touchstart", cancelSnap);
         cancelSnap();
       });
+
+      // ---- Mobile pagination: ONE card per swipe. A flick's inertia would
+      // otherwise fly past several cards; instead, on touchend we glide to
+      // exactly one step from the card that was current at touchstart (or
+      // just finish centring that card if it hadn't arrived yet — e.g. the
+      // very first swipe, which brings the off-screen first card in). At
+      // the reel's ends, swiping outward is left alone so the user can
+      // leave the section naturally. glideTo's per-frame immediate writes
+      // also neutralise Lenis' leftover touch inertia each frame.
+      if (window.innerWidth <= 900) {
+        let touchIdx = 0;
+        let touchY = 0;
+        let touchInPin = false;
+        const onTouchStart = (e: TouchEvent) => {
+          const st = tl.scrollTrigger;
+          touchInPin = !!st?.isActive;
+          if (!st || !touchInPin) return;
+          touchY = e.touches[0]?.clientY ?? 0;
+          touchIdx = nearestIdx(progressNow(st));
+        };
+        const onTouchEnd = (e: TouchEvent) => {
+          const st = tl.scrollTrigger;
+          if (!touchInPin || !st?.isActive) return;
+          touchInPin = false;
+          const dy = touchY - (e.changedTouches[0]?.clientY ?? touchY);
+          const p = progressNow(st);
+          const eps = 0.02;
+          let targetIdx: number | null = null;
+          if (dy > 25) {
+            if (p < pOf(touchIdx) - eps) targetIdx = touchIdx;
+            else if (touchIdx < cards.length - 1) targetIdx = touchIdx + 1;
+          } else if (dy < -25) {
+            if (p > pOf(touchIdx) + eps) targetIdx = touchIdx;
+            else if (touchIdx > 0) targetIdx = touchIdx - 1;
+          }
+          if (targetIdx !== null) glideTo(scrollAt(st, pOf(targetIdx)));
+        };
+        window.addEventListener("touchstart", onTouchStart, { passive: true });
+        window.addEventListener("touchend", onTouchEnd, { passive: true });
+        cleanups.push(() => {
+          window.removeEventListener("touchstart", onTouchStart);
+          window.removeEventListener("touchend", onTouchEnd);
+        });
+      }
 
       // Idle micro-drift (±2° yaw / ±1.1° pitch, per-card phase offsets):
       // keeps the environment reflections crawling across the convex face

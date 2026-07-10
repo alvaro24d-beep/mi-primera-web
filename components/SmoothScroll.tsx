@@ -30,6 +30,14 @@ export default function SmoothScroll() {
 
     const lenis = new Lenis({
       autoRaf: false,
+      // Touch scrolling must ALSO be Lenis-driven (by default it stays
+      // native/async, moved by the browser's compositor thread): with
+      // native touch scroll the DOM visibly moves BEFORE any JS can read
+      // its position, so the WebGL glass cards (positioned per-frame from
+      // DOM rects, see components/scene/ServiciosCardsLayer.tsx) trailed
+      // their content by a frame on phones. syncTouch makes touch scroll
+      // advance inside Lenis' rAF — the same frame the scene reads.
+      syncTouch: true,
     });
     window.__nxrLenis = lenis;
 

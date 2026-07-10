@@ -1401,6 +1401,9 @@ h6 {
 @media (max-width: 900px) {
   .nxr-srv-cta-wrap {
     position: relative;
+    /* Anchors the CTA to the stretched card's bottom edge; the elastic
+       anim block above soaks up the leftover height. */
+    margin-top: auto;
     padding: 14px 0 4px;
     display: flex;
     justify-content: flex-start;
@@ -1438,7 +1441,12 @@ h6 {
     position: relative;
     inset: auto;
     opacity: 1;
-    height: 120px;
+    /* Elastic: absorbs whatever height the stretched card has left over
+       after text/pills/CTA, so taller phones get a bigger anim stage
+       instead of dead space. */
+    flex: 1;
+    height: auto;
+    min-height: 110px;
     padding: 0;
     margin-top: 0;
     padding-top: 6px;
@@ -2568,12 +2576,11 @@ h6 {
 
 @media (max-width: 900px) {
   .nxr-servicios-content {
-    padding-top: 1vh;
-    /* Clears the fixed bottom nav pill (Header.tsx, ~110px tall zone): the
-       flex centering then centres the card in the VISIBLE area above it,
-       so the card's lower half — where the inline mini-anim lives — is
-       never hidden behind the menu bar. */
-    padding-bottom: 110px;
+    padding-top: 0.5vh;
+    /* Clears the fixed bottom nav pill (Header.tsx): the stretched card
+       below fills everything down to here, so its lower edge — CTA and
+       mini-anim included — is never hidden behind the menu bar. */
+    padding-bottom: 96px;
   }
   /* Compact heading while pinned: every px the head gives up is a px the
      card gets — on a phone the natural card content barely fits the
@@ -2587,12 +2594,12 @@ h6 {
   }
   .nxr-servicios-track {
     gap: 20px;
-    /* Top-aligned (not centred): the card hugs the heading and the unused
-       space collects BELOW it, above the bottom nav — instead of a big
-       empty band between title and card. Small top pad keeps the reduced
-       mobile exit-arc from riding the departing card into the title. */
-    align-items: flex-start;
-    padding-top: 30px;
+    /* Stretch: the card fills ALL the height between the heading and the
+       bottom-nav clearance — no dead band above or below it. Small top pad
+       keeps the reduced mobile exit-arc from riding the departing card
+       into the title. */
+    align-items: stretch;
+    padding-top: 12px;
   }
   .nxr-srv-card {
     width: 80vw;
@@ -2638,7 +2645,7 @@ h6 {
     line-height: 1.5;
   }
   .nxr-srv-anim {
-    height: 96px;
+    min-height: 88px;
     padding-top: 4px;
   }
   .nxr-servicios-head .nxr-section-h2 {

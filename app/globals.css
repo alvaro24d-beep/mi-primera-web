@@ -2558,17 +2558,26 @@ h6 {
   .nxr-servicios-content {
     padding-top: 0.5vh;
     /* Reserves the caption overlay's zone (its own height + the fixed
-       bottom nav's clearance) so the stretched glass centres in the space
-       ABOVE the text instead of sliding underneath it. */
-    padding-bottom: 350px;
+       bottom nav's clearance) so the glass centres in the space ABOVE the
+       text instead of sliding underneath it. The svh/lvh delta matters on
+       real phones — see the captions comment below. */
+    padding-bottom: 410px;
+    padding-bottom: calc(100lvh - 100svh + 340px);
   }
   .nxr-servicios-captions {
     left: 20px;
     right: 20px;
     max-width: none;
-    /* The caption's CTA — its last row — sits JUST above the floating
-       bottom nav (nav pill top ≈ 84px up on phones). */
-    bottom: 96px;
+    /* Anchored relative to the SMALL viewport bottom: the pinned sticky is
+       100lvh tall, so on a real phone with the browser's URL bar visible
+       its bottom edge — and anything anchored a fixed distance above it —
+       sits BELOW the visible area, hidden behind the bottom nav. The
+       lvh−svh term is exactly that URL-bar delta, keeping the caption's
+       CTA above the nav in the worst (bar visible) state; when the bar
+       hides it simply rides a little higher. Plain fallback first for
+       engines without svh/lvh. */
+    bottom: 160px;
+    bottom: calc(100lvh - 100svh + 92px);
   }
   .nxr-srv-cta-wrap {
     /* Extra air between the feature pills and the CTA row. */
@@ -2585,17 +2594,23 @@ h6 {
     margin-bottom: 10px;
   }
   .nxr-servicios-track {
-    gap: 20px;
+    /* Narrow gap + slightly narrower slides: the previous/next glass peeks
+       in at the screen edges so the reel visibly continues. */
+    gap: 16px;
     /* Centred in the space the caption reserve leaves free (see the
        content padding-bottom above): the glass rides high without hugging
-       the very top edge, and can never grow down over the caption text —
-       its aspect ratio is FIXED, same 16/10 as desktop. */
+       the very top edge, and can never grow down over the caption text. */
     align-items: center;
   }
   .nxr-srv-slide {
-    width: 80vw;
-    max-width: 380px;
+    width: 72vw;
+    max-width: 320px;
     gap: 14px;
+  }
+  /* Taller than desktop's 16/10 so the inline mini-anims (the chat
+     especially) fit comfortably inside the narrower mobile glass. */
+  .nxr-srv-card {
+    aspect-ratio: 4 / 3;
   }
   .nxr-srv-inner {
     padding: 14px;

@@ -38,6 +38,10 @@ export default function SmoothScroll() {
       // their content by a frame on phones. syncTouch makes touch scroll
       // advance inside Lenis' rAF — the same frame the scene reads.
       syncTouch: true,
+      // Tamer flick momentum (exponent default 1.7): long inertia tails
+      // kept fighting the Servicios card snap, leaving it resting between
+      // two cards with the caption half-crossfaded.
+      touchInertiaExponent: 1.2,
     });
     window.__nxrLenis = lenis;
 

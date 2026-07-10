@@ -645,11 +645,11 @@ export default function Servicios() {
         // After the ease completes, keep re-writing the exact target until
         // the scroll has verifiably CONVERGED (stable within 1px for a few
         // consecutive frames, up to a bounded number of holds): Lenis can
-        // still be lerping toward a stale internal target from the
-        // scrolling that preceded the snap, and a single final write loses
-        // to it — observed as the settled card drifting tens of px off
-        // centre after the glide "finished".
-        let holdFrames = 40;
+        // still be lerping toward a stale internal target — or, with
+        // syncTouch, playing out a flick's inertia tail — and a single
+        // final write loses to it, leaving the card off centre with the
+        // caption half-crossfaded. ~1.5s of holds outlasts the tail.
+        let holdFrames = 90;
         let stableFrames = 0;
         const tick = (now: number) => {
           const t = Math.min(1, (now - t0) / dur);

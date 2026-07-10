@@ -375,25 +375,36 @@ const CARD_STYLES = [
   { color: "#1c0f0a", material: "glass" as const, curveX: 0.12, curveY: 0.11 },
 ];
 
-function CardInner({ c }: { c: (typeof CARDS)[number] }) {
+// The glass "screen", alche.studio-style: holds ONLY the service's
+// mini-animation (always playing, never behind a hover).
+function GlassCard({ c }: { c: (typeof CARDS)[number] }) {
   return (
-    <div className="nxr-srv-inner">
-      <div className="nxr-srv-content">
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-          <div className="nxr-srv-icon">{c.icon}</div>
-          <span className="nxr-srv-tag">{c.tag}</span>
-        </div>
-        <h3 className="nxr-srv-title">{c.title}</h3>
-        <p className="nxr-srv-desc">{c.desc}</p>
-        <div className="nxr-srv-pills">
-          {c.pills.map((p) => (
-            <span key={p} className="nxr-srv-pill">
-              {p}
-            </span>
-          ))}
-        </div>
+    <div className="nxr-srv-card">
+      <div className="nxr-srv-inner">
+        <div className="nxr-srv-anim">{c.anim}</div>
       </div>
-      <div className="nxr-srv-anim">{c.anim}</div>
+    </div>
+  );
+}
+
+// The flat text block — tag, title, description, feature pills, CTA
+// bottom-right. In the animated reel these are stacked in a FIXED
+// bottom-left overlay and crossfaded (fade + blur) by updateSpiral as each
+// card passes the centre; in the reduced-motion static list they flow
+// under their card normally.
+function Caption({ c }: { c: (typeof CARDS)[number] }) {
+  return (
+    <div className="nxr-srv-caption">
+      <span className="nxr-srv-tag">{c.tag}</span>
+      <h3 className="nxr-srv-title">{c.title}</h3>
+      <p className="nxr-srv-desc">{c.desc}</p>
+      <div className="nxr-srv-pills">
+        {c.pills.map((p) => (
+          <span key={p} className="nxr-srv-pill">
+            {p}
+          </span>
+        ))}
+      </div>
       <div className="nxr-srv-cta-wrap">
         <a href={c.href} className="nxr-srv-cta nxr-glass-edge">
           <span className="nxr-glass-edge-content">{c.cta}</span>
@@ -467,7 +478,12 @@ export default function Servicios() {
       if (!section || !sticky || !content || !track) return;
 
       const q = gsap.utils.selector(section);
+      // Slides are the reel's layout unit (just the glass now); cards are
+      // the glass zones inside them (mesh anchors, yaw); captions live in
+      // the fixed bottom-left overlay, index-matched to the slides.
+      const slides = q(".nxr-srv-slide") as HTMLElement[];
       const cards = q(".nxr-srv-card") as HTMLElement[];
+      const captions = q(".nxr-servicios-captions .nxr-srv-caption") as HTMLElement[];
 
       // One live transform per card, owned by the hover-tilt quickTo
       // instances below. The scroll-driven spiral yaw and the idle drift are
@@ -476,6 +492,7 @@ export default function Servicios() {
       // spiral's yaw (and vice versa) whenever they overlapped.
       const live = cards.map(() => ({ x: 0, y: 0, z: 0, rotationX: 0, rotationY: 0, scale: 1 }));
       const scrollYaw = cards.map(() => 0);
+      const scrollZ = cards.map(() => 0);
       const idleYaw = cards.map(() => 0);
       const idlePitch = cards.map(() => 0);
       const inners = cards.map((card) => card.querySelector<HTMLElement>(".nxr-srv-inner"));
@@ -494,9 +511,10 @@ export default function Servicios() {
       const push = (i: number) => {
         const rotX = live[i].rotationX + idlePitch[i];
         const rotY = live[i].rotationY + scrollYaw[i] + idleYaw[i];
-        useServiciosCardsRegistry.getState().setTransform(i, { ...live[i], rotationX: rotX, rotationY: rotY });
+        const z = live[i].z + scrollZ[i];
+        useServiciosCardsRegistry.getState().setTransform(i, { ...live[i], rotationX: rotX, rotationY: rotY, z });
         const inner = inners[i];
-        if (inner) gsap.set(inner, { rotationX: -rotX, rotationY: rotY, z: live[i].z, scale: live[i].scale });
+        if (inner) gsap.set(inner, { rotationX: -rotX, rotationY: rotY, z, scale: live[i].scale });
       };
 
       gsap.set(content, { opacity: 0, scale: 0.92 });
@@ -513,8 +531,8 @@ export default function Servicios() {
       // and get passed accidentally the moment the pin engages) to endX
       // (LAST card exactly centred at full scroll). The pin distance
       // (`amount`) therefore includes that entry offset.
-      const cardWidth = () => cards[0]?.offsetWidth ?? 0;
-      const cardStep = () => (cards.length > 1 ? cards[1].offsetLeft - cards[0].offsetLeft : 0);
+      const cardWidth = () => slides[0]?.offsetWidth ?? 0;
+      const cardStep = () => (slides.length > 1 ? slides[1].offsetLeft - slides[0].offsetLeft : 0);
       // The track's UNTRANSFORMED left edge (its rect minus its current GSAP
       // x). The track is nested inside `.nxr-servicios-content`, whose
       // horizontal padding shifts the whole reel right — centring math
@@ -537,51 +555,65 @@ export default function Servicios() {
       const amount = () => entryOffset() + Math.max(0, track.scrollWidth - cardWidth());
       const endX = () => startX() - amount();
 
-      // Smaller arc on phones: cards there are top-aligned right under the
-      // heading (see the mobile `.nxr-servicios-track` rules), so a tall
-      // exit arc would ride the departing card up into the title.
+      // Smaller arc on phones: the stretched glass there nearly fills the
+      // space between heading and captions, so a tall arc would ride the
+      // departing card into either overlay.
       const ARC_AMPLITUDE = window.innerWidth <= 900 ? 28 : 55;
-      const MAX_YAW_DEG = 15;
+      // Half-angle of the carousel drum: how far a card has turned by the
+      // time it reaches the viewport edge. Bigger angle = tighter cylinder
+      // (smaller radius), cards sweep BACK faster and face the axis harder.
+      const MAX_YAW_DEG = window.innerWidth <= 900 ? 30 : 40;
+      const THETA_MAX = (MAX_YAW_DEG * Math.PI) / 180;
 
-      // Helical trajectory, bottom-right → top-left: each card's distance
-      // from the sticky center (nx) drives three coupled effects —
-      //   y arc:  right of center sits LOWER (entering from below), left
-      //           sits HIGHER (exiting above) → the climb of the spiral;
-      //   yaw:    mesh-only rotationY, the card faces "into" the spiral's
-      //           center while off to a side and flattens to exactly 0° when
-      //           centered/readable. This is rotation about the VERTICAL
-      //           axis (cover-flow style) — the Z-roll ("girar sobre sí
-      //           misma") that got rejected stays removed. It's also what
-      //           makes the convex bulge legible: the silhouette bows and
-      //           the env reflections sweep across the dome as it turns;
-      //   scale:  recede-into-depth for off-center cards.
-      // `y`/scale/`--nxr-srv-focus` apply to the card/CHILD wrappers via
-      // transform+custom-property only — the anchor's measured rect (what
+      // Helical trajectory on a REAL cylinder, bottom-right → top-left: the
+      // cards ride the surface of a vertical-axis drum whose radius R is
+      // derived from the viewport (a card reaching the screen edge, lateral
+      // offset = halfW, has swept THETA_MAX around the axis: R = halfW /
+      // sin(THETA_MAX)). Each card's normalized lateral offset nx maps to
+      // its drum angle θ, which drives everything coherently:
+      //   yaw:  rotationY = θ — the face points AT the drum's axis, exactly
+      //         0° when centred/readable (no Z-roll anywhere);
+      //   z:    −R·(1−cosθ) — true depth recession (mesh position AND DOM
+      //         translateZ under the shared perspective:1000 camera, so
+      //         both project identically): passing cards genuinely sweep
+      //         backwards around the drum, shrinking by perspective alone —
+      //         no fake scale falloff;
+      //   y arc: the helix's vertical climb, right/entering low, left/
+      //         exiting high.
+      // `y` applies via transform only — the anchor's measured rect (what
       // VolumetricCard's geometry is sized from) never changes except by
       // real translation, avoiding a per-scrub-frame geometry rebuild. The
-      // text fade goes through the `--nxr-srv-focus` custom property, never
-      // an inline `opacity`, so the CSS `:hover` rule keeps winning and the
-      // hover text→anim swap still works (an inline opacity would override
-      // the stylesheet and the text would sit on top of the anim forever).
+      // fixed bottom-left captions crossfade here too: each caption's
+      // visibility follows how close ITS card is to the drum's front (fully
+      // legible inside |nx| < 0.2, dissolved — faded, blurred, slightly
+      // dropped — past |nx| ≈ 0.55), so one text softly hands over to the
+      // next as the cards pass.
       const updateSpiral = () => {
         const stickyRect = sticky.getBoundingClientRect();
         const centerX = stickyRect.left + stickyRect.width / 2;
-        cards.forEach((card, i) => {
-          const r = card.getBoundingClientRect();
-          const cardCenterX = r.left + r.width / 2;
-          const nx = gsap.utils.clamp(-1.6, 1.6, (cardCenterX - centerX) / (stickyRect.width / 2));
-          const absNx = gsap.utils.clamp(0, 1, Math.abs(nx));
+        const halfW = stickyRect.width / 2;
+        const drumR = halfW / Math.sin(THETA_MAX);
+        slides.forEach((slide, i) => {
+          const r = slide.getBoundingClientRect();
+          const slideCenterX = r.left + r.width / 2;
+          const nx = gsap.utils.clamp(-1.6, 1.6, (slideCenterX - centerX) / halfW);
 
-          gsap.set(card, { y: ARC_AMPLITUDE * nx });
-          card.style.setProperty(
-            "--nxr-srv-focus",
-            String(gsap.utils.mapRange(0, 1.3, 1, 0.12, gsap.utils.clamp(0, 1.3, Math.abs(nx))))
-          );
+          gsap.set(slide, { y: ARC_AMPLITUDE * nx });
 
-          // Scale rides on `.nxr-srv-inner` via push() (mesh + printed
-          // content shrink together as one object) — no per-child scaling.
-          live[i].scale = gsap.utils.mapRange(0, 1, 1, 0.84, absNx);
-          scrollYaw[i] = MAX_YAW_DEG * nx;
+          const cap = captions[i];
+          if (cap) {
+            const vis = gsap.utils.clamp(0, 1, gsap.utils.mapRange(0.55, 0.2, 0, 1, Math.abs(nx)));
+            gsap.set(cap, {
+              opacity: vis,
+              filter: `blur(${((1 - vis) * 5).toFixed(2)}px)`,
+              y: (1 - vis) * 14,
+              pointerEvents: vis > 0.5 ? "auto" : "none",
+            });
+          }
+
+          const theta = gsap.utils.clamp(-1.1, 1.1, nx) * THETA_MAX;
+          scrollYaw[i] = (theta * 180) / Math.PI;
+          scrollZ[i] = -drumR * (1 - Math.cos(theta));
           push(i);
         });
       };
@@ -897,68 +929,11 @@ export default function Servicios() {
       timers.push(setTimeout(() => loopChatAuto(card2), 300));
     }
 
-    const card3 = cards[2];
-    let onEnter3: (() => void) | undefined;
-    let onLeave3: (() => void) | undefined;
-    if (card3) {
-      const activateFlow = (card: HTMLElement) => {
-        const nodesL = Array.from(card.querySelectorAll<HTMLElement>(".anim-flow-node-l"));
-        const connsL = Array.from(card.querySelectorAll<HTMLElement>(".anim-flow-conn-l"));
-        const nodeC = card.querySelector<HTMLElement>(".anim-flow-node-c");
-        const connsR = Array.from(card.querySelectorAll<HTMLElement>(".anim-flow-conn-r"));
-        const nodesR = Array.from(card.querySelectorAll<HTMLElement>(".anim-flow-node-r"));
-        nodesL.forEach((n) => n.classList.add("vis"));
-        timers.push(
-          setTimeout(() => {
-            connsL.forEach((c) => c.classList.add("vis"));
-            timers.push(
-              setTimeout(() => {
-                if (nodeC) nodeC.classList.add("vis");
-                timers.push(
-                  setTimeout(() => {
-                    connsR.forEach((c) => c.classList.add("vis"));
-                    timers.push(setTimeout(() => nodesR.forEach((n) => n.classList.add("vis")), 500));
-                  }, 400)
-                );
-              }, 600)
-            );
-          }, 400)
-        );
-      };
-      const deactivateFlow = (card: HTMLElement) => {
-        card
-          .querySelectorAll(".anim-flow-node-l,.anim-flow-conn-l,.anim-flow-node-c,.anim-flow-conn-r,.anim-flow-node-r")
-          .forEach((el) => el.classList.remove("vis"));
-      };
-      if (window.innerWidth > 900) {
-        onEnter3 = () => activateFlow(card3);
-        onLeave3 = () => deactivateFlow(card3);
-        card3.addEventListener("mouseenter", onEnter3);
-        card3.addEventListener("mouseleave", onLeave3);
-      }
-    }
-
-    const card5 = cards[4];
-    let counted5 = false;
-    let onEnter5: (() => void) | undefined;
-    let onLeave5: (() => void) | undefined;
-    if (card5) {
-      const statEl = card5.querySelector(".anim-app-stat-val");
-      onEnter5 = () => {
-        if (!counted5 && statEl) {
-          counted5 = true;
-          animCount(statEl, 2840);
-        }
-      };
-      onLeave5 = () => {
-        counted5 = false;
-        if (statEl) statEl.textContent = "0";
-      };
-      card5.addEventListener("mouseenter", onEnter5);
-      card5.addEventListener("mouseleave", onLeave5);
-    }
-
-    if (window.innerWidth <= 900) {
+    // The anims are the glass card's ONLY content now (no hover text-swap),
+    // so every demo self-loops on all devices — the hover-triggered variants
+    // (flow build on mouseenter, app count-up on hover) are gone with the
+    // layout that motivated them.
+    {
       const instant = (els: HTMLElement[], styles: Partial<CSSStyleDeclaration>) => {
         els.forEach((el) => {
           el.style.transition = "none";
@@ -1108,14 +1083,6 @@ export default function Servicios() {
     }
 
     return () => {
-      if (card3 && onEnter3 && onLeave3) {
-        card3.removeEventListener("mouseenter", onEnter3);
-        card3.removeEventListener("mouseleave", onLeave3);
-      }
-      if (card5 && onEnter5 && onLeave5) {
-        card5.removeEventListener("mouseenter", onEnter5);
-        card5.removeEventListener("mouseleave", onLeave5);
-      }
       timers.forEach((t) => clearTimeout(t));
     };
   }, []);
@@ -1140,8 +1107,9 @@ export default function Servicios() {
           </div>
           <div className="nxr-servicios-static-list">
             {CARDS.map((c) => (
-              <div key={c.href} className="nxr-srv-card">
-                <CardInner c={c} />
+              <div key={c.href} className="nxr-srv-slide">
+                <GlassCard c={c} />
+                <Caption c={c} />
               </div>
             ))}
           </div>
@@ -1163,22 +1131,29 @@ export default function Servicios() {
           </div>
 
           {/*
-            Each `.nxr-srv-card` here is a plain, uniform-size DOM anchor — it
-            IS the real, crawlable, focusable content (title/desc/mini-anim/
-            CTA). The actual "glass" look (volume, material, reflections) is
-            the R3F mesh rendered in the global SceneCanvas (app/layout.tsx),
-            kept docked to this element's live screen position by the rAF
-            loop above — see components/scene/ServiciosCardsLayer.tsx. No
-            background/border/shadow lives on this element; the mesh behind
-            it provides that. The track is horizontally scrubbed by scroll
-            (see useGSAP above) while each card additionally arcs in Y and
-            banks (mesh-only) to trace a spiral-like path.
+            Each `.nxr-srv-slide` is one reel item: the `.nxr-srv-card`
+            glass "screen" (holding ONLY the mini-anim; its live rect is
+            what positions/sizes the R3F mesh — see components/scene/
+            ServiciosCardsLayer.tsx) plus the flat `.nxr-srv-caption` below
+            it with the real, crawlable text content and CTA. The track is
+            horizontally scrubbed by scroll (see useGSAP above) while each
+            slide additionally arcs in Y; the glass alone carries the
+            cover-flow yaw.
           */}
           <div className="nxr-servicios-track" ref={trackRef}>
             {CARDS.map((c) => (
-              <div key={c.href} className="nxr-srv-card">
-                <CardInner c={c} />
+              <div key={c.href} className="nxr-srv-slide">
+                <GlassCard c={c} />
               </div>
+            ))}
+          </div>
+
+          {/* Fixed bottom-left caption stack: all five captions occupy the
+              same grid cell; updateSpiral crossfades (opacity + blur) each
+              one as its card passes through the reel's centre. */}
+          <div className="nxr-servicios-captions">
+            {CARDS.map((c) => (
+              <Caption key={c.href} c={c} />
             ))}
           </div>
         </div>

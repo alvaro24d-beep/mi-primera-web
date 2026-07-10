@@ -1112,9 +1112,10 @@ h6 {
   display: flex;
   flex-direction: column;
   gap: 8px;
-  /* Bottom padding biases the track's vertical centering UPWARD — the reel
-     reads better riding high than dead-centre under the absolute heading. */
-  padding: 3vh var(--pad-x) 10vh;
+  /* No vertical bias: heading (top-right) and captions (bottom-left) are
+     absolute overlays, so the track owns the full pinned height and the
+     glass cards ride dead-centre both axes. */
+  padding: 0 var(--pad-x);
   transform-style: preserve-3d;
 }
 
@@ -1160,59 +1161,100 @@ h6 {
      the track's own `x`. */
 }
 
-/* Cards are real R3F objects now (components/scene/VolumetricCard.tsx,
-   rendered in the global SceneCanvas mounted in app/layout.tsx) — this DOM
-   element is just the anchor: fixed, uniform size (never resized by the
-   scroll-driven "focus" falloff — see Servicios.tsx's updateSpiral, which
-   scales `.nxr-srv-content`/`.nxr-srv-anim` instead, precisely so this
-   element's measured `getBoundingClientRect()` — what VolumetricCard's
-   geometry is sized from — never changes except by real translation; a
-   change there would rebuild the mesh geometry every scrub frame), no
-   background/border/shadow of its own (the mesh behind it provides all of
-   that), holding the real crawlable/focusable content.
-   Servicios.tsx's rAF loop feeds this element's live `getBoundingClientRect()`
-   to store/useServiciosCardsRegistry.ts every frame so the mesh stays docked
-   under it as the page scrolls; the same GSAP effect that used to animate
-   this element's own `transform` now writes into that registry's per-card
-   `transform` slot instead. */
-.nxr-srv-card {
-  position: relative;
-  cursor: default;
+/* One reel item (alche.studio-style): the glass "screen" on top holding
+   ONLY the service's mini-animation, and a flat text caption BELOW it,
+   outside the glass. The slide is the layout unit the reel scrubs/arcs;
+   only the glass zone inside it yaws. The glass is a real R3F object
+   (components/scene/VolumetricCard.tsx, rendered in the global SceneCanvas
+   mounted in app/layout.tsx) — `.nxr-srv-card` is just its anchor, with no
+   background/border/shadow of its own; the scene measures the anchor's
+   getBoundingClientRect() inside its own frame loop (see components/scene/
+   ServiciosCardsLayer.tsx) to size/position the mesh, which is why the
+   anchor must keep a fixed, transform-free box (the scroll-driven focus
+   falloff scales `.nxr-srv-inner`, never this element). */
+.nxr-srv-slide {
   flex-shrink: 0;
   width: 560px;
   max-width: 82vw;
-  aspect-ratio: 3 / 2;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  box-sizing: border-box;
+  transform-style: preserve-3d;
+}
+
+/* The glass zone (mesh anchor): its live getBoundingClientRect() is what
+   sizes/positions the R3F mesh, so it must stay unrotated — a rotated
+   element reports an inflated axis-aligned bounding box. */
+.nxr-srv-card {
+  position: relative;
+  cursor: default;
+  width: 100%;
+  aspect-ratio: 16 / 10;
   display: flex;
   flex-direction: column;
   box-sizing: border-box;
   transform-style: preserve-3d;
 }
 
-/* The card's whole face — padding, text, mini-anim, CTA — lives on this
-   inner plane, which receives the SAME cover-flow rotation as the glass
-   mesh every frame (see push() in Servicios.tsx), so the content reads as
-   printed ON the card instead of floating flat above it. The outer
-   `.nxr-srv-card` anchor must stay unrotated: its getBoundingClientRect()
-   is what sizes/positions the mesh, and a rotated element reports an
-   inflated axis-aligned bounding box. */
+/* The card's face — just the anim stage now — lives on this inner plane,
+   which receives the SAME cover-flow rotation as the glass mesh every
+   frame (see push() in Servicios.tsx), so the animation reads as printed
+   ON the glass instead of floating flat above it. */
 .nxr-srv-inner {
   position: relative;
   flex: 1;
   min-height: 0;
-  padding: 36px;
+  padding: 20px;
   display: flex;
   flex-direction: column;
-  gap: 20px;
   box-sizing: border-box;
   transform-origin: center;
   will-change: transform;
+}
+
+/* Flat caption: tag, title, description, feature pills and the CTA
+   bottom-right — real crawlable text, never rotated or scaled. In the reel
+   all five live stacked in the fixed bottom-left overlay below; in the
+   reduced-motion static list they flow under their card normally. */
+.nxr-srv-caption {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 0 4px;
+}
+
+/* Fixed bottom-left caption stack for the reel: every caption occupies the
+   SAME grid cell, so the container is sized by the tallest one and sits
+   anchored above the viewport bottom while updateSpiral (Servicios.tsx)
+   crossfades — opacity + blur + slight drop — whichever caption matches
+   the card currently at the centre. pointer-events are granted per-caption
+   by that same code so only the visible CTA is clickable. */
+.nxr-servicios-captions {
+  position: absolute;
+  left: var(--pad-x);
+  bottom: 6vh;
+  max-width: 600px;
+  display: grid;
+  /* Bottom-anchor each caption inside the shared cell (the cell is sized
+     by the tallest caption) — without this, shorter captions stretch and
+     their auto/flex spacing opens odd gaps mid-text. */
+  align-items: end;
+  z-index: 3;
+}
+
+.nxr-servicios-captions .nxr-srv-caption {
+  grid-area: 1 / 1;
+  opacity: 0;
+  pointer-events: none;
+  will-change: opacity, filter, transform;
 }
 
 /* Shorter viewports (small laptops, browser zoom >100%): shrink the card so
    heading + reel still fit inside the pinned 100lvh with the card fully
    visible — the card's height follows from the aspect-ratio above. */
 @media (max-height: 850px) and (min-width: 901px) {
-  .nxr-srv-card {
+  .nxr-srv-slide {
     width: 500px;
   }
   .nxr-servicios-head .nxr-section-h2 {
@@ -1224,34 +1266,14 @@ h6 {
   .nxr-servicios-head .nxr-section-h2 {
     font-size: clamp(26px, 2.6vw, 34px);
   }
-  .nxr-srv-card {
+  .nxr-srv-slide {
     width: 440px;
   }
   .nxr-srv-inner {
-    padding: 28px;
+    padding: 14px;
   }
-}
-
-.nxr-srv-content {
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
-  position: relative;
-  z-index: 2;
-  transform-origin: center;
-  /* `--nxr-srv-focus` is written per-frame by Servicios.tsx's updateSpiral
-     (side cards fade as they turn away along the spiral). It lives in a
-     custom property, NOT an inline `opacity`, so the higher-specificity
-     `:hover` rule below still wins and fades the text out over the anim. */
-  opacity: var(--nxr-srv-focus, 1);
-  transition: opacity 0.35s, transform 0.35s;
-}
-
-@media (min-width: 901px) {
-  .nxr-srv-card:hover .nxr-srv-content {
-    opacity: 0;
-    transform: translateY(-8px);
-    pointer-events: none;
+  .nxr-srv-caption {
+    gap: 7px;
   }
 }
 
@@ -1327,7 +1349,6 @@ h6 {
   display: flex;
   flex-wrap: wrap;
   gap: 7px;
-  margin-top: auto;
 }
 
 .nxr-srv-pill {
@@ -1380,78 +1401,38 @@ h6 {
   transform: translateX(3px);
 }
 
-@media (min-width: 901px) {
-  .nxr-srv-cta-wrap {
-    position: absolute;
-    bottom: 24px;
-    right: 24px;
-    z-index: 10;
-    opacity: 0;
-    transform: translateY(6px);
-    transition: opacity 0.35s 0.15s, transform 0.35s 0.15s;
-    pointer-events: none;
-  }
-  .nxr-srv-card:hover .nxr-srv-cta-wrap {
-    opacity: 1;
-    transform: translateY(0);
-    pointer-events: auto;
-  }
+/* CTA bottom-RIGHT of the caption (per the alche.studio reference's "More
+   Works ↗" placement), always visible — no hover reveal. */
+.nxr-srv-cta-wrap {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 2px;
 }
 
 @media (max-width: 900px) {
-  .nxr-srv-cta-wrap {
-    position: relative;
-    /* Anchors the CTA to the stretched card's bottom edge; the elastic
-       anim block above soaks up the leftover height. */
-    margin-top: auto;
-    padding: 14px 0 4px;
-    display: flex;
-    justify-content: flex-start;
-  }
   .nxr-srv-cta {
     font-size: 11px;
     padding: 8px 16px;
   }
 }
 
+/* The glass card's sole content: always visible, in normal flow, filling
+   the inner plane so it rotates/scales with the glass. */
 .nxr-srv-anim {
-  position: absolute;
-  inset: 0;
-  border-radius: inherit;
+  position: relative;
+  flex: 1;
+  min-height: 0;
   display: flex;
   align-items: center;
   justify-content: center;
-  opacity: 0;
+  opacity: 1;
   transform-origin: center;
-  transition: opacity 0.35s;
   pointer-events: none;
-  padding: 28px;
   box-sizing: border-box;
   z-index: 2;
 }
 
-@media (min-width: 901px) {
-  .nxr-srv-card:hover .nxr-srv-anim {
-    opacity: 1;
-  }
-}
-
 @media (max-width: 900px) {
-  .nxr-srv-anim {
-    position: relative;
-    inset: auto;
-    opacity: 1;
-    /* Elastic: absorbs whatever height the stretched card has left over
-       after text/pills/CTA, so taller phones get a bigger anim stage
-       instead of dead space. */
-    flex: 1;
-    height: auto;
-    min-height: 110px;
-    padding: 0;
-    margin-top: 0;
-    padding-top: 6px;
-    box-sizing: border-box;
-  }
 
   .anim-flow-node,
   .anim-app-row {
@@ -1741,26 +1722,8 @@ h6 {
   }
 }
 
-@media (min-width: 901px) {
-  .nxr-srv-card:hover .anim-web3d-stage {
-    animation-play-state: running;
-  }
-  .anim-web3d-stage {
-    animation-play-state: paused;
-  }
-  .nxr-srv-card:hover .anim-web3d-layer.-code,
-  .nxr-srv-card:hover .anim-web3d-layer.-perf,
-  .nxr-srv-card:hover .anim-web3d-cursor,
-  .nxr-srv-card:hover .anim-web3d-scroll {
-    animation-play-state: running;
-  }
-  .anim-web3d-layer.-code,
-  .anim-web3d-layer.-perf,
-  .anim-web3d-cursor,
-  .anim-web3d-scroll {
-    animation-play-state: paused;
-  }
-}
+/* The anim is the glass card's only, always-visible content now — the old
+   desktop pause-until-hover gate is gone on purpose. */
 
 @media (max-width: 900px) {
   .anim-web3d-stage {
@@ -2095,20 +2058,7 @@ h6 {
   }
 }
 
-@media (min-width: 901px) {
-  .anim-auto3d-stage,
-  .anim-auto3d-chip.-mail,
-  .anim-auto3d-chip.-bolt,
-  .anim-auto3d-chip.-check {
-    animation-play-state: paused;
-  }
-  .nxr-srv-card:hover .anim-auto3d-stage,
-  .nxr-srv-card:hover .anim-auto3d-chip.-mail,
-  .nxr-srv-card:hover .anim-auto3d-chip.-bolt,
-  .nxr-srv-card:hover .anim-auto3d-chip.-check {
-    animation-play-state: running;
-  }
-}
+/* Always running — see the note on the removed web3d pause gate above. */
 
 @media (max-width: 900px) {
   .anim-auto3d-stage {
@@ -2577,10 +2527,16 @@ h6 {
 @media (max-width: 900px) {
   .nxr-servicios-content {
     padding-top: 0.5vh;
-    /* Clears the fixed bottom nav pill (Header.tsx): the stretched card
-       below fills everything down to here, so its lower edge — CTA and
-       mini-anim included — is never hidden behind the menu bar. */
-    padding-bottom: 96px;
+    /* Reserves the caption overlay's zone (its own height + the fixed
+       bottom nav's clearance) so the stretched glass centres in the space
+       ABOVE the text instead of sliding underneath it. */
+    padding-bottom: 420px;
+  }
+  .nxr-servicios-captions {
+    left: 20px;
+    right: 20px;
+    max-width: none;
+    bottom: 100px;
   }
   /* Compact heading while pinned: every px the head gives up is a px the
      card gets — on a phone the natural card content barely fits the
@@ -2601,17 +2557,24 @@ h6 {
     align-items: stretch;
     padding-top: 12px;
   }
-  .nxr-srv-card {
+  .nxr-srv-slide {
     width: 80vw;
     max-width: 380px;
+    gap: 14px;
+  }
+  /* The glass grows to absorb the stretched slide's spare height — a big
+     media screen like the reference — while the caption keeps its natural
+     height below. */
+  .nxr-srv-card {
     aspect-ratio: auto;
+    flex: 1;
+    min-height: 210px;
   }
   .nxr-srv-inner {
-    padding: 20px;
-    gap: 10px;
+    padding: 14px;
   }
-  .nxr-srv-content {
-    gap: 12px;
+  .nxr-srv-caption {
+    gap: 8px;
   }
   .nxr-srv-title {
     font-size: 25px;
@@ -2622,20 +2585,23 @@ h6 {
 }
 
 @media (max-width: 600px) {
-  .nxr-srv-card {
+  .nxr-srv-slide {
     width: 84vw;
   }
 }
 
-/* Shorter phones: compact the whole card column so the full card — inline
-   mini-anim included — still fits in the visible area above the bottom nav. */
+/* Shorter phones: compact the slide column — glass min-height, caption
+   type and heading all shrink together so the full slide (glass + caption
+   + CTA) still fits in the visible area above the bottom nav. */
 @media (max-width: 900px) and (max-height: 760px) {
-  .nxr-srv-inner {
-    padding: 16px;
-    gap: 8px;
+  .nxr-srv-card {
+    min-height: 160px;
   }
-  .nxr-srv-content {
-    gap: 8px;
+  .nxr-srv-inner {
+    padding: 10px;
+  }
+  .nxr-srv-caption {
+    gap: 6px;
   }
   .nxr-srv-title {
     font-size: 22px;
@@ -2644,46 +2610,41 @@ h6 {
     font-size: 13.5px;
     line-height: 1.5;
   }
-  .nxr-srv-anim {
-    min-height: 88px;
-    padding-top: 4px;
-  }
   .nxr-servicios-head .nxr-section-h2 {
     font-size: 24px;
     margin-bottom: 8px;
   }
 }
 
-/* Truly tiny/landscape viewports only: dropping the decorative mini-anim is
-   the last resort that keeps title, desc, pills and CTA on screen. */
+/* Truly tiny/landscape viewports only: dropping the glass screen (the
+   caption below carries all the real content) is the last resort that
+   keeps title, desc, pills and CTA on screen. */
 @media (max-width: 900px) and (max-height: 600px) {
-  .nxr-srv-anim {
+  .nxr-srv-card {
     display: none;
   }
 }
 
 /* Reduced motion: plain, non-pinned vertical stack (no horizontal scroll,
-   no scroll-driven spiral arc/bank) — same uniform cards, same real R3F
-   mesh behind each (see the rect-tracking effect in Servicios.tsx, which
-   stays active in this branch), just laid out statically. */
+   no scroll-driven spiral arc) — same slides (glass screen + caption),
+   same real R3F mesh behind each glass (the anchor-registration effect in
+   Servicios.tsx stays active in this branch), just laid out statically. */
 .nxr-servicios-static-list {
   margin-top: 40px;
   display: flex;
   flex-direction: column;
-  gap: 24px;
+  gap: 48px;
+}
+
+.nxr-servicios-static-list .nxr-srv-slide {
+  width: 100%;
+  max-width: none;
 }
 
 .nxr-servicios-static-list .nxr-srv-card {
-  width: 100%;
-  max-width: none;
   aspect-ratio: auto;
-  min-height: 340px;
-}
-
-@media (max-width: 900px) {
-  .nxr-servicios-static-list .nxr-srv-card {
-    min-height: 600px;
-  }
+  min-height: 300px;
+  flex: none;
 }
 
 /* ===== Cómo trabajamos ===== */

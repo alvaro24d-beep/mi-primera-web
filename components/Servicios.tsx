@@ -1099,7 +1099,6 @@ export default function Servicios() {
       <section key="static" id="nxr-servicios" ref={sectionRef} className="nxr-servicios-static">
         <div className="nxr-servicios-inner">
           <div className="nxr-reveal">
-            <p className="nxr-section-label">Servicios</p>
             <h2 className="nxr-section-h2" ref={titleRef}>
               Todo lo que tu negocio necesita para{" "}
               <span className="nxr-gradient-text-salmon">crecer en la era de la IA.</span>
@@ -1120,16 +1119,17 @@ export default function Servicios() {
 
   return (
     <section id="nxr-servicios" ref={sectionRef}>
+      {/* In normal flow ABOVE the pinned sticky: the heading scrolls past
+          (and away) as the reel pins, leaving the whole viewport to the
+          cards instead of staying overlaid on them. */}
+      <div className="nxr-servicios-head nxr-reveal">
+        <h2 className="nxr-section-h2" ref={titleRef}>
+          Todo lo que tu negocio necesita para{" "}
+          <span className="nxr-gradient-text-salmon">crecer en la era de la IA.</span>
+        </h2>
+      </div>
       <div className="nxr-servicios-sticky" ref={stickyRef}>
         <div className="nxr-servicios-content" ref={contentRef}>
-          <div className="nxr-servicios-head nxr-reveal">
-            <p className="nxr-section-label">Servicios</p>
-            <h2 className="nxr-section-h2" ref={titleRef}>
-              Todo lo que tu negocio necesita para{" "}
-              <span className="nxr-gradient-text-salmon">crecer en la era de la IA.</span>
-            </h2>
-          </div>
-
           {/*
             Each `.nxr-srv-slide` is one reel item: the `.nxr-srv-card`
             glass "screen" (holding ONLY the mini-anim; its live rect is

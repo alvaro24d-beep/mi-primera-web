@@ -105,7 +105,17 @@ export default function Header() {
       requestAnimationFrame(() => {
         const y = window.scrollY;
         setNavHidden(y > THRESHOLD);
-        setNavVisible(y > THRESHOLD);
+        // On the home page the floating bottom nav waits for the Intro
+        // section to enter the viewport (the hero stays chrome-free);
+        // everywhere else it appears after the usual small scroll. Measured
+        // live each tick because pinned sections above can shift the
+        // intro's document offset.
+        const intro = document.getElementById("nxr-intro");
+        if (intro) {
+          setNavVisible(intro.getBoundingClientRect().top <= window.innerHeight * 0.7);
+        } else {
+          setNavVisible(y > THRESHOLD);
+        }
         ticking = false;
       });
     };

@@ -1112,37 +1112,33 @@ h6 {
   display: flex;
   flex-direction: column;
   gap: 8px;
-  /* No vertical bias: heading (top-right) and captions (bottom-left) are
-     absolute overlays, so the track owns the full pinned height and the
-     glass cards ride dead-centre both axes. */
-  padding: 0 var(--pad-x);
+  /* Small bottom bias: the captions overlay sits bottom-left, so the glass
+     rides a touch ABOVE true centre to keep clear air between them. */
+  padding: 0 var(--pad-x) 8vh;
   transform-style: preserve-3d;
 }
 
+/* Normal-flow heading ABOVE the pinned sticky (see Servicios.tsx): it
+   scrolls away as the pin engages, so the reel gets the whole viewport. */
 .nxr-servicios-head {
-  max-width: 640px;
-  flex-shrink: 0;
+  max-width: var(--max-w);
+  margin: 0 auto;
+  padding: 12vh var(--pad-x) 8vh;
 }
 
 @media (min-width: 901px) {
-  /* Cards exit rising toward the top-LEFT, so on desktop the heading lives
-     top-RIGHT where the reel leaves room. Absolute (out of the column): the
-     track below then owns the full pinned height and the cards ride
-     vertically centred — noticeably higher than when the heading stacked
-     above them. pointer-events off so cards sweeping underneath on short
-     viewports stay hoverable. */
   .nxr-servicios-head {
-    position: absolute;
-    top: 5vh;
-    right: var(--pad-x);
     text-align: right;
-    z-index: 3;
-    max-width: 620px;
-    pointer-events: none;
   }
   .nxr-servicios-head .nxr-section-h2 {
     margin-left: auto;
     margin-bottom: 0;
+  }
+}
+
+@media (max-width: 900px) {
+  .nxr-servicios-head {
+    padding: 8vh 20px 4vh;
   }
 }
 
@@ -1151,7 +1147,10 @@ h6 {
   min-height: 0;
   display: flex;
   align-items: center;
-  gap: 32px;
+  /* Wide gap: the drum's z-recession pulls side cards' projections toward
+     the vanishing point (viewport centre), visually closing the distance —
+     the layout gap compensates so neighbours never read as touching. */
+  gap: 84px;
   width: max-content;
   will-change: transform;
   transform-style: preserve-3d;
@@ -1233,7 +1232,8 @@ h6 {
 .nxr-servicios-captions {
   position: absolute;
   left: var(--pad-x);
-  bottom: 6vh;
+  /* High enough that the right-aligned CTA clears the floating bottom nav. */
+  bottom: 9vh;
   max-width: 600px;
   display: grid;
   /* Bottom-anchor each caption inside the shared cell (the cell is sized
@@ -2530,13 +2530,19 @@ h6 {
     /* Reserves the caption overlay's zone (its own height + the fixed
        bottom nav's clearance) so the stretched glass centres in the space
        ABOVE the text instead of sliding underneath it. */
-    padding-bottom: 420px;
+    padding-bottom: 350px;
   }
   .nxr-servicios-captions {
     left: 20px;
     right: 20px;
     max-width: none;
-    bottom: 100px;
+    /* The caption's CTA — its last row — sits JUST above the floating
+       bottom nav (nav pill top ≈ 84px up on phones). */
+    bottom: 96px;
+  }
+  .nxr-srv-cta-wrap {
+    /* Extra air between the feature pills and the CTA row. */
+    margin-top: 12px;
   }
   /* Compact heading while pinned: every px the head gives up is a px the
      card gets — on a phone the natural card content barely fits the

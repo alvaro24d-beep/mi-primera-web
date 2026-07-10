@@ -2587,6 +2587,12 @@ h6 {
   }
   .nxr-servicios-track {
     gap: 20px;
+    /* Top-aligned (not centred): the card hugs the heading and the unused
+       space collects BELOW it, above the bottom nav — instead of a big
+       empty band between title and card. Small top pad keeps the reduced
+       mobile exit-arc from riding the departing card into the title. */
+    align-items: flex-start;
+    padding-top: 30px;
   }
   .nxr-srv-card {
     width: 80vw;

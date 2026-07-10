@@ -414,36 +414,30 @@ export default function Servicios() {
   const titleRef = useTitleReveal<HTMLHeadingElement>();
   const reducedMotion = useReducedMotion();
 
-  // ---- Keeps each card's real R3F mesh (rendered in the global SceneCanvas,
-  // mounted above {children} in app/layout.tsx — outside this component's own
-  // tree) docked exactly under its DOM anchor as the page scrolls. Position
-  // only; the spiral/hover effects below write into the SAME registry slot's
-  // `transform`. Queries from `sectionRef` (not the pin-only refs) so this
-  // keeps working unchanged in the reduced-motion static layout too.
+  // ---- Registers each card's DOM anchor with the registry so its real R3F
+  // mesh (rendered in the global SceneCanvas, mounted above {children} in
+  // app/layout.tsx — outside this component's own tree) can dock itself to
+  // the anchor's live position. The measuring itself happens INSIDE the
+  // scene's frame loop (see CardSlot in components/scene/
+  // ServiciosCardsLayer.tsx) — same-frame reads, so the glass can never
+  // trail its text by a frame during fast scrolling, which used to show up
+  // on mobile as the card visibly "stretching"/jumping while flying off.
   // Depends on `reducedMotion`: useReducedMotion() renders the SSR-matching
   // (non-reduced) branch first and flips right after mount if the media
-  // query actually prefers reduced motion — without this dependency, this
-  // effect's captured `anchors` would keep pointing at the now-unmounted
-  // animated branch's cards forever, leaving every mesh permanently hidden.
+  // query actually prefers reduced motion — without this dependency, the
+  // registered anchors would keep pointing at the now-unmounted animated
+  // branch's cards forever, leaving every mesh permanently hidden.
   useEffect(() => {
     const section = sectionRef.current;
     if (!section) return;
     const anchors = Array.from(section.querySelectorAll<HTMLElement>(".nxr-srv-card"));
 
-    anchors.forEach((_, i) => useServiciosCardsRegistry.getState().setStyle(i, CARD_STYLES[i] ?? CARD_STYLES[0]));
-
-    let rafId = 0;
-    const update = () => {
-      anchors.forEach((anchor, i) => {
-        const r = anchor.getBoundingClientRect();
-        useServiciosCardsRegistry.getState().setRect(i, { x: r.left, y: r.top, width: r.width, height: r.height });
-      });
-      rafId = requestAnimationFrame(update);
-    };
-    rafId = requestAnimationFrame(update);
+    anchors.forEach((anchor, i) => {
+      useServiciosCardsRegistry.getState().setStyle(i, CARD_STYLES[i] ?? CARD_STYLES[0]);
+      useServiciosCardsRegistry.getState().setAnchor(i, anchor);
+    });
 
     return () => {
-      cancelAnimationFrame(rafId);
       anchors.forEach((_, i) => useServiciosCardsRegistry.getState().clear(i));
     };
   }, [reducedMotion]);
@@ -521,13 +515,25 @@ export default function Servicios() {
       // (`amount`) therefore includes that entry offset.
       const cardWidth = () => cards[0]?.offsetWidth ?? 0;
       const cardStep = () => (cards.length > 1 ? cards[1].offsetLeft - cards[0].offsetLeft : 0);
-      const centredX = () => (sticky.clientWidth - cardWidth()) / 2;
+      // The track's UNTRANSFORMED left edge (its rect minus its current GSAP
+      // x). The track is nested inside `.nxr-servicios-content`, whose
+      // horizontal padding shifts the whole reel right — centring math
+      // anchored to the sticky's own width silently inherited that shift
+      // and left every "centred" card sitting one padding to the right.
+      const trackBaseLeft = () => {
+        const currentX = Number(gsap.getProperty(track, "x")) || 0;
+        return track.getBoundingClientRect().left - currentX;
+      };
+      const centredX = () => window.innerWidth / 2 - cardWidth() / 2 - trackBaseLeft();
       const entryOffset = () => Math.min(sticky.clientWidth * 0.24, 340);
       const startX = () => centredX() + entryOffset();
       const amount = () => entryOffset() + Math.max(0, track.scrollWidth - cardWidth());
       const endX = () => startX() - amount();
 
-      const ARC_AMPLITUDE = 55;
+      // Smaller arc on phones: cards there are top-aligned right under the
+      // heading (see the mobile `.nxr-servicios-track` rules), so a tall
+      // exit arc would ride the departing card up into the title.
+      const ARC_AMPLITUDE = window.innerWidth <= 900 ? 28 : 55;
       const MAX_YAW_DEG = 15;
 
       // Helical trajectory, bottom-right → top-left: each card's distance
@@ -575,50 +581,111 @@ export default function Servicios() {
 
       gsap.set(track, { x: startX() });
 
-      // ---- Snap: when scrolling comes to rest inside the pin, glide the
-      // scroll position so the card nearest the centre settles EXACTLY at
-      // the centre — the reel "selects" a card instead of stopping between
-      // two. Card i sits centred at pin progress (entryOffset + i·step) /
-      // amount. Must go through the shared Lenis instance (see
-      // SmoothScroll.tsx): a plain window.scrollTo/gsap scrollTo fights
-      // Lenis' own rAF positioning and stutters.
+      // ---- Snap: when scrolling rests inside the pin, glide the scroll so
+      // the card nearest the centre settles EXACTLY centred — cards feel
+      // like they select themselves as you pass them. Implemented as our
+      // OWN rAF loop writing per-frame absolute positions through
+      // `lenis.scrollTo(..., immediate)`. Both obvious alternatives fail
+      // with Lenis in the loop (verified empirically): ScrollTrigger's
+      // native `snap` writes raw scroll that Lenis re-emits, which
+      // ScrollTrigger reads back as "user scrolled" and kills its own snap
+      // tween on the first tick; and a single duration-based
+      // lenis.scrollTo() glide silently loses the tug-of-war with Lenis'
+      // internal lerp state. Per-frame immediate writes keep Lenis'
+      // internal position in sync by construction. Any real user input
+      // (wheel/touch) cancels the glide immediately.
+      let snapRaf = 0;
       let snapTimer = 0;
+      const glideTo = (target: number) => {
+        cancelAnimationFrame(snapRaf);
+        const from = window.scrollY;
+        const dist = target - from;
+        if (Math.abs(dist) < 1) return;
+        const t0 = performance.now();
+        const dur = Math.min(500, Math.max(220, Math.abs(dist)));
+        // After the ease completes, keep re-writing the exact target until
+        // the scroll has verifiably CONVERGED (stable within 1px for a few
+        // consecutive frames, up to a bounded number of holds): Lenis can
+        // still be lerping toward a stale internal target from the
+        // scrolling that preceded the snap, and a single final write loses
+        // to it — observed as the settled card drifting tens of px off
+        // centre after the glide "finished".
+        let holdFrames = 40;
+        let stableFrames = 0;
+        const tick = (now: number) => {
+          const t = Math.min(1, (now - t0) / dur);
+          const eased = 1 - Math.pow(1 - t, 3);
+          const y = from + dist * eased;
+          const lenis = window.__nxrLenis;
+          if (lenis) lenis.scrollTo(y, { immediate: true });
+          else window.scrollTo(0, y);
+          if (t < 1) {
+            snapRaf = requestAnimationFrame(tick);
+            return;
+          }
+          stableFrames = Math.abs(window.scrollY - target) <= 1 ? stableFrames + 1 : 0;
+          if (stableFrames < 5 && holdFrames-- > 0) snapRaf = requestAnimationFrame(tick);
+        };
+        snapRaf = requestAnimationFrame(tick);
+      };
       const trySnap = () => {
         const st = tl.scrollTrigger;
         if (!st || !st.isActive) return;
         const total = amount();
         const step = cardStep();
         if (!total || !step) return;
+        // Analytic, from the live scroll position (never from measured card
+        // rects — those still carry the scrub tween's settling lag when the
+        // idle timer fires, and would aim the glide at a moving target):
+        // card i sits centred once progress = (entryOffset + i·step)/total,
+        // now that startX/endX are anchored to the track's real layout
+        // origin via trackBaseLeft().
+        const progress = (window.scrollY - st.start) / (st.end - st.start);
         let bestP = 0;
         let bestDist = Infinity;
         for (let i = 0; i < cards.length; i++) {
           const p = (entryOffset() + i * step) / total;
-          const d = Math.abs(st.progress - p);
+          const d = Math.abs(progress - p);
           if (d < bestDist) {
             bestDist = d;
             bestP = p;
           }
         }
-        if (bestDist < 0.004) return;
-        const target = st.start + bestP * (st.end - st.start);
-        const lenis = window.__nxrLenis;
-        if (lenis) lenis.scrollTo(target, { duration: 0.7, easing: (t: number) => 1 - Math.pow(1 - t, 3) });
-        else window.scrollTo({ top: target, behavior: "smooth" });
+        // Pixel-precise: skip only when already within ~1.5px of centre.
+        if (bestDist * total < 1.5) return;
+        glideTo(st.start + bestP * (st.end - st.start));
       };
+      const cancelSnap = () => {
+        cancelAnimationFrame(snapRaf);
+        window.clearTimeout(snapTimer);
+      };
+      window.addEventListener("wheel", cancelSnap, { passive: true });
+      window.addEventListener("touchstart", cancelSnap, { passive: true });
 
       const tl = gsap.timeline({
         scrollTrigger: {
-          trigger: section,
+          // The STICKY is the trigger (not the section): the section has
+          // vertical padding above the sticky, and triggering on it pinned
+          // the sticky ~60px below the viewport top for the whole reel.
+          trigger: sticky,
           start: "top top",
           end: () => `+=${amount()}`,
-          scrub: 1,
+          // 0.5 (not 1): Lenis already smooths the scroll itself, so a full
+          // second of extra scrub lag doubled up into rubber-banding —
+          // most visible as cards sliding back into place when re-entering
+          // the section from below.
+          scrub: 0.5,
           pin: sticky,
           anticipatePin: 1,
           invalidateOnRefresh: true,
           onUpdate: () => {
             updateSpiral();
             window.clearTimeout(snapTimer);
-            snapTimer = window.setTimeout(trySnap, 260);
+            // Short idle window so cards "click" into selection as you
+            // pass them rather than long after the scroll stops. The
+            // glide's own writes re-enter here, but converge: once within
+            // 1.5px, trySnap no-ops.
+            snapTimer = window.setTimeout(trySnap, 140);
           },
           onRefresh: () => {
             gsap.set(track, { x: startX() });
@@ -631,7 +698,11 @@ export default function Servicios() {
       updateSpiral();
 
       const cleanups: Array<() => void> = [];
-      cleanups.push(() => window.clearTimeout(snapTimer));
+      cleanups.push(() => {
+        window.removeEventListener("wheel", cancelSnap);
+        window.removeEventListener("touchstart", cancelSnap);
+        cancelSnap();
+      });
 
       // Idle micro-drift (±2° yaw / ±1.1° pitch, per-card phase offsets):
       // keeps the environment reflections crawling across the convex face

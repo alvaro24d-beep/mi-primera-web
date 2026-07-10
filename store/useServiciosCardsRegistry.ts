@@ -1,7 +1,5 @@
 import { create } from "zustand";
 
-export type CardRect = { x: number; y: number; width: number; height: number };
-
 export type CardStyle = {
   color: string;
   material: "glass" | "aluminum";
@@ -24,13 +22,20 @@ export type CardTransform = {
   scale: number;
 };
 
-type Slot = { rect: CardRect | null; style: CardStyle; transform: CardTransform };
+// The slot holds the anchor ELEMENT, not a measured rect: CardSlot (in the
+// R3F tree) calls getBoundingClientRect() on it INSIDE its own useFrame, so
+// the mesh is positioned from the DOM's state in the very same frame it
+// renders. Publishing pre-measured rects from a separate rAF loop (the
+// previous design) meant the mesh could consume a one-frame-old position —
+// during fast scrolling the glass visibly trailed/stretched relative to its
+// text content.
+type Slot = { anchor: HTMLElement | null; style: CardStyle; transform: CardTransform };
 
 const MAX_CARDS = 5;
 
 type Registry = {
   slots: Slot[];
-  setRect: (id: number, rect: CardRect) => void;
+  setAnchor: (id: number, anchor: HTMLElement | null) => void;
   setStyle: (id: number, style: CardStyle) => void;
   setTransform: (id: number, transform: CardTransform) => void;
   clear: (id: number) => void;
@@ -39,7 +44,7 @@ type Registry = {
 const defaultTransform = (): CardTransform => ({ x: 0, y: 0, z: 0, rotationX: 0, rotationY: 0, scale: 1 });
 
 const emptySlot = (): Slot => ({
-  rect: null,
+  anchor: null,
   style: { color: "#0d1520", material: "glass", curveX: 0.06, curveY: 0 },
   transform: defaultTransform(),
 });
@@ -52,10 +57,10 @@ const emptySlot = (): Slot => ({
 // hook form), same no-re-render pattern as store/useCardDisturbance.ts.
 export const useServiciosCardsRegistry = create<Registry>((set) => ({
   slots: Array.from({ length: MAX_CARDS }, emptySlot),
-  setRect: (id, rect) =>
+  setAnchor: (id, anchor) =>
     set((s) => {
       const slots = s.slots.slice();
-      slots[id] = { ...slots[id], rect };
+      slots[id] = { ...slots[id], anchor };
       return { slots };
     }),
   setStyle: (id, style) =>

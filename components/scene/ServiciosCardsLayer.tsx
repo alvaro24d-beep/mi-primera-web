@@ -31,13 +31,17 @@ function CardSlot({ id }: { id: number }) {
     const group = groupRef.current;
     if (!group) return;
     const slot = useServiciosCardsRegistry.getState().slots[id];
-    if (!slot?.rect) {
+    // Measured HERE, inside the render frame, so the mesh always uses the
+    // DOM's current-frame position — never a stale rect from a previous
+    // frame (which made the glass trail its text during fast scrolls).
+    const rect = slot?.anchor?.getBoundingClientRect();
+    if (!rect || rect.width < 1 || rect.height < 1) {
       group.visible = false;
       return;
     }
 
     group.visible = true;
-    const { x, y, width, height } = slot.rect;
+    const { left: x, top: y, width, height } = rect;
     const t = slot.transform;
     group.position.x = x + width / 2 - size.width / 2 + t.x;
     group.position.y = -(y + height / 2 - size.height / 2) + t.y;

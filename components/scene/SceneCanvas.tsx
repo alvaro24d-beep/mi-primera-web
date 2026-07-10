@@ -27,16 +27,14 @@ function SceneEnvironment() {
           the bulge apex naturally. */}
       <Lightformer form="rect" intensity={1.6} color="#ffffff" position={[-1.5, 1, 7]} scale={[5, 5, 1]} />
       <Lightformer form="ring" intensity={0.5} color="#ffffff" position={[0, 0, 6]} scale={[8, 8, 1]} />
-      {/* Thin bright strips: a straight line reflecting off a domed surface
-          renders as a visibly BENT band sweeping across the face — the
-          strongest available cue that the card is convex, much stronger
-          than any diffuse blob highlight. Horizontal white above, salmon
-          below, brand-lime vertical off to the side, so the bend shows on
-          both curvature axes and shifts continuously as the cards travel,
-          turn and idle-drift in the reel. */}
-      <Lightformer form="rect" intensity={3} color="#ffffff" position={[0, 3.5, 6]} scale={[20, 0.3, 1]} />
-      <Lightformer form="rect" intensity={1.3} color="#ff9d7d" position={[0, -3, 5]} scale={[14, 0.25, 1]} />
-      <Lightformer form="rect" intensity={1.2} color="#a8f04a" position={[-5, -0.5, 5]} scale={[0.35, 9, 1]} />
+      {/* ONE thin bright strip: a straight line reflecting off a domed
+          surface renders as a visibly BENT band sweeping across the face —
+          the strongest available cue that the card is convex. Deliberately
+          a single strip: every extra small bright source wraps into its own
+          separate blob on the dome, and the face turns busy/lava-lamp
+          instead of reading as one elegant curved sheen (tried and
+          reverted). */}
+      <Lightformer form="rect" intensity={2.1} color="#ffffff" position={[0, 3.5, 6]} scale={[20, 0.3, 1]} />
     </Environment>
   );
 }

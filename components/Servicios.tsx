@@ -514,18 +514,20 @@ export default function Servicios() {
         scrollTrigger: { trigger: section, start: "top 90%", toggleActions: "play none none none" },
       });
 
-      // Track's x is animated between two offsets so the FIRST card starts
-      // centered under the sticky container (before any scroll) and the
-      // LAST card ends centered (at full scroll) — a plain "scrub the whole
-      // overflow" tween (comparing against sticky width) leaves the first
-      // card wherever it naturally sits in flow (off to one side) and never
-      // travels far enough to bring the last card to center.
+      // Track x runs from startX (FIRST card a bit right of centre — it must
+      // arrive AT the centre with the first bit of scroll, not start there
+      // and get passed accidentally the moment the pin engages) to endX
+      // (LAST card exactly centred at full scroll). The pin distance
+      // (`amount`) therefore includes that entry offset.
       const cardWidth = () => cards[0]?.offsetWidth ?? 0;
-      const startX = () => (sticky.clientWidth - cardWidth()) / 2;
-      const amount = () => Math.max(0, track.scrollWidth - cardWidth());
+      const cardStep = () => (cards.length > 1 ? cards[1].offsetLeft - cards[0].offsetLeft : 0);
+      const centredX = () => (sticky.clientWidth - cardWidth()) / 2;
+      const entryOffset = () => Math.min(sticky.clientWidth * 0.24, 340);
+      const startX = () => centredX() + entryOffset();
+      const amount = () => entryOffset() + Math.max(0, track.scrollWidth - cardWidth());
       const endX = () => startX() - amount();
 
-      const ARC_AMPLITUDE = 85;
+      const ARC_AMPLITUDE = 55;
       const MAX_YAW_DEG = 15;
 
       // Helical trajectory, bottom-right → top-left: each card's distance
@@ -573,6 +575,37 @@ export default function Servicios() {
 
       gsap.set(track, { x: startX() });
 
+      // ---- Snap: when scrolling comes to rest inside the pin, glide the
+      // scroll position so the card nearest the centre settles EXACTLY at
+      // the centre — the reel "selects" a card instead of stopping between
+      // two. Card i sits centred at pin progress (entryOffset + i·step) /
+      // amount. Must go through the shared Lenis instance (see
+      // SmoothScroll.tsx): a plain window.scrollTo/gsap scrollTo fights
+      // Lenis' own rAF positioning and stutters.
+      let snapTimer = 0;
+      const trySnap = () => {
+        const st = tl.scrollTrigger;
+        if (!st || !st.isActive) return;
+        const total = amount();
+        const step = cardStep();
+        if (!total || !step) return;
+        let bestP = 0;
+        let bestDist = Infinity;
+        for (let i = 0; i < cards.length; i++) {
+          const p = (entryOffset() + i * step) / total;
+          const d = Math.abs(st.progress - p);
+          if (d < bestDist) {
+            bestDist = d;
+            bestP = p;
+          }
+        }
+        if (bestDist < 0.004) return;
+        const target = st.start + bestP * (st.end - st.start);
+        const lenis = window.__nxrLenis;
+        if (lenis) lenis.scrollTo(target, { duration: 0.7, easing: (t: number) => 1 - Math.pow(1 - t, 3) });
+        else window.scrollTo({ top: target, behavior: "smooth" });
+      };
+
       const tl = gsap.timeline({
         scrollTrigger: {
           trigger: section,
@@ -582,7 +615,11 @@ export default function Servicios() {
           pin: sticky,
           anticipatePin: 1,
           invalidateOnRefresh: true,
-          onUpdate: updateSpiral,
+          onUpdate: () => {
+            updateSpiral();
+            window.clearTimeout(snapTimer);
+            snapTimer = window.setTimeout(trySnap, 260);
+          },
           onRefresh: () => {
             gsap.set(track, { x: startX() });
             updateSpiral();
@@ -594,6 +631,7 @@ export default function Servicios() {
       updateSpiral();
 
       const cleanups: Array<() => void> = [];
+      cleanups.push(() => window.clearTimeout(snapTimer));
 
       // Idle micro-drift (±2° yaw / ±1.1° pitch, per-card phase offsets):
       // keeps the environment reflections crawling across the convex face

@@ -7,6 +7,16 @@ import { ScrollTrigger } from "gsap/ScrollTrigger";
 
 gsap.registerPlugin(ScrollTrigger);
 
+// Components that need to animate the scroll position programmatically
+// (e.g. Servicios' card snap) MUST go through this instance — a plain
+// window.scrollTo fights Lenis' own rAF-driven positioning. Exposed on
+// window because the consumers live in a different React tree.
+declare global {
+  interface Window {
+    __nxrLenis?: Lenis;
+  }
+}
+
 export default function SmoothScroll() {
   useEffect(() => {
     // Mobile browsers (Chrome/Safari) show/hide their address bar as you scroll,
@@ -21,6 +31,7 @@ export default function SmoothScroll() {
     const lenis = new Lenis({
       autoRaf: false,
     });
+    window.__nxrLenis = lenis;
 
     // Any ScrollTrigger created anywhere in the app (this is the only place
     // that should own a Lenis instance) needs to recompute on Lenis' own
@@ -37,6 +48,7 @@ export default function SmoothScroll() {
 
     return () => {
       cancelAnimationFrame(rafId);
+      delete window.__nxrLenis;
       lenis.destroy();
     };
   }, []);

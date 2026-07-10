@@ -1307,11 +1307,11 @@ h6 {
 }
 
 .nxr-srv-title {
-  font-size: 22px;
+  font-size: 30px;
   font-weight: 700;
   color: var(--c-white);
   letter-spacing: -0.02em;
-  line-height: 1.2;
+  line-height: 1.15;
 }
 
 .nxr-srv-desc {
@@ -1436,10 +1436,10 @@ h6 {
     position: relative;
     inset: auto;
     opacity: 1;
-    height: 135px;
+    height: 120px;
     padding: 0;
     margin-top: 0;
-    padding-top: 8px;
+    padding-top: 6px;
     box-sizing: border-box;
   }
 
@@ -2566,15 +2566,17 @@ h6 {
 
 @media (max-width: 900px) {
   .nxr-servicios-content {
-    padding-top: 2vh;
+    padding-top: 1.5vh;
   }
   /* Compact heading while pinned: every px the head gives up is a px the
-     card gets — on a phone the natural card content (~600px) barely fits
-     the leftover space, so the whole column is tightened together (heading
-     size/margin, card padding/gap, anim height below). */
+     card gets — on a phone the natural card content barely fits the
+     leftover space, so the whole column is tightened together (heading
+     size/margin, card padding/gap, anim height below) and the card's
+     height stays content-driven so the ENTIRE selected card — CTA
+     included — fits on screen. */
   .nxr-servicios-head .nxr-section-h2 {
     font-size: 27px;
-    margin-bottom: 14px;
+    margin-bottom: 10px;
   }
   .nxr-servicios-track {
     gap: 20px;
@@ -2583,21 +2585,37 @@ h6 {
     width: 80vw;
     max-width: 380px;
     aspect-ratio: auto;
-    min-height: 520px;
   }
   .nxr-srv-inner {
-    padding: 22px;
-    gap: 12px;
+    padding: 20px;
+    gap: 10px;
   }
   .nxr-srv-content {
-    gap: 14px;
+    gap: 12px;
+  }
+  .nxr-srv-title {
+    font-size: 25px;
+  }
+  .nxr-srv-desc {
+    font-size: 14px;
   }
 }
 
 @media (max-width: 600px) {
   .nxr-srv-card {
     width: 84vw;
-    min-height: 560px;
+  }
+}
+
+/* Very short phones (or landscape): the inline mini-anim is the one purely
+   decorative block — dropping it is what lets the full card (title, desc,
+   pills, CTA) still fit on screen. */
+@media (max-width: 900px) and (max-height: 700px) {
+  .nxr-srv-anim {
+    display: none;
+  }
+  .nxr-srv-title {
+    font-size: 22px;
   }
 }
 

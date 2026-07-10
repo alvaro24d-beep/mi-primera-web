@@ -1118,17 +1118,24 @@ h6 {
   transform-style: preserve-3d;
 }
 
-/* Normal-flow heading ABOVE the pinned sticky (see Servicios.tsx): it
-   scrolls away as the pin engages, so the reel gets the whole viewport. */
+/* Heading in normal flow ABOVE the pinned sticky (see Servicios.tsx). Two
+   behaviours from ONE element: on desktop `position: sticky` keeps it
+   pinned top-right through the whole reel; on phones it stays static and
+   simply scrolls away as the pin engages, freeing the viewport for the
+   cards. */
 .nxr-servicios-head {
   max-width: var(--max-w);
   margin: 0 auto;
-  padding: 12vh var(--pad-x) 8vh;
 }
 
 @media (min-width: 901px) {
   .nxr-servicios-head {
+    position: sticky;
+    top: 5vh;
+    z-index: 3;
     text-align: right;
+    padding: 0 var(--pad-x);
+    pointer-events: none;
   }
   .nxr-servicios-head .nxr-section-h2 {
     margin-left: auto;
@@ -1232,7 +1239,6 @@ h6 {
 .nxr-servicios-captions {
   position: absolute;
   left: var(--pad-x);
-  /* High enough that the right-aligned CTA clears the floating bottom nav. */
   bottom: 9vh;
   max-width: 600px;
   display: grid;
@@ -1241,6 +1247,30 @@ h6 {
      their auto/flex spacing opens odd gaps mid-text. */
   align-items: end;
   z-index: 3;
+}
+
+@media (min-width: 901px) {
+  /* Full-bleed caption row on desktop: text stays capped at the left, but
+     the CTA breaks out to the RIGHT edge of the screen — the centred
+     floating bottom nav was swallowing a caption-right CTA. */
+  .nxr-servicios-captions {
+    right: var(--pad-x);
+    max-width: none;
+  }
+  .nxr-servicios-captions .nxr-srv-caption {
+    position: relative;
+  }
+  .nxr-servicios-captions .nxr-srv-title,
+  .nxr-servicios-captions .nxr-srv-desc,
+  .nxr-servicios-captions .nxr-srv-pills {
+    max-width: 620px;
+  }
+  .nxr-servicios-captions .nxr-srv-cta-wrap {
+    position: absolute;
+    right: 0;
+    bottom: 0;
+    margin: 0;
+  }
 }
 
 .nxr-servicios-captions .nxr-srv-caption {
@@ -2556,25 +2586,16 @@ h6 {
   }
   .nxr-servicios-track {
     gap: 20px;
-    /* Stretch: the card fills ALL the height between the heading and the
-       bottom-nav clearance — no dead band above or below it. Small top pad
-       keeps the reduced mobile exit-arc from riding the departing card
-       into the title. */
-    align-items: stretch;
-    padding-top: 12px;
+    /* Centred in the space the caption reserve leaves free (see the
+       content padding-bottom above): the glass rides high without hugging
+       the very top edge, and can never grow down over the caption text —
+       its aspect ratio is FIXED, same 16/10 as desktop. */
+    align-items: center;
   }
   .nxr-srv-slide {
     width: 80vw;
     max-width: 380px;
     gap: 14px;
-  }
-  /* The glass grows to absorb the stretched slide's spare height — a big
-     media screen like the reference — while the caption keeps its natural
-     height below. */
-  .nxr-srv-card {
-    aspect-ratio: auto;
-    flex: 1;
-    min-height: 210px;
   }
   .nxr-srv-inner {
     padding: 14px;
@@ -2600,9 +2621,6 @@ h6 {
    type and heading all shrink together so the full slide (glass + caption
    + CTA) still fits in the visible area above the bottom nav. */
 @media (max-width: 900px) and (max-height: 760px) {
-  .nxr-srv-card {
-    min-height: 160px;
-  }
   .nxr-srv-inner {
     padding: 10px;
   }

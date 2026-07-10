@@ -1924,20 +1924,23 @@ h6 {
 
 @media (max-width: 900px) {
   .anim-chat {
-    gap: 9px;
-    padding-top: 8px;
+    gap: 8px;
+    padding-top: 6px;
   }
   .anim-chat-avatar {
-    width: 34px;
-    height: 34px;
-    font-size: 16px;
+    width: 30px;
+    height: 30px;
+    font-size: 14px;
   }
   .anim-chat-bubble {
-    font-size: 12px;
-    padding: 8px 12px;
+    font-size: 11.5px;
+    padding: 7px 10px;
+    /* Wider bubbles = fewer wrapped lines: the long messages must fit the
+       uniform 4/3 glass without forcing it taller than its siblings. */
+    max-width: 84%;
   }
   .anim-chat-bubble.system {
-    font-size: 10.5px;
+    font-size: 10px;
   }
 }
 
@@ -2628,7 +2631,7 @@ h6 {
 
 @media (max-width: 600px) {
   .nxr-srv-slide {
-    width: 84vw;
+    width: 72vw;
   }
 }
 

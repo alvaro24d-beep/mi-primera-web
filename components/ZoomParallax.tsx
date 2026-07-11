@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
+import { useZoomParallaxCardsRegistry } from "@/store/useZoomParallaxCardsRegistry";
 
 const CARDS: { scale: number; mobileScale?: number; content: React.ReactNode }[] = [
   {
@@ -100,6 +101,18 @@ export default function ZoomParallax() {
   const sectionRef = useRef<HTMLElement>(null);
   const stickyRef = useRef<HTMLDivElement>(null);
   const layerRefs = useRef<(HTMLDivElement | null)[]>([]);
+  const imgRefs = useRef<(HTMLDivElement | null)[]>([]);
+
+  // Registers each card's `.nxr-zp-img` (the element the scroll effect
+  // `transform: scale()`s) with the global SceneCanvas so a real volumetric
+  // glass mesh renders behind it — same anchor-bridge pattern as Servicios.
+  // The mesh reads this element's live rect every frame to position+scale
+  // itself; the DOM element itself carries no glass, only the card content.
+  useEffect(() => {
+    const reg = useZoomParallaxCardsRegistry.getState();
+    imgRefs.current.forEach((el, i) => reg.setAnchor(i, el));
+    return () => reg.clearAll();
+  }, []);
 
   useEffect(() => {
     const section = sectionRef.current;
@@ -168,7 +181,14 @@ export default function ZoomParallax() {
               layerRefs.current[i] = el;
             }}
           >
-            <div className="nxr-zp-img">{item.content}</div>
+            <div
+              className="nxr-zp-img"
+              ref={(el) => {
+                imgRefs.current[i] = el;
+              }}
+            >
+              {item.content}
+            </div>
           </div>
         ))}
       </div>

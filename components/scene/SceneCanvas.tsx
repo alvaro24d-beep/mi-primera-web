@@ -6,6 +6,7 @@ import { Environment, Lightformer } from "@react-three/drei";
 import { EffectComposer, Bloom, Vignette } from "@react-three/postprocessing";
 import SceneBackground from "./SceneBackground";
 import ServiciosCardsLayer from "./ServiciosCardsLayer";
+import ZoomParallaxCardsLayer from "./ZoomParallaxCardsLayer";
 import PixelCamera, { CAMERA_DISTANCE } from "./PixelCamera";
 
 // Procedural HDRI: `<Environment>` + `<Lightformer>` only — never the
@@ -43,14 +44,17 @@ export default function SceneCanvas() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [isMobile] = useState(() => typeof window !== "undefined" && window.innerWidth < 768);
   const [active, setActive] = useState(true);
-  // The only live content in this canvas is the Servicios glass cards, so
-  // the frameloop runs ONLY while that section is anywhere near the
-  // viewport (and the tab is visible). Everywhere else the canvas freezes
-  // on its flat dark background frame — visually identical to the page
-  // background, but the GPU goes fully idle instead of re-rendering five
-  // physical materials at 60fps for nothing (the single biggest source of
-  // heat and of scroll jank on the rest of the page).
-  const [cardsNear, setCardsNear] = useState(true);
+  // The only live content in this canvas is the two glass-card sections
+  // (Servicios + ZoomParallax), so the frameloop runs ONLY while either one
+  // is anywhere near the viewport (and the tab is visible). Everywhere else
+  // the canvas freezes and the GPU goes fully idle instead of re-rendering
+  // physical materials at 60fps for nothing — the single biggest source of
+  // heat and of scroll jank on the rest of the page. The two sections are
+  // far apart, so at most one is ever active at a time. Starts false — on
+  // page load you're at the hero, both sections far below, so the canvas is
+  // correctly idle until the observer (which fires an initial callback on
+  // observe) reports one of them near.
+  const [cardsNear, setCardsNear] = useState(false);
 
   useEffect(() => {
     const onVisibility = () => setActive(document.visibilityState === "visible");
@@ -59,15 +63,21 @@ export default function SceneCanvas() {
   }, []);
 
   useEffect(() => {
-    const section = document.getElementById("nxr-servicios");
-    if (!section) {
-      setCardsNear(false);
-      return;
-    }
-    const io = new IntersectionObserver(([entry]) => setCardsNear(entry.isIntersecting), {
-      rootMargin: "300px 0px",
-    });
-    io.observe(section);
+    const ids = ["nxr-servicios", "nxr-zoom-parallax"];
+    const sections = ids.map((id) => document.getElementById(id)).filter(Boolean) as HTMLElement[];
+    if (!sections.length) return;
+    const nearby = new Set<Element>();
+    const io = new IntersectionObserver(
+      (entries) => {
+        for (const e of entries) {
+          if (e.isIntersecting) nearby.add(e.target);
+          else nearby.delete(e.target);
+        }
+        setCardsNear(nearby.size > 0);
+      },
+      { rootMargin: "300px 0px" }
+    );
+    sections.forEach((s) => io.observe(s));
     return () => io.disconnect();
   }, []);
 
@@ -96,6 +106,7 @@ export default function SceneCanvas() {
         <SceneEnvironment />
         <SceneBackground />
         <ServiciosCardsLayer isMobile={isMobile} />
+        <ZoomParallaxCardsLayer />
         {!isMobile && (
           <EffectComposer>
             <Bloom mipmapBlur luminanceThreshold={0.6} luminanceSmoothing={0.3} intensity={0.35} />

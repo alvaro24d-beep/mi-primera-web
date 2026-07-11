@@ -37,7 +37,8 @@ export interface VolumetricCardProps {
 // and the reflections riding on them) follows the rounded corners exactly,
 // and there is no interior diagonal at all. Computed once and cached via
 // useMemo below — zero per-frame cost.
-const PERIM_SEGMENTS = 96;
+const CORNER_SEGMENTS = 16;
+const STRAIGHT_SEGMENTS = 10;
 const DOME_RINGS = 20;
 
 function buildCardGeometry(
@@ -68,21 +69,47 @@ function buildCardGeometry(
       Math.cos((Math.PI * Math.min(Math.abs(x) / w, 1)) / 2) *
       Math.cos((Math.PI * Math.min(Math.abs(y) / h, 1)) / 2);
 
-  const shape = new THREE.Shape();
-  shape.moveTo(-w + r, -h);
-  shape.lineTo(w - r, -h);
-  shape.quadraticCurveTo(w, -h, w, -h + r);
-  shape.lineTo(w, h - r);
-  shape.quadraticCurveTo(w, h, w - r, h);
-  shape.lineTo(-w + r, h);
-  shape.quadraticCurveTo(-w, h, -w, h - r);
-  shape.lineTo(-w, -h + r);
-  shape.quadraticCurveTo(-w, -h, -w + r, -h);
-  shape.closePath();
-
-  // Evenly-spaced points along the closed outline (last point duplicates
-  // the first on a closed path — drop it and wrap indices instead).
-  const outline = shape.getSpacedPoints(PERIM_SEGMENTS).slice(0, PERIM_SEGMENTS);
+  // Rounded-rect outline, walked by hand — CCW starting at the bottom-left
+  // corner's end — with INDEPENDENT control over corner vs. straight-edge
+  // density. Two earlier approaches both failed here:
+  //  - `shape.getSpacedPoints(N)` samples uniformly by ARC LENGTH across the
+  //    whole perimeter; since the straight edges are far longer than the
+  //    small rounded corners, that starves each corner down to ~2-3 points
+  //    — a couple of straight facets standing in for a curve.
+  //  - `shape.getPoints(N)` fixes that (three.js's CurvePath special-cases
+  //    LineCurve to exactly 2 points, giving every quadraticCurveTo corner
+  //    the FULL `N` regardless of edge length) but overcorrects: those 2
+  //    points per straight edge are fine for the flat 2D outline, yet these
+  //    same points also sample the DOME's z-bulge (which varies smoothly
+  //    with x/y along the *entire* edge length) — 2 points across a long
+  //    edge collapses that curvature into one large flat facet, which
+  //    showed up as a diagonal crease/X across the face.
+  // Manual walking sizes each independently: enough points along even a
+  // long straight edge to keep the dome's curvature smooth, AND a full
+  // curveSegments sweep on every corner regardless of the card's aspect
+  // ratio.
+  const outline: { x: number; y: number }[] = [];
+  const addEdge = (x0: number, y0: number, x1: number, y1: number) => {
+    for (let i = 0; i < STRAIGHT_SEGMENTS; i++) {
+      const t = i / STRAIGHT_SEGMENTS;
+      outline.push({ x: x0 + (x1 - x0) * t, y: y0 + (y1 - y0) * t });
+    }
+  };
+  const addCorner = (cx: number, cy: number, a0: number, a1: number) => {
+    for (let i = 0; i < CORNER_SEGMENTS; i++) {
+      const a = a0 + ((a1 - a0) * i) / CORNER_SEGMENTS;
+      outline.push({ x: cx + r * Math.cos(a), y: cy + r * Math.sin(a) });
+    }
+  };
+  const HALF_PI = Math.PI / 2;
+  addEdge(-w + r, -h, w - r, -h); // bottom edge, left → right
+  addCorner(w - r, -h + r, -HALF_PI, 0); // bottom-right corner
+  addEdge(w, -h + r, w, h - r); // right edge, bottom → top
+  addCorner(w - r, h - r, 0, HALF_PI); // top-right corner
+  addEdge(w - r, h, -w + r, h); // top edge, right → left
+  addCorner(-w + r, h - r, HALF_PI, Math.PI); // top-left corner
+  addEdge(-w, h - r, -w, -h + r); // left edge, top → bottom
+  addCorner(-w + r, -h + r, Math.PI, 3 * HALF_PI); // bottom-left corner
   const P = outline.length;
 
   // Inward 2D normal per outline point (central differences; the outline is

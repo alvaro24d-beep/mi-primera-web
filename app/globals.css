@@ -3971,18 +3971,18 @@ input[type="range"].nxr-ms-range::-moz-range-thumb {
 .nxr-zp-img {
   position: absolute;
   overflow: hidden;
-  border-radius: calc(16px * var(--zp-max, 1));
+  border-radius: calc(24px * var(--zp-max, 1));
   will-change: transform;
 }
 
+/* Transparent anchor — the glass (dark tinted body, convex dome, bevel
+   edge, moving reflections) is a REAL volumetric WebGL mesh rendered behind
+   this element in the global SceneCanvas, kept docked to this card's live
+   rect by components/scene/ZoomParallaxCardsLayer.tsx. This element carries
+   only the content (num/title/desc/icon), sitting on top of the glass —
+   exactly the same split as Servicios' `.nxr-srv-card`. No background/blur/
+   border here; the mesh provides all of it. */
 .nxr-zp-card {
-  background: var(--glass-bg);
-  /* Fixed-pixel effects (blur radius, shine, border width) render inside an
-     element that gets `transform: scale()`-d down to a fraction of its size
-     (see ZoomParallax.tsx), so they'd shrink to near-nothing at rest unless
-     pre-multiplied by --zp-max here the same way border-radius already is. */
-  backdrop-filter: blur(calc(10px * var(--zp-max, 1)));
-  border-radius: calc(16px * var(--zp-max, 1));
   width: 100%;
   height: 100%;
   display: flex;
@@ -3991,7 +3991,6 @@ input[type="range"].nxr-ms-range::-moz-range-thumb {
   align-items: center;
   gap: calc(12px * var(--zp-max, 1));
   padding: calc(24px * var(--zp-max, 1));
-  box-shadow: inset 0 0 calc(10px * var(--zp-max, 1)) calc(1px * var(--zp-max, 1)) rgba(255, 255, 255, 0.2);
   box-sizing: border-box;
   position: relative;
 }
@@ -3999,21 +3998,6 @@ input[type="range"].nxr-ms-range::-moz-range-thumb {
 .nxr-zp-card svg {
   width: calc(40px * var(--zp-max, 1));
   height: calc(40px * var(--zp-max, 1));
-}
-
-.nxr-zp-card::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  border-radius: calc(16px * var(--zp-max, 1));
-  padding: calc(1px * var(--zp-max, 1));
-  background: var(--glass-border-gradient);
-  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
-  -webkit-mask-composite: xor;
-  mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
-  mask-composite: exclude;
-  pointer-events: none;
-  z-index: 1;
 }
 
 .nxr-zp-card-num {
@@ -4024,9 +4008,11 @@ input[type="range"].nxr-ms-range::-moz-range-thumb {
 }
 
 .nxr-zp-card-title {
-  font-size: calc(18px * var(--zp-max, 1));
-  font-weight: 700;
-  letter-spacing: -0.02em;
+  /* Garamond serif, matching the Servicios caption titles. */
+  font-family: var(--font-cormorant), serif;
+  font-size: calc(22px * var(--zp-max, 1));
+  font-weight: 400;
+  letter-spacing: -0.01em;
   color: var(--c-white);
   text-align: center;
 }

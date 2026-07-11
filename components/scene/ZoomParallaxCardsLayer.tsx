@@ -29,103 +29,137 @@ const ZP_STYLES = [
   { color: "#160f12", curveX: 0.09, curveY: 0.1 }, // SEO (salmon)
 ] as const;
 
-function ZpSlot({ id }: { id: number }) {
-  const groupRef = useRef<THREE.Group>(null);
-  const { size } = useThree();
-  const stickyElRef = useRef<HTMLElement | null>(null);
-  // Aspect (base width/height) changes only on resize/breakpoint — cheap to
-  // hold in state and thus rebuild the geometry only then, never per frame.
-  const [aspect, setAspect] = useState(1.5);
-  const aspectRef = useRef(1.5);
-
-  useFrame(() => {
-    const group = groupRef.current;
-    if (!group) return;
-    const anchor = useZoomParallaxCardsRegistry.getState().anchors[id];
-    if (!anchor) {
-      group.visible = false;
-      return;
-    }
-    if (!stickyElRef.current) {
-      stickyElRef.current = document.getElementById("nxr-zoom-sticky");
-    }
-    // `#nxr-zoom-sticky` is `position: sticky; top: 0`, and its `overflow:
-    // hidden` is what actually keeps these (individually huge, wildly
-    // offset) cards invisible in the DOM outside the section's pinned
-    // scroll range. A `position:sticky` element's rect.top reads as ~0 IF
-    // AND ONLY IF it's currently pinned — while the section is still below
-    // the viewport it sits in normal flow with rect.top > 0, and once the
-    // section has fully scrolled past, it's back in normal flow far ABOVE
-    // the viewport (rect.top very negative). Checking that directly (rather
-    // than intersecting rects, which reported "visible" the moment the
-    // sticky's box merely grazed the viewport — before it was actually
-    // pinned/clipped-to-viewport — and let a card mesh render full-size
-    // through that sliver) is exact: render nothing at all unless truly
-    // pinned, matching precisely when the DOM's own clip window equals the
-    // full viewport. This mesh has no ancestor to be clipped by, unlike the
-    // (correctly invisible) DOM content it stands in for.
-    const stickyRect = stickyElRef.current?.getBoundingClientRect();
-    const pinned = !!stickyRect && Math.abs(stickyRect.top) < 2;
-    if (!pinned) {
-      group.visible = false;
-      return;
-    }
-
-    const rect = anchor.getBoundingClientRect();
-    if (
-      rect.width < 2 ||
-      rect.height < 2 ||
-      rect.right < -80 ||
-      rect.left > size.width + 80 ||
-      rect.bottom < -80 ||
-      rect.top > size.height + 80
-    ) {
-      group.visible = false;
-      return;
-    }
-
-    group.visible = true;
-    const cx = rect.left + rect.width / 2;
-    const cy = rect.top + rect.height / 2;
-    // Same pixel-accurate mapping as PixelCamera (1 world unit = 1px at z=0).
-    group.position.x = cx - size.width / 2;
-    group.position.y = -(cy - size.height / 2);
-    group.scale.setScalar(rect.height / BASE_H);
-
-    // offsetWidth/offsetHeight are the card's UNTRANSFORMED base size (CSS
-    // transforms don't affect layout metrics), so this aspect is stable
-    // regardless of the current zoom scale.
-    const a = anchor.offsetWidth / anchor.offsetHeight;
-    if (a > 0 && Math.abs(a - aspectRef.current) > 0.01) {
-      aspectRef.current = a;
-      setAspect(a);
-    }
-  });
-
-  const style = ZP_STYLES[id] ?? ZP_STYLES[0];
-
-  return (
-    <group ref={groupRef} visible={false}>
-      <VolumetricCard
-        width={BASE_H * aspect}
-        height={BASE_H}
-        thickness={16}
-        radius={30}
-        curveX={style.curveX}
-        curveY={style.curveY}
-        color={style.color}
-        material="glass"
-      />
-    </group>
-  );
-}
+// Fixed depth gap between whichever card is CURRENTLY the most dominant
+// (largest on screen right now, i.e. still furthest from its own settled
+// rest size) and every other card. This has to be decided by ONE shared
+// pass comparing all 7 cards together (hence a single useFrame at the layer
+// level below, not 7 independent per-card ones as an earlier version had):
+// a per-card z derived only from that card's OWN current scale let two
+// cards racing through similarly-large scales at the same moment end up at
+// nearly the same z — reported on mobile as their edges "cutting" into each
+// other (genuine z-fighting from an ambiguous, ever-shifting ranking). A
+// single winner with a clear, FIXED gap can't have that ambiguity.
+const BEHIND_Z = -30;
 
 export default function ZoomParallaxCardsLayer() {
+  const { size } = useThree();
+  const groupRefs = useRef<(THREE.Group | null)[]>(Array.from({ length: ZP_MAX_CARDS }, () => null));
+  const sectionElRef = useRef<HTMLElement | null>(null);
+  const aspectsRef = useRef<number[]>(Array.from({ length: ZP_MAX_CARDS }, () => 1.5));
+  const [aspects, setAspects] = useState<number[]>(aspectsRef.current);
+
+  useFrame(() => {
+    if (!sectionElRef.current) {
+      sectionElRef.current = document.getElementById("nxr-zoom-parallax");
+    }
+    const sectionRect = sectionElRef.current?.getBoundingClientRect();
+    if (!sectionRect) {
+      groupRefs.current.forEach((g) => {
+        if (g) g.visible = false;
+      });
+      return;
+    }
+
+    // Before the section reaches its pinned range, every card OTHER than
+    // the hero (id 0) sits at an extreme, only-coherent-once-pinned CSS
+    // offset (see the `nth-child` rules in globals.css) — showing them this
+    // early risks the original "giant misplaced card" bug (a wildly-offset
+    // card's rect can, purely by coincidence of where the not-yet-pinned
+    // sticky currently sits in normal flow, land back inside the viewport).
+    // The hero doesn't have this problem: its rest position is roughly
+    // screen-centred even at progress=0 (pre-pin) and again once fully
+    // settled (post-pin, scrolling away with the rest of the grid), so its
+    // OWN live rect is always meaningfully computed — letting it through
+    // unconditionally is what makes it appear the instant it's actually
+    // first visible arriving at the section, and stay visible all the way
+    // out, instead of popping in/out at an artificial boundary.
+    const notYetPinned = sectionRect.top > 2;
+
+    let bestIdx = -1;
+    let bestScale = 0;
+    const scales: number[] = new Array(ZP_MAX_CARDS).fill(0);
+    const rects: (DOMRect | null)[] = new Array(ZP_MAX_CARDS).fill(null);
+    let aspectsChanged = false;
+
+    for (let i = 0; i < ZP_MAX_CARDS; i++) {
+      if (i !== 0 && notYetPinned) continue;
+      const anchor = useZoomParallaxCardsRegistry.getState().anchors[i];
+      if (!anchor) continue;
+      const rect = anchor.getBoundingClientRect();
+      const offscreen =
+        rect.width < 2 ||
+        rect.height < 2 ||
+        rect.right < -80 ||
+        rect.left > size.width + 80 ||
+        rect.bottom < -80 ||
+        rect.top > size.height + 80;
+      if (offscreen) continue;
+      rects[i] = rect;
+      const s = rect.height / BASE_H;
+      scales[i] = s;
+      if (s > bestScale) {
+        bestScale = s;
+        bestIdx = i;
+      }
+
+      // offsetWidth/offsetHeight are the card's UNTRANSFORMED base size
+      // (CSS transforms don't affect layout metrics), so this aspect is
+      // stable regardless of the current zoom scale.
+      const a = anchor.offsetWidth / anchor.offsetHeight;
+      if (a > 0 && Math.abs(a - aspectsRef.current[i]) > 0.01) {
+        aspectsRef.current[i] = a;
+        aspectsChanged = true;
+      }
+    }
+
+    for (let i = 0; i < ZP_MAX_CARDS; i++) {
+      const group = groupRefs.current[i];
+      if (!group) continue;
+      const rect = rects[i];
+      if (!rect) {
+        group.visible = false;
+        continue;
+      }
+      group.visible = true;
+      const cx = rect.left + rect.width / 2;
+      const cy = rect.top + rect.height / 2;
+      // Same pixel-accurate mapping as PixelCamera (1 world unit = 1px at z=0).
+      group.position.x = cx - size.width / 2;
+      group.position.y = -(cy - size.height / 2);
+      group.scale.setScalar(scales[i]);
+      // Only the single currently-most-dominant card gets pushed behind;
+      // everyone else sits neutral/in-front — see BEHIND_Z's comment above.
+      group.position.z = i === bestIdx ? BEHIND_Z : 0;
+    }
+
+    if (aspectsChanged) setAspects([...aspectsRef.current]);
+  });
+
   return (
     <>
-      {Array.from({ length: ZP_MAX_CARDS }, (_, i) => (
-        <ZpSlot key={i} id={i} />
-      ))}
+      {Array.from({ length: ZP_MAX_CARDS }, (_, i) => {
+        const style = ZP_STYLES[i] ?? ZP_STYLES[0];
+        return (
+          <group
+            key={i}
+            ref={(el) => {
+              groupRefs.current[i] = el;
+            }}
+            visible={false}
+          >
+            <VolumetricCard
+              width={BASE_H * aspects[i]}
+              height={BASE_H}
+              thickness={16}
+              radius={30}
+              curveX={style.curveX}
+              curveY={style.curveY}
+              color={style.color}
+              material="glass"
+            />
+          </group>
+        );
+      })}
     </>
   );
 }

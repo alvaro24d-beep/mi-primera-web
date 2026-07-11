@@ -38,14 +38,19 @@ export default function SmoothScroll() {
       // their content by a frame on phones. syncTouch makes touch scroll
       // advance inside Lenis' rAF — the same frame the scene reads.
       syncTouch: true,
-      // Tamer flick momentum (exponent default 1.7): long inertia tails
-      // kept fighting the Servicios card snap, leaving it resting between
-      // two cards with the caption half-crossfaded.
-      touchInertiaExponent: 1.2,
+      // Left at Lenis' own default (1.7) deliberately: an earlier tamer
+      // value (1.2) made ALL touch scrolling site-wide decay faster/shorter
+      // — since this is global, it read as the whole page "braking" under
+      // your finger, not just the one section it was meant to help. The
+      // Servicios card-snap doesn't actually need short inertia to settle
+      // correctly — its own glide already re-writes the scroll position
+      // every frame until it verifiably converges (see the `holdFrames`
+      // loop in Servicios.tsx), which works fine against natural-length
+      // momentum, it just takes a few more frames to win out.
       // Snappier catch-up than the defaults (wheel lerp 0.1, touch 0.075):
       // the heavier smoothing read as the page "braking" the scroll.
-      lerp: 0.14,
-      syncTouchLerp: 0.12,
+      lerp: 0.16,
+      syncTouchLerp: 0.18,
     });
     window.__nxrLenis = lenis;
 

@@ -773,15 +773,43 @@ export default function Servicios() {
         return bi;
       };
 
+      // Forces the resting card's scroll-driven values (yaw/z/scale/exitFade,
+      // its slide's arc `y`, and its caption's opacity/blur) to their EXACT
+      // nx=0 state — called only from trySnap, i.e. ~140ms after scrolling
+      // has genuinely stopped. `nx` from a live rect is only ever
+      // sub-pixel-close to 0 at rest, never exactly 0 (float jitter, and a
+      // touch flick's Lenis inertia tail can occasionally outlast the glide's
+      // own hold-frames — see glideTo above), which without this left the
+      // card and caption both showing a faint residual tilt/blur that never
+      // cleared until the next scroll. The nx-driven crossfade elsewhere is
+      // for the ACTIVE transition and is untouched — this only overrides the
+      // settled idle state.
+      const forceSettle = (i: number) => {
+        scrollYaw[i] = 0;
+        scrollZ[i] = 0;
+        scrollScale[i] = 1;
+        exitFade[i] = 1;
+        push(i);
+        const slide = slides[i];
+        if (slide) gsap.set(slide, { y: 0 });
+        const cap = captions[i];
+        if (cap) gsap.set(cap, { opacity: 1, filter: "blur(0px)", y: 0, pointerEvents: "auto" });
+      };
+
       const trySnap = () => {
         const st = tl.scrollTrigger;
         if (!st || !st.isActive) return;
         const total = amount();
         if (!total || !cardStep()) return;
         const progress = progressNow(st);
-        const bestP = pOf(nearestIdx(progress));
-        // Pixel-precise: skip only when already within ~1.5px of centre.
-        if (Math.abs(progress - bestP) * total < 1.5) return;
+        const idx = nearestIdx(progress);
+        const bestP = pOf(idx);
+        // Pixel-precise: skip gliding only when already within ~1.5px of
+        // centre — but always force-settle once we're idle here, regardless.
+        if (Math.abs(progress - bestP) * total < 1.5) {
+          forceSettle(idx);
+          return;
+        }
         glideTo(scrollAt(st, bestP));
       };
       const cancelSnap = () => {

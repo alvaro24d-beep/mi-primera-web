@@ -2661,9 +2661,12 @@ h6 {
        content padding-bottom above): the glass rides high without hugging
        the very top edge, and can never grow down over the caption text. */
     align-items: center;
-    /* Small nudge down from dead-centre — margin (not transform) since GSAP
-       already owns this element's `transform` (the horizontal scrub `x`). */
-    margin-top: 14px;
+    /* Nudge down from dead-centre — margin (not transform) since GSAP already
+       owns this element's `transform` (the horizontal scrub `x`). Safe to push
+       further than it looks: `.nxr-servicios-sticky` only clips the X axis
+       (`overflow-x: clip`), Y stays visible, so the card is never cropped even
+       if this shrinks track's own centring box below the card's height. */
+    margin-top: 56px;
   }
   .nxr-srv-slide {
     /* Narrower than before (was 72vw/320px) — deliberately leaves more

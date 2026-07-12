@@ -44,16 +44,19 @@ export default function SceneCanvas() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [isMobile] = useState(() => typeof window !== "undefined" && window.innerWidth < 768);
   const [active, setActive] = useState(true);
-  // The only live content in this canvas is the two glass-card sections
-  // (Servicios + ZoomParallax), so the frameloop runs ONLY while either one
-  // is anywhere near the viewport (and the tab is visible). Everywhere else
-  // the canvas freezes and the GPU goes fully idle instead of re-rendering
-  // physical materials at 60fps for nothing — the single biggest source of
-  // heat and of scroll jank on the rest of the page. The two sections are
-  // far apart, so at most one is ever active at a time. Starts false — on
-  // page load you're at the hero, both sections far below, so the canvas is
-  // correctly idle until the observer (which fires an initial callback on
-  // observe) reports one of them near.
+  // Frameloop has THREE regimes (see the `frameloop` prop below):
+  //   • tab hidden            → "never"  (fully idle)
+  //   • a card section near   → "always" (continuous — cards animate every frame)
+  //   • otherwise (hero, etc) → "demand" (renders only when invalidated)
+  // The concave cylinder backdrop (SceneBackground) is global, so the canvas
+  // can no longer go fully idle off the card sections the way it used to —
+  // but it doesn't need to run at 60fps there either: the backdrop is static
+  // apart from a light cursor parallax, which self-invalidates only while the
+  // pointer moves (see SceneBackground.tsx). So "demand" keeps the GPU idle
+  // between interactions while still painting the backdrop everywhere, and
+  // "always" is reserved for the two sections whose glass cards genuinely
+  // animate each frame. The sections are far apart, so at most one is ever
+  // near at a time.
   const [cardsNear, setCardsNear] = useState(false);
 
   useEffect(() => {
@@ -95,7 +98,7 @@ export default function SceneCanvas() {
     >
       <Canvas
         ref={canvasRef}
-        frameloop={active && cardsNear ? "always" : "never"}
+        frameloop={!active ? "never" : cardsNear ? "always" : "demand"}
         dpr={isMobile ? [1, 1.25] : [1, 1.5]}
         camera={{ position: [0, 0, CAMERA_DISTANCE], fov: 50, near: 1, far: CAMERA_DISTANCE * 3 }}
         gl={{ alpha: true, antialias: !isMobile, powerPreference: "high-performance" }}
@@ -104,7 +107,11 @@ export default function SceneCanvas() {
         <ambientLight intensity={0.35} />
         <directionalLight position={[500, 800, 600]} intensity={0.5} color="#ffffff" />
         <SceneEnvironment />
-        <SceneBackground />
+        {/* The CRT video wall is desktop-only (continuous video decode + render
+            is dropped on mobile per the perf playbook — mobile keeps the cheap
+            static concave grid). `active` pauses its ~30fps loop when the tab
+            is hidden. */}
+        <SceneBackground tv={!isMobile} active={active} />
         <ServiciosCardsLayer isMobile={isMobile} />
         <ZoomParallaxCardsLayer />
         {!isMobile && (

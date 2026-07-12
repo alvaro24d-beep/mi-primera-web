@@ -8,6 +8,17 @@ import { useServiciosCardsRegistry, type CardStyle } from "@/store/useServiciosC
 
 const MAX_CARDS = 5;
 const DEFAULT_STYLE: CardStyle = { color: "#0d1520", material: "glass", curveX: 0.06, curveY: 0 };
+// Servicios cards are BENT (curved panoramic screen, inverted — centre toward
+// the viewer, side edges folded back) rather than pillow-domed. Half-arc at the
+// side edges, in radians (~15°) — deliberately gentle so the flat HTML overlay
+// riding on the card (the mini-animations) stays within the glass silhouette
+// instead of spilling past the curved edges. ZoomParallax cards don't pass
+// this, so they keep their convex dome.
+const SRV_BEND = 0.26;
+// Frosted see-through glass (the TV-wall background blurs through). Desktop
+// only — transmission adds a render pass, dropped on mobile per the perf
+// playbook (mobile keeps opaque cards).
+const SRV_TRANSMISSION = 0.55;
 // Servicios.tsx's entrance/tilt math is ported from the CSS/GSAP DOM version,
 // where rotationX/rotationY are degrees (CSS transform convention) — but
 // Object3D.rotation is in radians, so convert at this R3F consumption boundary.
@@ -19,7 +30,7 @@ const DEG2RAD = Math.PI / 180;
 // under wherever Servicios.tsx's matching anchor div currently sits on
 // screen. Width/height/style change rarely (resize, or once at mount), so
 // those go through real React state instead of being read every frame.
-function CardSlot({ id }: { id: number }) {
+function CardSlot({ id, isMobile }: { id: number; isMobile: boolean }) {
   const groupRef = useRef<THREE.Group>(null);
   const { size } = useThree();
   const [dims, setDims] = useState({ width: 560, height: 373 });
@@ -55,9 +66,12 @@ function CardSlot({ id }: { id: number }) {
       return;
     }
 
-    group.visible = true;
     const { left: x, top: y, width, height } = rect;
     const t = slot.transform;
+    // Skip drawing a card the exit-fade has already taken to ~0 — no point
+    // paying its (transmission) render pass while it's invisible.
+    group.visible = t.opacity > 0.01;
+    if (!group.visible) return;
     group.position.x = x + width / 2 - size.width / 2 + t.x;
     group.position.y = -(y + height / 2 - size.height / 2) + t.y;
     group.position.z = t.z;
@@ -108,6 +122,8 @@ function CardSlot({ id }: { id: number }) {
         radius={30}
         curveX={style.curveX}
         curveY={style.curveY}
+        bend={SRV_BEND}
+        transmission={isMobile ? 0 : SRV_TRANSMISSION}
         color={style.color}
         material={style.material}
       />
@@ -116,11 +132,10 @@ function CardSlot({ id }: { id: number }) {
 }
 
 export default function ServiciosCardsLayer({ isMobile }: { isMobile: boolean }) {
-  void isMobile;
   return (
     <>
       {Array.from({ length: MAX_CARDS }, (_, i) => (
-        <CardSlot key={i} id={i} />
+        <CardSlot key={i} id={i} isMobile={isMobile} />
       ))}
     </>
   );

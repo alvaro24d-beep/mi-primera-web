@@ -630,20 +630,16 @@ export default function Servicios() {
       // well before the raw anchor rect would otherwise be culled.
       const MAX_YAW_DEG = isDesktopUI ? 58 : 18;
       const THETA_MAX = (MAX_YAW_DEG * Math.PI) / 180;
-      // Desktop-only exit fade range, in the same normalized |nx| units
-      // used everywhere else in this function. Deliberately tight and
-      // EARLY (well before THETA_MAX's own 1.1 clamp, let alone the
-      // ~1.55 point where the raw anchor would otherwise scroll off the
-      // viewport edge): a wider/later window still reads as "the card
-      // slides away and only fades right at the end", since most of its
-      // journey happens while still fully opaque. Starting the fade
-      // shortly after the card leaves the readable centre (roughly where
-      // its caption has already dissolved, see the `vis` mapRange below)
-      // and finishing well short of the edge makes it actually disappear
-      // in place instead of visibly travelling most of the way across
-      // the screen first.
-      const EXIT_FADE_FROM = 0.35;
-      const EXIT_FADE_TO = 0.85;
+      // Desktop-only exit fade range, in the same normalized |nx| units used
+      // everywhere else. Adjacent cards sit ~1.0 apart in nx (slide width +
+      // gap ≈ one half-viewport), so a departing card is at nx≈-1.0 exactly
+      // when the card AFTER the next one is arriving at the right. Holding it
+      // fully opaque until then (FROM = 0.95) and only dissolving over
+      // 0.95→1.4 keeps the left card on screen "until the next-next enters",
+      // then fades it out just before the anchor would scroll off (~1.55) —
+      // rather than vanishing one step early.
+      const EXIT_FADE_FROM = 0.95;
+      const EXIT_FADE_TO = 1.4;
 
       // Helical trajectory on a REAL cylinder, bottom-right → top-left: the
       // cards ride the surface of a vertical-axis drum whose radius R is

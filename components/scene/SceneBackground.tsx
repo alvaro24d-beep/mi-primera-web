@@ -1,14 +1,297 @@
 "use client";
 
-// Placeholder for now — step 6 of the build replaces this with the ported
-// WaveBackground.tsx GLSL (fbm-style gradient) as a Three.js ShaderMaterial
-// on a full-screen plane, wired to store/useCardDisturbance.ts. Kept as its
-// own file/component from the start so that swap doesn't touch SceneCanvas.
-export default function SceneBackground() {
+import { useEffect, useMemo, useRef } from "react";
+import { useFrame, useThree } from "@react-three/fiber";
+import * as THREE from "three";
+
+// ---- Concave "inside a cylinder" backdrop, now a TV wall ------------------
+// A large vertical-axis cylindrical wall section behind everything in the
+// shared scene, so the whole site reads as living inside a softly-curved tube
+// (reference: alche.studio). The centre of the arc is pushed FARthest from the
+// camera and both side edges wrap FORWARD toward it — that forward wrap is the
+// concave read. On desktop the inner face shows a pixelated CRT "screen": a
+// looping video (when VIDEO_SRC is set) or, as a zero-asset placeholder, a
+// procedurally-generated TV test signal (colour bars + rolling static). The
+// grid + depth-glow ride on top of it. On mobile it falls back to the cheap
+// static grid (no video decode / continuous render) per the perf playbook.
+//
+// All numbers are world units: 1 unit == 1 CSS pixel at z=0 (see PixelCamera).
+// Sized so the projected arc overfills both a wide desktop and a tall phone.
+const R = 1300; // cylinder radius (smaller = tighter curve)
+const PHI_MAX = 1.1; // half-arc in radians (~63°): how far the wall wraps forward at the edges
+const Z_CENTER = -1050; // depth of the arc's farthest (central) column — deep so the centre reads clearly farther than the sides
+const HEIGHT = 2600; // vertical span (straight — axis is vertical, so no vertical curvature)
+const COLS = 220;
+const ROWS = 72;
+
+// ── Drop a video into /public and put its path here (e.g. "/reel.mp4") to use
+//    a real video instead of the procedural placeholder. Kept as a single
+//    constant so swapping is a one-line change. Desktop-only either way.
+const VIDEO_SRC: string | null = null;
+
+function buildArcGeometry() {
+  const positions: number[] = [];
+  const uvs: number[] = [];
+  const indices: number[] = [];
+
+  for (let j = 0; j <= ROWS; j++) {
+    const v = j / ROWS;
+    const y = (v - 0.5) * HEIGHT;
+    for (let i = 0; i <= COLS; i++) {
+      const u = i / COLS;
+      const phi = (u - 0.5) * 2 * PHI_MAX;
+      const x = R * Math.sin(phi);
+      const z = Z_CENTER + R * (1 - Math.cos(phi));
+      positions.push(x, y, z);
+      uvs.push(u, v);
+    }
+  }
+
+  const stride = COLS + 1;
+  for (let j = 0; j < ROWS; j++) {
+    for (let i = 0; i < COLS; i++) {
+      const a = j * stride + i;
+      const b = a + 1;
+      const c = a + stride;
+      const d = c + 1;
+      indices.push(a, c, b, b, c, d);
+    }
+  }
+
+  const geo = new THREE.BufferGeometry();
+  geo.setAttribute("position", new THREE.Float32BufferAttribute(positions, 3));
+  geo.setAttribute("uv", new THREE.Float32BufferAttribute(uvs, 2));
+  geo.setIndex(indices);
+  return geo;
+}
+
+const vertexShader = /* glsl */ `
+  varying vec2 vUv;
+  void main() {
+    vUv = uv;
+    gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+  }
+`;
+
+const fragmentShader = /* glsl */ `
+  precision highp float;
+  varying vec2 vUv;
+  uniform vec2 uCells;
+  uniform vec3 uBase;
+  uniform vec3 uLine;
+  uniform vec3 uGlowCol;
+  uniform vec2 uFocus;
+  uniform float uTv;       // 1 = show the CRT wall, 0 = plain grid (mobile fallback)
+  uniform float uHasVideo; // 1 = sample uSource (real video), 0 = procedural test signal
+  uniform sampler2D uSource;
+  uniform vec2 uPixel;     // pixelation resolution (cells across / down)
+  uniform float uTime;
+
+  float hash(vec2 p) { return fract(sin(dot(p, vec2(41.3, 289.1))) * 43758.5453); }
+
+  vec3 barColor(float b) {
+    if (b < 0.5) return vec3(0.72);
+    else if (b < 1.5) return vec3(0.72, 0.72, 0.0);
+    else if (b < 2.5) return vec3(0.0, 0.66, 0.72);
+    else if (b < 3.5) return vec3(0.0, 0.66, 0.0);
+    else if (b < 4.5) return vec3(0.72, 0.0, 0.62);
+    else if (b < 5.5) return vec3(0.72, 0.12, 0.0);
+    return vec3(0.0, 0.16, 0.72);
+  }
+
+  // Zero-asset placeholder: SMPTE-ish colour bars over a band of rolling
+  // static, plus a soft bright retrace band sweeping up the screen.
+  vec3 proceduralTV(vec2 uv) {
+    vec3 col;
+    if (uv.y > 0.28) {
+      col = barColor(floor(uv.x * 7.0));
+    } else {
+      vec2 cell = floor(uv * vec2(150.0, 84.0));
+      col = vec3(hash(cell + floor(uTime * 9.0)));
+    }
+    float roll = smoothstep(0.06, 0.0, abs(fract(uv.y * 0.5 - uTime * 0.08) - 0.5));
+    col += roll * 0.12;
+    return col;
+  }
+
+  vec3 sampleSource(vec2 uv) {
+    if (uHasVideo > 0.5) return texture2D(uSource, uv).rgb;
+    return proceduralTV(uv);
+  }
+
+  void main() {
+    // Crisp grid via screen-space derivatives (constant ~1px lines).
+    vec2 g = vUv * uCells;
+    vec2 gr = abs(fract(g - 0.5) - 0.5) / fwidth(g);
+    float line = 1.0 - min(min(gr.x, gr.y), 1.0);
+
+    // Depth: light pooling toward uFocus + outward vignette.
+    float d = distance(vUv, uFocus);
+    float glow = smoothstep(0.85, 0.0, d);
+    float vig = smoothstep(1.2, 0.1, d);
+
+    vec3 fill;
+    if (uTv > 0.5) {
+      // Chunky pixelation (in the curved UV, so the pixels follow the
+      // concave deformation) + RGB split + scanlines = CRT screen.
+      vec2 puv = (floor(vUv * uPixel) + 0.5) / uPixel;
+      float o = 1.3 / uPixel.x;
+      float r = sampleSource(puv + vec2(o, 0.0)).r;
+      float gg = sampleSource(puv).g;
+      float b = sampleSource(puv - vec2(o, 0.0)).b;
+      vec3 tv = vec3(r, gg, b);
+      tv *= 0.78 + 0.22 * sin(vUv.y * uPixel.y * 6.28318);
+      // Dim + tint toward the site's dark base so overlaid text stays legible.
+      fill = mix(uBase * 0.7, tv, 0.5);
+    } else {
+      fill = uBase;
+    }
+
+    vec3 col = fill;
+    col += uGlowCol * glow * 0.10;
+    col += uLine * line * (0.05 + 0.28 * glow);
+    col *= (0.42 + 0.58 * vig);
+    gl_FragColor = vec4(col, 1.0);
+  }
+`;
+
+export default function SceneBackground({ tv, active }: { tv: boolean; active: boolean }) {
+  const geometry = useMemo(() => buildArcGeometry(), []);
+  const groupRef = useRef<THREE.Group>(null);
+  const matRef = useRef<THREE.ShaderMaterial>(null);
+  const invalidate = useThree((s) => s.invalidate);
+
+  const target = useRef({ x: 0, y: 0 });
+  const current = useRef({ x: 0, y: 0 });
+
+  // Always-valid 1x1 texture so `uSource` samples something before/without a
+  // real video (the procedural path ignores it, but the sampler must be bound).
+  const blankTex = useMemo(() => {
+    const t = new THREE.DataTexture(new Uint8Array([0, 0, 0, 255]), 1, 1);
+    t.needsUpdate = true;
+    return t;
+  }, []);
+
+  const uniforms = useMemo(
+    () => ({
+      uCells: { value: new THREE.Vector2(52, 40) },
+      uBase: { value: new THREE.Color("#070b13") },
+      uLine: { value: new THREE.Color("#33445f") },
+      uGlowCol: { value: new THREE.Color("#1b2942") },
+      uFocus: { value: new THREE.Vector2(0.5, 0.46) },
+      uTv: { value: tv ? 1 : 0 },
+      uHasVideo: { value: 0 },
+      uSource: { value: blankTex as THREE.Texture },
+      uPixel: { value: new THREE.Vector2(180, 110) },
+      uTime: { value: 0 },
+    }),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    []
+  );
+
+  useEffect(() => {
+    if (matRef.current) matRef.current.uniforms.uTv.value = tv ? 1 : 0;
+  }, [tv]);
+
+  useEffect(() => () => geometry.dispose(), [geometry]);
+  useEffect(() => () => blankTex.dispose(), [blankTex]);
+
+  // Real video → VideoTexture (desktop only). No-op while VIDEO_SRC is null
+  // (the procedural placeholder runs instead).
+  useEffect(() => {
+    if (!tv || !VIDEO_SRC) return;
+    const video = document.createElement("video");
+    video.src = VIDEO_SRC;
+    video.loop = true;
+    video.muted = true;
+    video.playsInline = true;
+    video.crossOrigin = "anonymous";
+    const tex = new THREE.VideoTexture(video);
+    tex.colorSpace = THREE.SRGBColorSpace;
+    tex.magFilter = THREE.NearestFilter; // keep the pixelation crisp
+    tex.minFilter = THREE.LinearFilter;
+    // Captured once — the material is stable for this component's lifetime, so
+    // the same instance is valid in both `onReady` and cleanup.
+    const mat = matRef.current;
+    const onReady = () => {
+      if (mat) {
+        mat.uniforms.uSource.value = tex;
+        mat.uniforms.uHasVideo.value = 1;
+      }
+      video.play().catch(() => {});
+    };
+    video.addEventListener("loadeddata", onReady);
+    return () => {
+      video.removeEventListener("loadeddata", onReady);
+      video.pause();
+      video.src = "";
+      tex.dispose();
+      if (mat) {
+        mat.uniforms.uHasVideo.value = 0;
+        mat.uniforms.uSource.value = blankTex;
+      }
+    };
+  }, [tv, blankTex]);
+
+  // Cursor parallax. Each mousemove kicks a render (the canvas runs
+  // "demand" off the card sections), and the ease-out below re-invalidates
+  // itself until it settles.
+  useEffect(() => {
+    const onMove = (e: MouseEvent) => {
+      target.current.x = (e.clientX / window.innerWidth - 0.5) * 2;
+      target.current.y = (e.clientY / window.innerHeight - 0.5) * 2;
+      invalidate();
+    };
+    window.addEventListener("mousemove", onMove, { passive: true });
+    return () => window.removeEventListener("mousemove", onMove);
+  }, [invalidate]);
+
+  // The CRT wall animates (rolling static, video playback), so on desktop it
+  // needs to keep rendering even when no card section is near — but at ~30fps,
+  // NOT the 60fps "always" the card sections use, so a video backdrop doesn't
+  // reintroduce the scroll-heat the demand loop was there to avoid. Paused
+  // while the tab is hidden. Mobile (tv=false) never starts it and stays fully
+  // demand-idle on the static grid.
+  useEffect(() => {
+    if (!tv || !active) return;
+    const id = window.setInterval(() => {
+      if (!document.hidden) invalidate();
+    }, 33);
+    return () => window.clearInterval(id);
+  }, [tv, active, invalidate]);
+
+  useFrame((state) => {
+    if (matRef.current) matRef.current.uniforms.uTime.value = state.clock.elapsedTime;
+
+    const c = current.current;
+    const t = target.current;
+    c.x += (t.x - c.x) * 0.09;
+    c.y += (t.y - c.y) * 0.09;
+
+    const group = groupRef.current;
+    if (group) {
+      group.rotation.y = c.x * 0.09;
+      group.rotation.x = -c.y * 0.065;
+    }
+    const mat = matRef.current;
+    if (mat) {
+      (mat.uniforms.uFocus.value as THREE.Vector2).set(0.5 + c.x * 0.14, 0.46 - c.y * 0.11);
+    }
+
+    if (Math.abs(t.x - c.x) > 0.001 || Math.abs(t.y - c.y) > 0.001) invalidate();
+  });
+
   return (
-    <mesh position={[0, 0, -600]}>
-      <planeGeometry args={[6000, 6000]} />
-      <meshBasicMaterial color="#05070d" />
-    </mesh>
+    <group ref={groupRef}>
+      <mesh geometry={geometry} frustumCulled={false} renderOrder={-10}>
+        <shaderMaterial
+          ref={matRef}
+          vertexShader={vertexShader}
+          fragmentShader={fragmentShader}
+          uniforms={uniforms}
+          side={THREE.DoubleSide}
+        />
+      </mesh>
+    </group>
   );
 }

@@ -13,6 +13,22 @@ export interface VolumetricCardProps {
   curveX?: number;
   /** Bulge amount along Y, as a fraction of `height`. 0 = flat along Y. */
   curveY?: number;
+  /**
+   * Cylindrical BEND around the vertical axis, in radians of half-arc at the
+   * card's side edges. > 0 replaces the convex pillow dome with a clean
+   * single-axis fold: the whole slab curves so its centre stays nearest the
+   * camera and both side edges rotate BACK, away from the viewer — a curved
+   * panoramic screen, but inverted (convex toward you instead of hugging).
+   * When set, `curveX`/`curveY` (the dome) are ignored.
+   */
+  bend?: number;
+  /**
+   * 0 = opaque dark glass (default — used by ZoomParallax). > 0 turns the glass
+   * frosted/see-through so the background blurs through it (physical-material
+   * `transmission`); the blur comes from a raised roughness. Costs an extra
+   * render pass, so callers gate it (e.g. desktop-only) — see ServiciosCardsLayer.
+   */
+  transmission?: number;
   material?: "glass" | "aluminum";
   color?: string;
   interactive?: boolean;
@@ -47,7 +63,8 @@ function buildCardGeometry(
   thickness: number,
   radius: number,
   curveX: number,
-  curveY: number
+  curveY: number,
+  bend: number
 ) {
   const w = width / 2;
   const h = height / 2;
@@ -62,7 +79,10 @@ function buildCardGeometry(
   //  - amplitude deliberately a fraction of the raw curveX/curveY sum: a
   //    full-height dome that must reach zero at the whole rim gets steep
   //    (~45°) near the edges and reads as a funnel, not a curved card.
-  const A = 0.2 * (curveX * width + curveY * height);
+  // A cylindrical bend (below) folds the WHOLE slab instead of doming just
+  // the front, so when it's active the front stays flat (A = 0) and the
+  // curvature comes entirely from the post-process transform.
+  const A = bend > 0 ? 0 : 0.2 * (curveX * width + curveY * height);
   const pillowZ = (x: number, y: number) =>
     halfT +
     A *
@@ -214,6 +234,26 @@ function buildCardGeometry(
     indices.push(backCentre, backRim + ((j + 1) % P), backRim + j);
   }
 
+  // ---- Cylindrical bend around the vertical (Y) axis. Every vertex is wrapped
+  // onto a cylinder whose axis sits a distance Rb BEHIND the card's mid-plane,
+  // so the centre column keeps its depth (nearest the camera) while the side
+  // columns rotate back and recede. Rb = w / bend maps the card's half-width
+  // exactly to `bend` radians at the edge. Applied to ALL vertices (front,
+  // bevels, wall, back) so the whole slab folds at constant thickness — not a
+  // domed front on a flat back — then normals are recomputed so the glass
+  // reflections sweep across the curve like a real curved screen.
+  if (bend > 0) {
+    const Rb = w / bend;
+    for (let i = 0; i < positions.length; i += 3) {
+      const px = positions[i];
+      const pz = positions[i + 2];
+      const theta = px / Rb;
+      const rr = Rb + pz;
+      positions[i] = rr * Math.sin(theta);
+      positions[i + 2] = rr * Math.cos(theta) - Rb;
+    }
+  }
+
   const geo = new THREE.BufferGeometry();
   geo.setAttribute("position", new THREE.Float32BufferAttribute(positions, 3));
   geo.setIndex(indices);
@@ -228,6 +268,8 @@ export default function VolumetricCard({
   radius = 24,
   curveX = 0.08,
   curveY = 0,
+  bend = 0,
+  transmission = 0,
   material = "glass",
   color = "#0d1520",
   position = [0, 0, 0],
@@ -236,8 +278,8 @@ export default function VolumetricCard({
   const meshRef = useRef<THREE.Mesh>(null);
 
   const geometry = useMemo(
-    () => buildCardGeometry(width, height, thickness, radius, curveX, curveY),
-    [width, height, thickness, radius, curveX, curveY]
+    () => buildCardGeometry(width, height, thickness, radius, curveX, curveY, bend),
+    [width, height, thickness, radius, curveX, curveY, bend]
   );
 
   // Small per-instance roughness jitter — a fixed seed at mount, not re-rolled
@@ -264,18 +306,17 @@ export default function VolumetricCard({
           // on/off at runtime would mean recompiling the shader — cheaper to
           // just leave it on for every card up front.
           transparent
-          // NO transmission, deliberately: it forces three.js into an extra
-          // whole-scene render pass per frame for refraction, and behind
-          // these cards there is only the near-black background plane — the
-          // refraction was invisible while costing more than everything
-          // else combined. The glass read comes from the env reflections +
-          // clearcoat, which stay.
-          // ~0.16: the env reflection blurs into ONE broad sheen that bends
-          // across the dome — the elegant "curved glass" read — instead of
-          // several sharp-edged blobs (each light source wrapping into its
-          // own patch), while staying well above the near-mirror 0.05 whose
-          // pinprick highlight vanishes on a card facing the camera dead-on.
-          roughness={0.16 + roughnessJitter}
+          // `transmission` is opt-in per card (0 for ZoomParallax → opaque, no
+          // extra pass). When > 0 the background (now a bright TV wall, not the
+          // old near-black plane) blurs THROUGH the glass — the raised
+          // roughness below is what turns that refraction frosted rather than a
+          // clear window. `thickness` gives the refraction some depth to bend.
+          transmission={transmission}
+          thickness={transmission > 0 ? 34 : 0}
+          // Frosted glass wants a softer surface (0.28) than the near-mirror
+          // dark glass (0.16) so both the reflection AND the transmitted
+          // background read as a gentle blur, not sharp.
+          roughness={(transmission > 0 ? 0.28 : 0.16) + roughnessJitter}
           clearcoat={1}
           clearcoatRoughness={0.08}
           ior={1.5}

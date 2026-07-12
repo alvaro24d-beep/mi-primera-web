@@ -1480,6 +1480,16 @@ h6 {
     width: 14px;
     height: 14px;
   }
+  /* Extra horizontal inset on desktop: the glass is now BENT (see SRV_BEND in
+     ServiciosCardsLayer.tsx), so its side edges fold back away from the
+     camera. This flat HTML overlay can't fold with it, so keeping the
+     animation inside the central, near-flat band of the card is what stops it
+     poking out past the curved edges — it reads as printed on the curved
+     surface rather than floating off its sides. */
+  .nxr-srv-inner {
+    padding-left: 46px;
+    padding-right: 46px;
+  }
 }
 
 /* The glass card's sole content: always visible, in normal flow, filling

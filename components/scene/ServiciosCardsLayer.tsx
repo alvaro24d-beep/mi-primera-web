@@ -23,7 +23,7 @@ const SRV_BEND = 0.26;
 // see-through the card reads. Desktop only — transmission adds a render pass
 // (kept cheap via `transmissionResolutionScale` in SceneCanvas.tsx), dropped
 // on mobile per the perf playbook (mobile keeps opaque cards).
-const SRV_TRANSMISSION = 0.6;
+const SRV_TRANSMISSION = 0.92;
 // Servicios.tsx's entrance/tilt math is ported from the CSS/GSAP DOM version,
 // where rotationX/rotationY are degrees (CSS transform convention) — but
 // Object3D.rotation is in radians, so convert at this R3F consumption boundary.

@@ -1190,7 +1190,7 @@ h6 {
    falloff scales `.nxr-srv-inner`, never this element). */
 .nxr-srv-slide {
   flex-shrink: 0;
-  width: 640px;
+  width: 760px;
   max-width: 82vw;
   display: flex;
   flex-direction: column;
@@ -1295,7 +1295,7 @@ h6 {
    visible — the card's height follows from the aspect-ratio above. */
 @media (max-height: 850px) and (min-width: 901px) {
   .nxr-srv-slide {
-    width: 560px;
+    width: 660px;
   }
   .nxr-servicios-head .nxr-section-h2 {
     font-size: clamp(28px, 3vw, 40px);
@@ -1307,7 +1307,7 @@ h6 {
     font-size: clamp(26px, 2.6vw, 34px);
   }
   .nxr-srv-slide {
-    width: 500px;
+    width: 580px;
   }
   .nxr-srv-inner {
     padding: 14px;
@@ -1485,10 +1485,20 @@ h6 {
      camera. This flat HTML overlay can't fold with it, so keeping the
      animation inside the central, near-flat band of the card is what stops it
      poking out past the curved edges — it reads as printed on the curved
-     surface rather than floating off its sides. */
+     surface rather than floating off its sides. Widened alongside the bigger
+     `.nxr-srv-slide` above (760px) so the safe zone stays proportional. */
   .nxr-srv-inner {
-    padding-left: 46px;
-    padding-right: 46px;
+    padding-left: 64px;
+    padding-right: 64px;
+  }
+  /* Scales the mini-animation up to match the bigger card. Its internal
+     markup is fixed-px (each of the 5 anims has its own bespoke layout), so
+     the card growing alone would leave it looking small/lost in more empty
+     space; a flat scale keeps it matched. Modest (1.12, not larger) — the
+     inset above is sized so this stays inside the card's flatter centre band
+     rather than pushing back into the curved edges. */
+  .nxr-srv-anim {
+    transform: scale(1.12);
   }
 }
 
@@ -2625,8 +2635,9 @@ h6 {
        CTA above the nav in the worst (bar visible) state; when the bar
        hides it simply rides a little higher. Plain fallback first for
        engines without svh/lvh. */
-    bottom: 195px;
-    bottom: calc(100lvh - 100svh + 127px);
+    /* Nudged down a touch from the previous 195px/127px. */
+    bottom: 182px;
+    bottom: calc(100lvh - 100svh + 114px);
   }
   .nxr-srv-cta-wrap {
     /* Extra air between the feature pills and the CTA row. */
@@ -2650,6 +2661,9 @@ h6 {
        content padding-bottom above): the glass rides high without hugging
        the very top edge, and can never grow down over the caption text. */
     align-items: center;
+    /* Small nudge down from dead-centre — margin (not transform) since GSAP
+       already owns this element's `transform` (the horizontal scrub `x`). */
+    margin-top: 14px;
   }
   .nxr-srv-slide {
     /* Narrower than before (was 72vw/320px) — deliberately leaves more

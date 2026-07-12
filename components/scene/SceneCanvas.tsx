@@ -112,7 +112,7 @@ export default function SceneCanvas() {
           // background" look for free — a low-res capture magnified back up
           // reads as soft blur, so roughness alone doesn't have to do all the
           // blurring work (see VolumetricCard.tsx).
-          gl.transmissionResolutionScale = 0.25;
+          gl.transmissionResolutionScale = 0.2;
         }}
       >
         <PixelCamera />

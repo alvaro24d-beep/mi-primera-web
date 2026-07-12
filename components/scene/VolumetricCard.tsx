@@ -330,22 +330,37 @@ export default function VolumetricCard({
           // doesn't also pick up a milky diffuse scatter on top of the blur.
           // `thickness` gives the refraction some depth to bend.
           transmission={transmission}
-          thickness={transmission > 0 ? 34 : 0}
+          // Thin + long attenuation distance so the transmitted image is
+          // only gently tinted, not absorbed into darkness (short thickness /
+          // short attenuation was a big part of the "grey" — it ate the
+          // background before it could show through).
+          thickness={isFrosted ? 14 : 0}
           attenuationColor={color}
-          attenuationDistance={26}
-          roughness={(isFrosted ? 0.22 : 0.16) + roughnessJitter}
-          // Frosted cards dial back clearcoat/reflectivity/envMapIntensity —
-          // at the opaque cards' full strength (1 / 0.55 / 1.6) the glossy
-          // env reflection painted a bright film OVER the transmitted image,
-          // reading as "grey card" instead of "see-through card"; transmission
-          // is raised in turn since it no longer has to fight that reflection
-          // for the eye's attention.
-          clearcoat={isFrosted ? 0.35 : 1}
+          attenuationDistance={isFrosted ? 220 : 1}
+          // Enough roughness to read as frosted; the heavy lifting of the
+          // blur is the low-res transmission capture (transmissionResolution-
+          // Scale in SceneCanvas.tsx), so roughness stays moderate and doesn't
+          // add a milky diffuse scatter on top.
+          roughness={(isFrosted ? 0.26 : 0.16) + roughnessJitter}
+          // Reflections at full strength via clearcoat/reflectivity/envMap —
+          // what actually killed visibility of the transmission earlier
+          // wasn't these, it was the DARK, heavily-attenuated glass under it
+          // (fixed above: lighter `glassColor` + long `attenuationDistance`).
+          // `metalness` is deliberately NOT raised for frosted cards (kept at
+          // the same 0.04 as the opaque ones): metalness physically means
+          // "doesn't transmit light" — in three.js's shader it scales the
+          // diffuse/transmission contribution down directly, so raising it
+          // for a "metallic" look was fighting the transmission at the source.
+          // Clearcoat is a SEPARATE reflective layer added on top instead —
+          // it gives the same shiny sheen without touching transmission at
+          // all, so both read together: bright reflection at grazing angles
+          // (the curved edges), clear see-through toward normal incidence.
+          clearcoat={1}
           clearcoatRoughness={0.08}
           ior={1.5}
-          reflectivity={isFrosted ? 0.22 : 0.55}
+          reflectivity={0.55}
           metalness={0.04}
-          envMapIntensity={isFrosted ? 0.7 : 1.6}
+          envMapIntensity={1.6}
         />
       ) : (
         <meshPhysicalMaterial

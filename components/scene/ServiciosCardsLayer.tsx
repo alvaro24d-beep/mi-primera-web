@@ -35,7 +35,22 @@ function CardSlot({ id }: { id: number }) {
     // DOM's current-frame position — never a stale rect from a previous
     // frame (which made the glass trail its text during fast scrolls).
     const rect = slot?.anchor?.getBoundingClientRect();
-    if (!rect || rect.width < 1 || rect.height < 1) {
+    // The reel's own GSAP ScrollTrigger stops updating once the pin's
+    // scroll range is exhausted, freezing the sticky's last scrub position
+    // as it un-pins and returns to normal flow — but a card's rect is still
+    // perfectly well-defined at that frozen position, so without an
+    // explicit on-screen check the mesh kept rendering (a stray,
+    // mid-transition-yawed glass card) as that frozen content scrolled
+    // past on its way off, well after the section itself was behind you.
+    if (
+      !rect ||
+      rect.width < 1 ||
+      rect.height < 1 ||
+      rect.right < -80 ||
+      rect.left > size.width + 80 ||
+      rect.bottom < -80 ||
+      rect.top > size.height + 80
+    ) {
       group.visible = false;
       return;
     }
@@ -49,6 +64,17 @@ function CardSlot({ id }: { id: number }) {
     group.rotation.x = t.rotationX * DEG2RAD;
     group.rotation.y = t.rotationY * DEG2RAD;
     group.scale.setScalar(t.scale);
+    // Desktop-only exit fade (see updateSpiral in Servicios.tsx): mutated
+    // directly on the material, never through a React prop, so this stays
+    // off the per-frame React render path — same reasoning as position/
+    // rotation/scale above. `transparent` is always on for this material
+    // (VolumetricCard.tsx) so opacity < 1 actually renders.
+    group.traverse((obj) => {
+      const mesh = obj as THREE.Mesh;
+      if (mesh.isMesh) {
+        (mesh.material as THREE.MeshPhysicalMaterial).opacity = t.opacity;
+      }
+    });
 
     // Rounded + tolerance-gated: sub-pixel float jitter in getBoundingClientRect
     // (e.g. while sibling GSAP transforms recompute layout during the scroll-

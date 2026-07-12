@@ -493,9 +493,64 @@ export default function Servicios() {
       const live = cards.map(() => ({ x: 0, y: 0, z: 0, rotationX: 0, rotationY: 0, scale: 1 }));
       const scrollYaw = cards.map(() => 0);
       const scrollZ = cards.map(() => 0);
+      // Desktop-only extra foreshortening on top of the natural perspective
+      // shrink from scrollZ: derived from the SAME theta driving yaw/z (not
+      // an independent falloff), so it reads as "the card's face turning
+      // away" rather than a separate cosmetic shrink — this is what sells
+      // cards receding back around the drum instead of merely sliding
+      // sideways across the screen (mobile keeps its prior, untouched feel).
+      const scrollScale = cards.map(() => 1);
+      // Desktop-only: once a card has scrolled far enough past centre that
+      // the drum's own rotation/shrink have already maxed out (see THETA_MAX
+      // clamp below), it used to just keep sliding left as a small flat
+      // shape until it clipped off the viewport edge. Fading it to fully
+      // transparent over that same trailing stretch replaces that "slides
+      // off the side" ending with a soft dissolve instead — the entering
+      // (right-hand) side is untouched since it never reaches this range at
+      // rest (see entryOffset()).
+      const exitFade = cards.map(() => 1);
       const idleYaw = cards.map(() => 0);
       const idlePitch = cards.map(() => 0);
       const inners = cards.map((card) => card.querySelector<HTMLElement>(".nxr-srv-inner"));
+
+      // Ambient mouse tilt, shared equally by every card regardless of
+      // whether the cursor is actually over any given one — a small "the
+      // whole reel reacts to you" cue, distinct from the per-card hover
+      // tilt below (which only fires for the card directly under the
+      // pointer). Target updates instantly on mousemove; the actual value
+      // eases toward it inside idleTick below (already running every frame
+      // while the section is visible), so it reads as a soft, weighted
+      // reaction rather than snapping.
+      const mouseTarget = { nx: 0, ny: 0 };
+      const mouseCurrent = { nx: 0, ny: 0 };
+      const MOUSE_MAX_YAW = 4;
+      const MOUSE_MAX_PITCH = 2.5;
+      const onWindowMouseMove = (e: MouseEvent) => {
+        mouseTarget.nx = (e.clientX / window.innerWidth - 0.5) * 2;
+        mouseTarget.ny = (e.clientY / window.innerHeight - 0.5) * 2;
+      };
+      window.addEventListener("mousemove", onWindowMouseMove, { passive: true });
+
+      // Hover tilt target, eased toward every frame in idleTick below — the
+      // SAME per-frame lerp handles both the cursor pulling a card toward it
+      // AND the card settling back to neutral on mouseleave (target just
+      // becomes {0,0,0}), so entering and leaving are the exact same motion
+      // instead of the old mismatch (quickTo's fast-start ease snapping
+      // toward the cursor on entry vs. a slow elastic-out easing back on
+      // leave).
+      const hoverTarget = cards.map(() => ({ rotX: 0, rotY: 0, z: 0 }));
+      const HOVER_SMOOTH = 0.06;
+
+      // Ambient-canvas ripple strength (useCardDisturbance) eased with the
+      // SAME per-frame lerp as the tilt above, instead of the old instant
+      // 0→0.8 jump on the very first mousemove (only the fade-OUT was ever
+      // tweened) — that abrupt pop in the wave background right behind the
+      // glass was reading as the card itself snapping the moment the cursor
+      // landed on it, even though the card's own rotation was already smooth.
+      const disturbTarget = cards.map(() => 0);
+      const disturbCurrent = cards.map(() => 0);
+      const disturbPos = cards.map(() => ({ x: 0.5, y: 0.5 }));
+      const disturbActive = cards.map(() => false);
 
       // Single writer for BOTH renderings of a card: the R3F glass mesh (via
       // the registry) and the DOM content (via a matching CSS rotation on
@@ -509,12 +564,14 @@ export default function Servicios() {
       // rotation about X tips the top edge away in CSS but toward the viewer
       // in three.js; rotationY needs no flip.
       const push = (i: number) => {
-        const rotX = live[i].rotationX + idlePitch[i];
-        const rotY = live[i].rotationY + scrollYaw[i] + idleYaw[i];
+        const rotX = live[i].rotationX + idlePitch[i] + mouseCurrent.ny * -MOUSE_MAX_PITCH;
+        const rotY = live[i].rotationY + scrollYaw[i] + idleYaw[i] + mouseCurrent.nx * MOUSE_MAX_YAW;
         const z = live[i].z + scrollZ[i];
-        useServiciosCardsRegistry.getState().setTransform(i, { ...live[i], rotationX: rotX, rotationY: rotY, z });
+        const scale = live[i].scale * scrollScale[i];
+        const opacity = exitFade[i];
+        useServiciosCardsRegistry.getState().setTransform(i, { ...live[i], rotationX: rotX, rotationY: rotY, z, scale, opacity });
         const inner = inners[i];
-        if (inner) gsap.set(inner, { rotationX: -rotX, rotationY: rotY, z, scale: live[i].scale });
+        if (inner) gsap.set(inner, { rotationX: -rotX, rotationY: rotY, z, scale, opacity });
       };
 
       gsap.set(content, { opacity: 0, scale: 0.92 });
@@ -557,13 +614,36 @@ export default function Servicios() {
 
       // Smaller arc on phones: the stretched glass there nearly fills the
       // space between heading and captions, so a tall arc would ride the
-      // departing card into either overlay.
-      const ARC_AMPLITUDE = window.innerWidth <= 900 ? 28 : 55;
+      // departing card into either overlay. Desktop's is deliberately much
+      // taller than the drum angle alone needs, so the helix's climb reads
+      // clearly instead of looking like a flat horizontal strip.
+      const isDesktopUI = window.innerWidth > 900;
+      const ARC_AMPLITUDE = isDesktopUI ? 130 : 28;
       // Half-angle of the carousel drum: how far a card has turned by the
       // time it reaches the viewport edge. Bigger angle = tighter cylinder
       // (smaller radius), cards sweep BACK faster and face the axis harder.
-      const MAX_YAW_DEG = window.innerWidth <= 900 ? 30 : 40;
+      // Mobile's is deliberately mild: the neighbouring cards need to stay
+      // VISIBLY peeking in at the edges (see `.nxr-srv-slide`'s narrower
+      // mobile width in globals.css) — too tight a drum pulls their
+      // projected position toward centre via perspective foreshortening
+      // faster than they travel off-screen, making them fade from view
+      // well before the raw anchor rect would otherwise be culled.
+      const MAX_YAW_DEG = isDesktopUI ? 58 : 18;
       const THETA_MAX = (MAX_YAW_DEG * Math.PI) / 180;
+      // Desktop-only exit fade range, in the same normalized |nx| units
+      // used everywhere else in this function. Deliberately tight and
+      // EARLY (well before THETA_MAX's own 1.1 clamp, let alone the
+      // ~1.55 point where the raw anchor would otherwise scroll off the
+      // viewport edge): a wider/later window still reads as "the card
+      // slides away and only fades right at the end", since most of its
+      // journey happens while still fully opaque. Starting the fade
+      // shortly after the card leaves the readable centre (roughly where
+      // its caption has already dissolved, see the `vis` mapRange below)
+      // and finishing well short of the edge makes it actually disappear
+      // in place instead of visibly travelling most of the way across
+      // the screen first.
+      const EXIT_FADE_FROM = 0.35;
+      const EXIT_FADE_TO = 0.85;
 
       // Helical trajectory on a REAL cylinder, bottom-right → top-left: the
       // cards ride the surface of a vertical-axis drum whose radius R is
@@ -614,6 +694,11 @@ export default function Servicios() {
           const theta = gsap.utils.clamp(-1.1, 1.1, nx) * THETA_MAX;
           scrollYaw[i] = (theta * 180) / Math.PI;
           scrollZ[i] = -drumR * (1 - Math.cos(theta));
+          scrollScale[i] = isDesktopUI ? Math.cos(theta) : 1;
+          exitFade[i] =
+            isDesktopUI && nx < -EXIT_FADE_FROM
+              ? gsap.utils.clamp(0, 1, gsap.utils.mapRange(-EXIT_FADE_FROM, -EXIT_FADE_TO, 1, 0, nx))
+              : 1;
           push(i);
         });
       };
@@ -814,56 +899,61 @@ export default function Servicios() {
       });
       const idleTick = () => {
         if (!sectionVisible) return;
+        mouseCurrent.nx += (mouseTarget.nx - mouseCurrent.nx) * 0.06;
+        mouseCurrent.ny += (mouseTarget.ny - mouseCurrent.ny) * 0.06;
         const t = gsap.ticker.time;
         cards.forEach((_, i) => {
           idleYaw[i] = 2 * Math.sin(t * 0.55 + i * 1.7);
           idlePitch[i] = 1.1 * Math.sin(t * 0.38 + i * 2.4);
+          live[i].rotationX += (hoverTarget[i].rotX - live[i].rotationX) * HOVER_SMOOTH;
+          live[i].rotationY += (hoverTarget[i].rotY - live[i].rotationY) * HOVER_SMOOTH;
+          live[i].z += (hoverTarget[i].z - live[i].z) * HOVER_SMOOTH;
           push(i);
+
+          if (disturbActive[i]) {
+            disturbCurrent[i] += (disturbTarget[i] - disturbCurrent[i]) * HOVER_SMOOTH;
+            if (disturbCurrent[i] > 0.004) {
+              useCardDisturbance.getState().setPoint(i, disturbPos[i].x, disturbPos[i].y, disturbCurrent[i]);
+            } else {
+              disturbCurrent[i] = 0;
+              disturbActive[i] = false;
+              useCardDisturbance.getState().clearPoint(i);
+            }
+          }
         });
       };
       gsap.ticker.add(idleTick);
-      cleanups.push(() => gsap.ticker.remove(idleTick));
+      cleanups.push(() => {
+        gsap.ticker.remove(idleTick);
+        window.removeEventListener("mousemove", onWindowMouseMove);
+      });
 
       cards.forEach((card, i) => {
-        // ---- Cursor tilt with inertia: NOT a flat instant rotateX/rotateY —
-        // quickTo gives it weight (0.9s, no snap). Hovering also pushes this
-        // card's position into the shared disturbance store so the ambient
-        // canvas ripples nearby.
-        const rotX = gsap.quickTo(live[i], "rotationX", { duration: 0.9, ease: "power2.out", onUpdate: () => push(i) });
-        const rotY = gsap.quickTo(live[i], "rotationY", { duration: 0.9, ease: "power2.out", onUpdate: () => push(i) });
-        const liftZ = gsap.quickTo(live[i], "z", { duration: 0.9, ease: "power2.out", onUpdate: () => push(i) });
-
-        let decayTween: gsap.core.Tween | null = null;
-
+        // ---- Cursor tilt: sets only the TARGET; idleTick's per-frame lerp
+        // (HOVER_SMOOTH) above is what actually eases live[i] (and the
+        // disturbance strength below) toward it, on every frame the section
+        // is visible — the identical mechanism mouseleave uses to ease back
+        // to neutral, so both directions move with the same weight.
         const onMove = (e: MouseEvent) => {
           const r = card.getBoundingClientRect();
           const nx = ((e.clientX - r.left) / r.width - 0.5) * 2;
           const ny = ((e.clientY - r.top) / r.height - 0.5) * 2;
 
-          rotY(nx * 9);
-          rotX(-ny * 7);
-          liftZ(18);
+          hoverTarget[i].rotY = nx * 9;
+          hoverTarget[i].rotX = -ny * 7;
+          hoverTarget[i].z = 18;
 
-          decayTween?.kill();
-          useCardDisturbance.getState().setPoint(i, e.clientX / window.innerWidth, e.clientY / window.innerHeight, 0.8);
+          disturbTarget[i] = 0.8;
+          disturbActive[i] = true;
+          disturbPos[i].x = e.clientX / window.innerWidth;
+          disturbPos[i].y = e.clientY / window.innerHeight;
         };
 
         const onLeave = () => {
-          // Slow return with a slight overshoot — never an instant snap.
-          gsap.to(live[i], { rotationX: 0, rotationY: 0, z: 0, duration: 1.1, ease: "elastic.out(1, 0.6)", onUpdate: () => push(i) });
-
-          decayTween?.kill();
-          const r = card.getBoundingClientRect();
-          const cx = (r.left + r.width / 2) / window.innerWidth;
-          const cy = (r.top + r.height / 2) / window.innerHeight;
-          const proxy = { strength: 0.8 };
-          decayTween = gsap.to(proxy, {
-            strength: 0,
-            duration: 0.7,
-            ease: "power2.out",
-            onUpdate: () => useCardDisturbance.getState().setPoint(i, cx, cy, proxy.strength),
-            onComplete: () => useCardDisturbance.getState().clearPoint(i),
-          });
+          hoverTarget[i].rotX = 0;
+          hoverTarget[i].rotY = 0;
+          hoverTarget[i].z = 0;
+          disturbTarget[i] = 0;
         };
 
         card.addEventListener("mousemove", onMove);
@@ -871,7 +961,6 @@ export default function Servicios() {
         cleanups.push(() => {
           card.removeEventListener("mousemove", onMove);
           card.removeEventListener("mouseleave", onLeave);
-          decayTween?.kill();
           useCardDisturbance.getState().clearPoint(i);
         });
       });

@@ -20,6 +20,7 @@ export type CardTransform = {
   rotationX: number;
   rotationY: number;
   scale: number;
+  opacity: number;
 };
 
 // The slot holds the anchor ELEMENT, not a measured rect: CardSlot (in the
@@ -41,7 +42,7 @@ type Registry = {
   clear: (id: number) => void;
 };
 
-const defaultTransform = (): CardTransform => ({ x: 0, y: 0, z: 0, rotationX: 0, rotationY: 0, scale: 1 });
+const defaultTransform = (): CardTransform => ({ x: 0, y: 0, z: 0, rotationX: 0, rotationY: 0, scale: 1, opacity: 1 });
 
 const emptySlot = (): Slot => ({
   anchor: null,

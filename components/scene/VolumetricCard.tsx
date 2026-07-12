@@ -257,6 +257,13 @@ export default function VolumetricCard({
       {isGlass ? (
         <meshPhysicalMaterial
           color={color}
+          // `transparent` is always on (even though `opacity` sits at 1 most
+          // of the time): Servicios' exit-fade (see ServiciosCardsLayer.tsx,
+          // which mutates this material's `.opacity` directly per frame,
+          // never through this prop) needs it, and toggling `transparent`
+          // on/off at runtime would mean recompiling the shader — cheaper to
+          // just leave it on for every card up front.
+          transparent
           // NO transmission, deliberately: it forces three.js into an extra
           // whole-scene render pass per frame for refraction, and behind
           // these cards there is only the near-black background plane — the

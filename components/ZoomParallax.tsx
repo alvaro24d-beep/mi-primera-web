@@ -148,13 +148,38 @@ export default function ZoomParallax() {
       // scroll is a single `transform: scale()` shrinking it down from
       // there, which is GPU-composited (no reflow) and never enlarges
       // pre-rendered pixels, so it stays both smooth and crisp.
-      layers.forEach((layer) => {
+      let dominantIdx = -1;
+      let dominantHeight = -Infinity;
+      const imgs: (HTMLElement | null)[] = [];
+      layers.forEach((layer, i) => {
         const max =
           parseFloat((isMobile ? layer.dataset.maxScaleMobile : undefined) ?? layer.dataset.maxScale ?? "4") || 4;
         const img = layer.querySelector<HTMLElement>(".nxr-zp-img");
+        imgs.push(img);
         if (!img) return;
         const scale = max - (max - 1) * progress;
         img.style.transform = `scale(${scale / max})`;
+        // Real on-screen height AFTER the transform above — comparable
+        // across cards despite their different base CSS sizes/max values,
+        // and the SAME metric components/scene/ZoomParallaxCardsLayer.tsx
+        // ranks the glass meshes by, so the DOM text below stacks in the
+        // same order the glass does.
+        const h = img.getBoundingClientRect().height;
+        if (h > dominantHeight) {
+          dominantHeight = h;
+          dominantIdx = i;
+        }
+      });
+      // The currently most-dominant card's TEXT needs to sit BEHIND its
+      // neighbours' text/content, mirroring the glass mesh depth order
+      // (see BEHIND_Z in ZoomParallaxCardsLayer.tsx) — otherwise, once two
+      // cards' boxes started overlapping (most visible on phones, where
+      // they sit closer together), the central card's DOM content — plain
+      // sibling elements with no z-index at all before this, so later ones
+      // simply painted over earlier ones in mount order — could end up
+      // showing IN FRONT of a neighbour it was supposed to be tucked behind.
+      imgs.forEach((img, i) => {
+        if (img) img.style.zIndex = i === dominantIdx ? "1" : "2";
       });
     }
 

@@ -1,10 +1,25 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useFrame, useThree } from "@react-three/fiber";
 import * as THREE from "three";
 import VolumetricCard from "./VolumetricCard";
 import { useZoomParallaxCardsRegistry, ZP_MAX_CARDS } from "@/store/useZoomParallaxCardsRegistry";
+
+const DEG2RAD = Math.PI / 180;
+// Ambient mouse tilt, shared by every card equally — a small "the whole
+// scene reacts to you" cue independent of whether the cursor is actually
+// over any given card (unlike a hover-only effect, this reads even for
+// cards nowhere near the pointer).
+const MOUSE_MAX_YAW = 5;
+const MOUSE_MAX_PITCH = 3.5;
+const MOUSE_SMOOTH = 0.06; // per-frame lerp factor toward the target angle
+// "Look toward centre": each card's yaw/pitch is also driven by its OWN
+// position on screen — cards far from centre turn slightly inward, the one
+// currently near centre (whichever that is) settles near 0° on its own,
+// continuously, with no special-casing needed.
+const CENTER_YAW_MAX = 10;
+const CENTER_PITCH_MAX = 6;
 
 // Every card's geometry is built ONCE at this normalized height (world
 // units); its actual on-screen size comes from a per-frame GROUP scale, not
@@ -46,9 +61,27 @@ export default function ZoomParallaxCardsLayer() {
   const groupRefs = useRef<(THREE.Group | null)[]>(Array.from({ length: ZP_MAX_CARDS }, () => null));
   const sectionElRef = useRef<HTMLElement | null>(null);
   const aspectsRef = useRef<number[]>(Array.from({ length: ZP_MAX_CARDS }, () => 1.5));
-  const [aspects, setAspects] = useState<number[]>(aspectsRef.current);
+  const [aspects, setAspects] = useState<number[]>(() => Array.from({ length: ZP_MAX_CARDS }, () => 1.5));
+  const mouseTarget = useRef({ nx: 0, ny: 0 });
+  const mouseCurrent = useRef({ nx: 0, ny: 0 });
+
+  useEffect(() => {
+    const onMove = (e: MouseEvent) => {
+      mouseTarget.current.nx = (e.clientX / window.innerWidth - 0.5) * 2;
+      mouseTarget.current.ny = (e.clientY / window.innerHeight - 0.5) * 2;
+    };
+    window.addEventListener("mousemove", onMove, { passive: true });
+    return () => window.removeEventListener("mousemove", onMove);
+  }, []);
 
   useFrame(() => {
+    // Smoothed toward the live cursor position every frame — a direct,
+    // unsmoothed assignment would snap instantly on each mousemove event
+    // instead of reading as a soft, weighted reaction.
+    mouseCurrent.current.nx += (mouseTarget.current.nx - mouseCurrent.current.nx) * MOUSE_SMOOTH;
+    mouseCurrent.current.ny += (mouseTarget.current.ny - mouseCurrent.current.ny) * MOUSE_SMOOTH;
+    const mouseYaw = mouseCurrent.current.nx * MOUSE_MAX_YAW;
+    const mousePitch = -mouseCurrent.current.ny * MOUSE_MAX_PITCH;
     if (!sectionElRef.current) {
       sectionElRef.current = document.getElementById("nxr-zoom-parallax");
     }
@@ -130,6 +163,19 @@ export default function ZoomParallaxCardsLayer() {
       // Only the single currently-most-dominant card gets pushed behind;
       // everyone else sits neutral/in-front — see BEHIND_Z's comment above.
       group.position.z = i === bestIdx ? BEHIND_Z : 0;
+
+      // "Look toward centre", continuously from each card's OWN current
+      // screen position — the same sign convention verified in Servicios'
+      // cover-flow yaw (positive lateral offset → positive rotationY reads
+      // as "facing into the centre"). Whichever card is currently near
+      // screen-centre naturally settles near 0° on its own; nothing here is
+      // keyed to `bestIdx` specifically. Added to the shared ambient mouse
+      // tilt so the whole reel reacts a little to the cursor even when it
+      // isn't over any particular card.
+      const nx = THREE.MathUtils.clamp(group.position.x / (size.width * 0.5), -1, 1);
+      const ny = THREE.MathUtils.clamp(group.position.y / (size.height * 0.5), -1, 1);
+      group.rotation.y = (nx * CENTER_YAW_MAX + mouseYaw) * DEG2RAD;
+      group.rotation.x = (ny * CENTER_PITCH_MAX + mousePitch) * DEG2RAD;
     }
 
     if (aspectsChanged) setAspects([...aspectsRef.current]);

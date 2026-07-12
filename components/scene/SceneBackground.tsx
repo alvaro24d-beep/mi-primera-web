@@ -9,11 +9,12 @@ import * as THREE from "three";
 // shared scene, so the whole site reads as living inside a softly-curved tube
 // (reference: alche.studio). The centre of the arc is pushed FARthest from the
 // camera and both side edges wrap FORWARD toward it — that forward wrap is the
-// concave read. On desktop the inner face shows a pixelated CRT "screen": a
-// looping video (when VIDEO_SRC is set) or, as a zero-asset placeholder, a
-// procedurally-generated TV test signal (colour bars + rolling static). The
-// grid + depth-glow ride on top of it. On mobile it falls back to the cheap
-// static grid (no video decode / continuous render) per the perf playbook.
+// concave read. The inner face shows a pixelated CRT "screen": a looping video
+// (the `videoSrc` prop — SceneCanvas.tsx picks a portrait or landscape clip to
+// match the live viewport orientation) or, as a zero-asset placeholder/
+// fallback, a procedurally-generated TV test signal (colour bars + rolling
+// static) shown until that video's first frame is ready. The grid + depth-glow
+// ride on top of it.
 //
 // All numbers are world units: 1 unit == 1 CSS pixel at z=0 (see PixelCamera).
 // Sized so the projected arc overfills both a wide desktop and a tall phone.
@@ -23,10 +24,6 @@ const Z_CENTER = -1050; // depth of the arc's farthest (central) column — deep
 const HEIGHT = 2600; // vertical span (straight — axis is vertical, so no vertical curvature)
 const COLS = 220;
 const ROWS = 72;
-
-// ── Real video for the TV wall (desktop only — see `tv` prop). To swap it,
-//    drop a new file in /public and update this one constant.
-const VIDEO_SRC: string | null = "/bg-video.mp4";
 
 function buildArcGeometry() {
   const positions: number[] = [];
@@ -154,7 +151,15 @@ const fragmentShader = /* glsl */ `
   }
 `;
 
-export default function SceneBackground({ tv, active }: { tv: boolean; active: boolean }) {
+export default function SceneBackground({
+  tv,
+  videoSrc,
+  active,
+}: {
+  tv: boolean;
+  videoSrc: string | null;
+  active: boolean;
+}) {
   const geometry = useMemo(() => buildArcGeometry(), []);
   const groupRef = useRef<THREE.Group>(null);
   const matRef = useRef<THREE.ShaderMaterial>(null);
@@ -195,8 +200,11 @@ export default function SceneBackground({ tv, active }: { tv: boolean; active: b
   useEffect(() => () => geometry.dispose(), [geometry]);
   useEffect(() => () => blankTex.dispose(), [blankTex]);
 
-  // Real video → VideoTexture (desktop only). No-op while VIDEO_SRC is null
-  // (the procedural placeholder runs instead). Playback/invalidation is tuned
+  // Real video → VideoTexture. No-op while `videoSrc` is null (the procedural
+  // placeholder runs instead). Depends on `videoSrc` itself (not just `tv`),
+  // so an orientation flip (SceneCanvas.tsx swaps portrait/landscape clips)
+  // tears down this video/texture and builds the other one, rather than
+  // trying to swap `.src` on a live VideoTexture. Playback/invalidation is tuned
   // to decode and render no more than the video actually needs:
   //  - `requestVideoFrameCallback` (rVFC) invalidates the canvas exactly when
   //    a NEW decoded frame is ready — never faster than the video's own frame
@@ -211,9 +219,9 @@ export default function SceneBackground({ tv, active }: { tv: boolean; active: b
   //    there's only one instance for the whole site, so this is a single
   //    decode pipeline, not one per section.
   useEffect(() => {
-    if (!tv || !VIDEO_SRC) return;
+    if (!tv || !videoSrc) return;
     const video = document.createElement("video");
-    video.src = VIDEO_SRC;
+    video.src = videoSrc;
     video.loop = true;
     video.muted = true;
     video.playsInline = true;
@@ -275,7 +283,7 @@ export default function SceneBackground({ tv, active }: { tv: boolean; active: b
         mat.uniforms.uSource.value = blankTex;
       }
     };
-  }, [tv, blankTex, invalidate]);
+  }, [tv, videoSrc, blankTex, invalidate]);
 
   // Cursor parallax. Each mousemove kicks a render (the canvas runs
   // "demand" off the card sections), and the ease-out below re-invalidates
@@ -291,20 +299,20 @@ export default function SceneBackground({ tv, active }: { tv: boolean; active: b
   }, [invalidate]);
 
   // Drives the PROCEDURAL placeholder's rolling-static animation only — when
-  // a real VIDEO_SRC is set, the effect above's `requestVideoFrameCallback`
+  // a real `videoSrc` is set, the effect above's `requestVideoFrameCallback`
   // already invalidates exactly on each decoded frame, so this would just be
   // a redundant second invalidation source. ~30fps, not the cards' 60fps
   // "always", so an idle procedural background doesn't reintroduce the
   // scroll-heat the demand loop was there to avoid. Paused while the tab is
-  // hidden. Mobile (tv=false) never starts it and stays fully demand-idle on
-  // the static grid.
+  // hidden. `tv=false` never starts it and stays fully demand-idle on the
+  // static grid.
   useEffect(() => {
-    if (!tv || !active || VIDEO_SRC) return;
+    if (!tv || !active || videoSrc) return;
     const id = window.setInterval(() => {
       if (!document.hidden) invalidate();
     }, 33);
     return () => window.clearInterval(id);
-  }, [tv, active, invalidate]);
+  }, [tv, active, videoSrc, invalidate]);
 
   useFrame((state) => {
     if (matRef.current) matRef.current.uniforms.uTime.value = state.clock.elapsedTime;

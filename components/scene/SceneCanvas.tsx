@@ -58,11 +58,26 @@ export default function SceneCanvas() {
   // animate each frame. The sections are far apart, so at most one is ever
   // near at a time.
   const [cardsNear, setCardsNear] = useState(false);
+  // The TV-wall video is portrait/landscape-specific (a vertical clip reads as
+  // cropped-wrong letterboxed garbage stretched across a wide desktop wall,
+  // and vice versa), so — unlike `isMobile` above, a device-class check fixed
+  // at mount — this tracks actual aspect ratio and updates live: a phone
+  // rotated to landscape, or a desktop window resized narrow, should still
+  // get the orientation-matched clip.
+  const [isPortrait, setIsPortrait] = useState(
+    () => typeof window !== "undefined" && window.innerHeight > window.innerWidth
+  );
 
   useEffect(() => {
     const onVisibility = () => setActive(document.visibilityState === "visible");
     document.addEventListener("visibilitychange", onVisibility);
     return () => document.removeEventListener("visibilitychange", onVisibility);
+  }, []);
+
+  useEffect(() => {
+    const onResize = () => setIsPortrait(window.innerHeight > window.innerWidth);
+    window.addEventListener("resize", onResize, { passive: true });
+    return () => window.removeEventListener("resize", onResize);
   }, []);
 
   useEffect(() => {
@@ -119,11 +134,16 @@ export default function SceneCanvas() {
         <ambientLight intensity={0.35} />
         <directionalLight position={[500, 800, 600]} intensity={0.5} color="#ffffff" />
         <SceneEnvironment />
-        {/* The CRT video wall is desktop-only (continuous video decode + render
-            is dropped on mobile per the perf playbook — mobile keeps the cheap
-            static concave grid). `active` pauses its ~30fps loop when the tab
-            is hidden. */}
-        <SceneBackground tv={!isMobile} active={active} />
+        {/* The CRT video wall now runs on every screen — portrait screens (phones
+            held normally) get a vertical-shot clip, landscape/desktop keeps the
+            original horizontal one, so the wall is never showing a
+            wrong-orientation video stretched/cropped to fit. `active` pauses
+            its ~30fps invalidation loop when the tab is hidden. */}
+        <SceneBackground
+          tv
+          videoSrc={isPortrait ? "/bg-video-vertical.mp4" : "/bg-video.mp4"}
+          active={active}
+        />
         <ServiciosCardsLayer isMobile={isMobile} />
         <ZoomParallaxCardsLayer />
         {!isMobile && (

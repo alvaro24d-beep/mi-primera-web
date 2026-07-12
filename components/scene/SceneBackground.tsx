@@ -24,10 +24,9 @@ const HEIGHT = 2600; // vertical span (straight — axis is vertical, so no vert
 const COLS = 220;
 const ROWS = 72;
 
-// ── Drop a video into /public and put its path here (e.g. "/reel.mp4") to use
-//    a real video instead of the procedural placeholder. Kept as a single
-//    constant so swapping is a one-line change. Desktop-only either way.
-const VIDEO_SRC: string | null = null;
+// ── Real video for the TV wall (desktop only — see `tv` prop). To swap it,
+//    drop a new file in /public and update this one constant.
+const VIDEO_SRC: string | null = "/bg-video.mp4";
 
 function buildArcGeometry() {
   const positions: number[] = [];
@@ -197,7 +196,20 @@ export default function SceneBackground({ tv, active }: { tv: boolean; active: b
   useEffect(() => () => blankTex.dispose(), [blankTex]);
 
   // Real video → VideoTexture (desktop only). No-op while VIDEO_SRC is null
-  // (the procedural placeholder runs instead).
+  // (the procedural placeholder runs instead). Playback/invalidation is tuned
+  // to decode and render no more than the video actually needs:
+  //  - `requestVideoFrameCallback` (rVFC) invalidates the canvas exactly when
+  //    a NEW decoded frame is ready — never faster than the video's own frame
+  //    rate, and it naturally stops firing if the video stalls/buffers, unlike
+  //    a blind interval that would keep invalidating (and re-rendering the
+  //    whole scene) for nothing.
+  //  - The `<video>` itself is paused (not just "not rendered") on
+  //    visibilitychange, so a hidden tab does zero decode work, not just zero
+  //    GPU upload.
+  //  - `preload="auto"` + eager `.play()` on `loadeddata` so the loop is
+  //    already primed by the time anyone scrolls to where it's visible —
+  //    there's only one instance for the whole site, so this is a single
+  //    decode pipeline, not one per section.
   useEffect(() => {
     if (!tv || !VIDEO_SRC) return;
     const video = document.createElement("video");
@@ -205,24 +217,56 @@ export default function SceneBackground({ tv, active }: { tv: boolean; active: b
     video.loop = true;
     video.muted = true;
     video.playsInline = true;
-    video.crossOrigin = "anonymous";
+    video.preload = "auto";
     const tex = new THREE.VideoTexture(video);
     tex.colorSpace = THREE.SRGBColorSpace;
     tex.magFilter = THREE.NearestFilter; // keep the pixelation crisp
     tex.minFilter = THREE.LinearFilter;
     // Captured once — the material is stable for this component's lifetime, so
-    // the same instance is valid in both `onReady` and cleanup.
+    // the same instance is valid across every callback/cleanup below.
     const mat = matRef.current;
+
+    const supportsRVFC = typeof video.requestVideoFrameCallback === "function";
+    let rvfcId: number | null = null;
+    const onFrame = () => {
+      invalidate();
+      if (!document.hidden) rvfcId = video.requestVideoFrameCallback(onFrame);
+    };
+
     const onReady = () => {
       if (mat) {
         mat.uniforms.uSource.value = tex;
         mat.uniforms.uHasVideo.value = 1;
       }
       video.play().catch(() => {});
+      if (supportsRVFC) rvfcId = video.requestVideoFrameCallback(onFrame);
     };
     video.addEventListener("loadeddata", onReady);
+
+    // Fallback ONLY for browsers without rVFC — a light interval just to keep
+    // the canvas repainting while the video plays.
+    let fallbackInterval: number | null = null;
+    if (!supportsRVFC) {
+      fallbackInterval = window.setInterval(() => {
+        if (!document.hidden) invalidate();
+      }, 33);
+    }
+
+    const onVisibility = () => {
+      if (document.hidden) {
+        video.pause();
+      } else {
+        video.play().catch(() => {});
+        if (supportsRVFC) rvfcId = video.requestVideoFrameCallback(onFrame);
+      }
+    };
+    document.addEventListener("visibilitychange", onVisibility);
+
     return () => {
       video.removeEventListener("loadeddata", onReady);
+      document.removeEventListener("visibilitychange", onVisibility);
+      if (rvfcId !== null) video.cancelVideoFrameCallback(rvfcId);
+      if (fallbackInterval !== null) window.clearInterval(fallbackInterval);
       video.pause();
       video.src = "";
       tex.dispose();
@@ -231,7 +275,7 @@ export default function SceneBackground({ tv, active }: { tv: boolean; active: b
         mat.uniforms.uSource.value = blankTex;
       }
     };
-  }, [tv, blankTex]);
+  }, [tv, blankTex, invalidate]);
 
   // Cursor parallax. Each mousemove kicks a render (the canvas runs
   // "demand" off the card sections), and the ease-out below re-invalidates
@@ -246,14 +290,16 @@ export default function SceneBackground({ tv, active }: { tv: boolean; active: b
     return () => window.removeEventListener("mousemove", onMove);
   }, [invalidate]);
 
-  // The CRT wall animates (rolling static, video playback), so on desktop it
-  // needs to keep rendering even when no card section is near — but at ~30fps,
-  // NOT the 60fps "always" the card sections use, so a video backdrop doesn't
-  // reintroduce the scroll-heat the demand loop was there to avoid. Paused
-  // while the tab is hidden. Mobile (tv=false) never starts it and stays fully
-  // demand-idle on the static grid.
+  // Drives the PROCEDURAL placeholder's rolling-static animation only — when
+  // a real VIDEO_SRC is set, the effect above's `requestVideoFrameCallback`
+  // already invalidates exactly on each decoded frame, so this would just be
+  // a redundant second invalidation source. ~30fps, not the cards' 60fps
+  // "always", so an idle procedural background doesn't reintroduce the
+  // scroll-heat the demand loop was there to avoid. Paused while the tab is
+  // hidden. Mobile (tv=false) never starts it and stays fully demand-idle on
+  // the static grid.
   useEffect(() => {
-    if (!tv || !active) return;
+    if (!tv || !active || VIDEO_SRC) return;
     const id = window.setInterval(() => {
       if (!document.hidden) invalidate();
     }, 33);

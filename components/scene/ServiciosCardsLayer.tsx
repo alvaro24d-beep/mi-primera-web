@@ -15,10 +15,15 @@ const DEFAULT_STYLE: CardStyle = { color: "#0d1520", material: "glass", curveX: 
 // instead of spilling past the curved edges. ZoomParallax cards don't pass
 // this, so they keep their convex dome.
 const SRV_BEND = 0.26;
-// Frosted see-through glass (the TV-wall background blurs through). Desktop
-// only — transmission adds a render pass, dropped on mobile per the perf
-// playbook (mobile keeps opaque cards).
-const SRV_TRANSMISSION = 0.55;
+// Frosted see-through glass (the TV-wall background blurs through). Raised
+// now that VolumetricCard dials back clearcoat/reflectivity for frosted cards
+// (see the `isFrosted` branch there) — at the OLD full-strength reflection
+// this needed to fight for visibility and read as "grey" no matter its value;
+// with that competing reflection gone, this is what actually controls how
+// see-through the card reads. Desktop only — transmission adds a render pass
+// (kept cheap via `transmissionResolutionScale` in SceneCanvas.tsx), dropped
+// on mobile per the perf playbook (mobile keeps opaque cards).
+const SRV_TRANSMISSION = 0.6;
 // Servicios.tsx's entrance/tilt math is ported from the CSS/GSAP DOM version,
 // where rotationX/rotationY are degrees (CSS transform convention) — but
 // Object3D.rotation is in radians, so convert at this R3F consumption boundary.

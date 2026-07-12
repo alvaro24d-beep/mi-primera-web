@@ -293,12 +293,27 @@ export default function VolumetricCard({
   }, [geometry]);
 
   const isGlass = material === "glass";
+  const isFrosted = isGlass && transmission > 0;
+
+  // `color` on a transmissive MeshPhysicalMaterial acts as an absorption tint
+  // on the transmitted light too — the near-black brand colors tuned for the
+  // OPAQUE cards (where `color` only shades the reflection) absorb virtually
+  // everything passing through, so raising `transmission` alone did nothing:
+  // the card just looked opaque regardless of its value. Lightening the
+  // surface colour toward white is what actually lets the background show
+  // through; the original brand tint moves to `attenuationColor` below, which
+  // colours the transmitted light WITHOUT blocking it, so the frosted look
+  // keeps its per-card hue instead of going flat white.
+  const glassColor = useMemo(
+    () => (isFrosted ? new THREE.Color(color).lerp(new THREE.Color("#ffffff"), 0.45) : color),
+    [color, isFrosted]
+  );
 
   return (
     <mesh ref={meshRef} geometry={geometry} position={position} rotation={rotation} castShadow receiveShadow>
       {isGlass ? (
         <meshPhysicalMaterial
-          color={color}
+          color={glassColor}
           // `transparent` is always on (even though `opacity` sits at 1 most
           // of the time): Servicios' exit-fade (see ServiciosCardsLayer.tsx,
           // which mutates this material's `.opacity` directly per frame,
@@ -307,22 +322,30 @@ export default function VolumetricCard({
           // just leave it on for every card up front.
           transparent
           // `transmission` is opt-in per card (0 for ZoomParallax → opaque, no
-          // extra pass). When > 0 the background (now a bright TV wall, not the
-          // old near-black plane) blurs THROUGH the glass — the raised
-          // roughness below is what turns that refraction frosted rather than a
-          // clear window. `thickness` gives the refraction some depth to bend.
+          // extra pass). When > 0 the background blurs THROUGH the glass — the
+          // blur itself comes from `SceneCanvas.tsx`'s downscaled
+          // `transmissionResolutionScale` (a low-res capture magnified back up
+          // reads as soft blur, cheaper than a high-res one) PLUS roughness
+          // here; between the two, roughness stays modest so the surface
+          // doesn't also pick up a milky diffuse scatter on top of the blur.
+          // `thickness` gives the refraction some depth to bend.
           transmission={transmission}
           thickness={transmission > 0 ? 34 : 0}
-          // Frosted glass wants a softer surface (0.28) than the near-mirror
-          // dark glass (0.16) so both the reflection AND the transmitted
-          // background read as a gentle blur, not sharp.
-          roughness={(transmission > 0 ? 0.28 : 0.16) + roughnessJitter}
-          clearcoat={1}
+          attenuationColor={color}
+          attenuationDistance={26}
+          roughness={(isFrosted ? 0.22 : 0.16) + roughnessJitter}
+          // Frosted cards dial back clearcoat/reflectivity/envMapIntensity —
+          // at the opaque cards' full strength (1 / 0.55 / 1.6) the glossy
+          // env reflection painted a bright film OVER the transmitted image,
+          // reading as "grey card" instead of "see-through card"; transmission
+          // is raised in turn since it no longer has to fight that reflection
+          // for the eye's attention.
+          clearcoat={isFrosted ? 0.35 : 1}
           clearcoatRoughness={0.08}
           ior={1.5}
-          reflectivity={0.55}
+          reflectivity={isFrosted ? 0.22 : 0.55}
           metalness={0.04}
-          envMapIntensity={1.6}
+          envMapIntensity={isFrosted ? 0.7 : 1.6}
         />
       ) : (
         <meshPhysicalMaterial

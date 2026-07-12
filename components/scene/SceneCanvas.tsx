@@ -102,6 +102,18 @@ export default function SceneCanvas() {
         dpr={isMobile ? [1, 1.25] : [1, 1.5]}
         camera={{ position: [0, 0, CAMERA_DISTANCE], fov: 50, near: 1, far: CAMERA_DISTANCE * 3 }}
         gl={{ alpha: true, antialias: !isMobile, powerPreference: "high-performance" }}
+        onCreated={({ gl }) => {
+          // Servicios' frosted cards (VolumetricCard's `transmission` prop)
+          // need three.js to capture a copy of what's behind them each frame
+          // it's visible — normally at full render-target resolution, which
+          // is the expensive part of transmission, not the shading itself.
+          // Downscaling that capture is BOTH the efficient choice (a quarter
+          // the pixels to copy/mipmap) AND gives the frosted "blurred
+          // background" look for free — a low-res capture magnified back up
+          // reads as soft blur, so roughness alone doesn't have to do all the
+          // blurring work (see VolumetricCard.tsx).
+          gl.transmissionResolutionScale = 0.25;
+        }}
       >
         <PixelCamera />
         <ambientLight intensity={0.35} />

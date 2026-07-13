@@ -47,9 +47,10 @@ export default function SceneCanvas() {
   const [isMobile] = useState(() => typeof window !== "undefined" && window.innerWidth < 768);
   const [active, setActive] = useState(true);
   // Frameloop has THREE regimes (see the `frameloop` prop below):
-  //   • tab hidden            → "never"  (fully idle)
-  //   • a card section near   → "always" (continuous — cards animate every frame)
-  //   • otherwise (hero, etc) → "demand" (renders only when invalidated)
+  //   • tab hidden                        → "never"  (fully idle)
+  //   • card section near AND user active → "always" (60fps while it matters)
+  //   • otherwise (idle, hero, etc)       → "demand" (renders only when invalidated,
+  //     in practice at the wall video's frame rate)
   // The concave cylinder backdrop (SceneBackground) is global, so the canvas
   // can no longer go fully idle off the card sections the way it used to —
   // but it doesn't need to run at 60fps there either: the backdrop is static
@@ -60,6 +61,17 @@ export default function SceneCanvas() {
   // animate each frame. The sections are far apart, so at most one is ever
   // near at a time.
   const [cardsNear, setCardsNear] = useState(false);
+  // TRUE while the user is actually interacting (scroll/wheel/pointer/touch
+  // within the last ~450ms). The "always" 60fps regime used to run
+  // CONTINUOUSLY near any glass section — reading a static paragraph next
+  // to idle glass panels burned 60 full renders/s (transmission capture +
+  // bloom included), the single biggest steady-state heat source. Nothing
+  // there moves without input except micro-drifts, which read fine at the
+  // video-driven demand rate, so idle now always falls back to "demand".
+  // Engage is INSTANT (any input flips it synchronously); disengage lazy.
+  const [engaged, setEngaged] = useState(false);
+  const engagedRef = useRef(false);
+  const lastActivity = useRef(0);
   // The TV-wall video is portrait/landscape-specific (a vertical clip reads as
   // cropped-wrong letterboxed garbage stretched across a wide desktop wall,
   // and vice versa), so — unlike `isMobile` above, a device-class check fixed
@@ -80,6 +92,39 @@ export default function SceneCanvas() {
     const onResize = () => setIsPortrait(window.innerHeight > window.innerWidth);
     window.addEventListener("resize", onResize, { passive: true });
     return () => window.removeEventListener("resize", onResize);
+  }, []);
+
+  useEffect(() => {
+    const bump = () => {
+      lastActivity.current = performance.now();
+      if (!engagedRef.current) {
+        engagedRef.current = true;
+        setEngaged(true);
+      }
+    };
+    // `scroll` covers everything that actually moves the page (Lenis drives
+    // the REAL scroll position, including its inertia tail and programmatic
+    // glides), pointer/touch/wheel cover hover/tilt interactions that don't
+    // scroll.
+    window.addEventListener("scroll", bump, { passive: true });
+    window.addEventListener("wheel", bump, { passive: true });
+    window.addEventListener("pointermove", bump, { passive: true });
+    window.addEventListener("touchmove", bump, { passive: true });
+    window.addEventListener("touchstart", bump, { passive: true });
+    const settle = window.setInterval(() => {
+      if (engagedRef.current && performance.now() - lastActivity.current > 450) {
+        engagedRef.current = false;
+        setEngaged(false);
+      }
+    }, 200);
+    return () => {
+      window.removeEventListener("scroll", bump);
+      window.removeEventListener("wheel", bump);
+      window.removeEventListener("pointermove", bump);
+      window.removeEventListener("touchmove", bump);
+      window.removeEventListener("touchstart", bump);
+      window.clearInterval(settle);
+    };
   }, []);
 
   useEffect(() => {
@@ -133,7 +178,7 @@ export default function SceneCanvas() {
     >
       <Canvas
         ref={canvasRef}
-        frameloop={!active ? "never" : cardsNear ? "always" : "demand"}
+        frameloop={!active ? "never" : cardsNear && engaged ? "always" : "demand"}
         // Perf pass: 1.25 desktop / 1 mobile (was 1.5 / 1.25). The backdrop is
         // a deliberately pixelated CRT and the cards are frosted glass — the
         // ~40% pixel-count cut is not visible on either, and fill rate is this

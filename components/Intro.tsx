@@ -6,6 +6,7 @@ import { useGSAP } from "@gsap/react";
 import { useTitleReveal } from "@/hooks/useTitleReveal";
 import { useReducedMotion } from "@/hooks/useReducedMotion";
 import { useGlassPanels } from "@/hooks/useGlassPanels";
+import { useCurvedWords } from "@/hooks/useCurvedWords";
 
 // Compact looping graphic per card, each representing its service (same idea
 // as the home Servicios animations): a website building for "Construimos", an
@@ -64,6 +65,12 @@ export default function Intro() {
   // Servicios cards, flat variant) — the DOM card keeps only layout/content;
   // see the .nxr-intro-card CSS, which no longer paints its own glass.
   useGlassPanels(sectionRef, ".nxr-intro-card", "#12141c", [reducedMotion]);
+
+  // ONE block wrapping both paragraphs (see the JSX comment) so they share a
+  // single deformation surface. "right": this column sits on the RIGHT half
+  // of the screen, where the concave backdrop wraps its right side toward
+  // the viewer — and matches the requested mobile direction too.
+  useCurvedWords(sectionRef, ".nxr-intro-textblock", "right");
 
   useGSAP(
     () => {
@@ -127,9 +134,13 @@ export default function Intro() {
       // OUT, so it visibly leaves rather than just scrolling out of frame.
       tl.to(texts, { opacity: 0, y: -40, duration: 1, ease: "power2.in" }, 1.7);
       // Phase 3 — the cards rise in WHILE the text is still dissolving
-      // (starts at 2.3, text-out ends 2.7): a crossfade hand-off reads as one
-      // continuous composition instead of "text gone → dead scroll → cards".
-      tl.to(cards, { opacity: 1, y: 0, duration: 0.25, stagger: 0.08, ease: "power2.out" }, 2.3);
+      // (starts at 1.9, right as the text-out begins at 1.7): a crossfade
+      // hand-off reads as one continuous composition instead of "text gone →
+      // dead scroll → cards". Pulled forward from 2.3 ("que aparezcan antes,
+      // no que tengan que subir tanto para aparecer"): nothing here is
+      // pinned, so every timeline unit the cards wait is real scroll
+      // distance they climb up-screen while still invisible.
+      tl.to(cards, { opacity: 1, y: 0, duration: 0.25, stagger: 0.08, ease: "power2.out" }, 1.9);
     },
     { scope: sectionRef, dependencies: [reducedMotion] }
   );
@@ -149,15 +160,22 @@ export default function Intro() {
 
         <div className="nxr-intro-cards">
           <div className="nxr-intro-texts" ref={textsRef}>
-            <p className="nxr-intro-text">
-              Somos una agencia de <strong>software e inteligencia artificial</strong> especializada en construir
-              sistemas digitales que automatizan tareas, captan clientes y hacen crecer negocios — sin que tengas que
-              entender de tecnología.
-            </p>
-            <p className="nxr-intro-text">
-              Trabajamos con <strong>empresas de cualquier sector</strong> que saben que pueden ir más rápido pero no
-              tienen el equipo técnico para hacerlo. Nosotros somos ese equipo.
-            </p>
+            {/* ONE wrapper block for BOTH paragraphs: useCurvedWords tilts and
+                curves this single element, so the two <p>s share one
+                deformation surface instead of each carrying its own (explicit
+                request). Also keeps the hook's inline transform off
+                .nxr-intro-texts itself, whose transform GSAP owns (y tween). */}
+            <div className="nxr-intro-textblock">
+              <p className="nxr-intro-text">
+                Somos una agencia de <strong>software e inteligencia artificial</strong> especializada en construir
+                sistemas digitales que automatizan tareas, captan clientes y hacen crecer negocios — sin que tengas que
+                entender de tecnología.
+              </p>
+              <p className="nxr-intro-text">
+                Trabajamos con <strong>empresas de cualquier sector</strong> que saben que pueden ir más rápido pero no
+                tienen el equipo técnico para hacerlo. Nosotros somos ese equipo.
+              </p>
+            </div>
           </div>
 
           <div className="nxr-intro-card" id="nxr-intro-card-1">

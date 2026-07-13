@@ -83,10 +83,11 @@ export default function SceneCanvas() {
 
   useEffect(() => {
     // Every section that hosts live glass meshes: the two card reels plus the
-    // generic flat panels (Intro, Proceso, Contacto — see GlassPanelsLayer).
-    // Near any of them the frameloop runs "always" so the meshes track their
-    // scrolling/animating DOM anchors frame-by-frame; elsewhere "demand".
-    const ids = ["nxr-servicios", "nxr-zoom-parallax", "nxr-intro", "nxr-proceso", "nxr-contacto"];
+    // generic flat panels (Hero's CTA, Intro, Proceso, Contacto — see
+    // GlassPanelsLayer). Near any of them the frameloop runs "always" so the
+    // meshes track their scrolling/animating DOM anchors frame-by-frame;
+    // elsewhere "demand".
+    const ids = ["nxr-hero", "nxr-servicios", "nxr-zoom-parallax", "nxr-intro", "nxr-proceso", "nxr-contacto"];
     const sections = ids.map((id) => document.getElementById(id)).filter(Boolean) as HTMLElement[];
     if (!sections.length) return;
     const nearby = new Set<Element>();

@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useTitleReveal } from "@/hooks/useTitleReveal";
 import { useGlassPanels } from "@/hooks/useGlassPanels";
+import { useCurvedWords } from "@/hooks/useCurvedWords";
 
 const PASOS = [
   {
@@ -129,6 +130,10 @@ export default function Proceso() {
   // reports an inflated axis-aligned rect, so the mesh would "breathe"
   // under the cursor while the glass stayed unrotated.
   useGlassPanels(sectionRef, ".nxr-paso-card", "#141018", []);
+
+  // Header paragraph curves like the concave backdrop (see useCurvedWords) —
+  // it sits on the right half of the screen, so its right edge wraps forward.
+  useCurvedWords(sectionRef, ".nxr-proceso-header-right", "right");
 
   useEffect(() => {
     const track = trackRef.current;

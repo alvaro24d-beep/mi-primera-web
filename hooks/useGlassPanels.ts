@@ -32,8 +32,16 @@ export function useGlassPanels(
     if (!els.length) return;
 
     const entries = els.map((el) => {
-      const radius = parseFloat(getComputedStyle(el).borderRadius) || 20;
       const r = el.getBoundingClientRect();
+      // Clamp to just under half the shorter side: pill-shaped anchors (the
+      // hero CTA declares border-radius: 100px on a ~48px-tall button) would
+      // otherwise hit the geometry builder's r == h case, where the straight
+      // edge runs collapse to repeated identical points whose central-
+      // difference inward normals go zero-length → degenerate bevel quads.
+      const radius = Math.min(
+        parseFloat(getComputedStyle(el).borderRadius) || 20,
+        Math.max(2, Math.min(r.width, r.height) / 2 - 1)
+      );
       const id = reg.add(el, { color, radius }, Math.max(2, Math.round(r.width)), Math.max(2, Math.round(r.height)));
       return { el, id };
     });

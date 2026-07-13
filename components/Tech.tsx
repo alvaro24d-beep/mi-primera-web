@@ -1,6 +1,8 @@
 "use client";
 
+import { useRef } from "react";
 import { useTitleReveal } from "@/hooks/useTitleReveal";
+import { useCurvedWords } from "@/hooks/useCurvedWords";
 
 const FILA_1 = [
   { name: "OpenAI GPT-4", cat: "IA & LLMs", color: "#A8F04A" },
@@ -46,9 +48,14 @@ function TechRow({ items }: { items: typeof FILA_1 }) {
 
 export default function Tech() {
   const titleRef = useTitleReveal<HTMLHeadingElement>();
+  const sectionRef = useRef<HTMLElement>(null);
+
+  // Header paragraph curves like the concave backdrop (see useCurvedWords) —
+  // it sits on the right half of the screen, so its right edge wraps forward.
+  useCurvedWords(sectionRef, ".nxr-tech-header-right", "right");
 
   return (
-    <section id="nxr-tech">
+    <section id="nxr-tech" ref={sectionRef}>
       <div className="nxr-tech-inner nxr-reveal">
         <div className="nxr-tech-header">
           <div>

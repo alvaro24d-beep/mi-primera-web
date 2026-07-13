@@ -171,24 +171,24 @@ h6 {
   margin-bottom: 48px;
 }
 
+/* Anchor for a real volumetric liquid-glass mesh (see useGlassPanels in
+   Hero.tsx — this button only exists in the hero): no painted CSS glass
+   anymore, just layout + a legibility scrim, same treatment as the other
+   glass-panel cards. */
 .nxr-btn-secondary {
   display: inline-flex;
   align-items: center;
   gap: 8px;
   padding: 14px 30px;
   border-radius: 100px;
-  backdrop-filter: var(--glass-blur);
   color: var(--c-white);
   font-size: 15px;
   font-weight: 500;
   font-family: var(--font);
-  transition: background 0.2s, border-color 0.2s;
+  transition: background 0.2s;
   cursor: pointer;
   border: 1px solid transparent;
-  background-image: linear-gradient(var(--glass-bg), var(--glass-bg)),
-    var(--glass-border-gradient);
-  background-origin: border-box;
-  background-clip: padding-box, border-box;
+  background: rgba(8, 10, 14, 0.34);
 }
 .nxr-btn-secondary:hover {
   background-image: linear-gradient(
@@ -232,57 +232,101 @@ h6 {
    gradient-text titles, painted per element with background-clip, rendered
    scrambled).
 
-   Key tuning vs. the first flat attempt (rejected as "titles shoved into the
-   edges"): transform-origin stays at the DEFAULT CENTER, so the block pivots
-   in place — near half grows, far half shrinks, and the box never creeps
-   into the page margins. The angle is also strong enough (14deg) to actually
-   read as intentional perspective.
+   Pivot tuning (two rejected iterations before this): the origin sits at 70%
+   toward the block's INNER side — so the OUTER edge (the page-edge side the
+   text is aligned to) swings strongly toward the viewer, the centre of the
+   block sits slightly on the near side of the pivot (it only ever GROWS a
+   touch, never shrinks — explicit requirement), and the small inner stretch
+   behind the pivot barely recedes. A full far-edge origin threw the outer
+   edge's projection off-screen; a center origin shrank the whole far half.
+   26° at 460px (up from 16°/750px, "mucho más exagerado" round two) puts the
+   outer edge at ~1.7x — unmistakable.
+
+   The leading translateX in the media queries below is a SCREEN-SPACE shift
+   (leftmost in the chain = applied after projection): the enlarged outer
+   edge projects well past the block's own layout edge, which at 26° left the
+   frame-adjacent blocks visually glued to (or past) the viewport border
+   ("muy pegados a los marcos"). Percentages resolve against each block's own
+   width, so wider blocks (which jut proportionally further) get shifted
+   proportionally more. `.nxr-intro-text` gets no desktop shift: it lives in
+   the RIGHT grid column and its outer (left) edge juts into the centre
+   gutter, not into a frame.
+
+   The PLAIN-COLORED paragraphs (.nxr-intro-text, .nxr-contacto-desc,
+   .nxr-tech-header-right, .nxr-proceso-header-right) are NOT here anymore:
+   they curve for real, per word on a concave arc matching the TV-wall
+   backdrop, via hooks/useCurvedWords.ts ("tienen que ser curvas como el
+   fondo"). Only the blocks that CAN'T be word-split stay on these flat
+   tangent planes: the animated gradient titles (splitting + transforming
+   their spans scrambles background-clip: text) and the Servicios caption
+   block (gradient title + GSAP-crossfaded container).
 
    Conflict rules: never on an element carrying `.nxr-reveal` (it owns
    `transform` for its entrance — Intro's headline wrapper takes it instead,
    composed with its sticky centering), safe on .nxr-section-h2 themselves
    (useTitleReveal only animates char spans inside). */
-.nxr-intro-text,
-.nxr-contacto-desc,
 #nxr-proceso .nxr-section-h2,
 #nxr-tech .nxr-section-h2,
 #nxr-contacto .nxr-section-h2,
 .nxr-srv-caption-tilt {
-  transform: perspective(900px) rotateY(14deg);
-}
-
-/* Right-anchored blocks (desktop header rows): right half toward the viewer. */
-.nxr-tech-header-right,
-.nxr-proceso-header-right {
-  transform: perspective(900px) rotateY(-14deg);
+  transform: perspective(460px) rotateY(26deg);
+  transform-origin: 70% center;
 }
 
 /* Servicios heading is the one RIGHT-aligned title on desktop; the global
-   mobile rule left-aligns every title, and the stacked full-width "-right"
-   paragraphs read as left-aligned text on phones too. */
+   mobile rule left-aligns every title on phones. */
 @media (min-width: 901px) {
+  /* DESKTOP profile: transform-origin sits AT the inner edge (the
+     screen-centre side), which therefore stays exactly at z=0 — flat,
+     undeformed, "que no se vaya al fondo" — and depth/scale grow toward the
+     page edge with the perspective's naturally convex profile (slow near the
+     pivot, accelerating outward). Nothing recedes behind the screen plane.
+     Angles are gentler than the old mid-pivot 26° because the lever is now
+     the FULL block width; the translateX shifts keep the (much larger)
+     outer-edge projection ~40px+ off the viewport frame — measured at
+     1440px via scratchpad verify-perspective2.mjs; re-run it if these
+     selectors change width. */
+  #nxr-proceso .nxr-section-h2,
+  #nxr-tech .nxr-section-h2 {
+    transform: translateX(20%) perspective(460px) rotateY(16deg);
+    transform-origin: 100% center;
+  }
+  #nxr-contacto .nxr-section-h2 {
+    transform: translateX(32%) perspective(460px) rotateY(16deg);
+    transform-origin: 100% center;
+  }
+  .nxr-srv-caption-tilt {
+    transform: translateX(26%) perspective(460px) rotateY(14deg);
+    transform-origin: 100% center;
+  }
   .nxr-servicios-head .nxr-section-h2 {
-    transform: perspective(900px) rotateY(-14deg);
+    transform: translateX(-30%) perspective(460px) rotateY(-12deg);
+    transform-origin: 0% center;
   }
 }
 @media (max-width: 900px) {
+  /* Narrower blocks jut less in absolute px, but phone side padding is only
+     ~16px, so a smaller inward shift is still needed to keep the enlarged
+     edge on-screen. */
+  #nxr-proceso .nxr-section-h2,
+  #nxr-tech .nxr-section-h2,
+  #nxr-contacto .nxr-section-h2,
+  .nxr-srv-caption-tilt,
   .nxr-servicios-head .nxr-section-h2 {
-    transform: perspective(900px) rotateY(14deg);
-  }
-  .nxr-tech-header-right,
-  .nxr-proceso-header-right {
-    transform: perspective(900px) rotateY(14deg);
+    transform: translateX(10%) perspective(460px) rotateY(26deg);
+    transform-origin: 70% center;
   }
 }
 
 /* Layout for the Servicios caption text block (the tilt target above — NOT
    the full-bleed caption container, whose projection would leave the
-   viewport; the CTA stays at normal depth). */
+   viewport; the CTA stays at normal depth). Width matches the 500px caps on
+   title/desc/pills in the desktop captions row. */
 .nxr-srv-caption-tilt {
   display: flex;
   flex-direction: column;
   gap: 10px;
-  max-width: 620px;
+  max-width: 500px;
 }
 
 /* Native scrollbar hidden — replaced by the custom red scroll-progress bar
@@ -1094,11 +1138,28 @@ h6 {
 }
 
 @media (max-width: 768px) {
-  /* No vertical bias on mobile (a 60px padding-bottom used to nudge both
-     phases up): hero content and "Construido con maestría" sit DEAD-centred
-     in the stage, which itself tracks the live viewport height via
-     --vh-100 (see Hero.tsx's resize handler), so centring holds through
-     address-bar show/hide too. */
+  /* h1 higher, CTA untouched: the actions row gets 56px extra top margin
+     (within the centred flex column that alone would push the text up 28px
+     and the CTA down 28px) and the stage gets a matching 56px bottom padding
+     (shifting the whole centred block up 28px) — net effect: CTA exactly
+     where it was, headline+sub 56px higher. */
+  .nxr-hero-fade,
+  .nxr-hero-static {
+    padding-bottom: 56px;
+  }
+
+  /* "Construido con maestría / Entregado con precisión" pinned to the middle
+     of the SMALL viewport height: the stage is 100lvh-tracked (--vh-100), so
+     flex-centring inside it sat visibly BELOW half-screen whenever the
+     browser bar was showing. A 100svh-tall centring box anchored to the top
+     centres on what is actually visible in the worst case; when the bar
+     hides it sits a touch above true centre — never below. */
+  .nxr-hero-mastery {
+    bottom: auto;
+    height: 100vh;
+    height: 100svh;
+  }
+
   .nxr-hero-h1 {
     font-size: clamp(44px, 11.5vw, 64px);
   }
@@ -1110,7 +1171,9 @@ h6 {
   .nxr-hero-actions {
     flex-direction: column;
     width: 100%;
-    margin-top: 28px;
+    /* 28px of visual air + the 56px half of the "h1 up, CTA fixed" trade
+       (see .nxr-hero-fade's padding-bottom above). */
+    margin-top: 84px;
     padding: 0 16px;
   }
 
@@ -1324,6 +1387,8 @@ h6 {
   .nxr-servicios-captions {
     right: var(--pad-x);
     max-width: none;
+    /* Higher than the base 12vh (desktop-only request: "sube los textos"). */
+    bottom: 18vh;
   }
   .nxr-servicios-captions .nxr-srv-caption {
     position: relative;
@@ -1331,7 +1396,7 @@ h6 {
   .nxr-servicios-captions .nxr-srv-title,
   .nxr-servicios-captions .nxr-srv-desc,
   .nxr-servicios-captions .nxr-srv-pills {
-    max-width: 620px;
+    max-width: 500px;
   }
   .nxr-servicios-captions .nxr-srv-cta-wrap {
     position: absolute;
@@ -1514,21 +1579,21 @@ h6 {
   }
 }
 
-/* Desktop only: bigger caption text to match the bigger card (see
-   `.nxr-srv-slide`'s width above) — mobile keeps its own separately-tuned
-   sizes (`@media (max-width: 900px)` further down), untouched. */
+/* Desktop caption text: shrunk back down from the earlier 35/17px bump
+   ("hazlos más pequeños") — mobile keeps its own separately-tuned sizes
+   (`@media (max-width: 900px)` further down), untouched. */
 @media (min-width: 901px) {
   .nxr-srv-tag {
-    font-size: 14px;
+    font-size: 13px;
   }
   .nxr-srv-title {
-    font-size: 35px;
+    font-size: 27px;
   }
   .nxr-srv-desc {
-    font-size: 17px;
+    font-size: 14px;
   }
   .nxr-srv-pill {
-    font-size: 12px;
+    font-size: 11px;
   }
   .nxr-srv-cta {
     font-size: 13px;
@@ -4307,8 +4372,11 @@ input[type="range"].nxr-ms-range::-moz-range-thumb {
   top: 50%;
   /* Sticky centering + the perspective text plane (see the block near the
      top of this file) composed in one declaration — the headline itself
-     carries .nxr-reveal, which owns its own transform. */
-  transform: translateY(-50%) perspective(900px) rotateY(14deg);
+     carries .nxr-reveal, which owns its own transform. Desktop inner-edge
+     pivot profile (origin 100% = the screen-centre side stays flat at z=0);
+     12° because this is one of the widest tilted blocks (~620px lever). */
+  transform: translateY(-50%) translateX(32%) perspective(460px) rotateY(12deg);
+  transform-origin: 100% center;
   align-self: start;
 }
 
@@ -4328,6 +4396,23 @@ input[type="range"].nxr-ms-range::-moz-range-thumb {
   flex-direction: column;
   gap: 20px;
   visibility: hidden;
+}
+
+/* Single wrapper for BOTH intro paragraphs: useCurvedWords tilts/curves THIS
+   element, so the pair deforms as one surface (and GSAP keeps sole ownership
+   of .nxr-intro-texts' transform for the y/opacity scroll tween). The
+   desktop max-width keeps a comfortable measure AND shrinks the edge-pivot
+   tilt's projected overhang. */
+.nxr-intro-textblock {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+@media (min-width: 901px) {
+  .nxr-intro-textblock {
+    max-width: 520px;
+  }
 }
 
 .nxr-intro-text {
@@ -4639,8 +4724,12 @@ input[type="range"].nxr-ms-range::-moz-range-thumb {
     position: static;
     top: auto;
     /* Drops the desktop sticky-centering translateY(-50%) (it applies
-       regardless of position scheme) but keeps the perspective plane. */
-    transform: perspective(900px) rotateY(14deg);
+       regardless of position scheme). FLIPPED to right-edge-forward on
+       phones, matching .nxr-intro-text's mobile flip — headline and
+       paragraphs stack adjacent on one phone screen, so opposite tilts side
+       by side would clash. */
+    transform: translateX(-10%) perspective(460px) rotateY(-26deg);
+    transform-origin: 30% center;
   }
   .nxr-intro-headline {
     font-size: clamp(36px, 9.5vw, 48px);

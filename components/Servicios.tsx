@@ -722,13 +722,25 @@ export default function Servicios() {
       // (wheel/touch) cancels the glide immediately.
       let snapRaf = 0;
       let snapTimer = 0;
-      const glideTo = (target: number) => {
+      // `page` = mobile one-card-per-swipe pagination (touchend). Those
+      // glides take over from a live finger gesture, and the default
+      // ease-OUT cubic starts at PEAK velocity — an instant speed/direction
+      // change at the moment of release that read as the card "snapping into
+      // place" ("se posiciona de manera brusca"). Paging glides instead use
+      // ease-in-out (starts at ZERO velocity, accelerates, lands soft — the
+      // motion reads as a continuation of the swipe) over a longer budget.
+      // Desktop idle-snap keeps the ease-out: there the glide starts from
+      // rest after ~140ms of no scrolling, where a fast start feels
+      // responsive, not abrupt.
+      const glideTo = (target: number, page = false) => {
         cancelAnimationFrame(snapRaf);
         const from = window.scrollY;
         const dist = target - from;
         if (Math.abs(dist) < 1) return;
         const t0 = performance.now();
-        const dur = Math.min(500, Math.max(220, Math.abs(dist)));
+        const dur = page
+          ? Math.min(750, Math.max(420, Math.abs(dist) * 1.4))
+          : Math.min(500, Math.max(220, Math.abs(dist)));
         // After the ease completes, keep re-writing the exact target until
         // the scroll has verifiably CONVERGED (stable within 1px for a few
         // consecutive frames, up to a bounded number of holds): Lenis can
@@ -752,7 +764,11 @@ export default function Servicios() {
           const st = tl.scrollTrigger;
           if (!st || window.scrollY < st.start - 4 || window.scrollY > st.end + 4) return;
           const t = Math.min(1, (now - t0) / dur);
-          const eased = 1 - Math.pow(1 - t, 3);
+          const eased = page
+            ? t < 0.5
+              ? 4 * t * t * t
+              : 1 - Math.pow(-2 * t + 2, 3) / 2
+            : 1 - Math.pow(1 - t, 3);
           const y = from + dist * eased;
           const lenis = window.__nxrLenis;
           if (lenis) lenis.scrollTo(y, { immediate: true });
@@ -913,7 +929,7 @@ export default function Servicios() {
             if (p > pOf(touchIdx) + eps) targetIdx = touchIdx;
             else if (touchIdx > 0) targetIdx = touchIdx - 1;
           }
-          if (targetIdx !== null) glideTo(scrollAt(st, pOf(targetIdx)));
+          if (targetIdx !== null) glideTo(scrollAt(st, pOf(targetIdx)), true);
         };
         window.addEventListener("touchstart", onTouchStart, { passive: true });
         window.addEventListener("touchend", onTouchEnd, { passive: true });

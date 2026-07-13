@@ -3,6 +3,7 @@
 import { useRef, useState } from "react";
 import { useTitleReveal } from "@/hooks/useTitleReveal";
 import { useGlassPanels } from "@/hooks/useGlassPanels";
+import { useCurvedWords } from "@/hooks/useCurvedWords";
 
 const BUDGET_VALUES = [
   "< 500€",
@@ -44,6 +45,10 @@ export default function Contacto() {
   // Volumetric fluid-glass behind the multi-step form card (flat variant of
   // the Servicios identity) — the DOM card keeps layout/content only.
   useGlassPanels(sectionRef, ".nxr-ms-card", "#100f16", []);
+
+  // Description paragraph curves like the concave backdrop (see
+  // useCurvedWords) — left column, so its left edge wraps forward.
+  useCurvedWords(sectionRef, ".nxr-contacto-desc", "left");
   const [negocio, setNegocio] = useState<string | null>(null);
   const [servicios, setServicios] = useState<string[]>([]);
   const [budgetIndex, setBudgetIndex] = useState(2);

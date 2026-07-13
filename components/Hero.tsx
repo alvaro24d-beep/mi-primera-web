@@ -4,6 +4,7 @@ import { useEffect, useRef } from "react";
 import gsap from "gsap";
 import { useGSAP } from "@gsap/react";
 import { useReducedMotion } from "@/hooks/useReducedMotion";
+import { useGlassPanels } from "@/hooks/useGlassPanels";
 
 const ARROW = (
   <svg
@@ -61,6 +62,14 @@ export default function Hero() {
   const sectionRef = useRef<HTMLElement>(null);
   const stageRef = useRef<HTMLDivElement>(null);
   const reducedMotion = useReducedMotion();
+
+  // The "Empezar proyecto" CTA is a real volumetric liquid-glass panel (same
+  // identity as the site's cards) — the DOM button keeps layout/label only;
+  // its CSS glass is stripped (see #nxr-hero .nxr-btn-secondary). The mesh
+  // inherits the hero's scroll-out fade through the anchor-opacity walk in
+  // GlassPanelsLayer, and its rect (scaled by the hero's exit `scale` tween)
+  // is tracked per frame.
+  useGlassPanels(sectionRef, ".nxr-btn-secondary", "#141018", [reducedMotion]);
 
   useEffect(() => {
     // Mobile browsers can still have their address bar shown at the exact
@@ -152,7 +161,7 @@ export default function Hero() {
   if (reducedMotion) {
     return (
       <>
-        <section key="static" id="nxr-hero" className="nxr-hero-static">
+        <section key="static" id="nxr-hero" className="nxr-hero-static" ref={sectionRef}>
           <HeroCopy />
         </section>
         <div className="nxr-hero-mastery-static">

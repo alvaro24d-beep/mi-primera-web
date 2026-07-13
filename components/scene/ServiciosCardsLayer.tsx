@@ -5,6 +5,7 @@ import { useFrame, useThree } from "@react-three/fiber";
 import * as THREE from "three";
 import VolumetricCard from "./VolumetricCard";
 import { useServiciosCardsRegistry, type CardStyle } from "@/store/useServiciosCardsRegistry";
+import { nearSections } from "@/store/sceneActivity";
 
 const MAX_CARDS = 5;
 const DEFAULT_STYLE: CardStyle = { color: "#0d1520", material: "glass", curveX: 0.06, curveY: 0 };
@@ -41,10 +42,19 @@ function CardSlot({ id, isMobile }: { id: number; isMobile: boolean }) {
   const [style, setStyle] = useState<CardStyle>(DEFAULT_STYLE);
   const lastDims = useRef(dims);
   const lastStyle = useRef(style);
+  const lastOpacity = useRef(1);
 
   useFrame(() => {
     const group = groupRef.current;
     if (!group) return;
+    // Section-proximity early-out (see store/sceneActivity.ts): while the
+    // reel is nowhere near the viewport this slot must not pay a DOM rect
+    // read on every rendered frame (the TV-wall video keeps the canvas
+    // rendering page-wide).
+    if (!nearSections.has("nxr-servicios")) {
+      group.visible = false;
+      return;
+    }
     const slot = useServiciosCardsRegistry.getState().slots[id];
     // Measured HERE, inside the render frame, so the mesh always uses the
     // DOM's current-frame position — never a stale rect from a previous
@@ -86,13 +96,17 @@ function CardSlot({ id, isMobile }: { id: number; isMobile: boolean }) {
     // directly on the material, never through a React prop, so this stays
     // off the per-frame React render path — same reasoning as position/
     // rotation/scale above. `transparent` is always on for this material
-    // (VolumetricCard.tsx) so opacity < 1 actually renders.
-    group.traverse((obj) => {
-      const mesh = obj as THREE.Mesh;
-      if (mesh.isMesh) {
-        (mesh.material as THREE.MeshPhysicalMaterial).opacity = t.opacity;
-      }
-    });
+    // (VolumetricCard.tsx) so opacity < 1 actually renders. Only walked when
+    // the value actually moved — at rest it's pinned at 1.
+    if (Math.abs(t.opacity - lastOpacity.current) > 0.002) {
+      lastOpacity.current = t.opacity;
+      group.traverse((obj) => {
+        const mesh = obj as THREE.Mesh;
+        if (mesh.isMesh) {
+          (mesh.material as THREE.MeshPhysicalMaterial).opacity = t.opacity;
+        }
+      });
+    }
 
     // Rounded + tolerance-gated: sub-pixel float jitter in getBoundingClientRect
     // (e.g. while sibling GSAP transforms recompute layout during the scroll-
@@ -128,7 +142,10 @@ function CardSlot({ id, isMobile }: { id: number; isMobile: boolean }) {
         curveY={style.curveY}
         bend={SRV_BEND}
         transmission={SRV_TRANSMISSION}
-        samples={isMobile ? 4 : 6}
+        // Perf pass: 4/3 (was 6/4) — with anisotropicBlur + the downscaled
+        // shared transmission capture already softening the refraction, the
+        // extra samples were indistinguishable; per-pixel MTM cost drops ~33%.
+        samples={isMobile ? 3 : 4}
         color={style.color}
         material={style.material}
       />

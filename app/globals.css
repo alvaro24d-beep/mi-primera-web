@@ -305,16 +305,35 @@ h6 {
   }
 }
 @media (max-width: 900px) {
-  /* Narrower blocks jut less in absolute px, but phone side padding is only
-     ~16px, so a smaller inward shift is still needed to keep the enlarged
-     edge on-screen. */
+  /* Mobile titles: SAME inner-edge-pivot profile as desktop ("como en
+     ordenador pero bien hecho y afinado") — everything is left-aligned on
+     phones, so the LEFT side is the one that distorts: pivot at the RIGHT
+     edge (flat, screen-centre-ish side), gentler 14° for the narrow width,
+     and an inward shift that keeps the enlarged left edge ~28px off the
+     frame instead of glued to it. */
   #nxr-proceso .nxr-section-h2,
   #nxr-tech .nxr-section-h2,
   #nxr-contacto .nxr-section-h2,
   .nxr-srv-caption-tilt,
   .nxr-servicios-head .nxr-section-h2 {
-    transform: translateX(10%) perspective(460px) rotateY(26deg);
-    transform-origin: 70% center;
+    transform: translateX(22%) perspective(460px) rotateY(14deg);
+    transform-origin: 100% center;
+  }
+
+  /* The curved paragraphs must not span the full width — extra air on the
+     RIGHT ("que dejen un espacio mayor a la derecha"), which also gives the
+     left-side distortion room to breathe away from the frame. */
+  .nxr-intro-textblock,
+  .nxr-tech-header-right,
+  .nxr-proceso-header-right,
+  .nxr-contacto-desc {
+    margin-right: 56px;
+  }
+
+  /* Room for the dynamic bow: a below-centre last line dips up to ~40px at
+     its outer edge, which grazed the first (always-visible) card. */
+  #nxr-intro-card-1 {
+    margin-top: 48px;
   }
 }
 
@@ -4369,7 +4388,10 @@ input[type="range"].nxr-ms-range::-moz-range-thumb {
    (rather than anchored to a fixed offset from the top) while it's stuck. */
 .nxr-intro-left {
   position: sticky;
-  top: 50%;
+  /* +70px = half of useDampedSticky's STICKY_EASE: the eased sticky settles
+     that far ABOVE the hard sticky line, so this bump lands the damped rest
+     position exactly at the visual centre. */
+  top: calc(50% + 70px);
   /* Sticky centering + the perspective text plane (see the block near the
      top of this file) composed in one declaration — the headline itself
      carries .nxr-reveal, which owns its own transform. Desktop inner-edge
@@ -4396,6 +4418,20 @@ input[type="range"].nxr-ms-range::-moz-range-thumb {
   flex-direction: column;
   gap: 20px;
   visibility: hidden;
+}
+
+/* Desktop: the paragraph block is pinned at HALF viewport height while it
+   reads (same sticky-centering pattern as .nxr-intro-left) — it scrambles in
+   and dissolves in place instead of riding up from below. GSAP only ever
+   animates `opacity` on this element on desktop (see Intro.tsx), so this
+   transform is never overwritten; the y-drift tweens are mobile-only. */
+@media (min-width: 901px) {
+  .nxr-intro-texts {
+    position: sticky;
+    /* +70px = half of useDampedSticky's STICKY_EASE (see .nxr-intro-left). */
+    top: calc(50% + 70px);
+    transform: translateY(-50%);
+  }
 }
 
 /* Single wrapper for BOTH intro paragraphs: useCurvedWords tilts/curves THIS
@@ -4433,9 +4469,25 @@ input[type="range"].nxr-ms-range::-moz-range-thumb {
   gap: 24px;
 }
 
-/* Plain vertical glass card (no more 3D windmill blade). Hidden until the
-   scroll-sequence effect reveals it, for the same reason as `.nxr-intro-texts`
-   above. */
+/* Desktop: breathing room between the sticky-centred paragraph block and the
+   first card. The cards are visible as soon as they poke in from the fold,
+   so without this gap the first one would collide with the centred text
+   ~24px of scroll after it sticks; 380px lets the text be read (and then
+   dissolve, see Intro.tsx's timeline) while the card climbs in plain sight
+   from the bottom. */
+@media (min-width: 901px) {
+  /* By id, not :first-of-type — .nxr-intro-texts is a sibling div, so no
+     card can ever match div:first-of-type here. */
+  #nxr-intro-card-1 {
+    margin-top: 380px;
+  }
+}
+
+/* Plain vertical glass card (no more 3D windmill blade). NOT hidden/revealed
+   anymore: cards are visible from the moment they enter the viewport bottom
+   and simply scroll in as normal flow content ("que salgan de abajo pero que
+   se vean desde el principio") — the old fade-at-mid-screen meant the first
+   card was practically past you by the time it appeared. */
 /* Anchor for a real volumetric fluid-glass mesh (see useGlassPanels in
    Intro.tsx + components/scene/GlassPanelsLayer.tsx): the element paints NO
    glass of its own anymore — background/border/blur/shine all come from the
@@ -4448,7 +4500,6 @@ input[type="range"].nxr-ms-range::-moz-range-thumb {
   flex-direction: column;
   gap: 16px;
   overflow: hidden;
-  visibility: hidden;
   /* Legibility scrim, not glass: the fully-clear mesh over BRIGHT video
      regions washed white text out entirely (worst on mobile, where the
      clip's white face fills the frame). A translucent dark body reads as
@@ -4724,12 +4775,12 @@ input[type="range"].nxr-ms-range::-moz-range-thumb {
     position: static;
     top: auto;
     /* Drops the desktop sticky-centering translateY(-50%) (it applies
-       regardless of position scheme). FLIPPED to right-edge-forward on
-       phones, matching .nxr-intro-text's mobile flip — headline and
-       paragraphs stack adjacent on one phone screen, so opposite tilts side
-       by side would clash. */
-    transform: translateX(-10%) perspective(460px) rotateY(-26deg);
-    transform-origin: 30% center;
+       regardless of position scheme). Left-edge-forward like every other
+       mobile block now: everything is left-aligned on phones, so the LEFT
+       side is the one that distorts — same inner-edge-pivot profile as the
+       titles above. */
+    transform: translateX(22%) perspective(460px) rotateY(14deg);
+    transform-origin: 100% center;
   }
   .nxr-intro-headline {
     font-size: clamp(36px, 9.5vw, 48px);

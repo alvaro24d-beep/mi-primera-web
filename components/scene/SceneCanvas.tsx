@@ -9,6 +9,7 @@ import ServiciosCardsLayer from "./ServiciosCardsLayer";
 import ZoomParallaxCardsLayer from "./ZoomParallaxCardsLayer";
 import GlassPanelsLayer from "./GlassPanelsLayer";
 import PixelCamera, { CAMERA_DISTANCE } from "./PixelCamera";
+import { nearSections } from "@/store/sceneActivity";
 
 // Procedural HDRI: `<Environment>` + `<Lightformer>` only — never the
 // `preset` prop, which downloads an HDRI from drei's CDN at runtime. That
@@ -82,27 +83,40 @@ export default function SceneCanvas() {
   }, []);
 
   useEffect(() => {
-    // Every section that hosts live glass meshes: the two card reels plus the
-    // generic flat panels (Hero's CTA, Intro, Proceso, Contacto — see
-    // GlassPanelsLayer). Near any of them the frameloop runs "always" so the
-    // meshes track their scrolling/animating DOM anchors frame-by-frame;
-    // elsewhere "demand".
-    const ids = ["nxr-hero", "nxr-servicios", "nxr-zoom-parallax", "nxr-intro", "nxr-proceso", "nxr-contacto"];
+    // Sections whose glass meshes ANIMATE every frame (scroll-scrubbed reels,
+    // GSAP-revealed panels): near any of them the frameloop runs "always" so
+    // the meshes track their DOM anchors frame-by-frame; elsewhere "demand".
+    const alwaysIds = ["nxr-servicios", "nxr-zoom-parallax", "nxr-intro", "nxr-proceso", "nxr-contacto"];
+    // The hero hosts one mostly-static panel (the CTA button): it needs its
+    // section tracked in `nearSections` so its PanelSlot does work when
+    // visible, but NOT a 60fps "always" loop — the TV-wall video already
+    // invalidates ~25-30 renders/s page-wide, which tracks a pinned button
+    // just fine and keeps the top of the page on the cheap demand loop.
+    const ids = [...alwaysIds, "nxr-hero"];
     const sections = ids.map((id) => document.getElementById(id)).filter(Boolean) as HTMLElement[];
     if (!sections.length) return;
     const nearby = new Set<Element>();
     const io = new IntersectionObserver(
       (entries) => {
         for (const e of entries) {
-          if (e.isIntersecting) nearby.add(e.target);
-          else nearby.delete(e.target);
+          const id = (e.target as HTMLElement).id;
+          if (e.isIntersecting) {
+            nearby.add(e.target);
+            nearSections.add(id);
+          } else {
+            nearby.delete(e.target);
+            nearSections.delete(id);
+          }
         }
-        setCardsNear(nearby.size > 0);
+        setCardsNear([...nearby].some((el) => (el as HTMLElement).id !== "nxr-hero"));
       },
       { rootMargin: "300px 0px" }
     );
     sections.forEach((s) => io.observe(s));
-    return () => io.disconnect();
+    return () => {
+      io.disconnect();
+      nearSections.clear();
+    };
   }, []);
 
   return (
@@ -120,9 +134,16 @@ export default function SceneCanvas() {
       <Canvas
         ref={canvasRef}
         frameloop={!active ? "never" : cardsNear ? "always" : "demand"}
-        dpr={isMobile ? [1, 1.25] : [1, 1.5]}
+        // Perf pass: 1.25 desktop / 1 mobile (was 1.5 / 1.25). The backdrop is
+        // a deliberately pixelated CRT and the cards are frosted glass — the
+        // ~40% pixel-count cut is not visible on either, and fill rate is this
+        // scene's dominant GPU cost (fullscreen wall + transmission + bloom).
+        dpr={isMobile ? 1 : [1, 1.25]}
         camera={{ position: [0, 0, CAMERA_DISTANCE], fov: 50, near: 1, far: CAMERA_DISTANCE * 3 }}
-        gl={{ alpha: true, antialias: !isMobile, powerPreference: "high-performance" }}
+        // antialias false on desktop too: every desktop frame goes through
+        // EffectComposer, which renders into its own (multisampled) buffers —
+        // MSAA on the default framebuffer was pure wasted memory/bandwidth.
+        gl={{ alpha: true, antialias: false, powerPreference: "high-performance" }}
         onCreated={({ gl }) => {
           // Servicios' frosted cards (VolumetricCard's `transmission` prop)
           // need three.js to capture a copy of what's behind them each frame
@@ -159,7 +180,12 @@ export default function SceneCanvas() {
         <ZoomParallaxCardsLayer isMobile={isMobile} />
         <GlassPanelsLayer isMobile={isMobile} />
         {!isMobile && (
-          <EffectComposer>
+          // multisampling 2 (library default: 8): 8x MSAA on a fullscreen
+          // 1.25-DPR buffer was the single most expensive setting in the
+          // scene. 2x still smooths the glass-card silhouettes (the only
+          // hard edges — the wall is fullscreen, bloom is blurred by
+          // definition) at a quarter of the resolve cost.
+          <EffectComposer multisampling={2}>
             <Bloom mipmapBlur luminanceThreshold={0.6} luminanceSmoothing={0.3} intensity={0.35} />
             <Vignette eskil={false} offset={0.25} darkness={0.55} />
           </EffectComposer>

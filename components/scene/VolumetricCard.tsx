@@ -93,12 +93,22 @@ function buildCardGeometry(
   // The pillow dome is what varies the FRONT-FACE NORMALS toward the rim —
   // and normal variation is what makes refraction visibly bend/magnify the
   // background at the edges (the "liquid glass" read apps are known for; a
-  // flat face refracts as one uniform, invisible shift). So the dome is
-  // kept even when the cylindrical bend is active — at half strength, since
-  // the bend already contributes its own horizontal normal sweep — instead
-  // of the earlier A = 0 which left bent (Servicios) cards with an almost
-  // perfectly flat face and no perceivable liquid distortion.
-  const A = (bend > 0 ? 0.1 : 0.2) * (curveX * width + curveY * height);
+  // flat face refracts as one uniform, invisible shift).
+  //
+  // NOT composed with the cylindrical bend anymore: on bent (Servicios)
+  // cards the dome rendered as a corner-to-corner X across the face ("una
+  // cruz de esquina a esquina"). The cos·cos pillow sampled on this
+  // concentric-ring tessellation shades a faint crease exactly along the
+  // diagonals (where every ring turns its corner, so triangle orientation
+  // flips), and the bend's horizontal reflection sweep over the bright
+  // video wall amplified it into a visible cross. A bend-only face is a
+  // clean developable cylinder (normals vary along x only — nothing
+  // diagonal to shade), and the liquid read there no longer depends on the
+  // dome: MTM's temporal noise distortion (distortion/distortionScale,
+  // correctly world-scaled) plus the bend's own edge refraction carry it.
+  // A dome-on-bend "half strength" compromise was tried and is what drew
+  // the cross — don't reintroduce it.
+  const A = bend > 0 ? 0 : 0.2 * (curveX * width + curveY * height);
   const pillowZ = (x: number, y: number) =>
     halfT +
     A *
@@ -250,30 +260,49 @@ function buildCardGeometry(
     indices.push(backCentre, backRim + ((j + 1) % P), backRim + j);
   }
 
+  const geo = new THREE.BufferGeometry();
+  geo.setAttribute("position", new THREE.Float32BufferAttribute(positions, 3));
+  geo.setIndex(indices);
+  // Normals are computed on the UN-BENT slab, deliberately BEFORE the bend
+  // below. On the flat pre-bend front face every face normal is identical,
+  // so the area-weighted vertex normals are EXACT — whereas running
+  // computeVertexNormals AFTER the bend estimated them from this
+  // concentric-ring tessellation, whose skinny triangles flip orientation
+  // exactly along the rectangle's diagonals; the small systematic estimation
+  // error changed sign across those lines and shaded a corner-to-corner X
+  // on the (brightly backlit) Servicios cards. Removing the dome alone
+  // didn't clear it ("se siguen viendo las diagonales") — the estimation
+  // error was the remaining source.
+  geo.computeVertexNormals();
+
   // ---- Cylindrical bend around the vertical (Y) axis. Every vertex is wrapped
   // onto a cylinder whose axis sits a distance Rb BEHIND the card's mid-plane,
   // so the centre column keeps its depth (nearest the camera) while the side
   // columns rotate back and recede. Rb = w / bend maps the card's half-width
   // exactly to `bend` radians at the edge. Applied to ALL vertices (front,
   // bevels, wall, back) so the whole slab folds at constant thickness — not a
-  // domed front on a flat back — then normals are recomputed so the glass
-  // reflections sweep across the curve like a real curved screen.
+  // domed front on a flat back. Normals transform ANALYTICALLY: the bend's
+  // local frame at pre-bend x is a pure rotation by θ = x/Rb around Y (the
+  // arc-length scaling only stretches the x-tangent's magnitude, not any
+  // direction), so each exact pre-bend normal is rotated by its vertex's own
+  // θ — smooth true-cylinder normals with zero tessellation artifacts.
   if (bend > 0) {
     const Rb = w / bend;
-    for (let i = 0; i < positions.length; i += 3) {
-      const px = positions[i];
-      const pz = positions[i + 2];
+    const pos = geo.getAttribute("position") as THREE.BufferAttribute;
+    const nrm = geo.getAttribute("normal") as THREE.BufferAttribute;
+    for (let i = 0; i < pos.count; i++) {
+      const px = pos.getX(i);
+      const pz = pos.getZ(i);
       const theta = px / Rb;
       const rr = Rb + pz;
-      positions[i] = rr * Math.sin(theta);
-      positions[i + 2] = rr * Math.cos(theta) - Rb;
+      const sin = Math.sin(theta);
+      const cos = Math.cos(theta);
+      pos.setXYZ(i, rr * sin, pos.getY(i), rr * cos - Rb);
+      const nx = nrm.getX(i);
+      const nz = nrm.getZ(i);
+      nrm.setXYZ(i, nx * cos + nz * sin, nrm.getY(i), -nx * sin + nz * cos);
     }
   }
-
-  const geo = new THREE.BufferGeometry();
-  geo.setAttribute("position", new THREE.Float32BufferAttribute(positions, 3));
-  geo.setIndex(indices);
-  geo.computeVertexNormals();
   return geo;
 }
 

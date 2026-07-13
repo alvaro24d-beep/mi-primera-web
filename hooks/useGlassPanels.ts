@@ -42,7 +42,25 @@ export function useGlassPanels(
         parseFloat(getComputedStyle(el).borderRadius) || 20,
         Math.max(2, Math.min(r.width, r.height) / 2 - 1)
       );
-      const id = reg.add(el, { color, radius }, Math.max(2, Math.round(r.width)), Math.max(2, Math.round(r.height)));
+      // Captured ONCE for the per-frame hot path in GlassPanelsLayer: the
+      // hosting section id (activity gate) and LIVE computed-style views of
+      // the anchor + 3 ancestors (effective-opacity walk without per-frame
+      // getComputedStyle calls).
+      const sectionId = el.closest("section[id]")?.id ?? null;
+      const styles: CSSStyleDeclaration[] = [];
+      let node: HTMLElement | null = el;
+      for (let i = 0; i < 4 && node; i++) {
+        styles.push(getComputedStyle(node));
+        node = node.parentElement;
+      }
+      const id = reg.add(
+        el,
+        { color, radius },
+        Math.max(2, Math.round(r.width)),
+        Math.max(2, Math.round(r.height)),
+        sectionId,
+        styles
+      );
       return { el, id };
     });
 

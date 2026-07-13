@@ -15,11 +15,26 @@ export type GlassPanel = {
      mesh, never by rebuilding — see GlassPanelsLayer. */
   width: number;
   height: number;
+  /** id of the hosting <section> — checked against store/sceneActivity.ts'
+     nearSections each frame so far-away panels skip all DOM reads. */
+  sectionId: string | null;
+  /** LIVE CSSStyleDeclarations for the anchor + up to 3 ancestors, captured
+     once at registration (getComputedStyle returns a live view, so reading
+     .opacity per frame stays current WITHOUT re-resolving the element each
+     frame — the per-frame getComputedStyle calls were measurable). */
+  styles: CSSStyleDeclaration[];
 };
 
 type Registry = {
   panels: GlassPanel[];
-  add: (anchor: HTMLElement, style: GlassPanelStyle, width: number, height: number) => number;
+  add: (
+    anchor: HTMLElement,
+    style: GlassPanelStyle,
+    width: number,
+    height: number,
+    sectionId: string | null,
+    styles: CSSStyleDeclaration[]
+  ) => number;
   updateDims: (id: number, width: number, height: number) => void;
   remove: (id: number) => void;
 };
@@ -40,9 +55,9 @@ let nextId = 1;
 // retry). Zustand set() → layer re-render → geometry rebuild is deterministic.
 export const useGlassPanelsRegistry = create<Registry>((set) => ({
   panels: [],
-  add: (anchor, style, width, height) => {
+  add: (anchor, style, width, height, sectionId, styles) => {
     const id = nextId++;
-    set((s) => ({ panels: [...s.panels, { id, anchor, style, width, height }] }));
+    set((s) => ({ panels: [...s.panels, { id, anchor, style, width, height, sectionId, styles }] }));
     return id;
   },
   updateDims: (id, width, height) =>

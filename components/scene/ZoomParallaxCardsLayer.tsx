@@ -5,6 +5,7 @@ import { useFrame, useThree } from "@react-three/fiber";
 import * as THREE from "three";
 import VolumetricCard from "./VolumetricCard";
 import { useZoomParallaxCardsRegistry, ZP_MAX_CARDS } from "@/store/useZoomParallaxCardsRegistry";
+import { nearSections } from "@/store/sceneActivity";
 
 const DEG2RAD = Math.PI / 180;
 // Ambient mouse tilt, shared by every card equally — a small "the whole
@@ -81,6 +82,15 @@ export default function ZoomParallaxCardsLayer({ isMobile }: { isMobile: boolean
   }, []);
 
   useFrame(() => {
+    // Section-proximity early-out (see store/sceneActivity.ts): skip the 7
+    // per-card rect reads on every video-driven render while the section is
+    // nowhere near the viewport.
+    if (!nearSections.has("nxr-zoom-parallax")) {
+      groupRefs.current.forEach((g) => {
+        if (g && g.visible) g.visible = false;
+      });
+      return;
+    }
     // Smoothed toward the live cursor position every frame — a direct,
     // unsmoothed assignment would snap instantly on each mousemove event
     // instead of reading as a soft, weighted reaction.
@@ -207,7 +217,8 @@ export default function ZoomParallaxCardsLayer({ isMobile }: { isMobile: boolean
               curveX={style.curveX}
               curveY={style.curveY}
               transmission={ZP_TRANSMISSION}
-              samples={isMobile ? 4 : 6}
+              // Perf pass: 4/3 (was 6/4) — see ServiciosCardsLayer.
+              samples={isMobile ? 3 : 4}
               color={style.color}
               material="glass"
             />

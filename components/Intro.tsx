@@ -2,11 +2,14 @@
 
 import { useRef } from "react";
 import gsap from "gsap";
+import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { useGSAP } from "@gsap/react";
 import { useTitleReveal } from "@/hooks/useTitleReveal";
 import { useReducedMotion } from "@/hooks/useReducedMotion";
 import { useGlassPanels } from "@/hooks/useGlassPanels";
 import { useCurvedWords } from "@/hooks/useCurvedWords";
+import { useDampedSticky } from "@/hooks/useDampedSticky";
+import { useScrollBrake } from "@/hooks/useScrollBrake";
 
 // Compact looping graphic per card, each representing its service (same idea
 // as the home Servicios animations): a website building for "Construimos", an
@@ -72,6 +75,19 @@ export default function Intro() {
   // the viewer — and matches the requested mobile direction too.
   useCurvedWords(sectionRef, ".nxr-intro-textblock", "right");
 
+  // Both sticky elements (headline + paragraph block) decelerate smoothly
+  // into their stuck position and ease back out instead of freezing dead the
+  // frame they arrive ("todos los sticky amortiguados al ponerse y
+  // quitarse"). Desktop-only in effect: the hook no-ops while the elements'
+  // computed position isn't sticky (mobile layouts make them static).
+  useDampedSticky(sectionRef, ".nxr-intro-left, .nxr-intro-texts");
+
+  // Viscous zone: wheel speed eases down to ~45% as the paragraph block
+  // approaches its sticky point, stays slow through the centred reading
+  // window and releases with the dissolve — the sticky engagement happens
+  // in slow motion on top of the element-level damping above.
+  useScrollBrake(sectionRef, ".nxr-intro-texts", "nxr-intro");
+
   useGSAP(
     () => {
       // Same direct-media-query safety net as useTitleReveal: avoids running
@@ -82,65 +98,143 @@ export default function Intro() {
       const texts = textsRef.current;
       if (!section || !texts) return;
 
-      const q = gsap.utils.selector(section);
-      const cards = q(".nxr-intro-card");
-
       if (prefersReduced) {
-        gsap.set([texts, ...cards], { visibility: "visible" });
+        gsap.set(texts, { visibility: "visible" });
         return;
       }
 
-      gsap.set(texts, { opacity: 0, y: 40 });
-      gsap.set(cards, { opacity: 0, y: 40 });
-      // CSS keeps these `visibility: hidden` until here (see globals.css) —
-      // without this, they'd flash fully visible for a frame on first paint,
-      // before this layout effect has a chance to run.
-      gsap.set([texts, ...cards], { visibility: "visible" });
+      // No y drift on `texts` on ANY viewport ("ni acelerado ni frenado, como
+      // el scroll estándar"): the old ±40px entry/exit tweens made the text
+      // move faster than the page right before disappearing, which read as a
+      // sudden acceleration. Desktop additionally must never touch transform
+      // at all — the sticky centering (translateY(-50%)) lives there.
+      const isDesktop = window.innerWidth >= 901;
+      gsap.set(texts, { opacity: 0 });
+      // CSS keeps `texts` `visibility: hidden` until here (see globals.css) —
+      // without this, it'd flash fully visible for a frame on first paint,
+      // before this layout effect has a chance to run. The CARDS are plain
+      // always-visible flow content now — no reveal choreography at all
+      // ("que salgan de abajo pero que se vean desde el principio"); on
+      // desktop a large margin above the first card (see #nxr-intro-card-1)
+      // keeps them clear of the centred text while it's readable.
+      gsap.set(texts, { visibility: "visible" });
+
+      // ---- Text scramble (adapted from the motion-primitives TextScramble
+      // reference, WITHOUT framer-motion — this codebase animates with GSAP
+      // and the effect is a plain interval anyway). It must mutate the
+      // `.nxr-cw-word` spans created by useCurvedWords rather than re-render
+      // the paragraph: replacing the DOM text wholesale would destroy the
+      // per-word curvature transforms. Each word's width is locked for the
+      // duration so random glyphs can't reflow the line wrapping mid-effect.
+      const SCRAMBLE_CHARS = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+      let cancelScramble: (() => void) | null = null;
+      const scramble = () => {
+        cancelScramble?.();
+        const words = Array.from(texts.querySelectorAll<HTMLElement>(".nxr-cw-word"));
+        if (!words.length) return;
+        const originals = words.map((w) => w.textContent ?? "");
+        const total = originals.reduce((n, t) => n + t.length, 0);
+        words.forEach((w) => (w.style.width = `${w.offsetWidth}px`));
+        const restore = () => {
+          words.forEach((w, wi) => {
+            w.textContent = originals[wi];
+            w.style.width = "";
+          });
+        };
+        const SPEED = 40; // ms per step (reference component's 0.04s)
+        const steps = 900 / SPEED;
+        let step = 0;
+        const id = window.setInterval(() => {
+          const progress = step / steps;
+          let idx = 0;
+          words.forEach((w, wi) => {
+            const orig = originals[wi];
+            let out = "";
+            for (let c = 0; c < orig.length; c++, idx++) {
+              out += progress * total > idx ? orig[c] : SCRAMBLE_CHARS[(Math.random() * SCRAMBLE_CHARS.length) | 0];
+            }
+            w.textContent = out;
+          });
+          step++;
+          if (step > steps) {
+            window.clearInterval(id);
+            restore();
+            cancelScramble = null;
+          }
+        }, SPEED);
+        cancelScramble = () => {
+          window.clearInterval(id);
+          restore();
+          cancelScramble = null;
+        };
+      };
+
+      if (isDesktop) {
+        // Appearance is a real-time trigger (not scrubbed): the moment the
+        // sticky block reaches its centred resting spot, it fades in fast
+        // and scrambles into legibility — fixed at half screen height, per
+        // request ("en vez de aparecer por abajo, salga fijo en la mitad de
+        // altura"). "top 45%" fires a hair before the stick engages (the
+        // trigger rect includes the -50% centering transform), so the last
+        // few px of drift are imperceptible under the scramble.
+        ScrollTrigger.create({
+          trigger: texts,
+          start: "top 45%",
+          onEnter: () => {
+            gsap.to(texts, { opacity: 1, duration: 0.45, ease: "power1.out", overwrite: "auto" });
+            scramble();
+          },
+          onLeaveBack: () => {
+            cancelScramble?.();
+            gsap.to(texts, { opacity: 0, duration: 0.2, ease: "power1.in", overwrite: "auto" });
+          },
+        });
+      }
 
       const tl = gsap.timeline({
         scrollTrigger: {
           trigger: texts,
           start: "top bottom",
-          // Mobile gets noticeably more runway than desktop so the text isn't
-          // gone after just a small swipe — same phase timeline, just spread
-          // over more scroll.
-          // Nothing here is pinned, so the cards (which sit only a few px
-          // below the text in normal document flow) physically scroll up the
-          // screen by the SAME amount as whatever this range spends on the
-          // text phase — a bigger range buys the text more reading time but
-          // also drags the cards further up-screen before their own tween
-          // finishes. These values are tuned together with the cards' tween
-          // below (duration/stagger) so the text keeps the same ~930px/~670px
-          // (mobile/desktop) reading budget as before, while the cards' own
-          // fade-in now burns much less EXTRA scroll after the text is gone
-          // — see check via scratchpad/measure-intro.mjs if retuning this.
-          // Desktop got noticeably more runway back (620→860) after the text
-          // phase read as rushing by — that first shortening overshot. The
-          // card phases keep their overlap-with-text-out timing, so the cards
-          // still show up early; only the per-phase scroll budget grew.
-          end: () => (window.innerWidth < 768 ? "+=840" : "+=860"),
+          // Mobile keeps its fade-in/fade-out phases and generous runway.
+          // Desktop's 1000px budgets: ~550px of ride while the (invisible)
+          // block travels to its sticky centre + real-time scramble-in there,
+          // ~190px of centred full-brightness reading, then a ~180px linear
+          // dissolve and the cards' gradual entrance below.
+          end: () => (window.innerWidth < 768 ? "+=840" : "+=1000"),
           scrub: 0.6,
         },
       });
 
-      // Phase 1 — the text rises and fades IN as it scrolls up into view.
-      tl.to(texts, { opacity: 1, y: 0, duration: 1, ease: "power2.out" }, 0);
-      // Hold — readable, but short: the old 1.2 hold (plus a text-out that
-      // didn't start until 2.2 and cards that waited for it to FULLY finish
-      // at 3.2 of 3.4) meant the cards only appeared in the last ~6% of a
-      // long range — reported as "the cards show up way too late".
-      tl.to({}, { duration: 0.7 }, 1);
-      // Phase 2 — the SAME upward drift continues, now fading the text back
-      // OUT, so it visibly leaves rather than just scrolling out of frame.
-      tl.to(texts, { opacity: 0, y: -40, duration: 1, ease: "power2.in" }, 1.7);
-      // Phase 3 — the cards rise in WHILE the text is still dissolving
-      // (starts at 1.9, right as the text-out begins at 1.7): a crossfade
-      // hand-off reads as one continuous composition instead of "text gone →
-      // dead scroll → cards". Pulled forward from 2.3 ("que aparezcan antes,
-      // no que tengan que subir tanto para aparecer"): nothing here is
-      // pinned, so every timeline unit the cards wait is real scroll
-      // distance they climb up-screen while still invisible.
-      tl.to(cards, { opacity: 1, y: 0, duration: 0.25, stagger: 0.08, ease: "power2.out" }, 1.9);
+      if (isDesktop) {
+        // Dissolve IN PLACE, LONG and LINEAR (opacity only — the sticky
+        // centering owns the transform): a short fade at normal wheel speed
+        // read as the text vanishing "de golpe". Positioned so the text is
+        // gone right before the first (always-visible) card climbs into the
+        // text block's zone — see #nxr-intro-card-1's desktop margin.
+        // immediateRender: false is critical on a fromTo placed mid-timeline:
+        // otherwise it applies opacity 1 at refresh and un-hides the block
+        // long before its entrance.
+        tl.fromTo(texts, { opacity: 1 }, { opacity: 0, duration: 0.6, ease: "none", immediateRender: false }, 2.2);
+        // Closing spacer pins the timeline's total duration (and therefore
+        // the px-per-unit scrub mapping) now that the cards have no tween.
+        tl.to({}, { duration: 0.2 }, 2.8);
+      } else {
+        // Phase 1 — the text fades IN, riding the page at NORMAL scroll speed
+        // (no y offset — see the gsap.set note above).
+        tl.to(texts, { opacity: 1, duration: 1, ease: "power2.out" }, 0);
+        // Hold — readable, but short (see git history for the full tuning
+        // saga of these positions).
+        tl.to({}, { duration: 0.7 }, 1);
+        // Phase 2 — fade back OUT, still at page speed (no upward drift).
+        tl.to(texts, { opacity: 0, duration: 1, ease: "power2.in" }, 1.7);
+        // Spacer keeps the previous scrub pacing now that the cards (which
+        // used to close the timeline at ~2.4) are plain flow content.
+        tl.to({}, { duration: 0.7 }, 1.7);
+      }
+
+      return () => {
+        cancelScramble?.();
+      };
     },
     { scope: sectionRef, dependencies: [reducedMotion] }
   );

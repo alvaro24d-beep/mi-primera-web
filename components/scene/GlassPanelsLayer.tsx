@@ -5,6 +5,7 @@ import { useFrame, useThree } from "@react-three/fiber";
 import * as THREE from "three";
 import VolumetricCard from "./VolumetricCard";
 import { useGlassPanelsRegistry, type GlassPanel } from "@/store/useGlassPanelsRegistry";
+import { nearSections } from "@/store/sceneActivity";
 
 // Renders one flat fluid-glass mesh docked to a registered DOM anchor (see
 // hooks/useGlassPanels.ts). Geometry is built ONCE from the panel's
@@ -17,10 +18,20 @@ import { useGlassPanelsRegistry, type GlassPanel } from "@/store/useGlassPanelsR
 function PanelSlot({ panel, isMobile }: { panel: GlassPanel; isMobile: boolean }) {
   const groupRef = useRef<THREE.Group>(null);
   const { size } = useThree();
+  const lastOpacity = useRef(1);
 
   useFrame(() => {
     const group = groupRef.current;
     if (!group) return;
+    // Section-proximity early-out (see store/sceneActivity.ts): while this
+    // panel's section is nowhere near the viewport, skip the rect read and
+    // the opacity walk entirely — the TV-wall video keeps the canvas
+    // rendering page-wide, so this used to run for every panel on every
+    // decoded video frame.
+    if (panel.sectionId && !nearSections.has(panel.sectionId)) {
+      group.visible = false;
+      return;
+    }
     const rect = panel.anchor.getBoundingClientRect();
     if (
       rect.width < 1 ||
@@ -36,28 +47,31 @@ function PanelSlot({ panel, isMobile }: { panel: GlassPanel; isMobile: boolean }
     // Effective opacity of the anchor (own × up to 3 ancestors): entrance
     // animations here fade a WRAPPER (Proceso's .nxr-paso-tilt) or the card
     // itself (Intro, via GSAP) — the glass must fade WITH the content, not
-    // stand around as an empty slab before the reveal.
+    // stand around as an empty slab before the reveal. Read from the LIVE
+    // CSSStyleDeclarations captured at registration (panel.styles) — same
+    // values, no per-frame getComputedStyle resolution.
     let opacity = 1;
-    let el: HTMLElement | null = panel.anchor;
-    for (let i = 0; i < 4 && el; i++) {
+    for (const cs of panel.styles) {
       // NOT `parseFloat(...) || 1`: opacity "0" parses to 0, which is falsy —
       // the || fallback silently replaced exactly the value that must hide
       // the glass (bit us: reveal-hidden cards showed a full-brightness
       // empty slab).
-      const o = parseFloat(getComputedStyle(el).opacity);
+      const o = parseFloat(cs.opacity);
       opacity *= Number.isNaN(o) ? 1 : o;
       if (opacity <= 0.02) break;
-      el = el.parentElement;
     }
     if (opacity <= 0.02) {
       group.visible = false;
       return;
     }
     group.visible = true;
-    group.traverse((obj) => {
-      const mesh = obj as THREE.Mesh;
-      if (mesh.isMesh) (mesh.material as THREE.MeshPhysicalMaterial).opacity = opacity;
-    });
+    if (Math.abs(opacity - lastOpacity.current) > 0.002) {
+      lastOpacity.current = opacity;
+      group.traverse((obj) => {
+        const mesh = obj as THREE.Mesh;
+        if (mesh.isMesh) (mesh.material as THREE.MeshPhysicalMaterial).opacity = opacity;
+      });
+    }
     group.position.x = rect.left + rect.width / 2 - size.width / 2;
     group.position.y = -(rect.top + rect.height / 2 - size.height / 2);
     // Live rect vs registered geometry size: pure transform (≈1 in steady
@@ -82,7 +96,8 @@ function PanelSlot({ panel, isMobile }: { panel: GlassPanel; isMobile: boolean }
         curveX={0.05}
         curveY={0.05}
         transmission={1}
-        samples={isMobile ? 4 : 6}
+        // Perf pass: 4/3 (was 6/4) — see ServiciosCardsLayer.
+        samples={isMobile ? 3 : 4}
         color={panel.style.color}
         material="glass"
       />

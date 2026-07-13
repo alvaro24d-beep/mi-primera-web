@@ -166,6 +166,10 @@ export default function SceneCanvas() {
 
   return (
     <div
+      // .nxr-scene-arrive: opacity 0 → 1 on mount (globals.css). The whole
+      // canvas mounts lazily on idle (SceneCanvasLazy), so the backdrop
+      // FADES onto the dark body instead of popping in mid-load.
+      className="nxr-scene-arrive"
       style={{
         position: "fixed",
         inset: 0,

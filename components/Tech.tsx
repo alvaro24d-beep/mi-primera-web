@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef } from "react";
+import { useEffect, useRef } from "react";
 import { useTitleReveal } from "@/hooks/useTitleReveal";
 import { useCurvedWords } from "@/hooks/useCurvedWords";
 
@@ -49,6 +49,21 @@ function TechRow({ items }: { items: typeof FILA_1 }) {
 export default function Tech() {
   const titleRef = useTitleReveal<HTMLHeadingElement>();
   const sectionRef = useRef<HTMLElement>(null);
+
+  // The two infinite CSS marquees only animate while the section is on
+  // screen ("lo que no está en pantalla, no renderiza") — same philosophy as
+  // Servicios' .nxr-anims-live gate. CSS pauses them via
+  // `#nxr-tech:not(.nxr-anims-live) .nxr-marquee-track`.
+  useEffect(() => {
+    const section = sectionRef.current;
+    if (!section) return;
+    const io = new IntersectionObserver(
+      ([entry]) => section.classList.toggle("nxr-anims-live", entry.isIntersecting),
+      { rootMargin: "150px 0px" }
+    );
+    io.observe(section);
+    return () => io.disconnect();
+  }, []);
 
   // Header paragraph curves like the concave backdrop (see useCurvedWords) —
   // it sits on the right half of the screen, so its right edge wraps forward.

@@ -121,7 +121,8 @@ const useAnimationLoop = (
   seqHeight: number,
   isHovered: boolean,
   hoverSpeed: number | undefined,
-  isVertical: boolean
+  isVertical: boolean,
+  active: boolean
 ) => {
   const rafRef = useRef<number | null>(null);
   const lastTimestampRef = useRef<number | null>(null);
@@ -131,6 +132,10 @@ const useAnimationLoop = (
   useEffect(() => {
     const track = trackRef.current;
     if (!track) return;
+    // Off-screen loops sleep entirely ("lo que no está en pantalla, no
+    // renderiza") — offset lives in a ref, so scrolling back resumes the
+    // marquee exactly where it left off.
+    if (!active) return;
 
     const seqSize = isVertical ? seqHeight : seqWidth;
 
@@ -178,7 +183,7 @@ const useAnimationLoop = (
       }
       lastTimestampRef.current = null;
     };
-  }, [targetVelocity, seqWidth, seqHeight, isHovered, hoverSpeed, isVertical]);
+  }, [targetVelocity, seqWidth, seqHeight, isHovered, hoverSpeed, isVertical, active]);
 };
 
 export const LogoLoop = React.memo<LogoLoopProps>(
@@ -207,6 +212,18 @@ export const LogoLoop = React.memo<LogoLoopProps>(
     const [seqHeight, setSeqHeight] = useState<number>(0);
     const [copyCount, setCopyCount] = useState<number>(ANIMATION_CONFIG.MIN_COPIES);
     const [isHovered, setIsHovered] = useState<boolean>(false);
+    const [inView, setInView] = useState<boolean>(true);
+
+    // Visibility gate for the rAF marquee below.
+    useEffect(() => {
+      const el = containerRef.current;
+      if (!el || !("IntersectionObserver" in window)) return;
+      const io = new IntersectionObserver(([entry]) => setInView(entry.isIntersecting), {
+        rootMargin: "150px 0px"
+      });
+      io.observe(el);
+      return () => io.disconnect();
+    }, []);
 
     const effectiveHoverSpeed = useMemo(() => {
       if (hoverSpeed !== undefined) return hoverSpeed;
@@ -258,7 +275,7 @@ export const LogoLoop = React.memo<LogoLoopProps>(
 
     useImageLoader(seqRef, updateDimensions, [logos, gap, logoHeight, isVertical]);
 
-    useAnimationLoop(trackRef, targetVelocity, seqWidth, seqHeight, isHovered, effectiveHoverSpeed, isVertical);
+    useAnimationLoop(trackRef, targetVelocity, seqWidth, seqHeight, isHovered, effectiveHoverSpeed, isVertical, inView);
 
     const cssVariables = useMemo(
       () =>

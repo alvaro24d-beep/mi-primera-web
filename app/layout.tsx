@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { Manrope, Cormorant_Garamond } from "next/font/google";
 import "./globals.css";
 import Header from "@/components/Header";
-import SceneCanvas from "@/components/scene/SceneCanvas";
+import SceneCanvasLazy from "@/components/scene/SceneCanvasLazy";
 import RevealInit from "@/components/RevealInit";
 import SmoothScroll from "@/components/SmoothScroll";
 import ScrollProgress from "@/components/ScrollProgress";
@@ -38,14 +38,21 @@ export default function RootLayout({
       <body suppressHydrationWarning>
         <SmoothScroll />
         <ScrollProgress />
-        <SceneCanvas />
+        {/* WebGL backdrop deferred off the load's critical path — see
+            SceneCanvasLazy (dynamic import + idle mount + fade-in). */}
+        <SceneCanvasLazy />
         <RevealInit />
         {/* Fixed to the viewport (`target="page"`), sitting above page content
             but below Header/the floating nav (z-index 9998/9999) — content
             scrolling underneath fades/blurs progressively instead of being
             clipped abruptly by that fixed chrome. */}
-        <GradualBlur position="top" height="2.5rem" strength={1.5} target="page" />
-        <GradualBlur position="bottom" height="2.5rem" strength={1.4} target="page" />
+        {/* divCount 3 (component default is 5): each div is a full-width
+            backdrop-filter layer the compositor re-blurs on EVERY canvas
+            frame — 10 permanent blur passes total were a measurable
+            steady-state GPU cost. 3 bands across 2.5rem are visually
+            indistinguishable from 5. */}
+        <GradualBlur position="top" height="2.5rem" strength={1.5} divCount={3} target="page" />
+        <GradualBlur position="bottom" height="2.5rem" strength={1.4} divCount={3} target="page" />
         <Header />
         {children}
       </body>

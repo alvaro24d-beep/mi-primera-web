@@ -80,46 +80,15 @@ const PASOS = [
   },
 ];
 
-class Spark {
-  x: number;
-  y: number;
-  size: number;
-  speedX: number;
-  speedY: number;
-  life: number;
-  decay: number;
-  color: string;
-
-  constructor(x: number, y: number) {
-    this.x = x;
-    this.y = y;
-    this.size = Math.random() * 2 + 1;
-    this.speedX = (Math.random() - 0.3) * 3;
-    this.speedY = (Math.random() - 0.5) * 4;
-    this.life = 1;
-    this.decay = Math.random() * 0.03 + 0.015;
-    this.color = Math.random() > 0.4 ? "#a8f04a" : "#ef3d0d";
-  }
-  update() {
-    this.x += this.speedX;
-    this.y += this.speedY;
-    this.life -= this.decay;
-  }
-  draw(ctx: CanvasRenderingContext2D) {
-    ctx.fillStyle = this.color;
-    ctx.globalAlpha = this.life;
-    ctx.beginPath();
-    ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
-    ctx.fill();
-  }
-}
-
+// (The old progress-tip spark particles — Spark class + a dedicated <canvas>
+// with a permanent rAF loop — were removed entirely: the loop ran for the
+// whole session even with the section off-screen, and the user chose to drop
+// the effect rather than gate it.)
 export default function Proceso() {
   const titleRef = useTitleReveal<HTMLHeadingElement>();
   const sectionRef = useRef<HTMLElement>(null);
   const trackRef = useRef<HTMLDivElement>(null);
   const progressRef = useRef<HTMLDivElement>(null);
-  const canvasRef = useRef<HTMLCanvasElement>(null);
   const pasoRefs = useRef<(HTMLDivElement | null)[]>([]);
   const tiltRefs = useRef<(HTMLButtonElement | null)[]>([]);
   const [expanded, setExpanded] = useState<number | null>(null);
@@ -142,58 +111,16 @@ export default function Proceso() {
   useEffect(() => {
     const track = trackRef.current;
     const progress = progressRef.current;
-    const canvas = canvasRef.current;
-    if (!track || !progress || !canvas) return;
-
-    const ctx = canvas.getContext("2d");
-    if (!ctx) return;
+    if (!track || !progress) return;
 
     const pasos = pasoRefs.current.filter(Boolean) as HTMLDivElement[];
     const totalPasos = pasos.length;
     let isMobile = window.innerWidth <= 900;
-    let particles: Spark[] = [];
-    let lastWidth = 0;
 
-    function resizeCanvas() {
-      canvas!.width = track!.offsetWidth;
-      canvas!.height = track!.offsetHeight;
+    function onWindowResize() {
       isMobile = window.innerWidth <= 900;
     }
-    window.addEventListener("resize", resizeCanvas, { passive: true });
-    resizeCanvas();
-
-    function emitSparks(targetX: number, count: number) {
-      if (isMobile) return;
-      const targetY = 28;
-      for (let i = 0; i < count; i++) {
-        particles.push(new Spark(targetX, targetY));
-      }
-    }
-
-    let rafId = 0;
-    function animate() {
-      ctx!.clearRect(0, 0, canvas!.width, canvas!.height);
-
-      const currentWidth = parseFloat(progress!.style.width) || 0;
-      const offsetLeft = progress!.offsetLeft;
-      const currentTipX = offsetLeft + currentWidth;
-
-      if (Math.abs(currentWidth - lastWidth) > 0.5 && currentWidth > 0) {
-        emitSparks(currentTipX, 2);
-      }
-      lastWidth = currentWidth;
-
-      for (let i = particles.length - 1; i >= 0; i--) {
-        particles[i].update();
-        if (particles[i].life <= 0) {
-          particles.splice(i, 1);
-        } else {
-          particles[i].draw(ctx!);
-        }
-      }
-      rafId = requestAnimationFrame(animate);
-    }
-    rafId = requestAnimationFrame(animate);
+    window.addEventListener("resize", onWindowResize, { passive: true });
 
     let io: IntersectionObserver | undefined;
     if ("IntersectionObserver" in window) {
@@ -240,12 +167,10 @@ export default function Proceso() {
     // section with hover-tilt, where mesh and content rotate together.)
 
     return () => {
-      cancelAnimationFrame(rafId);
-      window.removeEventListener("resize", resizeCanvas);
+      window.removeEventListener("resize", onWindowResize);
       window.removeEventListener("scroll", onScroll);
       window.removeEventListener("resize", onScroll);
       io?.disconnect();
-      particles = [];
     };
   }, []);
 
@@ -268,7 +193,6 @@ export default function Proceso() {
 
         <div className="nxr-proceso-track" ref={trackRef}>
           <div id="nxr-proceso-progress" ref={progressRef}></div>
-          <canvas id="nxr-proceso-sparks" ref={canvasRef}></canvas>
           {PASOS.map((p, i) => {
             const isOpen = expanded === i;
             const titleId = `nxr-paso-title-${i}`;

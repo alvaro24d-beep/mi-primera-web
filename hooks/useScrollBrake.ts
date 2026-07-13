@@ -25,7 +25,7 @@ import { nearSections } from "@/store/sceneActivity";
  * stickies don't exist on mobile, and touch inertia must stay
  * native-feeling (see SmoothScroll.tsx).
  */
-const DEPTH = 0.55; // brake floor = 1 − DEPTH = 45% of normal wheel speed
+const DEPTH = 0.85; // brake floor = 1 − DEPTH = 15% wheel speed ("casi el máximo de despacio")
 const CHASE = 0.08; // per-frame temporal smoothing of the applied multiplier
 
 export function useScrollBrake(
@@ -60,13 +60,15 @@ export function useScrollBrake(
         // resting deficit) and the -50% centering transform halves the
         // height out — stuck top = 50vh + 70 − h/2.
         const engage = 0.5 * vh + 70 - 0.5 * el.offsetHeight;
-        // Ramp in over ~half a viewport of approach; hold through the
-        // centred reading window; release across the dissolve's territory
-        // (the block's natural top keeps scrolling up while it's stuck).
-        const rampIn = Math.min(1, Math.max(0, (engage + 0.55 * vh - nt) / (0.55 * vh)));
-        const rampOut = Math.min(1, Math.max(0, (nt - (engage - 700)) / 450));
+        // VALLEY profile, deepest exactly AT the engagement: the scroll
+        // slows progressively over ~0.6vh of approach down to near-stop,
+        // and once the title/paragraph are stuck it recovers to full speed
+        // within ~260px ("al quedarse sticky... volver a ser normal").
+        const d = nt - engage; // px until engagement (>0 approaching, <0 stuck)
+        const rampIn = Math.min(1, Math.max(0, (0.6 * vh - d) / (0.6 * vh)));
+        const rampOut = Math.min(1, Math.max(0, (d + 260) / 260));
         const t = Math.min(rampIn, rampOut);
-        const eased = t * t * (3 - 2 * t); // smoothstep the trapezoid edges
+        const eased = t * t * (3 - 2 * t); // smoothstep the valley walls
         target = 1 - DEPTH * eased;
       }
 

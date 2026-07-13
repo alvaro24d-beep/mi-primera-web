@@ -491,6 +491,30 @@ export default function Servicios() {
       const cards = q(".nxr-srv-card") as HTMLElement[];
       const captions = q(".nxr-servicios-captions .nxr-srv-caption") as HTMLElement[];
 
+      // ---- Section-title moment: the heading sits sticky-centred in its
+      // own 110vh runway above the reel (see .nxr-servicios-head CSS) and
+      // blur-fades IN at screen centre, holds, then blur-fades OUT to hand
+      // over to the cards ("entrando con difuminado y saliendo con
+      // difuminado para dar paso a la sección"). Opacity/filter ONLY — the
+      // sticky centering owns the transform.
+      const headTitle = q(".nxr-servicios-head .nxr-section-h2")[0] as HTMLElement | undefined;
+      if (headTitle) {
+        gsap.set(headTitle, { opacity: 0, filter: "blur(18px)" });
+        gsap
+          .timeline({
+            scrollTrigger: {
+              trigger: q(".nxr-servicios-head")[0] as HTMLElement,
+              start: "top 60%",
+              end: "bottom 40%",
+              scrub: 0.5,
+            },
+          })
+          .to(headTitle, { opacity: 1, filter: "blur(0px)", duration: 0.3, ease: "none" }, 0.08)
+          .to({}, { duration: 0.22 }, 0.38)
+          .to(headTitle, { opacity: 0, filter: "blur(18px)", duration: 0.3, ease: "none" }, 0.6)
+          .to({}, { duration: 0.1 }, 0.9);
+      }
+
       // One live transform per card, owned by the hover-tilt quickTo
       // instances below. The scroll-driven spiral yaw and the idle drift are
       // kept in their OWN arrays and summed at push time — if they all wrote
@@ -1298,11 +1322,13 @@ export default function Servicios() {
 
   return (
     <section id="nxr-servicios" ref={sectionRef}>
-      {/* In normal flow ABOVE the pinned sticky: the heading scrolls past
-          (and away) as the reel pins, leaving the whole viewport to the
-          cards instead of staying overlaid on them. */}
-      <div className="nxr-servicios-head nxr-reveal">
-        <h2 className="nxr-section-h2" ref={titleRef}>
+      {/* Title moment: a 110vh runway in normal flow ABOVE the pinned reel;
+          the h2 sticks dead-centre inside it and blur-fades in/out via the
+          scrub timeline in useGSAP above (GSAP owns opacity/filter — no
+          .nxr-reveal here, its CSS transition would fight the tween; no
+          char-reveal ref either, the blur IS the entrance). */}
+      <div className="nxr-servicios-head">
+        <h2 className="nxr-section-h2">
           Todo lo que tu negocio necesita para{" "}
           <span className="nxr-gradient-text-salmon">crecer en la era de la IA.</span>
         </h2>

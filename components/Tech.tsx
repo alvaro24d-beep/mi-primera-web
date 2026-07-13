@@ -54,12 +54,14 @@ export default function Tech() {
   // it sits on the right half of the screen, so its right edge wraps forward.
   useCurvedWords(sectionRef, ".nxr-tech-header-right", "right");
 
+  // Dynamic per-line bow on the (gradient) title too — see Proceso.tsx.
+  useCurvedWords(sectionRef, ".nxr-section-h2", "left", [], { bowOnly: true });
+
   return (
     <section id="nxr-tech" ref={sectionRef}>
       <div className="nxr-tech-inner nxr-reveal">
         <div className="nxr-tech-header">
           <div>
-            <p className="nxr-section-label">Tecnologías</p>
             <h2 className="nxr-section-h2" ref={titleRef}>
               Las herramientas
               <br />

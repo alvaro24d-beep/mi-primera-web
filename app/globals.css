@@ -296,12 +296,13 @@ h6 {
     transform-origin: 100% center;
   }
   .nxr-srv-caption-tilt {
-    transform: translateX(26%) perspective(460px) rotateY(14deg);
-    transform-origin: 100% center;
-  }
-  .nxr-servicios-head .nxr-section-h2 {
-    transform: translateX(-30%) perspective(460px) rotateY(-12deg);
-    transform-origin: 0% center;
+    /* Vertical origin at the TOP (not center): rows lean DOWN toward the
+       near-left edge, so each line reads as ascending left→right — sitting
+       at the bottom of the screen it must point UP, not droop ("deberia
+       tender a apuntar mas hacia arriba"). 12° (was 14): the droop
+       complaint was also "se deforma un poco de más". */
+    transform: translateX(26%) perspective(460px) rotateY(12deg);
+    transform-origin: 100% 0%;
   }
 }
 @media (max-width: 900px) {
@@ -314,10 +315,16 @@ h6 {
   #nxr-proceso .nxr-section-h2,
   #nxr-tech .nxr-section-h2,
   #nxr-contacto .nxr-section-h2,
-  .nxr-srv-caption-tilt,
-  .nxr-servicios-head .nxr-section-h2 {
-    transform: translateX(22%) perspective(460px) rotateY(14deg);
+  .nxr-srv-caption-tilt {
+    /* Gentler than desktop (10° vs 12-16°) and a small shift: the earlier
+       22%/14° combo pushed the titles' flat right edge past the viewport
+       ("los textos se salen por la derecha"). */
+    transform: translateX(12%) perspective(460px) rotateY(10deg);
     transform-origin: 100% center;
+  }
+  .nxr-srv-caption-tilt {
+    /* Same top-anchored vertical origin as desktop: lines ascend, not droop. */
+    transform-origin: 100% 0%;
   }
 
   /* The curved paragraphs must not span the full width — extra air on the
@@ -327,7 +334,17 @@ h6 {
   .nxr-tech-header-right,
   .nxr-proceso-header-right,
   .nxr-contacto-desc {
-    margin-right: 56px;
+    margin-right: 64px;
+  }
+
+  /* Slightly smaller copy on phones so the tilted lines fit comfortably
+     inside the narrowed column ("reduce un poco el tamaño de los textos en
+     móvil para que quepa mejor"). */
+  .nxr-intro-text,
+  .nxr-tech-header-right,
+  .nxr-proceso-header-right,
+  .nxr-contacto-desc {
+    font-size: 13px;
   }
 
   /* Room for the dynamic bow: a below-centre last line dips up to ~40px at
@@ -495,7 +512,9 @@ h6 {
   }
 
   .nxr-section-h2 {
-    font-size: clamp(36px, 9.5vw, 52px);
+    /* Smaller than the old 9.5vw/52px: with the perspective tilt, long
+       titles were overflowing the right edge on phones. */
+    font-size: clamp(30px, 8vw, 42px);
   }
 
   .nxr-proceso-header,
@@ -1273,30 +1292,26 @@ h6 {
    pinned top-right through the whole reel; on phones it stays static and
    simply scrolls away as the pin engages, freeing the viewport for the
    cards. */
+/* Title moment: a tall runway whose h2 sticks DEAD-CENTRE of the screen and
+   blur-fades in/out (GSAP scrub in Servicios.tsx) before handing over to the
+   reel — replaces the old top-right sticky overlay. Flat and centred on
+   purpose: no perspective tilt here (it was removed from the tilt rule
+   groups), the blur is the whole entrance. */
 .nxr-servicios-head {
-  max-width: var(--max-w);
+  position: relative;
+  height: 110vh;
+  pointer-events: none;
+}
+
+.nxr-servicios-head .nxr-section-h2 {
+  position: sticky;
+  top: 50%;
+  transform: translateY(-50%);
   margin: 0 auto;
-}
-
-@media (min-width: 901px) {
-  .nxr-servicios-head {
-    position: sticky;
-    top: 5vh;
-    z-index: 3;
-    text-align: right;
-    padding: 0 var(--pad-x);
-    pointer-events: none;
-  }
-  .nxr-servicios-head .nxr-section-h2 {
-    margin-left: auto;
-    margin-bottom: 0;
-  }
-}
-
-@media (max-width: 900px) {
-  .nxr-servicios-head {
-    padding: 8vh 20px 4vh;
-  }
+  text-align: center;
+  max-width: 900px;
+  padding: 0 var(--pad-x);
+  will-change: opacity, filter;
 }
 
 .nxr-servicios-track {
@@ -1304,6 +1319,10 @@ h6 {
   min-height: 0;
   display: flex;
   align-items: center;
+  /* Explicit stacking BELOW .nxr-servicios-captions (z-index 40): the
+     3D-transformed slide content must never paint over the caption text. */
+  position: relative;
+  z-index: 1;
   /* Wide gap: the drum's z-recession pulls side cards' projections toward
      the vanishing point (viewport centre), visually closing the distance —
      the layout gap compensates so neighbours never read as touching. */
@@ -1396,7 +1415,12 @@ h6 {
      by the tallest caption) — without this, shorter captions stretch and
      their auto/flex spacing opens odd gaps mid-text. */
   align-items: end;
-  z-index: 3;
+  /* WELL above the track (which gets an explicit z-index: 1): the slides'
+     3D-transformed content (hover z-pops, drum recession) was intermittently
+     compositing in front of the caption text — the service text must NEVER
+     be covered by its card or the card's animation. */
+  z-index: 40;
+  isolation: isolate;
 }
 
 @media (min-width: 901px) {
@@ -4777,13 +4801,13 @@ input[type="range"].nxr-ms-range::-moz-range-thumb {
     /* Drops the desktop sticky-centering translateY(-50%) (it applies
        regardless of position scheme). Left-edge-forward like every other
        mobile block now: everything is left-aligned on phones, so the LEFT
-       side is the one that distorts — same inner-edge-pivot profile as the
-       titles above. */
-    transform: translateX(22%) perspective(460px) rotateY(14deg);
+       side is the one that distorts — same inner-edge-pivot profile (and
+       same reduced 12%/10° as the titles: 22%/14° overflowed the right). */
+    transform: translateX(12%) perspective(460px) rotateY(10deg);
     transform-origin: 100% center;
   }
   .nxr-intro-headline {
-    font-size: clamp(36px, 9.5vw, 48px);
+    font-size: clamp(30px, 8vw, 40px);
   }
   .nxr-intro-anim {
     height: 72px;

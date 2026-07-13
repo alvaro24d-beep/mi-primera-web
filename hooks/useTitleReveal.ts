@@ -58,7 +58,11 @@ export function useTitleReveal<T extends HTMLElement = HTMLHeadingElement>() {
       // opacity + y (translate), with no overflow box involved anywhere, so
       // there is nothing for a descender to be cut off by, regardless of font
       // metrics. Same "rises into place" read, just without a hard mask edge.
-      const split = SplitText.create(el, { type: "words, chars" });
+      // wordsClass: the word divs double as anchors for useCurvedWords'
+      // bowOnly mode (dynamic per-line bow on titles) — the bow transforms
+      // the WORD wrappers while this reveal animates the CHAR spans inside,
+      // so the two compose without touching the same element.
+      const split = SplitText.create(el, { type: "words, chars", wordsClass: "nxr-cw-word" });
       gsap.set(split.chars, { opacity: 0, yPercent: 40 });
       gsap.to(split.chars, {
         opacity: 1,

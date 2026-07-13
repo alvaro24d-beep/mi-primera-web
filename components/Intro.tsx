@@ -75,6 +75,9 @@ export default function Intro() {
   // the viewer — and matches the requested mobile direction too.
   useCurvedWords(sectionRef, ".nxr-intro-textblock", "right");
 
+  // Dynamic per-line bow on the (gradient) headline too — see Proceso.tsx.
+  useCurvedWords(sectionRef, ".nxr-intro-headline", "left", [], { bowOnly: true });
+
   // Both sticky elements (headline + paragraph block) decelerate smoothly
   // into their stuck position and ease back out instead of freezing dead the
   // frame they arrive ("todos los sticky amortiguados al ponerse y
@@ -169,27 +172,25 @@ export default function Intro() {
         };
       };
 
-      if (isDesktop) {
-        // Appearance is a real-time trigger (not scrubbed): the moment the
-        // sticky block reaches its centred resting spot, it fades in fast
-        // and scrambles into legibility — fixed at half screen height, per
-        // request ("en vez de aparecer por abajo, salga fijo en la mitad de
-        // altura"). "top 45%" fires a hair before the stick engages (the
-        // trigger rect includes the -50% centering transform), so the last
-        // few px of drift are imperceptible under the scramble.
-        ScrollTrigger.create({
-          trigger: texts,
-          start: "top 45%",
-          onEnter: () => {
-            gsap.to(texts, { opacity: 1, duration: 0.45, ease: "power1.out", overwrite: "auto" });
-            scramble();
-          },
-          onLeaveBack: () => {
-            cancelScramble?.();
-            gsap.to(texts, { opacity: 0, duration: 0.2, ease: "power1.in", overwrite: "auto" });
-          },
-        });
-      }
+      // The scramble entrance fires on EVERY viewport ("tiene que salir").
+      // Desktop: a real-time trigger right as the sticky block reaches its
+      // centred resting spot ("top 45%" fires a hair before the stick
+      // engages — the trigger rect includes the -50% centering transform),
+      // which also owns the opacity fade-in/out. Mobile: fires as the block
+      // scrolls into view; opacity there stays with the scrubbed timeline
+      // below, the scramble just plays over its fade-in.
+      ScrollTrigger.create({
+        trigger: texts,
+        start: isDesktop ? "top 45%" : "top 82%",
+        onEnter: () => {
+          if (isDesktop) gsap.to(texts, { opacity: 1, duration: 0.45, ease: "power1.out", overwrite: "auto" });
+          scramble();
+        },
+        onLeaveBack: () => {
+          cancelScramble?.();
+          if (isDesktop) gsap.to(texts, { opacity: 0, duration: 0.2, ease: "power1.in", overwrite: "auto" });
+        },
+      });
 
       const tl = gsap.timeline({
         scrollTrigger: {

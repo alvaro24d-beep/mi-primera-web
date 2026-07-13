@@ -49,6 +49,9 @@ export default function Contacto() {
   // Description paragraph curves like the concave backdrop (see
   // useCurvedWords) — left column, so its left edge wraps forward.
   useCurvedWords(sectionRef, ".nxr-contacto-desc", "left");
+
+  // Dynamic per-line bow on the (gradient) title too — see Proceso.tsx.
+  useCurvedWords(sectionRef, ".nxr-section-h2", "left", [], { bowOnly: true });
   const [negocio, setNegocio] = useState<string | null>(null);
   const [servicios, setServicios] = useState<string[]>([]);
   const [budgetIndex, setBudgetIndex] = useState(2);
@@ -128,7 +131,6 @@ export default function Contacto() {
         <div className="nxr-contacto-grid">
           <div className="nxr-contacto-left nxr-reveal">
             <div>
-              <p className="nxr-section-label">Contacto</p>
               <h2 className="nxr-section-h2" ref={titleRef}>
                 Cuéntanos tu
                 <br />

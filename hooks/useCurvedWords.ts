@@ -38,11 +38,13 @@ gsap.registerPlugin(SplitText);
  * short-circuits, so at scroll rest the ticker is ~free.
  */
 const PERSPECTIVE = 460; // px — matches the block-level CSS planes on titles
-// Vertical magnification-minus-one at the block's outer edge: a line 300px
-// below the viewport centre bows 300·0.12 = 36px downward at the outer edge
-// (and 0 at the pivot). Sign flips above centre automatically via dy.
-const DYN_FAN = 0.12;
 const RAD2DEG = 180 / Math.PI;
+// The bow grows with a line's distance from the viewport centre — CLAMPED:
+// unclamped, lines near the screen edges bowed 50px+ and their words climbed
+// clean out of their own block over neighbouring content (reported as a
+// lowercase word covering a title's capital letter). 240·fan caps the worst
+// case at ~29px desktop / ~17px mobile, all of which fits in normal margins.
+const DY_CAP = 240;
 
 // Same edge-pivot profile on EVERY viewport ("como en ordenador pero bien
 // hecho y afinado"): the pivot sits AT the inner edge, which stays exactly
@@ -59,8 +61,11 @@ const RAD2DEG = 180 / Math.PI;
 // phone's 16px page padding scale.
 const PROFILE = () =>
   window.innerWidth >= 901
-    ? { tilt: 12, forceDir: null as "left" | null, frameMargin: 40 }
-    : { tilt: 14, forceDir: "left" as const, frameMargin: 28 };
+    ? { tilt: 12, forceDir: null as "left" | null, frameMargin: 40, fan: 0.12 }
+    : // Gentler on phones (10°, softer fan 0.07 — "reduce un poco más la
+      // deformación dinámica en móvil") and a generous frame margin so the
+      // distorted edge is clearly separated from the viewport sides.
+      { tilt: 10, forceDir: "left" as const, frameMargin: 34, fan: 0.07 };
 
 type WordGeom = { node: HTMLElement; sRel: number; s2: number; lineMid: number };
 type ItemGeom = {
@@ -80,7 +85,17 @@ export function useCurvedWords(
   selector: string,
   /** Which edge of the block wraps toward the viewer (its outer, page-edge side). */
   dir: "left" | "right",
-  deps: readonly unknown[] = []
+  deps: readonly unknown[] = [],
+  /**
+   * bowOnly: for the section TITLES, which already carry the block-level CSS
+   * tilt AND are already word-split by useTitleReveal (whose word divs share
+   * the .nxr-cw-word class). This mode adds ONLY the per-frame dynamic bow to
+   * those existing spans: no second SplitText (double-splitting nests spans),
+   * no inline block transform (CSS owns it), no frame shift. The reveal
+   * animates the CHAR spans inside these words, so the two never touch the
+   * same element's transform.
+   */
+  opts: { bowOnly?: boolean } = {}
 ) {
   useEffect(() => {
     const root = rootRef.current;
@@ -88,14 +103,24 @@ export function useCurvedWords(
     const els = Array.from(root.querySelectorAll<HTMLElement>(selector));
     if (!els.length) return;
 
-    const items = els.map((el) => ({
-      el,
-      // wordsClass: consumers that animate the TEXT ITSELF (Intro's scramble
-      // effect) need a stable selector for these word spans — mutating their
-      // textContent is the only text animation that coexists with the
-      // per-word transforms (re-rendering the paragraph would destroy them).
-      split: SplitText.create(el, { type: "words", wordsClass: "nxr-cw-word" }),
-    }));
+    const bowOnly = !!opts.bowOnly;
+    const items = els
+      .map((el) => ({
+        el,
+        // wordsClass: consumers that animate the TEXT ITSELF (Intro's scramble
+        // effect) or ride on another split (bowOnly) need a stable selector —
+        // mutating these spans is the only text animation that coexists with
+        // the per-word transforms.
+        split: bowOnly ? null : SplitText.create(el, { type: "words", wordsClass: "nxr-cw-word" }),
+      }))
+      // bowOnly with no pre-existing word spans (reduced motion skips the
+      // reveal's split) → nothing to do for that element.
+      .filter(({ el, split }) => split || el.querySelector(".nxr-cw-word"));
+    if (!items.length) return;
+
+    const wordsOf = (it: (typeof items)[number]) =>
+      it.split ? (it.split.words as HTMLElement[]) : Array.from(it.el.querySelectorAll<HTMLElement>(".nxr-cw-word"));
+
     const geoms: ItemGeom[] = [];
 
     const layout = () => {
@@ -106,56 +131,62 @@ export function useCurvedWords(
       const origin = `${pivot * 100}% center`;
       geoms.length = 0;
 
-      // ---- Pass 1: clear everything, measure untransformed geometry.
-      for (const { el, split } of items) {
-        el.style.transform = "none";
-        for (const w of split.words as HTMLElement[]) w.style.transform = "none";
+      // ---- Pass 1: clear everything, measure untransformed geometry. In
+      // bowOnly mode the element's own (CSS) transform stays — all rects are
+      // measured consistently in its projected space instead.
+      for (const it of items) {
+        if (!bowOnly) it.el.style.transform = "none";
+        for (const w of wordsOf(it)) w.style.transform = "none";
       }
 
       // ---- Pass 2: capture per-word geometry (for the per-frame bow) and
       // apply the static per-block tangent tilt.
       const layoutBoxes = new Map<HTMLElement, DOMRect>();
-      for (const { el, split } of items) {
+      for (const it of items) {
+        const { el } = it;
         const box = el.getBoundingClientRect();
         layoutBoxes.set(el, box);
         const W = box.width || 1;
         const words: WordGeom[] = [];
-        for (const w of split.words as HTMLElement[]) {
+        for (const w of wordsOf(it)) {
           const r = w.getBoundingClientRect();
           const sRel = ((r.left + r.right) / 2 - box.left) / W - pivot;
           words.push({ node: w, sRel, s2: sRel * sRel, lineMid: (r.top + r.bottom) / 2 - box.top });
         }
-        el.style.transformOrigin = origin;
-        el.style.transform = `perspective(${PERSPECTIVE}px) rotateY(${yaw}deg)`;
-        const tilted = el.getBoundingClientRect();
-        geoms.push({ el, words, W, topBias: box.top - tilted.top, near: false, lastTop: NaN });
+        let topBias = 0;
+        if (!bowOnly) {
+          el.style.transformOrigin = origin;
+          el.style.transform = `perspective(${PERSPECTIVE}px) rotateY(${yaw}deg)`;
+          topBias = box.top - el.getBoundingClientRect().top;
+        }
+        geoms.push({ el, words, W, topBias, near: false, lastTop: NaN });
       }
 
-      // ---- Pass 3: the magnified outer edge projects past the layout box;
-      // pull the whole GROUP inward just enough to stay FRAME_MARGIN off the
-      // viewport edge. One shared shift keeps multi-block sheets aligned.
-      // Measured with the words at neutral bow (the dynamic bow is vertical
-      // and adds only a trivial horizontal footprint via the word lean).
-      let shift = 0;
-      for (const { el, split } of items) {
-        const box = layoutBoxes.get(el)!;
-        let over = 0;
-        for (const w of split.words as HTMLElement[]) {
-          const r = w.getBoundingClientRect();
-          over = Math.max(over, effDir === "right" ? r.right - box.right : box.left - r.left);
+      if (!bowOnly) {
+        // ---- Pass 3: the magnified outer edge projects past the layout box;
+        // pull the whole GROUP inward just enough to stay frameMargin off the
+        // viewport edge. One shared shift keeps multi-block sheets aligned.
+        let shift = 0;
+        for (const it of items) {
+          const box = layoutBoxes.get(it.el)!;
+          let over = 0;
+          for (const w of wordsOf(it)) {
+            const r = w.getBoundingClientRect();
+            over = Math.max(over, effDir === "right" ? r.right - box.right : box.left - r.left);
+          }
+          const room = effDir === "right" ? window.innerWidth - box.right : box.left;
+          // NOT clamped at the box edge: when the layout box itself sits
+          // closer to the frame than frameMargin (phones: 16px page padding),
+          // the block is pushed PAST its own edge so the distorted side
+          // always keeps the full margin off the frame.
+          shift = Math.max(shift, over - (room - frameMargin));
         }
-        const room = effDir === "right" ? window.innerWidth - box.right : box.left;
-        // NOT clamped at the box edge: when the layout box itself sits closer
-        // to the frame than frameMargin (phones: 16px page padding < 28px
-        // margin), the block is pushed PAST its own edge so the distorted
-        // side always keeps the full margin off the frame.
-        shift = Math.max(shift, over - (room - frameMargin));
-      }
-      if (shift > 0.5) {
-        const tx = effDir === "right" ? -shift : shift;
-        // Horizontal-only shift: the vertical topBias is unaffected.
-        for (const g of geoms) {
-          g.el.style.transform = `translateX(${tx.toFixed(1)}px) perspective(${PERSPECTIVE}px) rotateY(${yaw}deg)`;
+        if (shift > 0.5) {
+          const tx = effDir === "right" ? -shift : shift;
+          // Horizontal-only shift: the vertical topBias is unaffected.
+          for (const g of geoms) {
+            g.el.style.transform = `translateX(${tx.toFixed(1)}px) perspective(${PERSPECTIVE}px) rotateY(${yaw}deg)`;
+          }
         }
       }
     };
@@ -165,6 +196,7 @@ export function useCurvedWords(
     // ---- Per-frame dynamic bow, driven by each line's LIVE screen height.
     const update = () => {
       const vhHalf = window.innerHeight / 2;
+      const { fan } = PROFILE();
       for (const g of geoms) {
         if (!g.near) continue;
         const rect = g.el.getBoundingClientRect();
@@ -172,11 +204,12 @@ export function useCurvedWords(
         if (Math.abs(topNow - g.lastTop) < 0.3) continue;
         g.lastTop = topNow;
         for (const w of g.words) {
-          const dy = topNow + w.lineMid - vhHalf;
-          const ty = dy * DYN_FAN * w.s2;
+          const dyRaw = topNow + w.lineMid - vhHalf;
+          const dy = Math.max(-DY_CAP, Math.min(DY_CAP, dyRaw));
+          const ty = dy * fan * w.s2;
           // Lean each word onto the local slope of its bowed line so the
           // curve reads smooth instead of a per-word stair-step.
-          const rot = ((dy * DYN_FAN * 2 * w.sRel) / g.W) * RAD2DEG;
+          const rot = ((dy * fan * 2 * w.sRel) / g.W) * RAD2DEG;
           w.node.style.transform = `translateY(${ty.toFixed(1)}px) rotate(${rot.toFixed(2)}deg)`;
         }
       }
@@ -211,10 +244,16 @@ export function useCurvedWords(
       cancelAnimationFrame(raf);
       ro.disconnect();
       io.disconnect();
-      items.forEach(({ el, split }) => {
-        split.revert();
-        el.style.transform = "";
-        el.style.transformOrigin = "";
+      items.forEach((it) => {
+        if (it.split) {
+          it.split.revert();
+          it.el.style.transform = "";
+          it.el.style.transformOrigin = "";
+        } else {
+          // bowOnly: the words belong to useTitleReveal's split — just drop
+          // our transforms and leave the spans to their owner.
+          for (const w of wordsOf(it)) w.style.transform = "";
+        }
       });
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps

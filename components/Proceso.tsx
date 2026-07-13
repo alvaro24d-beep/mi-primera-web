@@ -135,6 +135,10 @@ export default function Proceso() {
   // it sits on the right half of the screen, so its right edge wraps forward.
   useCurvedWords(sectionRef, ".nxr-proceso-header-right", "right");
 
+  // Dynamic per-line bow on the (gradient) title too, riding the reveal's
+  // word spans — bowOnly leaves the CSS tilt and the char reveal untouched.
+  useCurvedWords(sectionRef, ".nxr-section-h2", "left", [], { bowOnly: true });
+
   useEffect(() => {
     const track = trackRef.current;
     const progress = progressRef.current;
@@ -250,7 +254,6 @@ export default function Proceso() {
       <div className="nxr-proceso-inner">
         <div className="nxr-proceso-header nxr-reveal">
           <div>
-            <p className="nxr-section-label">Cómo trabajamos</p>
             <h2 className="nxr-section-h2" ref={titleRef}>
               Un proceso claro,
               <br />

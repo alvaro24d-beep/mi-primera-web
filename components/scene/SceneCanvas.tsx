@@ -7,6 +7,7 @@ import { EffectComposer, Bloom, Vignette } from "@react-three/postprocessing";
 import SceneBackground from "./SceneBackground";
 import ServiciosCardsLayer from "./ServiciosCardsLayer";
 import ZoomParallaxCardsLayer from "./ZoomParallaxCardsLayer";
+import GlassPanelsLayer from "./GlassPanelsLayer";
 import PixelCamera, { CAMERA_DISTANCE } from "./PixelCamera";
 
 // Procedural HDRI: `<Environment>` + `<Lightformer>` only — never the
@@ -81,7 +82,11 @@ export default function SceneCanvas() {
   }, []);
 
   useEffect(() => {
-    const ids = ["nxr-servicios", "nxr-zoom-parallax"];
+    // Every section that hosts live glass meshes: the two card reels plus the
+    // generic flat panels (Intro, Proceso, Contacto — see GlassPanelsLayer).
+    // Near any of them the frameloop runs "always" so the meshes track their
+    // scrolling/animating DOM anchors frame-by-frame; elsewhere "demand".
+    const ids = ["nxr-servicios", "nxr-zoom-parallax", "nxr-intro", "nxr-proceso", "nxr-contacto"];
     const sections = ids.map((id) => document.getElementById(id)).filter(Boolean) as HTMLElement[];
     if (!sections.length) return;
     const nearby = new Set<Element>();
@@ -127,7 +132,12 @@ export default function SceneCanvas() {
           // background" look for free — a low-res capture magnified back up
           // reads as soft blur, so roughness alone doesn't have to do all the
           // blurring work (see VolumetricCard.tsx).
-          gl.transmissionResolutionScale = 0.2;
+          // 0.35 (was 0.2): at 0.2 the upscaled capture was SO soft that the
+          // transmitted background stopped being recognizable — the glass
+          // read as a murky grey pane rather than "I can see through this".
+          // 0.35 keeps the image legible through the cards (clearly
+          // transparent) while still costing only ~12% of full-res pixels.
+          gl.transmissionResolutionScale = 0.35;
         }}
       >
         <PixelCamera />
@@ -145,7 +155,8 @@ export default function SceneCanvas() {
           active={active}
         />
         <ServiciosCardsLayer isMobile={isMobile} />
-        <ZoomParallaxCardsLayer />
+        <ZoomParallaxCardsLayer isMobile={isMobile} />
+        <GlassPanelsLayer isMobile={isMobile} />
         {!isMobile && (
           <EffectComposer>
             <Bloom mipmapBlur luminanceThreshold={0.6} luminanceSmoothing={0.3} intensity={0.35} />

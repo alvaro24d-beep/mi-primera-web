@@ -5,6 +5,7 @@ import gsap from "gsap";
 import { useGSAP } from "@gsap/react";
 import { useTitleReveal } from "@/hooks/useTitleReveal";
 import { useReducedMotion } from "@/hooks/useReducedMotion";
+import { useGlassPanels } from "@/hooks/useGlassPanels";
 
 // Compact looping graphic per card, each representing its service (same idea
 // as the home Servicios animations): a website building for "Construimos", an
@@ -59,6 +60,11 @@ export default function Intro() {
   const textsRef = useRef<HTMLDivElement>(null);
   const reducedMotion = useReducedMotion();
 
+  // Real volumetric fluid-glass behind each intro card (same identity as the
+  // Servicios cards, flat variant) — the DOM card keeps only layout/content;
+  // see the .nxr-intro-card CSS, which no longer paints its own glass.
+  useGlassPanels(sectionRef, ".nxr-intro-card", "#12141c", [reducedMotion]);
+
   useGSAP(
     () => {
       // Same direct-media-query safety net as useTitleReveal: avoids running
@@ -101,24 +107,29 @@ export default function Intro() {
           // (mobile/desktop) reading budget as before, while the cards' own
           // fade-in now burns much less EXTRA scroll after the text is gone
           // — see check via scratchpad/measure-intro.mjs if retuning this.
-          end: () => (window.innerWidth < 768 ? "+=1046" : "+=756"),
+          // Desktop got noticeably more runway back (620→860) after the text
+          // phase read as rushing by — that first shortening overshot. The
+          // card phases keep their overlap-with-text-out timing, so the cards
+          // still show up early; only the per-phase scroll budget grew.
+          end: () => (window.innerWidth < 768 ? "+=840" : "+=860"),
           scrub: 0.6,
         },
       });
 
       // Phase 1 — the text rises and fades IN as it scrolls up into view.
       tl.to(texts, { opacity: 1, y: 0, duration: 1, ease: "power2.out" }, 0);
-      // Hold — readable for a stretch of scroll.
-      tl.to({}, { duration: 1.2 }, 1);
+      // Hold — readable, but short: the old 1.2 hold (plus a text-out that
+      // didn't start until 2.2 and cards that waited for it to FULLY finish
+      // at 3.2 of 3.4) meant the cards only appeared in the last ~6% of a
+      // long range — reported as "the cards show up way too late".
+      tl.to({}, { duration: 0.7 }, 1);
       // Phase 2 — the SAME upward drift continues, now fading the text back
       // OUT, so it visibly leaves rather than just scrolling out of frame.
-      tl.to(texts, { opacity: 0, y: -40, duration: 1, ease: "power2.in" }, 2.2);
-      // Phase 3 — only once the text is fully gone do the cards rise in, one
-      // after another. Kept short (vs. the text phases above) so they finish
-      // shortly after the text disappears rather than continuing to consume
-      // scroll — the longer this tween+stagger runs, the further the cards
-      // have already drifted up the screen by the time they're fully visible.
-      tl.to(cards, { opacity: 1, y: 0, duration: 0.2, stagger: 0.1, ease: "power2.out" }, 3.2);
+      tl.to(texts, { opacity: 0, y: -40, duration: 1, ease: "power2.in" }, 1.7);
+      // Phase 3 — the cards rise in WHILE the text is still dissolving
+      // (starts at 2.3, text-out ends 2.7): a crossfade hand-off reads as one
+      // continuous composition instead of "text gone → dead scroll → cards".
+      tl.to(cards, { opacity: 1, y: 0, duration: 0.25, stagger: 0.08, ease: "power2.out" }, 2.3);
     },
     { scope: sectionRef, dependencies: [reducedMotion] }
   );

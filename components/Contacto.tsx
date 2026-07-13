@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useTitleReveal } from "@/hooks/useTitleReveal";
+import { useGlassPanels } from "@/hooks/useGlassPanels";
 
 const BUDGET_VALUES = [
   "< 500€",
@@ -37,7 +38,12 @@ const TOTAL_STEPS = 5;
 
 export default function Contacto() {
   const titleRef = useTitleReveal<HTMLHeadingElement>();
+  const sectionRef = useRef<HTMLElement>(null);
   const [step, setStep] = useState(1);
+
+  // Volumetric fluid-glass behind the multi-step form card (flat variant of
+  // the Servicios identity) — the DOM card keeps layout/content only.
+  useGlassPanels(sectionRef, ".nxr-ms-card", "#100f16", []);
   const [negocio, setNegocio] = useState<string | null>(null);
   const [servicios, setServicios] = useState<string[]>([]);
   const [budgetIndex, setBudgetIndex] = useState(2);
@@ -112,7 +118,7 @@ export default function Contacto() {
   const budgetPct = (budgetIndex / (BUDGET_VALUES.length - 1)) * 100;
 
   return (
-    <section id="nxr-contacto">
+    <section id="nxr-contacto" ref={sectionRef}>
       <div className="nxr-contacto-inner">
         <div className="nxr-contacto-grid">
           <div className="nxr-contacto-left nxr-reveal">

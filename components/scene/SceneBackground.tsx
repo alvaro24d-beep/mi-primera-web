@@ -24,6 +24,13 @@ const Z_CENTER = -1050; // depth of the arc's farthest (central) column — deep
 const HEIGHT = 2600; // vertical span (straight — axis is vertical, so no vertical curvature)
 const COLS = 220;
 const ROWS = 72;
+// Unrolled surface width of the arc (2·R·φmax) — the wall's TRUE width for
+// aspect math, since u is parameterized by angle (≈ arc length), not by the
+// chord. Wall aspect ≈ 1.1 : videos must be "cover"-mapped against this or
+// they stretch to fill the whole wall (a 16:9 clip squashed onto a ~1.1:1
+// surface was the reported distortion).
+const ARC_LEN = 2 * R * PHI_MAX;
+const WALL_ASPECT = ARC_LEN / HEIGHT;
 
 function buildArcGeometry() {
   const positions: number[] = [];
@@ -81,6 +88,7 @@ const fragmentShader = /* glsl */ `
   uniform float uHasVideo; // 1 = sample uSource (real video), 0 = procedural test signal
   uniform sampler2D uSource;
   uniform vec2 uPixel;     // pixelation resolution (cells across / down)
+  uniform vec2 uCoverScale; // aspect-correct "cover" crop: fraction of the video sampled per axis
   uniform float uTime;
 
   float hash(vec2 p) { return fract(sin(dot(p, vec2(41.3, 289.1))) * 43758.5453); }
@@ -111,7 +119,14 @@ const fragmentShader = /* glsl */ `
   }
 
   vec3 sampleSource(vec2 uv) {
-    if (uHasVideo > 0.5) return texture2D(uSource, uv).rgb;
+    if (uHasVideo > 0.5) {
+      // "cover" mapping: sample only the central uCoverScale fraction of the
+      // video so it fills the wall at its NATIVE aspect (excess is cropped,
+      // never stretched) — computed in JS from videoWidth/Height vs the
+      // wall's unrolled aspect.
+      vec2 cuv = vec2(0.5) + (uv - vec2(0.5)) * uCoverScale;
+      return texture2D(uSource, cuv).rgb;
+    }
     return proceduralTV(uv);
   }
 
@@ -186,7 +201,12 @@ export default function SceneBackground({
       uTv: { value: tv ? 1 : 0 },
       uHasVideo: { value: 0 },
       uSource: { value: blankTex as THREE.Texture },
-      uPixel: { value: new THREE.Vector2(180, 110) },
+      // Square CRT pixels: rows derived from the wall's real (unrolled)
+      // aspect — the old fixed 180×110 grid had ~16×24-world-unit cells,
+      // whose 1.5× vertical stretch was itself part of the reported
+      // distortion.
+      uPixel: { value: new THREE.Vector2(180, Math.round(180 / WALL_ASPECT)) },
+      uCoverScale: { value: new THREE.Vector2(1, 1) },
       uTime: { value: 0 },
     }),
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -245,6 +265,12 @@ export default function SceneBackground({
       if (mat) {
         mat.uniforms.uSource.value = tex;
         mat.uniforms.uHasVideo.value = 1;
+        // Aspect-correct cover crop for THIS clip against the wall's
+        // unrolled aspect (see sampleSource in the fragment shader).
+        const va = video.videoWidth / video.videoHeight || 1;
+        const cover = mat.uniforms.uCoverScale.value as THREE.Vector2;
+        if (va > WALL_ASPECT) cover.set(WALL_ASPECT / va, 1);
+        else cover.set(1, va / WALL_ASPECT);
       }
       video.play().catch(() => {});
       if (supportsRVFC) rvfcId = video.requestVideoFrameCallback(onFrame);

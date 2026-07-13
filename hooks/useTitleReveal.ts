@@ -15,6 +15,14 @@ gsap.registerPlugin(ScrollTrigger, SplitText);
 // `.nxr-reveal` elsewhere only reveals a section the first time it's seen.
 // Not for the home hero or the "Construido con maestría" statement, which have
 // their own bespoke animations.
+//
+// NOTE: keep this hook free of per-char 3D transforms. A per-char
+// translateZ/rotateY "curved plane" was tried and reverted: individually
+// transformed chars break apart visually (layout advance widths don't follow
+// the projected sizes, so glyphs overlap/spread) and the animated
+// gradient-text titles (background-clip: text, painted per element) render
+// scrambled. The perspective planes are applied at BLOCK level in CSS — see
+// the "Perspective text planes" section of globals.css.
 export function useTitleReveal<T extends HTMLElement = HTMLHeadingElement>() {
   const ref = useRef<T>(null);
   const reducedMotion = useReducedMotion();

@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useTitleReveal } from "@/hooks/useTitleReveal";
+import { useGlassPanels } from "@/hooks/useGlassPanels";
 
 const PASOS = [
   {
@@ -114,12 +115,20 @@ class Spark {
 
 export default function Proceso() {
   const titleRef = useTitleReveal<HTMLHeadingElement>();
+  const sectionRef = useRef<HTMLElement>(null);
   const trackRef = useRef<HTMLDivElement>(null);
   const progressRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const pasoRefs = useRef<(HTMLDivElement | null)[]>([]);
   const tiltRefs = useRef<(HTMLButtonElement | null)[]>([]);
   const [expanded, setExpanded] = useState<number | null>(null);
+
+  // Volumetric fluid-glass behind each step card (flat variant of the
+  // Servicios identity). The anchors are the buttons themselves — which is
+  // also why the old pointer-tilt below is gone: a CSS-rotated anchor
+  // reports an inflated axis-aligned rect, so the mesh would "breathe"
+  // under the cursor while the glass stayed unrotated.
+  useGlassPanels(sectionRef, ".nxr-paso-card", "#141018", []);
 
   useEffect(() => {
     const track = trackRef.current;
@@ -215,38 +224,11 @@ export default function Proceso() {
     window.addEventListener("resize", onScroll, { passive: true });
     onScroll();
 
-    // Subtle pointer-driven 3D tilt on each card — desktop with a real mouse
-    // only, and never when the user has asked for reduced motion.
-    const canHover = window.matchMedia("(hover: hover) and (pointer: fine)").matches;
-    const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    const tiltCleanups: (() => void)[] = [];
-
-    if (canHover && !reduceMotion) {
-      tiltRefs.current.filter(Boolean).forEach((card) => {
-        const node = card as HTMLButtonElement;
-        // Hit-test on the non-rotating wrapper, not the card that actually
-        // tilts — otherwise the rotating element's own edges sweep in and out
-        // from under the pointer, and the browser flickers the cursor icon
-        // between "pointer" and the default arrow as hover keeps toggling.
-        const wrapper = node.parentElement;
-        if (!wrapper) return;
-        const onMove = (e: MouseEvent) => {
-          const r = wrapper.getBoundingClientRect();
-          const px = (e.clientX - r.left) / r.width - 0.5;
-          const py = (e.clientY - r.top) / r.height - 0.5;
-          node.style.transform = `perspective(800px) rotateX(${(-py * 12).toFixed(2)}deg) rotateY(${(px * 12).toFixed(2)}deg)`;
-        };
-        const onLeave = () => {
-          node.style.transform = "perspective(800px) rotateX(0deg) rotateY(0deg)";
-        };
-        wrapper.addEventListener("mousemove", onMove);
-        wrapper.addEventListener("mouseleave", onLeave);
-        tiltCleanups.push(() => {
-          wrapper.removeEventListener("mousemove", onMove);
-          wrapper.removeEventListener("mouseleave", onLeave);
-        });
-      });
-    }
+    // (The old pointer-driven CSS tilt on each card was removed with the move
+    // to real volumetric glass: the tilting button is now the MESH ANCHOR,
+    // and a CSS-rotated anchor reports an inflated axis-aligned rect that
+    // made the glass swim under the cursor. Servicios remains the only
+    // section with hover-tilt, where mesh and content rotate together.)
 
     return () => {
       cancelAnimationFrame(rafId);
@@ -254,13 +236,12 @@ export default function Proceso() {
       window.removeEventListener("scroll", onScroll);
       window.removeEventListener("resize", onScroll);
       io?.disconnect();
-      tiltCleanups.forEach((fn) => fn());
       particles = [];
     };
   }, []);
 
   return (
-    <section id="nxr-proceso">
+    <section id="nxr-proceso" ref={sectionRef}>
       <div className="nxr-proceso-inner">
         <div className="nxr-proceso-header nxr-reveal">
           <div>

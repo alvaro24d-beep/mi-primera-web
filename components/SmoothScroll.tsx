@@ -38,19 +38,21 @@ export default function SmoothScroll() {
       // their content by a frame on phones. syncTouch makes touch scroll
       // advance inside Lenis' rAF — the same frame the scene reads.
       syncTouch: true,
-      // Left at Lenis' own default (1.7) deliberately: an earlier tamer
-      // value (1.2) made ALL touch scrolling site-wide decay faster/shorter
-      // — since this is global, it read as the whole page "braking" under
-      // your finger, not just the one section it was meant to help. The
-      // Servicios card-snap doesn't actually need short inertia to settle
-      // correctly — its own glide already re-writes the scroll position
-      // every frame until it verifiably converges (see the `holdFrames`
-      // loop in Servicios.tsx), which works fine against natural-length
-      // momentum, it just takes a few more frames to win out.
-      // Snappier catch-up than the defaults (wheel lerp 0.1, touch 0.075):
-      // the heavier smoothing read as the page "braking" the scroll.
+      // Wheel smoothing only slightly snappier than Lenis' default 0.1 —
+      // desktop feel, unchanged.
       lerp: 0.16,
-      syncTouchLerp: 0.18,
+      // Touch: back at Lenis' own DEFAULT (0.075). The raised 0.18 made the
+      // leftover momentum after lifting the finger converge in a few frames
+      // — reported as "the scroll brakes immediately on mobile". The default
+      // lets a flick glide out naturally (native-feeling decay). All touch-
+      // inertia knobs (touchInertiaMultiplier/Exponent) also stay at their
+      // defaults for the same reason — an earlier 1.2 exponent override had
+      // the same braking side-effect and was reverted. Servicios' one-card-
+      // per-swipe pagination is NOT affected by longer momentum: its glideTo
+      // writes `scrollTo(..., immediate)` every frame (killing Lenis'
+      // internal inertia each write) and holds until verifiably converged
+      // (see the holdFrames loop in Servicios.tsx).
+      syncTouchLerp: 0.075,
     });
     window.__nxrLenis = lenis;
 

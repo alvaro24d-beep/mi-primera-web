@@ -395,15 +395,21 @@ function GlassCard({ c }: { c: (typeof CARDS)[number] }) {
 function Caption({ c }: { c: (typeof CARDS)[number] }) {
   return (
     <div className="nxr-srv-caption">
-      <span className="nxr-srv-tag">{c.tag}</span>
-      <h3 className="nxr-srv-title">{c.title}</h3>
-      <p className="nxr-srv-desc">{c.desc}</p>
-      <div className="nxr-srv-pills">
-        {c.pills.map((p) => (
-          <span key={p} className="nxr-srv-pill">
-            {p}
-          </span>
-        ))}
+      {/* Tilt wrapper: the caption CONTAINER spans nearly the full viewport
+          on desktop (text left, CTA pinned right), so tilting IT threw the
+          near (left) edge's projection off-screen. Only this ~620px text
+          block rides the perspective plane; the CTA stays at normal depth. */}
+      <div className="nxr-srv-caption-tilt">
+        <span className="nxr-srv-tag">{c.tag}</span>
+        <h3 className="nxr-srv-title">{c.title}</h3>
+        <p className="nxr-srv-desc">{c.desc}</p>
+        <div className="nxr-srv-pills">
+          {c.pills.map((p) => (
+            <span key={p} className="nxr-srv-pill">
+              {p}
+            </span>
+          ))}
+        </div>
       </div>
       <div className="nxr-srv-cta-wrap">
         <a href={c.href} className="nxr-srv-cta nxr-glass-edge">
@@ -733,6 +739,18 @@ export default function Servicios() {
         let holdFrames = 90;
         let stableFrames = 0;
         const tick = (now: number) => {
+          // Abort the moment the scroll is no longer inside this pin's
+          // RANGE: a PROGRAMMATIC scroll (header anchor links, in-page
+          // navigation — anything that isn't wheel/touch, which cancelSnap
+          // already covers) can jump away mid-glide, and without this check
+          // the glide's per-frame immediate writes would drag the page right
+          // back to the card it was centring. Deliberately a raw start/end
+          // comparison rather than `st.isActive`: isActive is ScrollTrigger
+          // bookkeeping updated on ITS schedule, and reading it from inside
+          // this rAF (between Lenis write and ScrollTrigger.update) proved
+          // flaky enough to kill legitimate glides.
+          const st = tl.scrollTrigger;
+          if (!st || window.scrollY < st.start - 4 || window.scrollY > st.end + 4) return;
           const t = Math.min(1, (now - t0) / dur);
           const eased = 1 - Math.pow(1 - t, 3);
           const y = from + dist * eased;

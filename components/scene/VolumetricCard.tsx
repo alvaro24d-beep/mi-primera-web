@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef } from "react";
 import * as THREE from "three";
+import { MeshTransmissionMaterial } from "@react-three/drei";
 import type { ReactNode } from "react";
 
 export interface VolumetricCardProps {
@@ -23,12 +24,22 @@ export interface VolumetricCardProps {
    */
   bend?: number;
   /**
-   * 0 = opaque dark glass (default — used by ZoomParallax). > 0 turns the glass
-   * frosted/see-through so the background blurs through it (physical-material
-   * `transmission`); the blur comes from a raised roughness. Costs an extra
-   * render pass, so callers gate it (e.g. desktop-only) — see ServiciosCardsLayer.
+   * 0 = opaque dark glass (default — the mobile fallback). > 0 turns the glass
+   * frosted/see-through so the background blurs through it. Frosted cards use
+   * drei's MeshTransmissionMaterial (the React Bits "FluidGlass" material) in
+   * `transmissionSampler` mode, so ALL cards share three.js's single built-in
+   * transmission capture (already downscaled via `transmissionResolutionScale`
+   * in SceneCanvas.tsx) instead of each material re-rendering the scene to its
+   * own FBO per frame (MTM's default, ~1 extra full scene render per card).
+   * Callers gate it (desktop-only) — see ServiciosCardsLayer/ZoomParallaxCardsLayer.
    */
   transmission?: number;
+  /** RGB fringing at the refracted edges — the FluidGlass signature. Frosted only. */
+  chromaticAberration?: number;
+  /** Directional smearing of the refracted background — frosted only. */
+  anisotropicBlur?: number;
+  /** MTM refraction sample count (constructor arg — fixed per mount). Lower on mobile. */
+  samples?: number;
   material?: "glass" | "aluminum";
   color?: string;
   interactive?: boolean;
@@ -79,10 +90,15 @@ function buildCardGeometry(
   //  - amplitude deliberately a fraction of the raw curveX/curveY sum: a
   //    full-height dome that must reach zero at the whole rim gets steep
   //    (~45°) near the edges and reads as a funnel, not a curved card.
-  // A cylindrical bend (below) folds the WHOLE slab instead of doming just
-  // the front, so when it's active the front stays flat (A = 0) and the
-  // curvature comes entirely from the post-process transform.
-  const A = bend > 0 ? 0 : 0.2 * (curveX * width + curveY * height);
+  // The pillow dome is what varies the FRONT-FACE NORMALS toward the rim —
+  // and normal variation is what makes refraction visibly bend/magnify the
+  // background at the edges (the "liquid glass" read apps are known for; a
+  // flat face refracts as one uniform, invisible shift). So the dome is
+  // kept even when the cylindrical bend is active — at half strength, since
+  // the bend already contributes its own horizontal normal sweep — instead
+  // of the earlier A = 0 which left bent (Servicios) cards with an almost
+  // perfectly flat face and no perceivable liquid distortion.
+  const A = (bend > 0 ? 0.1 : 0.2) * (curveX * width + curveY * height);
   const pillowZ = (x: number, y: number) =>
     halfT +
     A *
@@ -270,6 +286,9 @@ export default function VolumetricCard({
   curveY = 0,
   bend = 0,
   transmission = 0,
+  chromaticAberration = 0.16,
+  anisotropicBlur = 0.15,
+  samples = 6,
   material = "glass",
   color = "#0d1520",
   position = [0, 0, 0],
@@ -304,57 +323,94 @@ export default function VolumetricCard({
   // through; the original brand tint moves to `attenuationColor` below, which
   // colours the transmitted light WITHOUT blocking it, so the frosted look
   // keeps its per-card hue instead of going flat white.
+  // 0.85 toward white, not a subtle lightening: with the earlier 0.45 the
+  // near-black brand colors still landed on a MID-GREY that tinted everything
+  // transmitted — the card read as "grey plastic", not clear glass (user
+  // feedback, twice). Real liquid glass wants a near-clear base; the brand
+  // hue survives via attenuationColor below.
   const glassColor = useMemo(
-    () => (isFrosted ? new THREE.Color(color).lerp(new THREE.Color("#ffffff"), 0.45) : color),
+    () => (isFrosted ? new THREE.Color(color).lerp(new THREE.Color("#ffffff"), 0.85) : color),
     [color, isFrosted]
   );
 
   return (
     <mesh ref={meshRef} geometry={geometry} position={position} rotation={rotation} castShadow receiveShadow>
-      {isGlass ? (
+      {isGlass && isFrosted ? (
+        // ---- Frosted "fluid glass" (React Bits FluidGlass look, adapted) ----
+        // drei's MeshTransmissionMaterial = MeshPhysicalMaterial + multi-sample
+        // refraction with chromatic aberration / anisotropic blur — the
+        // FluidGlass component's material, WITHOUT its per-instance <Canvas>
+        // (12+ WebGL contexts) or its per-material FBO. `transmissionSampler`
+        // makes it read three.js's single shared transmission capture, which
+        // SceneCanvas already downscales (transmissionResolutionScale) — so
+        // the fancy refraction costs no extra scene renders at all.
+        //
+        // Everything else carries over the hard-won grey-glass lessons (see
+        // the Obsidian Bug-Log): light glassColor (dark base colors absorb
+        // the transmitted light), brand tint via attenuationColor (tints
+        // without blocking), thin thickness + long attenuationDistance,
+        // metalness LOW (metalness kills transmission at the shader level —
+        // the shine comes from clearcoat, a separate layer that doesn't).
+        <MeshTransmissionMaterial
+          transmissionSampler
+          samples={samples}
+          transparent
+          color={glassColor}
+          transmission={transmission}
+          // Thicker (26) purely for a stronger refraction bend at the curved
+          // edges — the darkening that thickness used to cause is offset by
+          // the longer attenuationDistance (380) and near-clear glassColor.
+          // 40, up from 26: `thickness` is the refraction budget — the
+          // maximum ON-SCREEN displacement the refracted background can have
+          // is proportional to it (the shader marches thickness·refract and
+          // reprojects). At 26px the liquid warp maxed out around ~10px of
+          // displacement, invisible over an already-blurred backdrop; ~40
+          // finally puts the bending in clearly-perceivable range.
+          thickness={40}
+          attenuationColor={color}
+          // Long distance: with the near-black attenuation tints, anything
+          // shorter visibly darkens the transmitted light ("grey glass").
+          attenuationDistance={900}
+          // Low roughness = the transmitted image stays legible — SEEING the
+          // background clearly through the card is what makes it read as
+          // transparent at a glance. Also feeds thickness_smear (frost
+          // spread): thickness·max(roughness^⅓, anisotropicBlur) — kept in
+          // check so the bigger thickness doesn't turn into mush.
+          roughness={0.12 + roughnessJitter}
+          chromaticAberration={chromaticAberration}
+          anisotropicBlur={anisotropicBlur}
+          // The moving "LIQUID" part: noise-warped refraction drifting over
+          // time (drei updates the `time` uniform every frame). CRITICAL
+          // SCALE NOTE: MTM feeds worldPosition·distortionScale into its
+          // noise, and this scene's world units are PIXELS (PixelCamera) —
+          // drei's demo-sized default (0.5, meshes ~1 unit) put the noise at
+          // per-pixel frequency here, which averaged out to nothing. 0.007 ≈
+          // one smooth wave every ~140px — broad ripples gliding across the
+          // glass; distortion 0.8 tilts the sampling normal hard enough for
+          // those ripples to displace the background visibly.
+          distortion={0.8}
+          distortionScale={0.007}
+          temporalDistortion={0.4}
+          clearcoat={1}
+          clearcoatRoughness={0.08}
+          ior={1.5}
+          reflectivity={0.55}
+          metalness={0.04}
+          envMapIntensity={1.6}
+        />
+      ) : isGlass ? (
+        // ---- Opaque dark glass (mobile fallback — transmission off) ----
+        // `transparent` stays on even at opacity 1: Servicios' exit-fade
+        // mutates `.opacity` directly per frame, and toggling `transparent`
+        // at runtime would recompile the shader.
         <meshPhysicalMaterial
           color={glassColor}
-          // `transparent` is always on (even though `opacity` sits at 1 most
-          // of the time): Servicios' exit-fade (see ServiciosCardsLayer.tsx,
-          // which mutates this material's `.opacity` directly per frame,
-          // never through this prop) needs it, and toggling `transparent`
-          // on/off at runtime would mean recompiling the shader — cheaper to
-          // just leave it on for every card up front.
           transparent
-          // `transmission` is opt-in per card (0 for ZoomParallax → opaque, no
-          // extra pass). When > 0 the background blurs THROUGH the glass — the
-          // blur itself comes from `SceneCanvas.tsx`'s downscaled
-          // `transmissionResolutionScale` (a low-res capture magnified back up
-          // reads as soft blur, cheaper than a high-res one) PLUS roughness
-          // here; between the two, roughness stays modest so the surface
-          // doesn't also pick up a milky diffuse scatter on top of the blur.
-          // `thickness` gives the refraction some depth to bend.
-          transmission={transmission}
-          // Thin + long attenuation distance so the transmitted image is
-          // only gently tinted, not absorbed into darkness (short thickness /
-          // short attenuation was a big part of the "grey" — it ate the
-          // background before it could show through).
-          thickness={isFrosted ? 14 : 0}
+          transmission={0}
+          thickness={0}
           attenuationColor={color}
-          attenuationDistance={isFrosted ? 220 : 1}
-          // Enough roughness to read as frosted; the heavy lifting of the
-          // blur is the low-res transmission capture (transmissionResolution-
-          // Scale in SceneCanvas.tsx), so roughness stays moderate and doesn't
-          // add a milky diffuse scatter on top.
-          roughness={(isFrosted ? 0.26 : 0.16) + roughnessJitter}
-          // Reflections at full strength via clearcoat/reflectivity/envMap —
-          // what actually killed visibility of the transmission earlier
-          // wasn't these, it was the DARK, heavily-attenuated glass under it
-          // (fixed above: lighter `glassColor` + long `attenuationDistance`).
-          // `metalness` is deliberately NOT raised for frosted cards (kept at
-          // the same 0.04 as the opaque ones): metalness physically means
-          // "doesn't transmit light" — in three.js's shader it scales the
-          // diffuse/transmission contribution down directly, so raising it
-          // for a "metallic" look was fighting the transmission at the source.
-          // Clearcoat is a SEPARATE reflective layer added on top instead —
-          // it gives the same shiny sheen without touching transmission at
-          // all, so both read together: bright reflection at grazing angles
-          // (the curved edges), clear see-through toward normal incidence.
+          attenuationDistance={1}
+          roughness={0.16 + roughnessJitter}
           clearcoat={1}
           clearcoatRoughness={0.08}
           ior={1.5}

@@ -224,6 +224,67 @@ h6 {
   transition-delay: 0.56s;
 }
 
+/* ===== Perspective text planes =====
+   Text blocks read as turned in depth toward their anchored side: for
+   left-aligned text the LEFT half comes toward the viewer and the right half
+   recedes, mirrored for right-aligned. ONE transform per block — per-char 3D
+   was tried and reverted (glyph spacing broke apart and the animated
+   gradient-text titles, painted per element with background-clip, rendered
+   scrambled).
+
+   Key tuning vs. the first flat attempt (rejected as "titles shoved into the
+   edges"): transform-origin stays at the DEFAULT CENTER, so the block pivots
+   in place — near half grows, far half shrinks, and the box never creeps
+   into the page margins. The angle is also strong enough (14deg) to actually
+   read as intentional perspective.
+
+   Conflict rules: never on an element carrying `.nxr-reveal` (it owns
+   `transform` for its entrance — Intro's headline wrapper takes it instead,
+   composed with its sticky centering), safe on .nxr-section-h2 themselves
+   (useTitleReveal only animates char spans inside). */
+.nxr-intro-text,
+.nxr-contacto-desc,
+#nxr-proceso .nxr-section-h2,
+#nxr-tech .nxr-section-h2,
+#nxr-contacto .nxr-section-h2,
+.nxr-srv-caption-tilt {
+  transform: perspective(900px) rotateY(14deg);
+}
+
+/* Right-anchored blocks (desktop header rows): right half toward the viewer. */
+.nxr-tech-header-right,
+.nxr-proceso-header-right {
+  transform: perspective(900px) rotateY(-14deg);
+}
+
+/* Servicios heading is the one RIGHT-aligned title on desktop; the global
+   mobile rule left-aligns every title, and the stacked full-width "-right"
+   paragraphs read as left-aligned text on phones too. */
+@media (min-width: 901px) {
+  .nxr-servicios-head .nxr-section-h2 {
+    transform: perspective(900px) rotateY(-14deg);
+  }
+}
+@media (max-width: 900px) {
+  .nxr-servicios-head .nxr-section-h2 {
+    transform: perspective(900px) rotateY(14deg);
+  }
+  .nxr-tech-header-right,
+  .nxr-proceso-header-right {
+    transform: perspective(900px) rotateY(14deg);
+  }
+}
+
+/* Layout for the Servicios caption text block (the tilt target above — NOT
+   the full-bleed caption container, whose projection would leave the
+   viewport; the CTA stays at normal depth). */
+.nxr-srv-caption-tilt {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  max-width: 620px;
+}
+
 /* Native scrollbar hidden — replaced by the custom red scroll-progress bar
    (see ScrollProgress.tsx + .nxr-scrollprogress below). */
 ::-webkit-scrollbar {
@@ -1033,14 +1094,11 @@ h6 {
 }
 
 @media (max-width: 768px) {
-  /* Both phases (hero content, then "Construido con maestría") are centred
-     via `justify-content: center` — this bias nudges that centred position up
-     a bit rather than sitting dead-centre, on both. */
-  .nxr-hero-fade,
-  .nxr-hero-mastery {
-    padding-bottom: 60px;
-  }
-
+  /* No vertical bias on mobile (a 60px padding-bottom used to nudge both
+     phases up): hero content and "Construido con maestría" sit DEAD-centred
+     in the stage, which itself tracks the live viewport height via
+     --vh-100 (see Hero.tsx's resize handler), so centring holds through
+     address-bar show/hide too. */
   .nxr-hero-h1 {
     font-size: clamp(44px, 11.5vw, 64px);
   }
@@ -2903,30 +2961,36 @@ h6 {
   flex-direction: column;
   cursor: pointer;
   opacity: 0;
-  transform: translateY(36px) rotateX(-28deg);
+  /* Rise + fade only — the old rotateX(-28deg) leg of this entrance is gone:
+     the card inside is now a WebGL glass-mesh anchor, and a rotated anchor
+     reports an inflated axis-aligned rect (the mesh would mis-size during
+     every entrance). A pure translate keeps the rect honest, and the mesh
+     rides the rise frame-by-frame. */
+  transform: translateY(36px);
   transform-origin: bottom center;
   transition: opacity 0.7s cubic-bezier(0.22, 1, 0.36, 1), transform 0.7s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 .nxr-paso.nxr-paso-active .nxr-paso-tilt {
   opacity: 1;
-  transform: translateY(0) rotateX(0deg);
+  transform: translateY(0);
 }
 
+/* Anchor for a real volumetric fluid-glass mesh (see useGlassPanels in
+   Proceso.tsx): no painted glass/tilt of its own anymore — the WebGL card
+   behind it is the glass. The old CSS pointer-tilt transform is gone too (a
+   rotated anchor reports an inflated rect, desyncing the mesh). */
 .nxr-paso-card {
-  background: var(--glass-bg);
-  backdrop-filter: var(--glass-blur);
   border-radius: var(--radius-md);
   padding: 24px 20px;
   width: 100%;
   border: none;
+  /* Legibility scrim over the clear mesh — see .nxr-intro-card's note. */
+  background: rgba(8, 10, 14, 0.34);
   cursor: pointer;
   font: inherit;
   color: inherit;
   text-align: center;
-  transform: perspective(800px) rotateX(0deg) rotateY(0deg);
-  transition: background 0.4s, box-shadow 0.4s, transform 0.25s ease-out;
-  box-shadow: var(--glass-shine);
   flex: 1;
   display: flex;
   flex-direction: column;
@@ -2936,26 +3000,6 @@ h6 {
 .nxr-paso-card:focus-visible {
   outline: 2px solid var(--c-lime);
   outline-offset: 3px;
-}
-
-.nxr-paso-card::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  border-radius: var(--radius-md);
-  padding: 1px;
-  background: var(--glass-border-gradient);
-  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
-  -webkit-mask-composite: xor;
-  mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
-  mask-composite: exclude;
-  pointer-events: none;
-  z-index: 1;
-}
-
-.nxr-paso.nxr-paso-active .nxr-paso-card {
-  background: rgba(255, 255, 255, 0.1);
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2), var(--glass-shine);
 }
 
 
@@ -3215,19 +3259,25 @@ h6 {
   animation-duration: 35s;
 }
 
+/* Tech chips stay CSS glass (80 of them live in the marquee DOM including
+   loop duplicates — one WebGL transmissive mesh each would be 80 draw calls
+   of the most expensive material in the scene, for chips ~150px wide), but
+   restyled to match the volumetric fluid-glass identity: clearer body,
+   stronger blur of the video wall behind, brighter top rim. At this size the
+   read is near-identical to the real thing. */
 .nxr-tech-card {
   display: flex;
   align-items: center;
   gap: 12px;
   padding: 14px 22px;
   border-radius: var(--radius-md);
-  background: var(--glass-bg);
-  backdrop-filter: var(--glass-blur);
+  background: linear-gradient(165deg, rgba(255, 255, 255, 0.13), rgba(255, 255, 255, 0.04) 55%);
+  backdrop-filter: blur(18px) saturate(1.25);
   white-space: nowrap;
   transition: background 0.25s;
   cursor: default;
   flex-shrink: 0;
-  box-shadow: var(--glass-shine);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.22), 0 8px 24px rgba(0, 0, 0, 0.18);
   position: relative;
 }
 
@@ -3547,27 +3597,15 @@ h6 {
   transform: scaleX(1);
 }
 
+/* Anchor for a real volumetric fluid-glass mesh (see useGlassPanels in
+   Contacto.tsx): no painted glass of its own anymore — the WebGL card behind
+   it is the glass. */
 .nxr-ms-card {
-  background: var(--glass-bg);
-  backdrop-filter: var(--glass-blur);
   border-radius: var(--radius-lg);
   padding: 52px 48px 44px;
   position: relative;
-  box-shadow: var(--glass-shine);
-}
-
-.nxr-ms-card::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  border-radius: var(--radius-lg);
-  padding: 1px;
-  background: var(--glass-border-gradient);
-  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
-  -webkit-mask-composite: xor;
-  mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
-  mask-composite: exclude;
-  pointer-events: none;
+  /* Legibility scrim over the clear mesh — see .nxr-intro-card's note. */
+  background: rgba(8, 10, 14, 0.34);
 }
 
 .nxr-ms-panel {
@@ -4004,6 +4042,12 @@ input[type="range"].nxr-ms-range::-moz-range-thumb {
 @media (max-width: 768px) {
   #nxr-zoom-parallax {
     height: 200vh;
+    /* Pulls the section up under Servicios' departing tail (same pattern as
+       #nxr-proceso's -180px below ZP) so the first ZP card arrives while
+       Servicios is still leaving instead of after a long empty stretch —
+       "no perder continuidad". Pin math is unaffected: ZoomParallax.tsx
+       reads the section's live rect, wherever flow puts it. */
+    margin-top: -160px;
   }
   /* Nudges the whole stuck layer stack up a bit — a plain transform rather
      than re-deriving each card's individual `top: calc(50% - Xvh)` math,
@@ -4261,7 +4305,10 @@ input[type="range"].nxr-ms-range::-moz-range-thumb {
 .nxr-intro-left {
   position: sticky;
   top: 50%;
-  transform: translateY(-50%);
+  /* Sticky centering + the perspective text plane (see the block near the
+     top of this file) composed in one declaration — the headline itself
+     carries .nxr-reveal, which owns its own transform. */
+  transform: translateY(-50%) perspective(900px) rotateY(14deg);
   align-self: start;
 }
 
@@ -4304,19 +4351,24 @@ input[type="range"].nxr-ms-range::-moz-range-thumb {
 /* Plain vertical glass card (no more 3D windmill blade). Hidden until the
    scroll-sequence effect reveals it, for the same reason as `.nxr-intro-texts`
    above. */
+/* Anchor for a real volumetric fluid-glass mesh (see useGlassPanels in
+   Intro.tsx + components/scene/GlassPanelsLayer.tsx): the element paints NO
+   glass of its own anymore — background/border/blur/shine all come from the
+   WebGL card behind it. Only layout/content styling remains. */
 .nxr-intro-card {
   position: relative;
-  background: var(--glass-bg);
-  border: 1px solid var(--glass-border);
-  backdrop-filter: var(--glass-blur);
   border-radius: var(--radius-lg);
   padding: 24px;
   display: flex;
   flex-direction: column;
   gap: 16px;
   overflow: hidden;
-  box-shadow: var(--glass-shine);
   visibility: hidden;
+  /* Legibility scrim, not glass: the fully-clear mesh over BRIGHT video
+     regions washed white text out entirely (worst on mobile, where the
+     clip's white face fills the frame). A translucent dark body reads as
+     tinted glass and keeps the content readable over any backdrop. */
+  background: rgba(8, 10, 14, 0.34);
 }
 
 .nxr-intro-card-text {
@@ -4586,11 +4638,9 @@ input[type="range"].nxr-ms-range::-moz-range-thumb {
   .nxr-intro-left {
     position: static;
     top: auto;
-    /* The desktop sticky-centering transform (translateY(-50%)) isn't reset by
-       switching position back to static — transform still applies regardless
-       of position scheme — so without this it visually shifts the title up
-       by half its own height, opening a large gap before the text below it. */
-    transform: none;
+    /* Drops the desktop sticky-centering translateY(-50%) (it applies
+       regardless of position scheme) but keeps the perspective plane. */
+    transform: perspective(900px) rotateY(14deg);
   }
   .nxr-intro-headline {
     font-size: clamp(36px, 9.5vw, 48px);

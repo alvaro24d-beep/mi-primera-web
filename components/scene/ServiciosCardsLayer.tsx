@@ -15,15 +15,14 @@ const DEFAULT_STYLE: CardStyle = { color: "#0d1520", material: "glass", curveX: 
 // instead of spilling past the curved edges. ZoomParallax cards don't pass
 // this, so they keep their convex dome.
 const SRV_BEND = 0.26;
-// Frosted see-through glass (the TV-wall background blurs through). Raised
-// now that VolumetricCard dials back clearcoat/reflectivity for frosted cards
-// (see the `isFrosted` branch there) — at the OLD full-strength reflection
-// this needed to fight for visibility and read as "grey" no matter its value;
-// with that competing reflection gone, this is what actually controls how
-// see-through the card reads. Desktop only — transmission adds a render pass
-// (kept cheap via `transmissionResolutionScale` in SceneCanvas.tsx), dropped
-// on mobile per the perf playbook (mobile keeps opaque cards).
-const SRV_TRANSMISSION = 0.92;
+// Fully clear fluid glass (the TV-wall background shows through, liquid-
+// distorted). Enabled on MOBILE too (user request): the shared transmission
+// capture the cards read (`transmissionSampler`) is a single low-res render
+// of the TV wall per frame (transmissionResolutionScale 0.2 in
+// SceneCanvas.tsx), so the extra cost on phones is one small pass — the
+// per-card shader cost is trimmed there via a lower `samples` count instead
+// of dropping the effect entirely.
+const SRV_TRANSMISSION = 1;
 // Servicios.tsx's entrance/tilt math is ported from the CSS/GSAP DOM version,
 // where rotationX/rotationY are degrees (CSS transform convention) — but
 // Object3D.rotation is in radians, so convert at this R3F consumption boundary.
@@ -128,7 +127,8 @@ function CardSlot({ id, isMobile }: { id: number; isMobile: boolean }) {
         curveX={style.curveX}
         curveY={style.curveY}
         bend={SRV_BEND}
-        transmission={isMobile ? 0 : SRV_TRANSMISSION}
+        transmission={SRV_TRANSMISSION}
+        samples={isMobile ? 4 : 6}
         color={style.color}
         material={style.material}
       />

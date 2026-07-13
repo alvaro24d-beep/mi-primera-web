@@ -56,7 +56,13 @@ const ZP_STYLES = [
 // single winner with a clear, FIXED gap can't have that ambiguity.
 const BEHIND_Z = -30;
 
-export default function ZoomParallaxCardsLayer() {
+// Fluid-glass transmission for ZP cards — every device (user request), with
+// a cheaper `samples` count on mobile. Slightly below Servicios' fully-clear
+// 1: these cards carry big white stat text directly on the glass, so they
+// keep a touch more body for contrast against the bright TV-wall video.
+const ZP_TRANSMISSION = 0.9;
+
+export default function ZoomParallaxCardsLayer({ isMobile }: { isMobile: boolean }) {
   const { size } = useThree();
   const groupRefs = useRef<(THREE.Group | null)[]>(Array.from({ length: ZP_MAX_CARDS }, () => null));
   const sectionElRef = useRef<HTMLElement | null>(null);
@@ -200,6 +206,8 @@ export default function ZoomParallaxCardsLayer() {
               radius={30}
               curveX={style.curveX}
               curveY={style.curveY}
+              transmission={ZP_TRANSMISSION}
+              samples={isMobile ? 4 : 6}
               color={style.color}
               material="glass"
             />

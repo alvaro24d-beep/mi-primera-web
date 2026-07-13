@@ -126,29 +126,19 @@ export function useCurvedWords(
     const wordsOf = (it: (typeof items)[number]): HTMLElement[] => {
       if (it.split) return it.split.words as HTMLElement[];
       if (!it.bowNodes) {
-        // ANIMATED-GRADIENT spans are bowed as ONE ATOMIC unit (the span
-        // itself), never their inner word spans: `background-clip: text`
-        // paints on the span, and PERSISTENT transforms on its descendants
-        // leave the gradient clip at the untransformed glyph positions —
-        // rendered as ghost/overlapping letters ("letras superpuestas").
-        // Transforming the clip-owning span moves paint and glyphs together.
-        // (The reveal's transient per-char yPercent is fine — it ends at
-        // identity.)
-        const nodes: HTMLElement[] = [];
-        const seen = new Set<HTMLElement>();
-        it.el.querySelectorAll<HTMLElement>(".nxr-cw-word").forEach((w) => {
-          const grad = w.closest<HTMLElement>('[class*="nxr-gradient-text"]');
-          if (grad && it.el.contains(grad)) {
-            if (!seen.has(grad)) {
-              seen.add(grad);
-              grad.style.display = "inline-block"; // transformable
-              nodes.push(grad);
-            }
-          } else {
-            nodes.push(w);
-          }
-        });
-        it.bowNodes = nodes;
+        // ANIMATED-GRADIENT spans are EXEMPT from the bow entirely — words
+        // inside them AND the span itself. `background-clip: text` tolerates
+        // no PERSISTENT transform anywhere in its subtree in Chromium:
+        // per-word transforms ghosted the gradient clip at the untransformed
+        // positions, and transforming the clip-owning span as one atomic
+        // unit was tried next and STILL rendered doubled letters ("el bug de
+        // las letras... pasa en ordenador"). Their line simply stays flat;
+        // the surrounding plain-colored words keep the full dynamic bow.
+        // (The reveal's transient per-char yPercent remains fine — it ends
+        // at identity and any ghosting lasts only the entrance.)
+        it.bowNodes = Array.from(it.el.querySelectorAll<HTMLElement>(".nxr-cw-word")).filter(
+          (w) => !w.closest('[class*="nxr-gradient-text"]')
+        );
       }
       return it.bowNodes;
     };
@@ -283,12 +273,8 @@ export function useCurvedWords(
           it.el.style.transformOrigin = "";
         } else {
           // bowOnly: the words belong to useTitleReveal's split — just drop
-          // our transforms (and the atomic gradient spans' inline-block) and
-          // leave the spans to their owner.
-          for (const w of wordsOf(it)) {
-            w.style.transform = "";
-            if (w.className.includes("nxr-gradient-text")) w.style.display = "";
-          }
+          // our transforms and leave the spans to their owner.
+          for (const w of wordsOf(it)) w.style.transform = "";
         }
       });
     };

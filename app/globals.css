@@ -327,13 +327,21 @@ h6 {
   }
   .nxr-srv-caption-tilt {
     /* Same plane profile; top-anchored vertical origin as desktop (lines
-       ascend, not droop). The inner LEFT padding pulls the magnified,
-       left-forward text off the screen edge so it fits the phone width
-       ("añade margen interior izquierdo a los textos de cada servicio"). */
-    transform: translateX(12%) perspective(460px) rotateY(10deg);
+       ascend, not droop). Smaller shift + padding than the first pass:
+       tag/title/desc/pills sit closer to the left frame ("mueve... un poco
+       más a la izquierda, un poco más cerca del marco"). */
+    transform: translateX(6%) perspective(460px) rotateY(10deg);
     transform-origin: 100% 0%;
-    padding-left: 22px;
+    padding-left: 12px;
     padding-right: 6px;
+  }
+  /* Inner LEFT padding on the explanation paragraph only: narrows its line
+     boxes so the (right-edge-pivoted, shifted) text can't spill past the
+     right side of the phone ("relleno interior izquierdo al párrafo... para
+     que no se salga por la derecha"). */
+  .nxr-srv-caption-tilt .nxr-srv-desc {
+    padding-left: 16px;
+    padding-right: 10px;
   }
 
   /* The curved paragraphs must not span the full width — extra air on the

@@ -159,6 +159,17 @@ export default function ZoomParallax() {
         if (!img) return;
         const scale = max - (max - 1) * progress;
         img.style.transform = `scale(${scale / max})`;
+        // Mobile only: the CENTRE card (index 0, the one that fills the
+        // screen at the start) dissolves progressively while the
+        // surrounding cards scale in, instead of staying parked in the
+        // middle of the finished grid. Inline opacity on the anchor: the
+        // WebGL glass mesh mirrors it (see ZoomParallaxCardsLayer), and the
+        // card's own DOM content fades with it for free.
+        if (i === 0 && isMobile) {
+          const t = Math.min(1, Math.max(0, (progress - 0.55) / 0.35));
+          const fade = 1 - t * t * (3 - 2 * t); // smoothstep out
+          img.style.opacity = fade.toFixed(3);
+        }
         // Real on-screen height AFTER the transform above — comparable
         // across cards despite their different base CSS sizes/max values,
         // and the SAME metric components/scene/ZoomParallaxCardsLayer.tsx

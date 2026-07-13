@@ -51,7 +51,7 @@ export default function Contacto() {
   useCurvedWords(sectionRef, ".nxr-contacto-desc", "left");
 
   // Dynamic per-line bow on the (gradient) title too — see Proceso.tsx.
-  useCurvedWords(sectionRef, ".nxr-section-h2", "left", [], { bowOnly: true });
+  useCurvedWords(sectionRef, ".nxr-section-h2", "left", [], { bowOnly: true, useExistingWords: true });
   const [negocio, setNegocio] = useState<string | null>(null);
   const [servicios, setServicios] = useState<string[]>([]);
   const [budgetIndex, setBudgetIndex] = useState(2);

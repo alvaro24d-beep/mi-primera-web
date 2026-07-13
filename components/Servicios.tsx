@@ -6,6 +6,7 @@ import { useGSAP } from "@gsap/react";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { useTitleReveal } from "@/hooks/useTitleReveal";
 import { useReducedMotion } from "@/hooks/useReducedMotion";
+import { useCurvedWords } from "@/hooks/useCurvedWords";
 import { useCardDisturbance } from "@/store/useCardDisturbance";
 import { useServiciosCardsRegistry } from "@/store/useServiciosCardsRegistry";
 
@@ -431,6 +432,16 @@ export default function Servicios() {
   const titleRef = useTitleReveal<HTMLHeadingElement>();
   const reducedMotion = useReducedMotion();
 
+  // Mobile only: the per-service caption text curves like every other text
+  // block ("se ven en perspectiva pero planos, tienen que salir curvos") —
+  // the dynamic per-line bow rides word spans split here (no gradient text
+  // inside the captions, so a full split is safe). The block-level tilt
+  // stays with the CSS rule; desktop keeps its separately-tuned flat look.
+  useCurvedWords(sectionRef, ".nxr-srv-caption-tilt", "left", [reducedMotion], {
+    bowOnly: true,
+    onlyBelow: 901,
+  });
+
   // ---- Registers each card's DOM anchor with the registry so its real R3F
   // mesh (rendered in the global SceneCanvas, mounted above {children} in
   // app/layout.tsx — outside this component's own tree) can dock itself to
@@ -500,19 +511,28 @@ export default function Servicios() {
       const headTitle = q(".nxr-servicios-head .nxr-section-h2")[0] as HTMLElement | undefined;
       if (headTitle) {
         gsap.set(headTitle, { opacity: 0, filter: "blur(18px)" });
+        // Long centred HOLD (0.28→0.68 of a 165vh desktop / 95vh mobile
+        // runway — several hundred px of scroll at full brightness, so a
+        // flick can't skip it), and a fade-out that ends at 0.92 so almost
+        // no dead runway remains before the reel (mobile complaint: "mucho
+        // espacio vacío entre que la frase desaparece y entra la sección").
         gsap
           .timeline({
             scrollTrigger: {
               trigger: q(".nxr-servicios-head")[0] as HTMLElement,
               start: "top 60%",
-              end: "bottom 40%",
+              // Ends when the runway's BOTTOM nears the viewport top — i.e.
+              // right where the reel pin takes over, so the fade-out (at
+              // 0.92 of this range) finishes with almost no dead scroll
+              // before the cards ("la sección servicios debe entrar antes").
+              end: "bottom 10%",
               scrub: 0.5,
             },
           })
-          .to(headTitle, { opacity: 1, filter: "blur(0px)", duration: 0.3, ease: "none" }, 0.08)
-          .to({}, { duration: 0.22 }, 0.38)
-          .to(headTitle, { opacity: 0, filter: "blur(18px)", duration: 0.3, ease: "none" }, 0.6)
-          .to({}, { duration: 0.1 }, 0.9);
+          .to(headTitle, { opacity: 1, filter: "blur(0px)", duration: 0.22, ease: "none" }, 0.06)
+          .to({}, { duration: 0.4 }, 0.28)
+          .to(headTitle, { opacity: 0, filter: "blur(18px)", duration: 0.24, ease: "none" }, 0.68)
+          .to({}, { duration: 0.08 }, 0.92);
       }
 
       // One live transform per card, owned by the hover-tilt quickTo

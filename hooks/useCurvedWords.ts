@@ -87,19 +87,23 @@ export function useCurvedWords(
   dir: "left" | "right",
   deps: readonly unknown[] = [],
   /**
-   * bowOnly: for the section TITLES, which already carry the block-level CSS
-   * tilt AND are already word-split by useTitleReveal (whose word divs share
-   * the .nxr-cw-word class). This mode adds ONLY the per-frame dynamic bow to
-   * those existing spans: no second SplitText (double-splitting nests spans),
-   * no inline block transform (CSS owns it), no frame shift. The reveal
-   * animates the CHAR spans inside these words, so the two never touch the
-   * same element's transform.
+   * bowOnly: add ONLY the per-frame dynamic bow — no inline block transform
+   * (CSS owns the tilt), no frame shift. Used by blocks whose tilt is styled
+   * in CSS (section titles, the Servicios captions).
+   *
+   * useExistingWords: don't run SplitText — ride the .nxr-cw-word spans an
+   * earlier split created (useTitleReveal's, which animates the CHAR spans
+   * inside them; double-splitting would nest spans).
+   *
+   * onlyBelow: activate only under this viewport width (e.g. the Servicios
+   * captions curve on phones only — their desktop look is separately tuned).
    */
-  opts: { bowOnly?: boolean } = {}
+  opts: { bowOnly?: boolean; useExistingWords?: boolean; onlyBelow?: number } = {}
 ) {
   useEffect(() => {
     const root = rootRef.current;
     if (!root) return;
+    if (opts.onlyBelow && window.innerWidth >= opts.onlyBelow) return;
     const els = Array.from(root.querySelectorAll<HTMLElement>(selector));
     if (!els.length) return;
 
@@ -108,12 +112,12 @@ export function useCurvedWords(
       .map((el) => ({
         el,
         // wordsClass: consumers that animate the TEXT ITSELF (Intro's scramble
-        // effect) or ride on another split (bowOnly) need a stable selector —
-        // mutating these spans is the only text animation that coexists with
-        // the per-word transforms.
-        split: bowOnly ? null : SplitText.create(el, { type: "words", wordsClass: "nxr-cw-word" }),
+        // effect) or ride on another split (useExistingWords) need a stable
+        // selector — mutating these spans is the only text animation that
+        // coexists with the per-word transforms.
+        split: opts.useExistingWords ? null : SplitText.create(el, { type: "words", wordsClass: "nxr-cw-word" }),
       }))
-      // bowOnly with no pre-existing word spans (reduced motion skips the
+      // useExistingWords with no pre-existing spans (reduced motion skips the
       // reveal's split) → nothing to do for that element.
       .filter(({ el, split }) => split || el.querySelector(".nxr-cw-word"));
     if (!items.length) return;

@@ -137,7 +137,7 @@ export default function Proceso() {
 
   // Dynamic per-line bow on the (gradient) title too, riding the reveal's
   // word spans — bowOnly leaves the CSS tilt and the char reveal untouched.
-  useCurvedWords(sectionRef, ".nxr-section-h2", "left", [], { bowOnly: true });
+  useCurvedWords(sectionRef, ".nxr-section-h2", "left", [], { bowOnly: true, useExistingWords: true });
 
   useEffect(() => {
     const track = trackRef.current;

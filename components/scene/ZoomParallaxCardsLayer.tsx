@@ -71,6 +71,7 @@ export default function ZoomParallaxCardsLayer({ isMobile }: { isMobile: boolean
   const [aspects, setAspects] = useState<number[]>(() => Array.from({ length: ZP_MAX_CARDS }, () => 1.5));
   const mouseTarget = useRef({ nx: 0, ny: 0 });
   const mouseCurrent = useRef({ nx: 0, ny: 0 });
+  const lastOpacity = useRef<number[]>(Array.from({ length: ZP_MAX_CARDS }, () => 1));
 
   useEffect(() => {
     const onMove = (e: MouseEvent) => {
@@ -168,6 +169,22 @@ export default function ZoomParallaxCardsLayer({ isMobile }: { isMobile: boolean
       if (!rect) {
         group.visible = false;
         continue;
+      }
+      // Mirror the anchor's INLINE opacity (mobile centre-card dissolve —
+      // see ZoomParallax.tsx): inline style read only, no getComputedStyle.
+      const anchor = useZoomParallaxCardsRegistry.getState().anchors[i];
+      const opStr = anchor?.style.opacity ?? "";
+      const opacity = opStr === "" ? 1 : parseFloat(opStr) || 0;
+      if (opacity <= 0.02) {
+        group.visible = false;
+        continue;
+      }
+      if (Math.abs(opacity - lastOpacity.current[i]) > 0.002) {
+        lastOpacity.current[i] = opacity;
+        group.traverse((obj) => {
+          const mesh = obj as THREE.Mesh;
+          if (mesh.isMesh) (mesh.material as THREE.MeshPhysicalMaterial).opacity = opacity;
+        });
       }
       group.visible = true;
       const cx = rect.left + rect.width / 2;

@@ -76,7 +76,7 @@ export default function Intro() {
   useCurvedWords(sectionRef, ".nxr-intro-textblock", "right");
 
   // Dynamic per-line bow on the (gradient) headline too — see Proceso.tsx.
-  useCurvedWords(sectionRef, ".nxr-intro-headline", "left", [], { bowOnly: true });
+  useCurvedWords(sectionRef, ".nxr-intro-headline", "left", [], { bowOnly: true, useExistingWords: true });
 
   // Both sticky elements (headline + paragraph block) decelerate smoothly
   // into their stuck position and ease back out instead of freezing dead the

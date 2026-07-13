@@ -55,7 +55,7 @@ export default function Tech() {
   useCurvedWords(sectionRef, ".nxr-tech-header-right", "right");
 
   // Dynamic per-line bow on the (gradient) title too — see Proceso.tsx.
-  useCurvedWords(sectionRef, ".nxr-section-h2", "left", [], { bowOnly: true });
+  useCurvedWords(sectionRef, ".nxr-section-h2", "left", [], { bowOnly: true, useExistingWords: true });
 
   return (
     <section id="nxr-tech" ref={sectionRef}>

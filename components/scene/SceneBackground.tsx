@@ -182,6 +182,12 @@ export default function SceneBackground({
 
   const target = useRef({ x: 0, y: 0 });
   const current = useRef({ x: 0, y: 0 });
+  // Live handle to the current <video> for the keep-alive interval below —
+  // rendering must never depend on the video actually playing (phones can
+  // refuse/delay autoplay, and in "demand" mode the video's rVFC is the
+  // page-wide invalidation source: a stalled video used to freeze ALL
+  // demand-mode rendering, including the hero CTA's glass panel).
+  const videoElRef = useRef<HTMLVideoElement | null>(null);
 
   // Always-valid 1x1 texture so `uSource` samples something before/without a
   // real video (the procedural path ignores it, but the sampler must be bound).
@@ -296,8 +302,33 @@ export default function SceneBackground({
     };
     document.addEventListener("visibilitychange", onVisibility);
 
+    // Phones can refuse the eager autoplay (data saver, low-power mode,
+    // browser quirks) — retry on any real user gesture, which always
+    // satisfies autoplay policies. Cheap no-op once playing.
+    const kick = () => {
+      if (video.paused && !document.hidden) video.play().catch(() => {});
+    };
+    window.addEventListener("touchstart", kick, { passive: true });
+    window.addEventListener("pointerdown", kick, { passive: true });
+
+    // Decode/network failure → fall back to the procedural TV signal (the
+    // keep-alive interval below animates it) instead of a frozen dark wall.
+    const onError = () => {
+      if (mat) {
+        mat.uniforms.uHasVideo.value = 0;
+        mat.uniforms.uSource.value = blankTex;
+      }
+    };
+    video.addEventListener("error", onError);
+
+    videoElRef.current = video;
+
     return () => {
+      videoElRef.current = null;
       video.removeEventListener("loadeddata", onReady);
+      video.removeEventListener("error", onError);
+      window.removeEventListener("touchstart", kick);
+      window.removeEventListener("pointerdown", kick);
       document.removeEventListener("visibilitychange", onVisibility);
       if (rvfcId !== null) video.cancelVideoFrameCallback(rvfcId);
       if (fallbackInterval !== null) window.clearInterval(fallbackInterval);
@@ -324,21 +355,23 @@ export default function SceneBackground({
     return () => window.removeEventListener("mousemove", onMove);
   }, [invalidate]);
 
-  // Drives the PROCEDURAL placeholder's rolling-static animation only — when
-  // a real `videoSrc` is set, the effect above's `requestVideoFrameCallback`
-  // already invalidates exactly on each decoded frame, so this would just be
-  // a redundant second invalidation source. ~30fps, not the cards' 60fps
-  // "always", so an idle procedural background doesn't reintroduce the
-  // scroll-heat the demand loop was there to avoid. Paused while the tab is
-  // hidden. `tv=false` never starts it and stays fully demand-idle on the
-  // static grid.
+  // Keep-alive invalidation at ~30fps whenever the video is NOT actually
+  // producing frames (no video configured, still loading/buffering, autoplay
+  // refused, decode error). While the video plays, its rVFC is the exact
+  // per-decoded-frame invalidation source and this tick is a no-op check —
+  // so there's never a redundant second source, but demand-mode rendering
+  // (the wall, the hero CTA's glass panel) can no longer be starved by a
+  // stalled video, which on some phones froze the whole backdrop. Paused
+  // while the tab is hidden; `tv=false` stays fully demand-idle.
   useEffect(() => {
-    if (!tv || !active || videoSrc) return;
+    if (!tv || !active) return;
     const id = window.setInterval(() => {
-      if (!document.hidden) invalidate();
+      const v = videoElRef.current;
+      const videoPlaying = v && !v.paused && v.readyState >= 3;
+      if (!document.hidden && !videoPlaying) invalidate();
     }, 33);
     return () => window.clearInterval(id);
-  }, [tv, active, videoSrc, invalidate]);
+  }, [tv, active, invalidate]);
 
   useFrame((state) => {
     if (matRef.current) matRef.current.uniforms.uTime.value = state.clock.elapsedTime;

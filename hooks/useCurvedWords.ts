@@ -116,14 +116,42 @@ export function useCurvedWords(
         // selector — mutating these spans is the only text animation that
         // coexists with the per-word transforms.
         split: opts.useExistingWords ? null : SplitText.create(el, { type: "words", wordsClass: "nxr-cw-word" }),
+        bowNodes: null as HTMLElement[] | null,
       }))
       // useExistingWords with no pre-existing spans (reduced motion skips the
       // reveal's split) → nothing to do for that element.
       .filter(({ el, split }) => split || el.querySelector(".nxr-cw-word"));
     if (!items.length) return;
 
-    const wordsOf = (it: (typeof items)[number]) =>
-      it.split ? (it.split.words as HTMLElement[]) : Array.from(it.el.querySelectorAll<HTMLElement>(".nxr-cw-word"));
+    const wordsOf = (it: (typeof items)[number]): HTMLElement[] => {
+      if (it.split) return it.split.words as HTMLElement[];
+      if (!it.bowNodes) {
+        // ANIMATED-GRADIENT spans are bowed as ONE ATOMIC unit (the span
+        // itself), never their inner word spans: `background-clip: text`
+        // paints on the span, and PERSISTENT transforms on its descendants
+        // leave the gradient clip at the untransformed glyph positions —
+        // rendered as ghost/overlapping letters ("letras superpuestas").
+        // Transforming the clip-owning span moves paint and glyphs together.
+        // (The reveal's transient per-char yPercent is fine — it ends at
+        // identity.)
+        const nodes: HTMLElement[] = [];
+        const seen = new Set<HTMLElement>();
+        it.el.querySelectorAll<HTMLElement>(".nxr-cw-word").forEach((w) => {
+          const grad = w.closest<HTMLElement>('[class*="nxr-gradient-text"]');
+          if (grad && it.el.contains(grad)) {
+            if (!seen.has(grad)) {
+              seen.add(grad);
+              grad.style.display = "inline-block"; // transformable
+              nodes.push(grad);
+            }
+          } else {
+            nodes.push(w);
+          }
+        });
+        it.bowNodes = nodes;
+      }
+      return it.bowNodes;
+    };
 
     const geoms: ItemGeom[] = [];
 
@@ -255,8 +283,12 @@ export function useCurvedWords(
           it.el.style.transformOrigin = "";
         } else {
           // bowOnly: the words belong to useTitleReveal's split — just drop
-          // our transforms and leave the spans to their owner.
-          for (const w of wordsOf(it)) w.style.transform = "";
+          // our transforms (and the atomic gradient spans' inline-block) and
+          // leave the spans to their owner.
+          for (const w of wordsOf(it)) {
+            w.style.transform = "";
+            if (w.className.includes("nxr-gradient-text")) w.style.display = "";
+          }
         }
       });
     };

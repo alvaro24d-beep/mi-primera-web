@@ -432,12 +432,15 @@ export default function Servicios() {
   const titleRef = useTitleReveal<HTMLHeadingElement>();
   const reducedMotion = useReducedMotion();
 
-  // Mobile only: the per-service caption text curves like every other text
+  // Mobile only: the per-service caption TEXT curves like every other text
   // block ("se ven en perspectiva pero planos, tienen que salir curvos") —
   // the dynamic per-line bow rides word spans split here (no gradient text
-  // inside the captions, so a full split is safe). The block-level tilt
-  // stays with the CSS rule; desktop keeps its separately-tuned flat look.
-  useCurvedWords(sectionRef, ".nxr-srv-caption-tilt", "left", [reducedMotion], {
+  // inside these, so a full split is safe). Deliberately tag/title/desc
+  // ONLY, never the pills: bowing the words INSIDE a pill shifted its text
+  // out of the pill's rounded border ("descuadradas de los bordes
+  // redondeados"). The block-level tilt stays with the CSS rule; desktop
+  // keeps its separately-tuned flat look.
+  useCurvedWords(sectionRef, ".nxr-srv-tag, .nxr-srv-title, .nxr-srv-desc", "left", [reducedMotion], {
     bowOnly: true,
     onlyBelow: 901,
   });
@@ -1373,14 +1376,17 @@ export default function Servicios() {
             ))}
           </div>
 
-          {/* Fixed bottom-left caption stack: all five captions occupy the
-              same grid cell; updateSpiral crossfades (opacity + blur) each
-              one as its card passes through the reel's centre. */}
-          <div className="nxr-servicios-captions">
-            {CARDS.map((c) => (
-              <Caption key={c.href} c={c} />
-            ))}
-          </div>
+        </div>
+        {/* Fixed bottom-left caption stack: all five captions occupy the
+            same grid cell; updateSpiral crossfades (opacity + blur) each
+            one as its card passes through the reel's centre. SIBLING of
+            .nxr-servicios-content on purpose: inside it they'd join the
+            reel's 3D rendering context and get depth-sorted BEHIND yawed
+            cards (see the .nxr-servicios-captions CSS comment). */}
+        <div className="nxr-servicios-captions">
+          {CARDS.map((c) => (
+            <Caption key={c.href} c={c} />
+          ))}
         </div>
       </div>
     </section>

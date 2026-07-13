@@ -312,21 +312,25 @@ h6 {
      edge (flat, screen-centre-ish side), gentler 14° for the narrow width,
      and an inward shift that keeps the enlarged left edge ~28px off the
      frame instead of glued to it. */
+  /* Mobile titles: SAME deformation plane as the paragraphs ("tienen que
+     verse en el mismo plano de deformación... para que sea coherente") —
+     same 10° right-edge pivot, same 64px right margin (so block widths and
+     therefore the left-edge magnification match), and a 16% shift that
+     lands the projected left edge at ~32px, aligned with the paragraphs'
+     hook-computed indent (frameMargin 34). */
   #nxr-proceso .nxr-section-h2,
   #nxr-tech .nxr-section-h2,
-  #nxr-contacto .nxr-section-h2,
-  .nxr-srv-caption-tilt {
-    /* Gentler than desktop (10° vs 12-16°) and a small shift: the earlier
-       22%/14° combo pushed the titles' flat right edge past the viewport
-       ("los textos se salen por la derecha"). */
-    transform: translateX(12%) perspective(460px) rotateY(10deg);
+  #nxr-contacto .nxr-section-h2 {
+    margin-right: 64px;
+    transform: translateX(16%) perspective(460px) rotateY(10deg);
     transform-origin: 100% center;
   }
   .nxr-srv-caption-tilt {
-    /* Same top-anchored vertical origin as desktop: lines ascend, not droop.
-       The inner LEFT padding pulls the (magnified, left-forward) text off
-       the screen edge so it fits the phone width ("añade margen interior
-       izquierdo a los textos de cada servicio"). */
+    /* Same plane profile; top-anchored vertical origin as desktop (lines
+       ascend, not droop). The inner LEFT padding pulls the magnified,
+       left-forward text off the screen edge so it fits the phone width
+       ("añade margen interior izquierdo a los textos de cada servicio"). */
+    transform: translateX(12%) perspective(460px) rotateY(10deg);
     transform-origin: 100% 0%;
     padding-left: 22px;
     padding-right: 6px;
@@ -1265,6 +1269,10 @@ h6 {
   flex-direction: column;
   overflow-x: clip;
   overflow-y: visible;
+  /* Positioning context for the .nxr-servicios-captions overlay (now a
+     direct child — see its comment). GSAP's pin overrides this with
+     `fixed` while pinned; relative covers before/after. */
+  position: relative;
   /* Same pinhole camera as components/scene/PixelCamera.tsx (distance 1000,
      origin at the viewport centre while pinned): the cover-flow rotation
      GSAP applies to each card's `.nxr-srv-inner` projects EXACTLY like the
@@ -1432,12 +1440,15 @@ h6 {
      by the tallest caption) — without this, shorter captions stretch and
      their auto/flex spacing opens odd gaps mid-text. */
   align-items: end;
-  /* WELL above the track (which gets an explicit z-index: 1): the slides'
-     3D-transformed content (hover z-pops, drum recession) was intermittently
-     compositing in front of the caption text — the service text must NEVER
-     be covered by its card or the card's animation. */
+  /* The captions are deliberately a SIBLING of .nxr-servicios-content in the
+     DOM (see Servicios.tsx), NOT a child: content is preserve-3d inside the
+     sticky's perspective, so everything within it belongs to one 3D
+     rendering context where paint order is DEPTH-sorted — a yawed card's
+     near half crosses z=0 and plane-splits IN FRONT of any coplanar text,
+     no z-index can prevent it. As a plain positioned sibling the captions
+     stack normally ABOVE the whole 3D group: the service text can never be
+     covered by a card or its animation. */
   z-index: 40;
-  isolation: isolate;
 }
 
 @media (min-width: 901px) {
@@ -4817,10 +4828,10 @@ input[type="range"].nxr-ms-range::-moz-range-thumb {
     top: auto;
     /* Drops the desktop sticky-centering translateY(-50%) (it applies
        regardless of position scheme). Left-edge-forward like every other
-       mobile block now: everything is left-aligned on phones, so the LEFT
-       side is the one that distorts — same inner-edge-pivot profile (and
-       same reduced 12%/10° as the titles: 22%/14° overflowed the right). */
-    transform: translateX(12%) perspective(460px) rotateY(10deg);
+       mobile block, on the SAME deformation plane as the titles/paragraphs
+       (16%/10°, 64px right margin — see the mobile h2 rule above). */
+    margin-right: 64px;
+    transform: translateX(16%) perspective(460px) rotateY(10deg);
     transform-origin: 100% center;
   }
   .nxr-intro-headline {

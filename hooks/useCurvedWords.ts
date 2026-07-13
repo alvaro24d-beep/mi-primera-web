@@ -97,8 +97,12 @@ export function useCurvedWords(
    *
    * onlyBelow: activate only under this viewport width (e.g. the Servicios
    * captions curve on phones only — their desktop look is separately tuned).
+   *
+   * exclude: words inside a matching ancestor are split but NEVER bowed —
+   * for content with its own visible box (the Servicios pills), whose text
+   * must stay squared inside its rounded border.
    */
-  opts: { bowOnly?: boolean; useExistingWords?: boolean; onlyBelow?: number } = {}
+  opts: { bowOnly?: boolean; useExistingWords?: boolean; onlyBelow?: number; exclude?: string } = {}
 ) {
   useEffect(() => {
     const root = rootRef.current;
@@ -123,22 +127,17 @@ export function useCurvedWords(
       .filter(({ el, split }) => split || el.querySelector(".nxr-cw-word"));
     if (!items.length) return;
 
+    // The accent spans (.nxr-gradient-text-*) are plain SOLID color now —
+    // the animated background-clip gradients were removed site-wide after
+    // two rounds of ghosted/doubled letters (Chromium can't clip a gradient
+    // through a subtree with persistent transforms), so their words bow
+    // freely like any others. Only `opts.exclude` subtrees are left flat.
     const wordsOf = (it: (typeof items)[number]): HTMLElement[] => {
-      if (it.split) return it.split.words as HTMLElement[];
       if (!it.bowNodes) {
-        // ANIMATED-GRADIENT spans are EXEMPT from the bow entirely — words
-        // inside them AND the span itself. `background-clip: text` tolerates
-        // no PERSISTENT transform anywhere in its subtree in Chromium:
-        // per-word transforms ghosted the gradient clip at the untransformed
-        // positions, and transforming the clip-owning span as one atomic
-        // unit was tried next and STILL rendered doubled letters ("el bug de
-        // las letras... pasa en ordenador"). Their line simply stays flat;
-        // the surrounding plain-colored words keep the full dynamic bow.
-        // (The reveal's transient per-char yPercent remains fine — it ends
-        // at identity and any ghosting lasts only the entrance.)
-        it.bowNodes = Array.from(it.el.querySelectorAll<HTMLElement>(".nxr-cw-word")).filter(
-          (w) => !w.closest('[class*="nxr-gradient-text"]')
-        );
+        const all = it.split
+          ? (it.split.words as HTMLElement[])
+          : Array.from(it.el.querySelectorAll<HTMLElement>(".nxr-cw-word"));
+        it.bowNodes = opts.exclude ? all.filter((w) => !w.closest(opts.exclude!)) : all;
       }
       return it.bowNodes;
     };

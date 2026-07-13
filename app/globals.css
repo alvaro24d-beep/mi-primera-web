@@ -256,10 +256,10 @@ h6 {
    .nxr-tech-header-right, .nxr-proceso-header-right) are NOT here anymore:
    they curve for real, per word on a concave arc matching the TV-wall
    backdrop, via hooks/useCurvedWords.ts ("tienen que ser curvas como el
-   fondo"). Only the blocks that CAN'T be word-split stay on these flat
-   tangent planes: the animated gradient titles (splitting + transforming
-   their spans scrambles background-clip: text) and the Servicios caption
-   block (gradient title + GSAP-crossfaded container).
+   fondo"). The section titles additionally get the dynamic per-line bow via
+   useCurvedWords' bowOnly mode riding useTitleReveal's word spans (safe
+   everywhere since the title accents became SOLID color — the old animated
+   background-clip gradients were removed after chronic ghosting bugs).
 
    Conflict rules: never on an element carrying `.nxr-reveal` (it owns
    `transform` for its entrance — Intro's headline wrapper takes it instead,
@@ -335,13 +335,14 @@ h6 {
     padding-left: 12px;
     padding-right: 6px;
   }
-  /* Inner LEFT padding on the explanation paragraph only: narrows its line
-     boxes so the (right-edge-pivoted, shifted) text can't spill past the
-     right side of the phone ("relleno interior izquierdo al párrafo... para
-     que no se salga por la derecha"). */
+  /* RIGHT padding (not left): narrows the explanation's line boxes so the
+     tilted text can't spill past the right side of the phone, while its
+     LEFT edge stays exactly on the block's shared alignment line — a left
+     padding here was what made the paragraph start further right than the
+     title ("el título está más a la izquierda que el resto"). Every part
+     of the caption now starts on the same line of the same tilted plane. */
   .nxr-srv-caption-tilt .nxr-srv-desc {
-    padding-left: 16px;
-    padding-right: 10px;
+    padding-right: 28px;
   }
 
   /* The curved paragraphs must not span the full width — extra air on the
@@ -415,94 +416,30 @@ h6 {
   will-change: transform;
 }
 
-@keyframes nxr-gradient-shift {
-  0% {
-    background-position: 0% 50%;
-  }
-  50% {
-    background-position: 100% 50%;
-  }
-  100% {
-    background-position: 0% 50%;
-  }
-}
-
-/* `background-clip: text` paints the gradient only within this box's own
-   padding box. Descenders (g, j, p, q, y) can extend below it if the box
-   isn't tall enough — a taller `line-height` used to fix that, but it also
-   made this span's own baseline sit differently than its sibling (non-
-   gradient) text, since the two ended up in DIFFERENT line-height contexts —
-   exactly the "gradient part sits higher than the rest of the title" bug.
-   `padding-bottom` gives the same descender headroom without touching
-   line-height, so this text lines up with — and keeps the same line spacing
-   as — the rest of the title. */
+/* SOLID brand-accent colors — the animated background-clip:text gradients
+   are gone for good ("da muchos errores y bugs"): in Chromium, a clipped
+   gradient ghosts/doubles its letters whenever ANY element in its subtree
+   carries a persistent transform (the per-word bow, tried at word level AND
+   at span level), and it needed a fragile inherit-cascade to survive
+   SplitText. Plain `color` has none of those failure modes: the reveal, the
+   bow and the perspective planes all compose freely. Class names are kept so
+   no JSX changes anywhere. */
 .nxr-gradient-text {
   display: inline-block;
   padding-bottom: 0.32em;
-  -webkit-background-clip: text;
-  background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-image: linear-gradient(
-    135deg,
-    var(--c-lime),
-    var(--c-salmon),
-    var(--c-red),
-    var(--c-lime)
-  );
-  background-size: 300% 300%;
-  animation: nxr-gradient-shift 5s ease infinite;
+  color: var(--c-salmon);
 }
 
 .nxr-gradient-text-lime {
   display: inline-block;
   padding-bottom: 0.32em;
-  -webkit-background-clip: text;
-  background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-image: linear-gradient(
-    135deg,
-    var(--c-lime),
-    #d4f77a,
-    var(--c-salmon),
-    var(--c-lime)
-  );
-  background-size: 300% 300%;
-  animation: nxr-gradient-shift 5s ease infinite;
+  color: var(--c-lime);
 }
 
 .nxr-gradient-text-salmon {
   display: inline-block;
   padding-bottom: 0.32em;
-  -webkit-background-clip: text;
-  background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-image: linear-gradient(
-    135deg,
-    var(--c-salmon),
-    #ffbfa0,
-    var(--c-red),
-    var(--c-salmon)
-  );
-  background-size: 300% 300%;
-  animation: nxr-gradient-shift 5s ease infinite;
-}
-
-/* `useTitleReveal` (GSAP SplitText) wraps gradient words in nested mask/char
-   divs for the per-letter animation. `background-image`/`background-clip`
-   aren't inherited CSS properties, so without this, only the OUTER span kept
-   the gradient — the actual visible text moved to inner divs that inherited
-   `-webkit-text-fill-color: transparent` (making them fully invisible) with no
-   gradient to clip against. Forcing an explicit `inherit` on every descendant
-   restores the gradient at each nesting level SplitText introduces. */
-.nxr-gradient-text *,
-.nxr-gradient-text-lime *,
-.nxr-gradient-text-salmon * {
-  background-image: inherit;
-  background-size: inherit;
-  background-position: inherit;
-  -webkit-background-clip: inherit;
-  background-clip: inherit;
-  -webkit-text-fill-color: inherit;
+  color: var(--c-salmon);
 }
 
 /* Gradient title words inherit the site-wide Cormorant Garamond heading font

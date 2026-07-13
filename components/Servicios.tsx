@@ -432,17 +432,18 @@ export default function Servicios() {
   const titleRef = useTitleReveal<HTMLHeadingElement>();
   const reducedMotion = useReducedMotion();
 
-  // Mobile only: the per-service caption TEXT curves like every other text
-  // block ("se ven en perspectiva pero planos, tienen que salir curvos") —
-  // the dynamic per-line bow rides word spans split here (no gradient text
-  // inside these, so a full split is safe). Deliberately tag/title/desc
-  // ONLY, never the pills: bowing the words INSIDE a pill shifted its text
-  // out of the pill's rounded border ("descuadradas de los bordes
-  // redondeados"). The block-level tilt stays with the CSS rule; desktop
-  // keeps its separately-tuned flat look.
-  useCurvedWords(sectionRef, ".nxr-srv-tag, .nxr-srv-title, .nxr-srv-desc", "left", [reducedMotion], {
+  // Mobile only: the per-service caption text curves like every other text
+  // block. The WHOLE tilt block is one geometry sheet — targeting
+  // tag/title/desc as separate elements gave each its own pivot/width and
+  // they visibly sat on DIFFERENT planes ("tiene que verse exactamente en
+  // el mismo plano de perspectiva cada parte"). The pills' words are split
+  // but excluded from the bow: bowing text inside a pill shifts it out of
+  // its rounded border. The block-level tilt stays with the CSS rule;
+  // desktop keeps its separately-tuned flat look.
+  useCurvedWords(sectionRef, ".nxr-srv-caption-tilt", "left", [reducedMotion], {
     bowOnly: true,
     onlyBelow: 901,
+    exclude: ".nxr-srv-pills",
   });
 
   // ---- Registers each card's DOM anchor with the registry so its real R3F

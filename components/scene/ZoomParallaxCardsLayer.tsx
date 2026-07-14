@@ -72,6 +72,7 @@ export default function ZoomParallaxCardsLayer({ isMobile }: { isMobile: boolean
   const mouseTarget = useRef({ nx: 0, ny: 0 });
   const mouseCurrent = useRef({ nx: 0, ny: 0 });
   const lastOpacity = useRef<number[]>(Array.from({ length: ZP_MAX_CARDS }, () => 1));
+  const zCurrent = useRef<number[]>(Array.from({ length: ZP_MAX_CARDS }, () => 0));
 
   useEffect(() => {
     const onMove = (e: MouseEvent) => {
@@ -195,7 +196,19 @@ export default function ZoomParallaxCardsLayer({ isMobile }: { isMobile: boolean
       group.scale.setScalar(scales[i]);
       // Only the single currently-most-dominant card gets pushed behind;
       // everyone else sits neutral/in-front — see BEHIND_Z's comment above.
-      group.position.z = i === bestIdx ? BEHIND_Z : 0;
+      // SMOOTHED, not snapped: with the pixel camera at z=1000, a card
+      // jumping the 30-unit gap instantly changes its projected size by ~3%
+      // in one frame. Worst case was the mobile pin moment: pre-pin the hero
+      // is the only ranked card (so it holds BEHIND_Z), and the instant the
+      // giant neighbours join the ranking it lost dominance and popped 3%
+      // bigger ("pega un salto"). The lerp turns every dominance handoff
+      // into a ~0.3s glide; the fixed-gap ORDERING that kills z-fighting is
+      // untouched (targets stay 0 / BEHIND_Z, both cards keep moving apart).
+      const zTarget = i === bestIdx ? BEHIND_Z : 0;
+      const zc = zCurrent.current;
+      zc[i] += (zTarget - zc[i]) * 0.14;
+      if (Math.abs(zTarget - zc[i]) < 0.05) zc[i] = zTarget;
+      group.position.z = zc[i];
 
       // "Look toward centre", continuously from each card's OWN current
       // screen position — the same sign convention verified in Servicios'

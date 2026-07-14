@@ -4357,6 +4357,18 @@ input[type="range"].nxr-ms-range::-moz-range-thumb {
     padding: calc(12px * var(--zp-max, 1));
   }
 
+  /* Digital-glitch dissolve of the centre card (mobile only): ZoomParallax.tsx
+     drives --zpg (signed jitter, −1..1), --zpgt/--zpgb (slice insets, %)
+     inline on the anchor per scroll frame; the opacity stutter rides the
+     anchor's inline opacity, which the WebGL glass mirrors. */
+  .nxr-zp-layer:nth-child(1) .nxr-zp-card {
+    transform: translateX(calc(var(--zpg, 0) * 12px));
+    clip-path: inset(calc(var(--zpgt, 0) * 1%) 0 calc(var(--zpgb, 0) * 1%) 0);
+  }
+  .nxr-zp-layer:nth-child(1) .nxr-zp-hero-text {
+    text-shadow: calc(var(--zpg, 0) * -8px) 0 rgba(239, 61, 13, 0.9),
+      calc(var(--zpg, 0) * 8px) 0 rgba(168, 240, 74, 0.9);
+  }
   .nxr-zp-layer:nth-child(1) .nxr-zp-img {
     --zp-max: 2.2;
     width: 85vw;

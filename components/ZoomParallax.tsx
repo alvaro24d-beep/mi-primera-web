@@ -120,6 +120,14 @@ export default function ZoomParallax() {
     if (!section || !sticky) return;
 
     const layers = layerRefs.current.filter(Boolean) as HTMLDivElement[];
+    const rmMql = window.matchMedia("(prefers-reduced-motion: reduce)");
+
+    // Deterministic pseudo-random (shader-style hash): the glitch pattern is
+    // a pure function of scroll progress, so scrubbing back through the
+    // dissolve replays the exact same frames in reverse — no RAF loops, no
+    // state, nothing to desync from the scrub.
+    const frac = (n: number) => n - Math.floor(n);
+    const hash = (n: number) => frac(Math.sin(n * 127.1) * 43758.5453);
 
     function onScroll() {
       const vh = window.innerHeight;
@@ -169,15 +177,34 @@ export default function ZoomParallax() {
         const scale = max - (max - 1) * progress;
         img.style.transform = `scale(${scale / max})`;
         // Mobile only: the CENTRE card (index 0, the one that fills the
-        // screen at the start) dissolves progressively while the
-        // surrounding cards scale in, instead of staying parked in the
-        // middle of the finished grid. Inline opacity on the anchor: the
-        // WebGL glass mesh mirrors it (see ZoomParallaxCardsLayer), and the
-        // card's own DOM content fades with it for free.
+        // screen at the start) dissolves while the surrounding cards scale
+        // in — as a DIGITAL GLITCH, not a plain fade: the opacity stutters
+        // in hard steps (the WebGL glass mesh mirrors the anchor's inline
+        // opacity, so the glass itself flickers out — see
+        // ZoomParallaxCardsLayer), while the card content jitters, loses
+        // horizontal slices (clip-path) and RGB-splits its text via the
+        // --zpg* custom properties consumed in globals.css.
         if (i === 0 && isMobile) {
           const t = Math.min(1, Math.max(0, (progress - 0.55) / 0.35));
-          const fade = 1 - t * t * (3 - 2 * t); // smoothstep out
-          img.style.opacity = fade.toFixed(3);
+          const fade = 1 - t * t * (3 - 2 * t); // smoothstep envelope
+          if (rmMql.matches || t <= 0 || t >= 1) {
+            img.style.opacity = fade.toFixed(3);
+            img.style.setProperty("--zpg", "0");
+            img.style.setProperty("--zpgt", "0");
+            img.style.setProperty("--zpgb", "0");
+          } else {
+            // ~22 discrete glitch "frames" across the band; g ramps the
+            // violence in and out so it starts/ends clean.
+            const seed = Math.floor(t * 22);
+            const h1 = hash(seed);
+            const h2 = hash(seed + 13);
+            const g = Math.sin(Math.PI * t);
+            const flicker = h1 > 0.62 ? 0.45 + 0.4 * h2 : 1 - 0.12 * h2;
+            img.style.opacity = (fade * flicker).toFixed(3);
+            img.style.setProperty("--zpg", (((h1 - 0.5) * 2) * g).toFixed(3));
+            img.style.setProperty("--zpgt", (h1 * 30 * g).toFixed(2));
+            img.style.setProperty("--zpgb", (h2 * 24 * g).toFixed(2));
+          }
         }
         // Real on-screen height AFTER the transform above — comparable
         // across cards despite their different base CSS sizes/max values,

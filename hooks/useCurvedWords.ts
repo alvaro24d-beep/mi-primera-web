@@ -119,7 +119,17 @@ export function useCurvedWords(
         // effect) or ride on another split (useExistingWords) need a stable
         // selector — mutating these spans is the only text animation that
         // coexists with the per-word transforms.
-        split: opts.useExistingWords ? null : SplitText.create(el, { type: "words", wordsClass: "nxr-cw-word" }),
+        // aria: "none" — SplitText's default ("auto") stamps aria-label onto
+        // the split TARGET, but these targets are <p>/<div> (generic /
+        // paragraph roles, where ARIA prohibits naming → axe: "Elements must
+        // only use permitted ARIA attributes"). Word-level pieces read
+        // naturally in screen readers without any ARIA help, so none is
+        // needed. (useTitleReveal keeps the default: its targets are <h2>,
+        // where heading naming IS permitted — and its char-level pieces DO
+        // need the aria-label/aria-hidden treatment.)
+        split: opts.useExistingWords
+          ? null
+          : SplitText.create(el, { type: "words", wordsClass: "nxr-cw-word", aria: "none" }),
         bowNodes: null as HTMLElement[] | null,
       }))
       // useExistingWords with no pre-existing spans (reduced motion skips the

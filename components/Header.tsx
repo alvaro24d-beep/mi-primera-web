@@ -198,6 +198,10 @@ export default function Header() {
           <a
             href="/"
             className={`nxr-nav-link nxr-nav-home nxr-glass-edge${isActive("/") ? " active" : ""}`}
+            // The inner "Inicio" span is display:none in the mobile pill
+            // (icon-only), which axe flags as a link without discernible
+            // text — the label keeps the name programmatically available.
+            aria-label="Inicio"
           >
             <svg className="nxr-glass-edge-content" viewBox="0 0 24 24">
               <path d="M3 9.5L12 3l9 6.5V20a1 1 0 01-1 1H4a1 1 0 01-1-1V9.5z" />
@@ -242,7 +246,9 @@ export default function Header() {
             </svg>
             <span>Casos</span>
           </a>
-          <a href="/contacto" className="nxr-nav-cta nxr-glass-edge">
+          {/* aria-label for the same reason as the home link: the text span
+              hides in the icon-only mobile pill. */}
+          <a href="/contacto" className="nxr-nav-cta nxr-glass-edge" aria-label="Hablemos">
             <svg className="nxr-glass-edge-content" viewBox="0 0 24 24">
               <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" />
             </svg>

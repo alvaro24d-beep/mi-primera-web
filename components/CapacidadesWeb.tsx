@@ -183,7 +183,15 @@ export default function CapacidadesWeb() {
       const innerOf = (card: HTMLElement) => card.querySelector<HTMLElement>(".nxr-dwh-cap-inner");
       cards.forEach((card, i) => {
         const s = slot(i);
-        gsap.set(card, { y: s.y, scale: s.scale, opacity: s.opacity });
+        // zIndex: the FRONT card must paint ABOVE the deeper ones. In plain
+        // DOM order later siblings painted on top, so the front card's text
+        // was read through 3-4 stacked translucent scrims — darkest on the
+        // first card, progressively clearer as the deck emptied ("las
+        // primeras cards se ven con el texto más oscuro"). Earlier cards
+        // are always in front of later ones, so one static assignment holds
+        // for every step of the peel (the peeling card also flies off on
+        // top, as it should).
+        gsap.set(card, { y: s.y, scale: s.scale, opacity: s.opacity, zIndex: cards.length - i });
         gsap.set(innerOf(card) ?? {}, { opacity: i === 0 ? 1 : 0 });
       });
       // CSS keeps the cards `visibility: hidden` until the initial states are

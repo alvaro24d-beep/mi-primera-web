@@ -270,7 +270,8 @@ h6 {
    (.nxr-contacto-textblock / .nxr-proceso-textblock / .nxr-tech-header /
    .nxr-aia-nt-textblock) and shares that block's plane — title and
    accompanying text must point at the same vanishing point, sitewide.) */
-#nxr-dwh-proceso .nxr-section-h2,
+/* (#nxr-dwh-proceso's h2 is also out: it rides its section's whole-reel
+   plane, .nxr-dwh-proceso-tilt.) */
 #nxr-dwh-capacidades .nxr-section-h2,
 #nxr-dwh-tech .nxr-section-h2,
 #nxr-aia-casos .nxr-section-h2,
@@ -298,7 +299,6 @@ h6 {
   /* The /desarrollo-web titles keep the h2's full 600px layout box (no
      narrow grid column shrinking them like the home's), so their projected
      left edge juts much further — they need the wide-block tier. */
-  #nxr-dwh-proceso .nxr-section-h2,
   #nxr-dwh-capacidades .nxr-section-h2,
   #nxr-dwh-tech .nxr-section-h2,
   #nxr-aia-casos .nxr-section-h2,
@@ -334,7 +334,6 @@ h6 {
      mobile PROFILE (tilt 6) so CSS-tilted titles and hook-planed blocks
      keep sharing one deformation plane. Servicios' caption tilt (below) is
      the deliberate exception and keeps its own values. */
-  #nxr-dwh-proceso .nxr-section-h2,
   #nxr-dwh-capacidades .nxr-section-h2,
   #nxr-dwh-tech .nxr-section-h2,
   #nxr-aia-casos .nxr-section-h2,
@@ -5128,8 +5127,40 @@ input[type="range"].nxr-ms-range::-moz-range-thumb {
 .nxr-dwh-proceso-content {
   display: flex;
   flex-direction: column;
+  /* Right padding deliberately smaller than left: the section plane below
+     recedes toward the right, so the projected content pulls inward on that
+     side — the reduced padding gives the far side that room back and the
+     REEL reads evenly spaced after projection ("que quede bien espaciado
+     porque los márgenes cambiarán"). */
+  padding: 0 calc(var(--pad-x) * 0.35) 0 var(--pad-x);
+}
+
+/* The whole reel (title + progress + track) on ONE flat perspective plane:
+   left side nearer, right side receding. Left-edge pivot so nothing grows
+   past the left frame; the track scrubs INSIDE the plane, so cards grow as
+   they travel toward the near side — a conveyor seen in perspective. The
+   step cards' glass meshes need no changes: GlassPanelsLayer re-docks each
+   mesh to its card's live projected rect every frame (position + x/y
+   scale). GSAP owns transforms on .nxr-dwh-proceso-content (entrance) and
+   .nxr-dwh-proceso-track (scrub) — this wrapper between them is never
+   animated, so the plane can't be clobbered. */
+.nxr-dwh-proceso-tilt {
+  display: flex;
+  flex-direction: column;
   gap: 40px;
-  padding: 0 var(--pad-x);
+  transform: perspective(1200px) rotateY(10deg);
+  transform-origin: left center;
+}
+
+/* Softer reel plane on phones (sitewide mobile reduction) — this override
+   must live AFTER the base rule (same specificity: source order decides). */
+@media (max-width: 768px) {
+  .nxr-dwh-proceso-tilt {
+    transform: perspective(1000px) rotateY(6deg);
+  }
+  .nxr-dwh-proceso-content {
+    padding: 0 8px 0 20px;
+  }
 }
 
 .nxr-dwh-proceso-head {
@@ -5284,7 +5315,10 @@ input[type="range"].nxr-ms-range::-moz-range-thumb {
   min-height: 100lvh;
   display: flex;
   flex-direction: column;
-  padding: 12vh var(--pad-x) 8vh;
+  /* Bottom padding reserves the floating nav band (#nxr-nav, ~63px tall,
+     20px off the bottom) — the centred deck was sitting underneath the bar
+     while pinned (same fix as /agentes-ia's Noche stage). */
+  padding: 10vh var(--pad-x) calc(8vh + 88px);
   max-width: var(--max-w);
   margin: 0 auto;
   width: 100%;
@@ -5404,7 +5438,8 @@ input[type="range"].nxr-ms-range::-moz-range-thumb {
 
 @media (max-width: 768px) {
   .nxr-dwh-cap-stage {
-    padding: 9vh 20px 6vh;
+    /* Clears the floating nav band on phones too. */
+    padding: 8vh 20px calc(96px + env(safe-area-inset-bottom));
   }
   .nxr-dwh-cap-card {
     padding: 26px;

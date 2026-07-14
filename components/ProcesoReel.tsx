@@ -165,13 +165,15 @@ export default function ProcesoReel() {
       // pin-spacer, inserted outside React's tracking, corrupts reconciliation
       // if React tries to diff into it instead of fully remounting.
       <section key="static" id="nxr-dwh-proceso" className="nxr-dwh-proceso nxr-dwh-proceso-static">
-        <div>
-          <h2 className="nxr-section-h2">
-            De la idea al <span className="nxr-gradient-text-salmon">lanzamiento.</span>
-          </h2>
-        </div>
-        <div className="nxr-dwh-step-list">
-          <StepCards />
+        <div className="nxr-dwh-proceso-tilt">
+          <div>
+            <h2 className="nxr-section-h2">
+              De la idea al <span className="nxr-gradient-text-salmon">lanzamiento.</span>
+            </h2>
+          </div>
+          <div className="nxr-dwh-step-list">
+            <StepCards />
+          </div>
         </div>
       </section>
     );
@@ -181,25 +183,32 @@ export default function ProcesoReel() {
     <section id="nxr-dwh-proceso" className="nxr-dwh-proceso" ref={sectionRef}>
       <div className="nxr-dwh-proceso-sticky" ref={stickyRef}>
         <div className="nxr-dwh-proceso-content" ref={contentRef}>
-          <div className="nxr-dwh-proceso-head">
-            <h2 className="nxr-section-h2" ref={titleRef}>
-              De la idea al <span className="nxr-gradient-text-salmon">lanzamiento.</span>
-            </h2>
-          </div>
-
-          <div className="nxr-dwh-proceso-progress">
-            <div className="nxr-dwh-proceso-progress-track">
-              <div className="nxr-dwh-proceso-progress-fill" ref={progressFillRef} />
+          {/* The flat perspective plane (left near, right far) lives on this
+              wrapper — NOT on .nxr-dwh-proceso-content (GSAP owns its
+              entrance transform) nor the track (GSAP scrubs its x). The
+              title rides the same plane (one vanishing point per section),
+              so this section's h2 is NOT in the CSS tilt groups. */}
+          <div className="nxr-dwh-proceso-tilt">
+            <div className="nxr-dwh-proceso-head">
+              <h2 className="nxr-section-h2" ref={titleRef}>
+                De la idea al <span className="nxr-gradient-text-salmon">lanzamiento.</span>
+              </h2>
             </div>
-            <div className="nxr-dwh-proceso-dots">
-              {STEPS.map((s) => (
-                <span key={s.n} className="nxr-dwh-proceso-dot" />
-              ))}
-            </div>
-          </div>
 
-          <div className="nxr-dwh-proceso-track" ref={trackRef}>
-            <StepCards />
+            <div className="nxr-dwh-proceso-progress">
+              <div className="nxr-dwh-proceso-progress-track">
+                <div className="nxr-dwh-proceso-progress-fill" ref={progressFillRef} />
+              </div>
+              <div className="nxr-dwh-proceso-dots">
+                {STEPS.map((s) => (
+                  <span key={s.n} className="nxr-dwh-proceso-dot" />
+                ))}
+              </div>
+            </div>
+
+            <div className="nxr-dwh-proceso-track" ref={trackRef}>
+              <StepCards />
+            </div>
           </div>
         </div>
       </div>

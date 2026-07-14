@@ -101,8 +101,30 @@ export function useCurvedWords(
    * exclude: words inside a matching ancestor are split but NEVER bowed —
    * for content with its own visible box (the Servicios pills), whose text
    * must stay squared inside its rounded border.
+   *
+   * alsoBow: NON-text elements that must ride the same bowed lines as the
+   * words around them (the Contacto item icons). One deformed block = one
+   * curved screen ("todo el contenido que se deforme tiene que estar como en
+   * la misma pantalla curva"): a static icon beside bowed words would break
+   * its own row, so these get the identical translate/lean treatment — and
+   * they join the frame-overflow measurement, since an outer-edge icon can
+   * project past the outermost word.
+   *
+   * splitIgnore: descendants SplitText must not touch because another owner
+   * already split them (a useTitleReveal heading living inside this block).
+   * Their existing .nxr-cw-word spans still join THIS block's bow/overflow
+   * geometry (wordsOf collects by class, not by split ownership), which is
+   * the point: heading and paragraphs share one plane and one bow field
+   * instead of two separately-tuned planes that "point" different ways.
    */
-  opts: { bowOnly?: boolean; useExistingWords?: boolean; onlyBelow?: number; exclude?: string } = {}
+  opts: {
+    bowOnly?: boolean;
+    useExistingWords?: boolean;
+    onlyBelow?: number;
+    exclude?: string;
+    alsoBow?: string;
+    splitIgnore?: string;
+  } = {}
 ) {
   useEffect(() => {
     const root = rootRef.current;
@@ -129,7 +151,12 @@ export function useCurvedWords(
         // need the aria-label/aria-hidden treatment.)
         split: opts.useExistingWords
           ? null
-          : SplitText.create(el, { type: "words", wordsClass: "nxr-cw-word", aria: "none" }),
+          : SplitText.create(el, {
+              type: "words",
+              wordsClass: "nxr-cw-word",
+              aria: "none",
+              ignore: opts.splitIgnore ? Array.from(el.querySelectorAll(opts.splitIgnore)) : undefined,
+            }),
         bowNodes: null as HTMLElement[] | null,
       }))
       // useExistingWords with no pre-existing spans (reduced motion skips the
@@ -144,10 +171,16 @@ export function useCurvedWords(
     // freely like any others. Only `opts.exclude` subtrees are left flat.
     const wordsOf = (it: (typeof items)[number]): HTMLElement[] => {
       if (!it.bowNodes) {
-        const all = it.split
-          ? (it.split.words as HTMLElement[])
-          : Array.from(it.el.querySelectorAll<HTMLElement>(".nxr-cw-word"));
+        // By CLASS, not by split ownership: our own split stamps the same
+        // class, and any pre-split content inside the block (splitIgnore'd
+        // headings) contributes its spans to this block's shared bow field.
+        const all = Array.from(it.el.querySelectorAll<HTMLElement>(".nxr-cw-word"));
         it.bowNodes = opts.exclude ? all.filter((w) => !w.closest(opts.exclude!)) : all;
+        if (opts.alsoBow) {
+          it.bowNodes = it.bowNodes.concat(
+            Array.from(it.el.querySelectorAll<HTMLElement>(opts.alsoBow))
+          );
+        }
       }
       return it.bowNodes;
     };
@@ -277,6 +310,9 @@ export function useCurvedWords(
       io.disconnect();
       items.forEach((it) => {
         if (it.split) {
+          // revert() drops the word spans, but alsoBow nodes are real page
+          // elements that keep our inline transform — clear it first.
+          for (const w of wordsOf(it)) w.style.transform = "";
           it.split.revert();
           it.el.style.transform = "";
           it.el.style.transformOrigin = "";

@@ -5,6 +5,8 @@ import gsap from "gsap";
 import { useGSAP } from "@gsap/react";
 import { useTitleReveal } from "@/hooks/useTitleReveal";
 import { useReducedMotion } from "@/hooks/useReducedMotion";
+import { useCurvedWords } from "@/hooks/useCurvedWords";
+import { useGlassPanels } from "@/hooks/useGlassPanels";
 
 const CAPACIDADES = [
   {
@@ -99,24 +101,74 @@ function parseStat(val: string) {
   return { prefix: sign, target: parseInt(num, 10), suffix };
 }
 
+// Visual stack: how a card sitting `s` slots behind the front one rests.
+// DELIBERATELY translate/scale/opacity only — never rotation: each card is
+// the anchor of a real volumetric glass mesh (useGlassPanels), whose
+// rect-based tracking follows position and scale exactly but cannot rotate
+// (a CSS-rotated anchor reports an inflated axis-aligned rect — the same
+// reason the home's Proceso dropped its pointer tilt).
+const SLOT_Y = -26; // px upward per slot (the deck recedes upward)
+const SLOT_SCALE = 0.055;
+const VISIBLE_DEPTH = 3; // slots visible behind the front card
+const slot = (s: number) => ({
+  y: s * SLOT_Y,
+  scale: 1 - Math.min(s, VISIBLE_DEPTH + 1) * SLOT_SCALE,
+  opacity: s <= VISIBLE_DEPTH ? 1 - s * 0.22 : 0,
+});
+
+function CapCard({ c }: { c: (typeof CAPACIDADES)[number] }) {
+  return (
+    // Anchor for a volumetric fluid-glass mesh — layout/content + scrim only.
+    <div className="nxr-dwh-cap-card">
+      <span className="nxr-dwh-cap-inner">
+        <div className="nxr-dwh-cap-icon" style={{ background: c.bg, color: c.color }}>
+          {c.icon}
+        </div>
+        <div className="nxr-dwh-cap-title">{c.title}</div>
+        <div className="nxr-dwh-cap-desc">{c.desc}</div>
+      </span>
+    </div>
+  );
+}
+
+/**
+ * "Baraja" section — the page's non-linear-scroll piece, following the
+ * home's directive that sections shouldn't just ride the vertical flow: the
+ * six capability cards sit STACKED at screen centre inside a pinned stage,
+ * and each scroll step PEELS the front card away (up and gone) while the
+ * deck behind steps forward one slot. Volumetric glass on every card, the
+ * dynamic per-line bow on the title, stats count-up after the pin.
+ */
 export default function CapacidadesWeb() {
   const titleRef = useTitleReveal<HTMLHeadingElement>();
-  const gridRef = useRef<HTMLDivElement>(null);
+  const sectionRef = useRef<HTMLElement>(null);
+  const stageRef = useRef<HTMLDivElement>(null);
+  const deckRef = useRef<HTMLDivElement>(null);
   const statsRef = useRef<HTMLDivElement>(null);
   const reducedMotion = useReducedMotion();
+
+  useGlassPanels(sectionRef, ".nxr-dwh-cap-card", "#12141c", [reducedMotion]);
+  useCurvedWords(sectionRef, ".nxr-section-h2", "left", [reducedMotion], {
+    bowOnly: true,
+    useExistingWords: true,
+  });
 
   useGSAP(
     () => {
       const prefersReduced = reducedMotion || window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-      const grid = gridRef.current;
+      const stage = stageRef.current;
+      const deck = deckRef.current;
       const statsEl = statsRef.current;
-      if (!grid || !statsEl) return;
+      if (!stage || !deck || !statsEl) return;
 
-      const cards = gsap.utils.toArray<HTMLElement>(grid.querySelectorAll(".nxr-dwh-cap-card"));
+      const cards = gsap.utils.toArray<HTMLElement>(deck.querySelectorAll(".nxr-dwh-cap-card"));
       const statVals = gsap.utils.toArray<HTMLElement>(statsEl.querySelectorAll(".nxr-dwh-stat-val"));
 
       if (prefersReduced) {
-        gsap.set(cards, { visibility: "visible", opacity: 1, x: 0, y: 0, rotate: 0, scale: 1 });
+        // Static fallback: the deck lays out as a plain grid via the
+        // .nxr-dwh-cap-deck-static class (no pin, no peel).
+        deck.classList.add("nxr-dwh-cap-deck-static");
+        gsap.set(cards, { visibility: "visible", clearProps: "transform,opacity" });
         statVals.forEach((el, i) => {
           const { prefix, target, suffix } = parseStat(STATS[i].val);
           el.textContent = `${prefix}${target}${suffix}`;
@@ -124,69 +176,53 @@ export default function CapacidadesWeb() {
         return;
       }
 
-      // ---- Assembling entrance: each card starts scattered (randomised
-      // rotation/offset/scale) and converges into the grid, one-shot as the
-      // section scrolls into view — "pieces assembling into your capability
-      // grid" instead of a uniform fade-up column.
-      cards.forEach((card) => {
-        gsap.set(card, {
-          transformPerspective: 800,
-          opacity: 0,
-          x: gsap.utils.random(-70, 70),
-          y: gsap.utils.random(40, 90),
-          rotate: gsap.utils.random(-14, 14),
-          scale: 0.7,
-        });
+      // Resting slots (front card = slot 0, deeper cards recede up/behind).
+      // Only the FRONT card shows its content: the cards are translucent
+      // (scrim + glass), so stacked visible texts read as an overlapping
+      // soup — the back cards reduce to clean receding card edges instead.
+      const innerOf = (card: HTMLElement) => card.querySelector<HTMLElement>(".nxr-dwh-cap-inner");
+      cards.forEach((card, i) => {
+        const s = slot(i);
+        gsap.set(card, { y: s.y, scale: s.scale, opacity: s.opacity });
+        gsap.set(innerOf(card) ?? {}, { opacity: i === 0 ? 1 : 0 });
       });
-      // CSS keeps `.nxr-dwh-cap-card` `visibility: hidden` until here — same
-      // flash-of-unanimated-content guard used sitewide (Hero.tsx, Intro.tsx):
-      // without it, the finished grid flashes fully visible for a frame on
-      // first paint, before this layout effect has a chance to scatter it.
+      // CSS keeps the cards `visibility: hidden` until the initial states are
+      // in — the usual first-paint-flash guard used sitewide.
       gsap.set(cards, { visibility: "visible" });
-      gsap.to(cards, {
-        opacity: 1,
-        x: 0,
-        y: 0,
-        rotate: 0,
-        scale: 1,
-        duration: 0.8,
-        ease: "power3.out",
-        stagger: 0.08,
+
+      const steps = cards.length - 1; // the last card stays
+      const tl = gsap.timeline({
         scrollTrigger: {
-          trigger: grid,
-          start: "top 85%",
-          toggleActions: "play none none none",
+          trigger: stage,
+          start: "top top",
+          end: () => `+=${steps * 60}%`,
+          scrub: 0.6,
+          pin: stage,
+          anticipatePin: 1,
+          invalidateOnRefresh: true,
         },
       });
 
-      // ---- 3D tilt on hover — same gsap.quickTo(rotationY/rotationX)
-      // technique as the browser-mockup tilt in DesarrolloWebHero.tsx,
-      // layered on top of the existing --mx/--my spotlight glow.
-      const cleanups: Array<() => void> = [];
-      cards.forEach((card) => {
-        const rotY = gsap.quickTo(card, "rotationY", { duration: 0.5, ease: "power2" });
-        const rotX = gsap.quickTo(card, "rotationX", { duration: 0.5, ease: "power2" });
-        const onMove = (e: MouseEvent) => {
-          const r = card.getBoundingClientRect();
-          card.style.setProperty("--mx", `${e.clientX - r.left}px`);
-          card.style.setProperty("--my", `${e.clientY - r.top}px`);
-          rotY(((e.clientX - r.left) / r.width - 0.5) * 10);
-          rotX(-((e.clientY - r.top) / r.height - 0.5) * 8);
-        };
-        const onLeave = () => {
-          rotY(0);
-          rotX(0);
-        };
-        card.addEventListener("mousemove", onMove);
-        card.addEventListener("mouseleave", onLeave);
-        cleanups.push(() => {
-          card.removeEventListener("mousemove", onMove);
-          card.removeEventListener("mouseleave", onLeave);
-        });
-      });
+      // Step k (one timeline unit each): the front card peels up and away
+      // while every card behind advances one slot — and the NEW front
+      // card's content fades in as it arrives (see innerOf above).
+      for (let k = 0; k < steps; k++) {
+        tl.to(
+          cards[k],
+          { yPercent: -160, opacity: 0, scale: 1.05, duration: 0.75, ease: "power2.in" },
+          k
+        );
+        for (let j = k + 1; j < cards.length; j++) {
+          const s = slot(j - k - 1);
+          tl.to(cards[j], { y: s.y, scale: s.scale, opacity: s.opacity, duration: 0.6, ease: "power2.out" }, k + 0.12);
+          tl.to(innerOf(cards[j]) ?? {}, { opacity: s.y === 0 ? 1 : 0, duration: 0.4 }, k + 0.25);
+        }
+        // Breather between peels so each capability gets its own beat.
+        tl.to({}, { duration: 0.25 }, k + 0.75);
+      }
 
-      // ---- Stats count-up: numbers animate from 0 to their real value once
-      // the strip scrolls into view, keeping each stat's own sign/suffix.
+      // ---- Stats count-up: numbers animate from 0 once the strip (after the
+      // pin) scrolls into view, keeping each stat's own sign/suffix.
       statVals.forEach((el, i) => {
         const { prefix, target, suffix } = parseStat(STATS[i].val);
         const proxy = { val: 0 };
@@ -205,47 +241,36 @@ export default function CapacidadesWeb() {
           },
         });
       });
-
-      return () => cleanups.forEach((fn) => fn());
     },
-    { dependencies: [reducedMotion] }
+    { scope: sectionRef, dependencies: [reducedMotion] }
   );
 
   return (
-    <section id="nxr-dwh-capacidades" className="nxr-dwh-capacidades">
-      <div className="nxr-dwh-capacidades-inner">
+    <section id="nxr-dwh-capacidades" className="nxr-dwh-capacidades" ref={sectionRef}>
+      <div className="nxr-dwh-cap-stage" ref={stageRef}>
         <div className="nxr-reveal">
-          <p className="nxr-section-label">Capacidades</p>
           <h2 className="nxr-section-h2" ref={titleRef}>
             Todo lo que tu web necesita para{" "}
             <span className="nxr-gradient-text-lime">competir de verdad.</span>
           </h2>
         </div>
 
-        <div className="nxr-dwh-cap-grid" ref={gridRef}>
+        <div className="nxr-dwh-cap-deck" ref={deckRef}>
           {CAPACIDADES.map((c) => (
-            <div key={c.title} className="nxr-dwh-cap-card nxr-glass-edge">
-              <span className="nxr-glass-edge-content nxr-dwh-cap-inner">
-                <div className="nxr-dwh-cap-icon" style={{ background: c.bg, color: c.color }}>
-                  {c.icon}
-                </div>
-                <div className="nxr-dwh-cap-title">{c.title}</div>
-                <div className="nxr-dwh-cap-desc">{c.desc}</div>
-              </span>
-            </div>
+            <CapCard key={c.title} c={c} />
           ))}
         </div>
+      </div>
 
-        <div className="nxr-dwh-stats-strip" ref={statsRef}>
-          {STATS.map((s) => (
-            <div key={s.label} className="nxr-dwh-stat">
-              <div className="nxr-dwh-stat-val" style={{ color: s.color }}>
-                {s.val}
-              </div>
-              <div className="nxr-dwh-stat-label">{s.label}</div>
+      <div className="nxr-dwh-stats-strip" ref={statsRef}>
+        {STATS.map((s) => (
+          <div key={s.label} className="nxr-dwh-stat">
+            <div className="nxr-dwh-stat-val" style={{ color: s.color }}>
+              {s.val}
             </div>
-          ))}
-        </div>
+            <div className="nxr-dwh-stat-label">{s.label}</div>
+          </div>
+        ))}
       </div>
     </section>
   );

@@ -4,6 +4,7 @@ import { useRef } from "react";
 import gsap from "gsap";
 import { useGSAP } from "@gsap/react";
 import LogoLoop, { type LogoItem } from "./LogoLoop";
+import { useCurvedWords } from "@/hooks/useCurvedWords";
 import { useTitleReveal } from "@/hooks/useTitleReveal";
 import { useReducedMotion } from "@/hooks/useReducedMotion";
 
@@ -120,6 +121,13 @@ export default function DwhTechStack() {
   const sectionRef = useRef<HTMLElement>(null);
   const reducedMotion = useReducedMotion();
 
+  // Home-identity dynamic per-line bow on the title (rides the reveal's
+  // word spans; the CSS tilt lives in the perspective-planes rule groups).
+  useCurvedWords(sectionRef, ".nxr-section-h2", "left", [reducedMotion], {
+    bowOnly: true,
+    useExistingWords: true,
+  });
+
   useGSAP(
     () => {
       const prefersReduced = reducedMotion || window.matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -157,7 +165,6 @@ export default function DwhTechStack() {
   return (
     <section id="nxr-dwh-tech" className="nxr-dwh-tech" ref={sectionRef}>
       <div className="nxr-dwh-tech-inner nxr-reveal">
-        <p className="nxr-section-label">Nuestro stack</p>
         <h2 className="nxr-section-h2" ref={titleRef}>
           Construido con las herramientas
           <br />

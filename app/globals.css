@@ -252,7 +252,7 @@ h6 {
    the RIGHT grid column and its outer (left) edge juts into the centre
    gutter, not into a frame.
 
-   The PLAIN-COLORED paragraphs (.nxr-intro-text, .nxr-contacto-desc,
+   The PLAIN-COLORED paragraphs (.nxr-intro-text, .nxr-contacto-textblock,
    .nxr-tech-header-right, .nxr-proceso-header-right) are NOT here anymore:
    they curve for real, per word on a concave arc matching the TV-wall
    backdrop, via hooks/useCurvedWords.ts ("tienen que ser curvas como el
@@ -265,9 +265,14 @@ h6 {
    `transform` for its entrance — Intro's headline wrapper takes it instead,
    composed with its sticky centering), safe on .nxr-section-h2 themselves
    (useTitleReveal only animates char spans inside). */
+/* (#nxr-contacto's h2 is NOT in these groups: it lives inside
+   .nxr-contacto-textblock and shares that block's hook-applied plane — title
+   and paragraph must point at the same vanishing point.) */
 #nxr-proceso .nxr-section-h2,
 #nxr-tech .nxr-section-h2,
-#nxr-contacto .nxr-section-h2,
+#nxr-dwh-proceso .nxr-section-h2,
+#nxr-dwh-capacidades .nxr-section-h2,
+#nxr-dwh-tech .nxr-section-h2,
 .nxr-srv-caption-tilt {
   transform: perspective(460px) rotateY(26deg);
   transform-origin: 70% center;
@@ -291,8 +296,13 @@ h6 {
     transform: translateX(20%) perspective(460px) rotateY(16deg);
     transform-origin: 100% center;
   }
-  #nxr-contacto .nxr-section-h2 {
-    transform: translateX(32%) perspective(460px) rotateY(16deg);
+  /* The /desarrollo-web titles keep the h2's full 600px layout box (no
+     narrow grid column shrinking them like the home's), so their projected
+     left edge juts much further — they need the wide-block tier. */
+  #nxr-dwh-proceso .nxr-section-h2,
+  #nxr-dwh-capacidades .nxr-section-h2,
+  #nxr-dwh-tech .nxr-section-h2 {
+    transform: translateX(48%) perspective(460px) rotateY(16deg);
     transform-origin: 100% center;
   }
   .nxr-srv-caption-tilt {
@@ -320,7 +330,9 @@ h6 {
      hook-computed indent (frameMargin 34). */
   #nxr-proceso .nxr-section-h2,
   #nxr-tech .nxr-section-h2,
-  #nxr-contacto .nxr-section-h2 {
+  #nxr-dwh-proceso .nxr-section-h2,
+  #nxr-dwh-capacidades .nxr-section-h2,
+  #nxr-dwh-tech .nxr-section-h2 {
     margin-right: 64px;
     transform: translateX(16%) perspective(460px) rotateY(10deg);
     transform-origin: 100% center;
@@ -351,7 +363,7 @@ h6 {
   .nxr-intro-textblock,
   .nxr-tech-header-right,
   .nxr-proceso-header-right,
-  .nxr-contacto-desc {
+  .nxr-contacto-textblock {
     margin-right: 64px;
   }
 
@@ -3539,6 +3551,16 @@ h6 {
   max-width: 500px;
 }
 
+/* Paragraph + reassurance items share ONE curved-words block (same wrapper
+   pattern as Intro's textblock): a single tilt plane + one bow field, so the
+   items sit on the same curved screen as the paragraph above them. The gap
+   reproduces the parent column's 32px rhythm they had as separate children. */
+.nxr-contacto-textblock {
+  display: flex;
+  flex-direction: column;
+  gap: 32px;
+}
+
 .nxr-contacto-desc {
   font-size: 16px;
   color: var(--c-salmon);
@@ -5090,14 +5112,15 @@ input[type="range"].nxr-ms-range::-moz-range-thumb {
   padding: 12px 4px 24px;
 }
 
+/* Anchor for a real volumetric fluid-glass mesh (useGlassPanels in
+   ProcesoReel.tsx) — no CSS glass/backdrop-filter anymore, just layout + the
+   sitewide legibility scrim (same treatment as the home's cards). */
 .nxr-dwh-step-card {
   width: min(340px, 80vw);
   flex-shrink: 0;
   padding: 32px;
-  background: var(--glass-bg);
-  backdrop-filter: var(--glass-blur);
+  background: rgba(8, 10, 14, 0.34);
   border-radius: var(--radius-lg);
-  box-shadow: var(--glass-shine);
 }
 
 .nxr-dwh-step-inner {
@@ -5173,61 +5196,69 @@ input[type="range"].nxr-ms-range::-moz-range-thumb {
   }
 }
 
-/* ===== Desarrollo Web (service page) — Capacidades + stats ===== */
+/* ===== Desarrollo Web (service page) — Capacidades: pinned card DECK ===== */
 
 .nxr-dwh-capacidades {
   position: relative;
   z-index: 1;
-  padding: var(--section-pad) var(--pad-x);
 }
 
-.nxr-dwh-capacidades-inner {
+/* Pinned stage: title on top, the deck dead-centred in the leftover space.
+   GSAP pins THIS element (see CapacidadesWeb.tsx). */
+.nxr-dwh-cap-stage {
+  min-height: 100lvh;
+  display: flex;
+  flex-direction: column;
+  padding: 12vh var(--pad-x) 8vh;
   max-width: var(--max-w);
   margin: 0 auto;
+  width: 100%;
+  box-sizing: border-box;
 }
 
-.nxr-dwh-cap-grid {
-  margin-top: 48px;
+/* The stacked deck: every card occupies the SAME centred box; GSAP moves
+   them between "slots" (translate/scale/opacity ONLY — the cards anchor
+   volumetric glass meshes whose rect tracking can't follow rotation). */
+.nxr-dwh-cap-deck {
+  position: relative;
+  flex: 1;
+  min-height: 0;
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 20px;
+  place-items: center;
+  margin-top: 24px;
 }
 
 .nxr-dwh-cap-card {
+  grid-area: 1 / 1;
   position: relative;
-  overflow: hidden;
-  /* Hidden until CapacidadesWeb.tsx's layout effect sets the scattered
-     (randomised rotate/offset/scale) start state and flips this back to
-     visible — without it, the finished grid flashes fully visible for a
-     frame on first paint before the "assembling" entrance can scatter it. */
+  width: min(560px, 92%);
+  /* Uniform height: mixed content-driven heights made the receding stack's
+     silhouette ragged. */
+  min-height: 232px;
+  box-sizing: border-box;
+  /* Hidden until CapacidadesWeb.tsx's layout effect sets each card's slot
+     state and flips this back to visible — the sitewide first-paint-flash
+     guard. */
   visibility: hidden;
-  padding: 32px;
-  background: var(--glass-bg);
-  backdrop-filter: var(--glass-blur);
+  padding: 34px;
+  /* Anchor for a real volumetric fluid-glass mesh (useGlassPanels): no CSS
+     glass — just the sitewide legibility scrim. */
+  background: rgba(8, 10, 14, 0.34);
   border-radius: var(--radius-lg);
-  box-shadow: var(--glass-shine);
-  transition: background 0.3s, transform 0.3s, box-shadow 0.3s;
+  will-change: transform, opacity;
 }
 
-.nxr-dwh-cap-card:hover {
-  background: rgba(255, 255, 255, 0.09);
-  transform: translateY(-3px);
-  box-shadow: var(--glass-shine-hover);
+/* Reduced-motion fallback: the deck flattens into a plain visible grid. */
+.nxr-dwh-cap-deck-static {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 20px;
+  place-items: stretch;
 }
-
-.nxr-dwh-cap-card::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  background: radial-gradient(600px circle at var(--mx, 50%) var(--my, 50%), rgba(255, 255, 255, 0.04), transparent 60%);
-  opacity: 0;
-  transition: opacity 0.4s;
-  pointer-events: none;
-  border-radius: inherit;
-}
-
-.nxr-dwh-cap-card:hover::before {
-  opacity: 1;
+.nxr-dwh-cap-deck-static .nxr-dwh-cap-card {
+  grid-area: auto;
+  width: auto;
+  visibility: visible;
 }
 
 .nxr-dwh-cap-inner {
@@ -5271,11 +5302,12 @@ input[type="range"].nxr-ms-range::-moz-range-thumb {
 }
 
 .nxr-dwh-stats-strip {
-  margin-top: 64px;
   display: grid;
   grid-template-columns: repeat(4, 1fr);
   gap: 20px;
-  padding-top: 40px;
+  padding: 40px var(--pad-x) var(--section-pad);
+  max-width: var(--max-w);
+  margin: 0 auto;
   border-top: 1px solid rgba(255, 255, 255, 0.08);
 }
 
@@ -5296,7 +5328,13 @@ input[type="range"].nxr-ms-range::-moz-range-thumb {
 }
 
 @media (max-width: 768px) {
-  .nxr-dwh-cap-grid {
+  .nxr-dwh-cap-stage {
+    padding: 9vh 20px 6vh;
+  }
+  .nxr-dwh-cap-card {
+    padding: 26px;
+  }
+  .nxr-dwh-cap-deck-static {
     grid-template-columns: 1fr;
   }
   .nxr-dwh-stats-strip {

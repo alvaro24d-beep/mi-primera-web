@@ -131,7 +131,18 @@ export default function SceneCanvas() {
     // Sections whose glass meshes ANIMATE every frame (scroll-scrubbed reels,
     // GSAP-revealed panels): near any of them the frameloop runs "always" so
     // the meshes track their DOM anchors frame-by-frame; elsewhere "demand".
-    const alwaysIds = ["nxr-servicios", "nxr-zoom-parallax", "nxr-intro", "nxr-proceso", "nxr-contacto"];
+    // Home sections + the /desarrollo-web ones with live glass panels — ids
+    // missing on the current route are simply filtered out below, so one
+    // list serves every page the global canvas backs.
+    const alwaysIds = [
+      "nxr-servicios",
+      "nxr-zoom-parallax",
+      "nxr-intro",
+      "nxr-proceso",
+      "nxr-contacto",
+      "nxr-dwh-proceso",
+      "nxr-dwh-capacidades",
+    ];
     // The hero hosts one mostly-static panel (the CTA button): it needs its
     // section tracked in `nearSections` so its PanelSlot does work when
     // visible, but NOT a 60fps "always" loop — the TV-wall video already

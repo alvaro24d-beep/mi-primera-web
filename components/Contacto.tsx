@@ -46,12 +46,18 @@ export default function Contacto() {
   // the Servicios identity) — the DOM card keeps layout/content only.
   useGlassPanels(sectionRef, ".nxr-ms-card", "#100f16", []);
 
-  // Description paragraph curves like the concave backdrop (see
-  // useCurvedWords) — left column, so its left edge wraps forward.
-  useCurvedWords(sectionRef, ".nxr-contacto-desc", "left");
-
-  // Dynamic per-line bow on the (gradient) title too — see Proceso.tsx.
-  useCurvedWords(sectionRef, ".nxr-section-h2", "left", [], { bowOnly: true, useExistingWords: true });
+  // Title, description paragraph AND the three reassurance items curve as
+  // ONE block (same wrapper pattern as Intro's textblock): everything
+  // deformed in a section must sit on the same curved screen — with the
+  // title on its own CSS plane it visibly "pointed" somewhere else than the
+  // paragraph right below it. splitIgnore keeps SplitText off the h2 (the
+  // reveal already split it — its word spans just join this block's bow),
+  // and alsoBow curves the non-text item icons with their rows. No separate
+  // bowOnly call for the h2 here, unlike Proceso/Tech: it would double-bow.
+  useCurvedWords(sectionRef, ".nxr-contacto-textblock", "left", [], {
+    alsoBow: ".nxr-contacto-item-icon",
+    splitIgnore: ".nxr-section-h2",
+  });
   const [negocio, setNegocio] = useState<string | null>(null);
   const [servicios, setServicios] = useState<string[]>([]);
   const [budgetIndex, setBudgetIndex] = useState(2);
@@ -130,50 +136,52 @@ export default function Contacto() {
       <div className="nxr-contacto-inner">
         <div className="nxr-contacto-grid">
           <div className="nxr-contacto-left nxr-reveal">
-            <div>
-              <h2 className="nxr-section-h2" ref={titleRef}>
-                Cuéntanos tu
-                <br />
-                <span className="nxr-gradient-text-lime">proyecto.</span>
-              </h2>
-            </div>
-            <p className="nxr-contacto-desc">
-              Nos tomamos en serio cada proyecto. Antes de darte un presupuesto, queremos entender tu negocio. La
-              primera conversación es gratuita y sin compromiso.
-            </p>
-            <div className="nxr-contacto-items">
-              <div className="nxr-contacto-item">
-                <div className="nxr-contacto-item-icon" style={{ background: "rgba(239,61,13,.15)", color: "var(--c-red)" }}>
-                  <svg viewBox="0 0 24 24">
-                    <path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 013.07 9.8a19.79 19.79 0 01-3.07-8.63A2 2 0 012 .18h3a2 2 0 012 1.72 12.84 12.84 0 00.7 2.81 2 2 0 01-.45 2.11L6.09 7.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45 12.84 12.84 0 002.81.7A2 2 0 0122 14.92z" />
-                  </svg>
-                </div>
-                <div>
-                  <div className="nxr-contacto-item-title">Respuesta en menos de 24h</div>
-                  <div className="nxr-contacto-item-desc">Revisamos cada mensaje personalmente.</div>
-                </div>
+            <div className="nxr-contacto-textblock">
+              <div>
+                <h2 className="nxr-section-h2" ref={titleRef}>
+                  Cuéntanos tu
+                  <br />
+                  <span className="nxr-gradient-text-lime">proyecto.</span>
+                </h2>
               </div>
-              <div className="nxr-contacto-item">
-                <div className="nxr-contacto-item-icon" style={{ background: "rgba(168,240,74,.12)", color: "var(--c-lime)" }}>
-                  <svg viewBox="0 0 24 24">
-                    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
-                  </svg>
+              <p className="nxr-contacto-desc">
+                Nos tomamos en serio cada proyecto. Antes de darte un presupuesto, queremos entender tu negocio. La
+                primera conversación es gratuita y sin compromiso.
+              </p>
+              <div className="nxr-contacto-items">
+                <div className="nxr-contacto-item">
+                  <div className="nxr-contacto-item-icon" style={{ background: "rgba(239,61,13,.15)", color: "var(--c-red)" }}>
+                    <svg viewBox="0 0 24 24">
+                      <path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 013.07 9.8a19.79 19.79 0 01-3.07-8.63A2 2 0 012 .18h3a2 2 0 012 1.72 12.84 12.84 0 00.7 2.81 2 2 0 01-.45 2.11L6.09 7.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45 12.84 12.84 0 002.81.7A2 2 0 0122 14.92z" />
+                    </svg>
+                  </div>
+                  <div>
+                    <div className="nxr-contacto-item-title">Respuesta en menos de 24h</div>
+                    <div className="nxr-contacto-item-desc">Revisamos cada mensaje personalmente.</div>
+                  </div>
                 </div>
-                <div>
-                  <div className="nxr-contacto-item-title">Sin compromisos</div>
-                  <div className="nxr-contacto-item-desc">La primera reunión es gratuita y sin presión.</div>
+                <div className="nxr-contacto-item">
+                  <div className="nxr-contacto-item-icon" style={{ background: "rgba(168,240,74,.12)", color: "var(--c-lime)" }}>
+                    <svg viewBox="0 0 24 24">
+                      <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+                    </svg>
+                  </div>
+                  <div>
+                    <div className="nxr-contacto-item-title">Sin compromisos</div>
+                    <div className="nxr-contacto-item-desc">La primera reunión es gratuita y sin presión.</div>
+                  </div>
                 </div>
-              </div>
-              <div className="nxr-contacto-item">
-                <div className="nxr-contacto-item-icon" style={{ background: "rgba(255,157,125,.12)", color: "var(--c-salmon)" }}>
-                  <svg viewBox="0 0 24 24">
-                    <circle cx="12" cy="12" r="10" />
-                    <path d="M12 8v4l3 3" />
-                  </svg>
-                </div>
-                <div>
-                  <div className="nxr-contacto-item-title">Propuesta en 48h</div>
-                  <div className="nxr-contacto-item-desc">Presupuesto detallado y hoja de ruta técnica.</div>
+                <div className="nxr-contacto-item">
+                  <div className="nxr-contacto-item-icon" style={{ background: "rgba(255,157,125,.12)", color: "var(--c-salmon)" }}>
+                    <svg viewBox="0 0 24 24">
+                      <circle cx="12" cy="12" r="10" />
+                      <path d="M12 8v4l3 3" />
+                    </svg>
+                  </div>
+                  <div>
+                    <div className="nxr-contacto-item-title">Propuesta en 48h</div>
+                    <div className="nxr-contacto-item-desc">Presupuesto detallado y hoja de ruta técnica.</div>
+                  </div>
                 </div>
               </div>
             </div>

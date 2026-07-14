@@ -245,7 +245,6 @@ export default function DesarrolloWebHero() {
     return (
       <section key="static" id="nxr-dwh-hero" className="nxr-dwh-hero nxr-dwh-static">
         <div className="nxr-dwh-head">
-          <p className="nxr-section-label">Desarrollo web</p>
           <h1 className="nxr-dwh-h1">
             Construimos tu web,
             <br />
@@ -278,7 +277,6 @@ export default function DesarrolloWebHero() {
         <BrowserBuild />
         <div className="nxr-dwh-overlay">
           <div className="nxr-dwh-head">
-            <p className="nxr-section-label">Desarrollo web</p>
             <h1 className="nxr-dwh-h1">
               Construimos tu web,
               <br />

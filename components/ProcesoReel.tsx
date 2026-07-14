@@ -5,6 +5,8 @@ import gsap from "gsap";
 import { useGSAP } from "@gsap/react";
 import { useReducedMotion } from "@/hooks/useReducedMotion";
 import { useTitleReveal } from "@/hooks/useTitleReveal";
+import { useCurvedWords } from "@/hooks/useCurvedWords";
+import { useGlassPanels } from "@/hooks/useGlassPanels";
 
 const STEPS = [
   {
@@ -38,8 +40,11 @@ function StepCards() {
   return (
     <>
       {STEPS.map((s) => (
-        <div key={s.n} className="nxr-dwh-step-card nxr-glass-edge" data-step={s.n}>
-          <span className="nxr-glass-edge-content nxr-dwh-step-inner">
+        // No CSS glass anymore (.nxr-glass-edge dropped): the card is the
+        // ANCHOR for a real volumetric fluid-glass mesh (useGlassPanels in
+        // ProcesoReel) — same identity as the home's cards.
+        <div key={s.n} className="nxr-dwh-step-card" data-step={s.n}>
+          <span className="nxr-dwh-step-inner">
             <span className="nxr-dwh-step-num">{s.n}</span>
             <span className="nxr-dwh-step-title">{s.title}</span>
             <span className="nxr-dwh-step-desc">{s.desc}</span>
@@ -58,6 +63,15 @@ export default function ProcesoReel() {
   const trackRef = useRef<HTMLDivElement>(null);
   const progressFillRef = useRef<HTMLDivElement>(null);
   const reducedMotion = useReducedMotion();
+
+  // Home-identity systems: real volumetric fluid-glass behind each step card
+  // (the DOM card keeps layout/content + a legibility scrim only — see the
+  // .nxr-dwh-step-card CSS) and the dynamic per-line bow on the title.
+  useGlassPanels(sectionRef, ".nxr-dwh-step-card", "#12141c", [reducedMotion]);
+  useCurvedWords(sectionRef, ".nxr-section-h2", "left", [reducedMotion], {
+    bowOnly: true,
+    useExistingWords: true,
+  });
 
   useGSAP(
     () => {
@@ -152,7 +166,6 @@ export default function ProcesoReel() {
       // if React tries to diff into it instead of fully remounting.
       <section key="static" id="nxr-dwh-proceso" className="nxr-dwh-proceso nxr-dwh-proceso-static">
         <div>
-          <p className="nxr-section-label">Proceso</p>
           <h2 className="nxr-section-h2">
             De la idea al <span className="nxr-gradient-text-salmon">lanzamiento.</span>
           </h2>
@@ -169,7 +182,6 @@ export default function ProcesoReel() {
       <div className="nxr-dwh-proceso-sticky" ref={stickyRef}>
         <div className="nxr-dwh-proceso-content" ref={contentRef}>
           <div className="nxr-dwh-proceso-head">
-            <p className="nxr-section-label">Proceso</p>
             <h2 className="nxr-section-h2" ref={titleRef}>
               De la idea al <span className="nxr-gradient-text-salmon">lanzamiento.</span>
             </h2>

@@ -7,7 +7,6 @@ import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { useTitleReveal } from "@/hooks/useTitleReveal";
 import { useReducedMotion } from "@/hooks/useReducedMotion";
 import { useCurvedWords } from "@/hooks/useCurvedWords";
-import { useCardDisturbance } from "@/store/useCardDisturbance";
 import { useServiciosCardsRegistry } from "@/store/useServiciosCardsRegistry";
 
 gsap.registerPlugin(ScrollTrigger);
@@ -481,11 +480,9 @@ export default function Servicios() {
   // the actual glass object being animated is the R3F mesh, not this DOM
   // element. Cards travel along a diagonal arc as the track scrubs left
   // (entering low from the bottom-right, exiting high at the top-left),
-  // never rotating themselves. Hovering also pushes this card's screen
-  // position into the shared disturbance store so the ambient canvas
-  // ripples nearby. Kept as its own effect, separate from the per-card
-  // mini-animation behaviors below (chat auto-loop, flow hover, app
-  // count-up), which are unrelated content demos and untouched by this
+  // never rotating themselves. Kept as its own effect, separate from the
+  // per-card mini-animation behaviors below (chat auto-loop, flow hover,
+  // app count-up), which are unrelated content demos and untouched by this
   // redesign.
   useGSAP(
     () => {
@@ -594,17 +591,6 @@ export default function Servicios() {
       // leave).
       const hoverTarget = cards.map(() => ({ rotX: 0, rotY: 0, z: 0 }));
       const HOVER_SMOOTH = 0.06;
-
-      // Ambient-canvas ripple strength (useCardDisturbance) eased with the
-      // SAME per-frame lerp as the tilt above, instead of the old instant
-      // 0→0.8 jump on the very first mousemove (only the fade-OUT was ever
-      // tweened) — that abrupt pop in the wave background right behind the
-      // glass was reading as the card itself snapping the moment the cursor
-      // landed on it, even though the card's own rotation was already smooth.
-      const disturbTarget = cards.map(() => 0);
-      const disturbCurrent = cards.map(() => 0);
-      const disturbPos = cards.map(() => ({ x: 0.5, y: 0.5 }));
-      const disturbActive = cards.map(() => false);
 
       // Single writer for BOTH renderings of a card: the R3F glass mesh (via
       // the registry) and the DOM content (via a matching CSS rotation on
@@ -1032,17 +1018,6 @@ export default function Servicios() {
           live[i].rotationY += (hoverTarget[i].rotY - live[i].rotationY) * HOVER_SMOOTH;
           live[i].z += (hoverTarget[i].z - live[i].z) * HOVER_SMOOTH;
           push(i);
-
-          if (disturbActive[i]) {
-            disturbCurrent[i] += (disturbTarget[i] - disturbCurrent[i]) * HOVER_SMOOTH;
-            if (disturbCurrent[i] > 0.004) {
-              useCardDisturbance.getState().setPoint(i, disturbPos[i].x, disturbPos[i].y, disturbCurrent[i]);
-            } else {
-              disturbCurrent[i] = 0;
-              disturbActive[i] = false;
-              useCardDisturbance.getState().clearPoint(i);
-            }
-          }
         });
       };
       gsap.ticker.add(idleTick);
@@ -1053,10 +1028,10 @@ export default function Servicios() {
 
       cards.forEach((card, i) => {
         // ---- Cursor tilt: sets only the TARGET; idleTick's per-frame lerp
-        // (HOVER_SMOOTH) above is what actually eases live[i] (and the
-        // disturbance strength below) toward it, on every frame the section
-        // is visible — the identical mechanism mouseleave uses to ease back
-        // to neutral, so both directions move with the same weight.
+        // (HOVER_SMOOTH) above is what actually eases live[i] toward it, on
+        // every frame the section is visible — the identical mechanism
+        // mouseleave uses to ease back to neutral, so both directions move
+        // with the same weight.
         const onMove = (e: MouseEvent) => {
           const r = card.getBoundingClientRect();
           const nx = ((e.clientX - r.left) / r.width - 0.5) * 2;
@@ -1065,18 +1040,12 @@ export default function Servicios() {
           hoverTarget[i].rotY = nx * 9;
           hoverTarget[i].rotX = -ny * 7;
           hoverTarget[i].z = 18;
-
-          disturbTarget[i] = 0.8;
-          disturbActive[i] = true;
-          disturbPos[i].x = e.clientX / window.innerWidth;
-          disturbPos[i].y = e.clientY / window.innerHeight;
         };
 
         const onLeave = () => {
           hoverTarget[i].rotX = 0;
           hoverTarget[i].rotY = 0;
           hoverTarget[i].z = 0;
-          disturbTarget[i] = 0;
         };
 
         card.addEventListener("mousemove", onMove);
@@ -1084,7 +1053,6 @@ export default function Servicios() {
         cleanups.push(() => {
           card.removeEventListener("mousemove", onMove);
           card.removeEventListener("mouseleave", onLeave);
-          useCardDisturbance.getState().clearPoint(i);
         });
       });
 

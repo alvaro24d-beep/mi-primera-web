@@ -19,7 +19,7 @@ const SRV_BEND = 0.26;
 // Fully clear fluid glass (the TV-wall background shows through, liquid-
 // distorted). Enabled on MOBILE too (user request): the shared transmission
 // capture the cards read (`transmissionSampler`) is a single low-res render
-// of the TV wall per frame (transmissionResolutionScale 0.2 in
+// of the TV wall per frame (transmissionResolutionScale 0.35 in
 // SceneCanvas.tsx), so the extra cost on phones is one small pass — the
 // per-card shader cost is trimmed there via a lower `samples` count instead
 // of dropping the effect entirely.

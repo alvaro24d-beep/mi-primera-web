@@ -273,6 +273,7 @@ h6 {
 #nxr-dwh-proceso .nxr-section-h2,
 #nxr-dwh-capacidades .nxr-section-h2,
 #nxr-dwh-tech .nxr-section-h2,
+#nxr-aia-casos .nxr-section-h2,
 .nxr-srv-caption-tilt {
   transform: perspective(460px) rotateY(26deg);
   transform-origin: 70% center;
@@ -301,7 +302,8 @@ h6 {
      left edge juts much further — they need the wide-block tier. */
   #nxr-dwh-proceso .nxr-section-h2,
   #nxr-dwh-capacidades .nxr-section-h2,
-  #nxr-dwh-tech .nxr-section-h2 {
+  #nxr-dwh-tech .nxr-section-h2,
+  #nxr-aia-casos .nxr-section-h2 {
     transform: translateX(48%) perspective(460px) rotateY(16deg);
     transform-origin: 100% center;
   }
@@ -332,7 +334,8 @@ h6 {
   #nxr-tech .nxr-section-h2,
   #nxr-dwh-proceso .nxr-section-h2,
   #nxr-dwh-capacidades .nxr-section-h2,
-  #nxr-dwh-tech .nxr-section-h2 {
+  #nxr-dwh-tech .nxr-section-h2,
+  #nxr-aia-casos .nxr-section-h2 {
     margin-right: 64px;
     transform: translateX(16%) perspective(460px) rotateY(10deg);
     transform-origin: 100% center;
@@ -6033,5 +6036,690 @@ input[type="range"].nxr-ms-range::-moz-range-thumb {
   .nxr-bw-livebadge {
     top: -12px;
     right: -12px;
+  }
+}
+
+/* ===== Agentes IA (service page) — Hero: agente atendiendo en directo ===== */
+/* Pinned scroll story (AgentesIaHero.tsx): a customer writes, the AI core in
+   the WebGL canvas (components/aia/AgentScene.tsx) wakes, reaches out to tool
+   chips over light beams and replies in the chat. Chat panel, tool chips and
+   CTA are volumetric-glass ANCHORS (useGlassPanels — scrim only, no CSS
+   glass); the facets panel keeps CSS glass like its dwh sibling. */
+
+#nxr-aia-hero {
+  position: relative;
+  z-index: 1;
+}
+
+/* GSAP's ScrollTrigger pin manages height/spacers — same as .nxr-dwh-stage. */
+.nxr-aia-stage {
+  position: relative;
+  height: 100lvh;
+  overflow: hidden;
+}
+
+.nxr-aia-canvas-wrap {
+  position: absolute;
+  inset: 0;
+}
+
+.nxr-aia-canvas-wrap canvas {
+  display: block;
+}
+
+/* Actors layer (chat + tools + core spot). Hidden until the layout effect has
+   applied every hidden start state (sitewide first-paint-flash guard). */
+.nxr-aia-scene {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+  visibility: hidden;
+}
+
+/* 0×0 ghost that CSS positions and JS measures — moves the WebGL core per
+   breakpoint without touching the scene code. */
+.nxr-aia-core-spot {
+  position: absolute;
+  left: 45%;
+  top: 48%;
+  width: 0;
+  height: 0;
+}
+
+/* Full-height flex columns centre the actors with pure LAYOUT (no transform
+   centering): beam anchors are measured via offsetLeft/Top chains, which
+   ignore transforms. */
+.nxr-aia-chat-col {
+  position: absolute;
+  left: 56%;
+  top: 0;
+  bottom: 0;
+  width: min(400px, 36vw);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.nxr-aia-chat {
+  background: rgba(8, 10, 14, 0.34);
+  border-radius: var(--radius-lg);
+  will-change: transform, opacity;
+}
+
+.nxr-aia-chat-inner {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 18px;
+}
+
+.nxr-aia-chat-head {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  margin-bottom: 2px;
+}
+
+.nxr-aia-chat-avatar {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: rgba(168, 240, 74, 0.14);
+  color: var(--c-lime);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.nxr-aia-chat-avatar svg {
+  width: 18px;
+  height: 18px;
+  stroke: currentColor;
+  fill: none;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+}
+
+.nxr-aia-chat-id {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.nxr-aia-chat-name {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--c-white);
+}
+
+.nxr-aia-chat-online {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11.5px;
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.nxr-aia-chat-online i {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--c-lime);
+  box-shadow: 0 0 6px rgba(168, 240, 74, 0.8);
+}
+
+.nxr-aia-msg {
+  position: relative;
+  max-width: 86%;
+  padding: 11px 13px;
+  border-radius: 14px;
+  font-size: 13.5px;
+  line-height: 1.45;
+  color: rgba(255, 255, 255, 0.92);
+}
+
+.nxr-aia-msg-in {
+  align-self: flex-start;
+  background: rgba(255, 255, 255, 0.07);
+  border-top-left-radius: 4px;
+}
+
+.nxr-aia-msg-out {
+  align-self: flex-end;
+  background: rgba(168, 240, 74, 0.13);
+  border-top-right-radius: 4px;
+}
+
+.nxr-aia-msg-meta {
+  display: block;
+  margin-top: 4px;
+  font-size: 10px;
+  text-align: right;
+  color: rgba(255, 255, 255, 0.45);
+}
+
+.nxr-aia-reply-slot {
+  position: relative;
+  display: flex;
+  justify-content: flex-end;
+}
+
+/* The agent's typing bubble overlays the reply's top-right corner — the
+   timeline crossfades typing→reply with zero layout shift (panel height is
+   settled from first paint, so the glass mesh never has to chase it). */
+.nxr-aia-typing {
+  position: absolute;
+  top: 0;
+  right: 0;
+  display: flex;
+  gap: 5px;
+  padding: 13px 14px;
+  border-radius: 14px;
+  border-top-right-radius: 4px;
+  background: rgba(168, 240, 74, 0.13);
+}
+
+.nxr-aia-typing span {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.75);
+  animation: nxr-aia-dot 1.2s ease-in-out infinite;
+}
+
+.nxr-aia-typing span:nth-child(2) {
+  animation-delay: 0.15s;
+}
+
+.nxr-aia-typing span:nth-child(3) {
+  animation-delay: 0.3s;
+}
+
+@keyframes nxr-aia-dot {
+  0%,
+  60%,
+  100% {
+    transform: translateY(0);
+    opacity: 0.5;
+  }
+  30% {
+    transform: translateY(-3px);
+    opacity: 1;
+  }
+}
+
+.nxr-aia-badge {
+  align-self: center;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 10px;
+  padding: 8px 14px;
+  border-radius: 100px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--c-lime);
+  background: rgba(168, 240, 74, 0.1);
+  border: 1px solid rgba(168, 240, 74, 0.25);
+}
+
+.nxr-aia-badge svg {
+  width: 13px;
+  height: 13px;
+  stroke: currentColor;
+  fill: none;
+  stroke-width: 2.4;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+/* Tool chips column (desktop: left of the core, story flows chat→core→tools). */
+.nxr-aia-tools {
+  position: absolute;
+  left: 25%;
+  top: 0;
+  bottom: 0;
+  width: min(252px, 24vw);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 18px;
+  padding-bottom: 10vh;
+}
+
+.nxr-aia-tool {
+  position: relative;
+  background: rgba(8, 10, 14, 0.34);
+  border-radius: var(--radius-md);
+  will-change: transform, opacity;
+}
+
+.nxr-aia-tool-inner {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 13px 15px;
+}
+
+.nxr-aia-tool-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.nxr-aia-tool-icon svg {
+  width: 19px;
+  height: 19px;
+  stroke: currentColor;
+  fill: none;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.nxr-aia-tool-txt {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.nxr-aia-tool-title {
+  font-size: 13.5px;
+  font-weight: 700;
+  color: var(--c-white);
+}
+
+.nxr-aia-tool-status {
+  font-size: 11.5px;
+  color: rgba(255, 255, 255, 0.55);
+}
+
+.nxr-aia-tool-check {
+  margin-left: auto;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: rgba(168, 240, 74, 0.16);
+  color: var(--c-lime);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.nxr-aia-tool-check svg {
+  width: 12px;
+  height: 12px;
+  stroke: currentColor;
+  fill: none;
+  stroke-width: 2.6;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+/* Headline + facets overlay (same chrome family as /desarrollo-web). */
+.nxr-aia-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  pointer-events: none;
+}
+
+.nxr-aia-head {
+  position: relative;
+  max-width: 640px;
+}
+
+.nxr-aia-overlay .nxr-aia-head {
+  position: absolute;
+  top: 44px;
+  left: var(--pad-x);
+  max-width: 520px;
+}
+
+.nxr-aia-h1 {
+  font-size: clamp(32px, 5vw, 60px);
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  line-height: 1.15;
+  color: var(--c-white);
+}
+
+/* CTA — volumetric-glass anchor (scrim only). */
+.nxr-aia-cta {
+  display: inline-flex;
+  margin-top: 26px;
+  border-radius: 100px;
+  background: rgba(8, 10, 14, 0.3);
+  pointer-events: auto;
+  text-decoration: none;
+  will-change: transform, opacity;
+}
+
+.nxr-aia-cta-inner {
+  position: relative;
+  z-index: 2;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 13px 24px;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--c-white);
+}
+
+.nxr-aia-cta-inner svg {
+  width: 16px;
+  height: 16px;
+  stroke: currentColor;
+  fill: none;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  transition: transform 0.25s ease;
+}
+
+.nxr-aia-cta:hover .nxr-aia-cta-inner svg {
+  transform: translateX(4px);
+}
+
+.nxr-aia-facets-panel {
+  position: absolute;
+  left: var(--pad-x);
+  bottom: 96px;
+  width: min(380px, 40vw);
+  background: var(--glass-bg);
+  backdrop-filter: var(--glass-blur);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--glass-shine);
+  pointer-events: auto;
+  visibility: hidden;
+}
+
+.nxr-aia-facets-inner {
+  position: relative;
+  padding: 22px 24px;
+  min-height: 116px;
+}
+
+.nxr-aia-facet-label {
+  position: absolute;
+  inset: 22px 24px;
+  display: flex;
+  gap: 16px;
+  align-items: flex-start;
+  opacity: 0;
+}
+
+.nxr-aia-facet-num {
+  font-size: 28px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  flex-shrink: 0;
+}
+
+.nxr-aia-facet-title {
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--c-white);
+  margin-bottom: 6px;
+}
+
+.nxr-aia-facet-desc {
+  font-size: 14px;
+  line-height: 1.5;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+/* prefers-reduced-motion fallback: the resolved conversation, tools with
+   their checks, and a static facet grid — no pin, no WebGL, CSS glass. */
+.nxr-aia-static {
+  padding: 160px var(--pad-x) var(--section-pad);
+}
+
+.nxr-aia-st-scene {
+  margin-top: 48px;
+  display: grid;
+  grid-template-columns: minmax(0, 420px) minmax(0, 1fr);
+  gap: 28px;
+  align-items: start;
+}
+
+.nxr-aia-st-chat {
+  background: var(--glass-bg);
+  backdrop-filter: var(--glass-blur);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--glass-shine);
+}
+
+.nxr-aia-st-tools {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.nxr-aia-st-tool {
+  position: relative;
+  background: var(--glass-bg);
+  backdrop-filter: var(--glass-blur);
+  border-radius: var(--radius-md);
+  box-shadow: var(--glass-shine);
+}
+
+.nxr-aia-st-facets {
+  margin-top: 40px;
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 20px;
+}
+
+.nxr-aia-st-facet {
+  padding: 24px;
+  background: var(--glass-bg);
+  backdrop-filter: var(--glass-blur);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--glass-shine);
+}
+
+.nxr-aia-st-facet .nxr-glass-edge-content {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+@media (max-width: 768px) {
+  /* Same 70px trim + Safari/Chrome 100lvh fix as .nxr-dwh-stage (the JS sets
+     --aia-vh from one real innerHeight measurement). */
+  .nxr-aia-stage {
+    height: calc(var(--aia-vh, 100lvh) - 70px);
+  }
+  .nxr-aia-overlay .nxr-aia-head {
+    top: 36px;
+    left: 20px;
+    max-width: 300px;
+  }
+  .nxr-aia-h1 {
+    font-size: clamp(30px, 8.4vw, 44px);
+  }
+  .nxr-aia-cta {
+    margin-top: 18px;
+  }
+  .nxr-aia-cta-inner {
+    padding: 11px 20px;
+    font-size: 14px;
+  }
+  /* Compact icon rail on the right; labels collapse to icon + check. */
+  .nxr-aia-tools {
+    left: auto;
+    right: 10px;
+    top: 0;
+    bottom: 0;
+    width: 54px;
+    justify-content: center;
+    gap: 12px;
+    padding-bottom: 4vh;
+  }
+  .nxr-aia-tool-inner {
+    padding: 7px;
+  }
+  .nxr-aia-tool-txt {
+    display: none;
+  }
+  .nxr-aia-tool-check {
+    position: absolute;
+    right: -5px;
+    top: -5px;
+    width: 18px;
+    height: 18px;
+    margin-left: 0;
+  }
+  .nxr-aia-tool-check svg {
+    width: 10px;
+    height: 10px;
+  }
+  /* The core sits BEHIND the chat panel on phones (its glow reads through
+     the frosted glass) — there's no free band for it between the stacked
+     actors, and floating it higher overlapped the CTA (caught on the first
+     Playwright pass). */
+  .nxr-aia-core-spot {
+    left: 46%;
+    top: 48%;
+  }
+  .nxr-aia-chat-col {
+    left: 14px;
+    right: 74px;
+    width: auto;
+    justify-content: flex-start;
+    padding-top: 252px;
+  }
+  .nxr-aia-chat-inner {
+    padding: 14px;
+    gap: 8px;
+  }
+  .nxr-aia-msg {
+    font-size: 12.5px;
+  }
+  .nxr-aia-facets-panel {
+    left: 12px;
+    right: 12px;
+    width: auto;
+    bottom: calc(24px + env(safe-area-inset-bottom));
+  }
+  .nxr-aia-facets-inner {
+    padding: 16px 18px;
+    min-height: 104px;
+  }
+  .nxr-aia-facet-label {
+    inset: 16px 18px;
+  }
+  .nxr-aia-facet-num {
+    font-size: 22px;
+  }
+  .nxr-aia-facet-title {
+    font-size: 15px;
+    margin-bottom: 4px;
+  }
+  .nxr-aia-facet-desc {
+    font-size: 12.5px;
+  }
+  .nxr-aia-static {
+    padding: 130px 20px var(--section-pad);
+  }
+  .nxr-aia-st-scene {
+    grid-template-columns: 1fr;
+  }
+  .nxr-aia-st-facets {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ===== Agentes IA (service page) — Casos de uso ===== */
+
+.nxr-aia-casos {
+  position: relative;
+  z-index: 1;
+  padding: var(--section-pad) var(--pad-x);
+  max-width: var(--max-w);
+  margin: 0 auto;
+}
+
+.nxr-aia-casos-grid {
+  margin-top: 56px;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 20px;
+}
+
+/* Anchor of a volumetric fluid-glass mesh — scrim + layout only. */
+.nxr-aia-caso {
+  padding: 30px;
+  background: rgba(8, 10, 14, 0.34);
+  border-radius: var(--radius-lg);
+  will-change: transform, opacity;
+}
+
+.nxr-aia-caso-inner {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.nxr-aia-caso-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.nxr-aia-caso-icon svg {
+  width: 22px;
+  height: 22px;
+  stroke: currentColor;
+  fill: none;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.nxr-aia-caso-title {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--c-white);
+}
+
+.nxr-aia-caso-desc {
+  font-size: 14.5px;
+  line-height: 1.55;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+@media (max-width: 900px) {
+  .nxr-aia-casos-grid {
+    grid-template-columns: 1fr;
+    margin-top: 40px;
+  }
+  .nxr-aia-casos {
+    padding: var(--section-pad) 20px;
+  }
+  .nxr-aia-caso {
+    padding: 26px;
   }
 }

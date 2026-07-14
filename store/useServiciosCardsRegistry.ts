@@ -55,7 +55,7 @@ const emptySlot = (): Slot => ({
 // layout) — the only way for the page component to tell the always-mounted
 // global canvas where its cards should render. Read via `.getState()` only
 // inside SceneCanvas's per-frame update (never the reactive `useServicios...()`
-// hook form), same no-re-render pattern as store/useCardDisturbance.ts.
+// hook form), so per-frame reads never trigger a React re-render.
 export const useServiciosCardsRegistry = create<Registry>((set, get) => ({
   slots: Array.from({ length: MAX_CARDS }, emptySlot),
   setAnchor: (id, anchor) =>

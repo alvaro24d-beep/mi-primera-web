@@ -15,9 +15,10 @@ const eslintConfig = defineConfig([
   // `Math.random()`. Scoped to the R3F scene files only.
   // `components/scene/**` is the home page's global R3F canvas (SceneCanvas,
   // SceneBackground, VolumetricCard — replaces the old WaveBackground.tsx),
-  // same reasoning as `components/dwh/**`.
+  // same reasoning as `components/dwh/**`. `components/aia/**` is the
+  // /agentes-ia hero scene.
   {
-    files: ["components/dwh/**/*.tsx", "components/scene/**/*.tsx"],
+    files: ["components/dwh/**/*.tsx", "components/scene/**/*.tsx", "components/aia/**/*.tsx"],
     rules: {
       "react-hooks/purity": "off",
       "react-hooks/immutability": "off",

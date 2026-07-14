@@ -4164,13 +4164,19 @@ input[type="range"].nxr-ms-range::-moz-range-thumb {
 /* ===== Zoom parallax ===== */
 #nxr-zoom-parallax {
   position: relative;
-  height: 240vh;
+  /* 240vh → 300vh: the extra 60vh of scroll room goes ENTIRELY to the tail
+     of the animation (see the tail-stretch curve in ZoomParallax.tsx) — the
+     surrounding cards ease into their final positions progressively slower
+     instead of finishing at the old pace ("al final las cards se vayan
+     posicionando más despacio y suavemente"). Retune BOTH together. */
+  height: 300vh;
   z-index: 1;
 }
 
 @media (max-width: 768px) {
   #nxr-zoom-parallax {
-    height: 200vh;
+    /* 200vh → 240vh: same tail-stretch deal as desktop (see above). */
+    height: 240vh;
     /* Pulls the section up under Servicios' departing tail (same pattern as
        #nxr-proceso's -180px below ZP) so the first ZP card arrives while
        Servicios is still leaving instead of after a long empty stretch —

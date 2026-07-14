@@ -132,14 +132,23 @@ export default function ZoomParallax() {
       const raw = Math.max(0, Math.min(1, scrolled / total));
       let progress: number;
       if (isMobile) {
-        // Linear-then-flat (progress = raw / 0.8) used to hit 1 at constant
-        // speed and then hard-stop, which read as an abrupt snap. Ease-out
-        // cubic keeps the same 80%-of-scroll pacing but decelerates into the
-        // resting position instead of slamming into it.
-        const t = Math.min(1, raw / 0.8);
-        progress = 1 - Math.pow(1 - t, 3);
+        // Ease-out (was cubic over 80% of the scroll). The higher exponent
+        // spread over ~94% pairs with the section's height bump (200→240vh
+        // in globals.css): the extra scroll room goes to the TAIL, so the
+        // cards keep their entry pacing but settle progressively slower —
+        // ever more scroll per pixel of movement as they approach rest.
+        const t = Math.min(1, raw / 0.94);
+        progress = 1 - Math.pow(1 - t, 3.4);
       } else {
-        progress = raw - Math.sin(raw * Math.PI * 2) / (2 * Math.PI);
+        // The sine-smoothed S-curve is composed with a tail-stretcher:
+        // 1-(1-s)^1.4 re-maps the remaining distance so the LAST stretch of
+        // the animation consumes the section's added height (240→300vh, see
+        // globals.css — retune both together). Early pacing is unchanged in
+        // screen terms (the ^1.4 speed-up cancels against the 1.43x longer
+        // scroll), the approach into the final grid gets progressively
+        // slower, and the derivative still reaches 0 at rest (no snap).
+        const s = raw - Math.sin(raw * Math.PI * 2) / (2 * Math.PI);
+        progress = 1 - Math.pow(1 - s, 1.4);
       }
 
       // Each card's layout (width/height/position/font-size/etc.) is static

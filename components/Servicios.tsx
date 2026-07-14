@@ -718,6 +718,17 @@ export default function Servicios() {
       // legible inside |nx| < 0.2, dissolved — faded, blurred, slightly
       // dropped — past |nx| ≈ 0.55), so one text softly hands over to the
       // next as the cards pass.
+      // Runs BOTH on ScrollTrigger updates AND on every ticker frame while
+      // the section is visible (see idleTick): the pin's scrub tween keeps
+      // easing the track for up to ~0.5s AFTER the scroll itself has
+      // stopped, and with rect-derived values only recomputed on scroll
+      // events, that whole tail played out with FROZEN yaw/arc/caption
+      // states which then jumped to their settled values at once ("pega un
+      // salto de golpe para terminar de posicionarse"). Per-frame recompute
+      // keeps everything glued to the live rects through the tail, so the
+      // card eases into its centred state continuously. Does NOT push —
+      // callers do (idleTick already pushes every card every visible frame).
+      const lastNx = slides.map(() => NaN);
       const updateSpiral = () => {
         const stickyRect = sticky.getBoundingClientRect();
         const centerX = stickyRect.left + stickyRect.width / 2;
@@ -727,6 +738,20 @@ export default function Servicios() {
           const r = slide.getBoundingClientRect();
           const slideCenterX = r.left + r.width / 2;
           const nx = gsap.utils.clamp(-1.6, 1.6, (slideCenterX - centerX) / halfW);
+
+          const theta = gsap.utils.clamp(-1.1, 1.1, nx) * THETA_MAX;
+          scrollYaw[i] = (theta * 180) / Math.PI;
+          scrollZ[i] = -drumR * (1 - Math.cos(theta));
+          scrollScale[i] = isDesktopUI ? Math.cos(theta) : 1;
+          exitFade[i] =
+            isDesktopUI && nx < -EXIT_FADE_FROM
+              ? gsap.utils.clamp(0, 1, gsap.utils.mapRange(-EXIT_FADE_FROM, -EXIT_FADE_TO, 1, 0, nx))
+              : 1;
+
+          // Slide/caption style writes only when this slide actually moved —
+          // at rest the per-frame recompute above costs rect reads only.
+          if (Math.abs(nx - lastNx[i]) < 0.0004) return;
+          lastNx[i] = nx;
 
           gsap.set(slide, { y: ARC_AMPLITUDE * nx });
 
@@ -740,17 +765,10 @@ export default function Servicios() {
               pointerEvents: vis > 0.5 ? "auto" : "none",
             });
           }
-
-          const theta = gsap.utils.clamp(-1.1, 1.1, nx) * THETA_MAX;
-          scrollYaw[i] = (theta * 180) / Math.PI;
-          scrollZ[i] = -drumR * (1 - Math.cos(theta));
-          scrollScale[i] = isDesktopUI ? Math.cos(theta) : 1;
-          exitFade[i] =
-            isDesktopUI && nx < -EXIT_FADE_FROM
-              ? gsap.utils.clamp(0, 1, gsap.utils.mapRange(-EXIT_FADE_FROM, -EXIT_FADE_TO, 1, 0, nx))
-              : 1;
-          push(i);
         });
+      };
+      const pushAll = () => {
+        for (let i = 0; i < cards.length; i++) push(i);
       };
 
       gsap.set(track, { x: startX() });
@@ -855,44 +873,33 @@ export default function Servicios() {
         return bi;
       };
 
-      // Forces the resting card's scroll-driven values (yaw/z/scale/exitFade,
-      // its slide's arc `y`, and its caption's opacity/blur) to their EXACT
-      // nx=0 state — called only from trySnap, i.e. ~140ms after scrolling
-      // has genuinely stopped. `nx` from a live rect is only ever
-      // sub-pixel-close to 0 at rest, never exactly 0 (float jitter, and a
-      // touch flick's Lenis inertia tail can occasionally outlast the glide's
-      // own hold-frames — see glideTo above), which without this left the
-      // card and caption both showing a faint residual tilt/blur that never
-      // cleared until the next scroll. The nx-driven crossfade elsewhere is
-      // for the ACTIVE transition and is untouched — this only overrides the
-      // settled idle state.
-      const forceSettle = (i: number) => {
-        scrollYaw[i] = 0;
-        scrollZ[i] = 0;
-        scrollScale[i] = 1;
-        exitFade[i] = 1;
-        push(i);
-        const slide = slides[i];
-        if (slide) gsap.set(slide, { y: 0 });
-        const cap = captions[i];
-        if (cap) gsap.set(cap, { opacity: 1, filter: "blur(0px)", y: 0, pointerEvents: "auto" });
-      };
-
       const trySnap = () => {
         const st = tl.scrollTrigger;
         if (!st || !st.isActive) return;
         const total = amount();
         if (!total || !cardStep()) return;
         const progress = progressNow(st);
-        const idx = nearestIdx(progress);
-        const bestP = pOf(idx);
-        // Pixel-precise: skip gliding only when already within ~1.5px of
-        // centre — but always force-settle once we're idle here, regardless.
+        const bestP = pOf(nearestIdx(progress));
+        const exact = scrollAt(st, bestP);
+        // Within ~1.5px of centre a glide would be imperceptible: write the
+        // exact position once and let the per-frame updateSpiral converge
+        // everything from the real rects. This REPLACED the old forceSettle
+        // (which zeroed yaw/arc/caption state directly): now that
+        // updateSpiral re-derives those values every visible frame, a forced
+        // zero got overwritten on the very next frame while the scrub tween
+        // was still easing — a one-frame pop instead of a fix. Correcting
+        // the residual at the SOURCE (the scroll position) keeps every
+        // derived value consistent by construction; no residual tilt/blur
+        // can survive because the resting rects themselves are exact.
         if (Math.abs(progress - bestP) * total < 1.5) {
-          forceSettle(idx);
+          if (Math.abs(window.scrollY - exact) > 0.25) {
+            const lenis = window.__nxrLenis;
+            if (lenis) lenis.scrollTo(exact, { immediate: true });
+            else window.scrollTo(0, exact);
+          }
           return;
         }
-        glideTo(scrollAt(st, bestP));
+        glideTo(exact);
       };
       const cancelSnap = () => {
         cancelAnimationFrame(snapRaf);
@@ -919,6 +926,7 @@ export default function Servicios() {
           invalidateOnRefresh: true,
           onUpdate: () => {
             updateSpiral();
+            pushAll();
             window.clearTimeout(snapTimer);
             // Short idle window so cards "click" into selection as you
             // pass them rather than long after the scroll stops. The
@@ -929,12 +937,14 @@ export default function Servicios() {
           onRefresh: () => {
             gsap.set(track, { x: startX() });
             updateSpiral();
+            pushAll();
           },
         },
       });
       tl.fromTo(track, { x: startX }, { x: endX, ease: "none" }, 0);
 
       updateSpiral();
+      pushAll();
 
       const cleanups: Array<() => void> = [];
       cleanups.push(() => {
@@ -1005,6 +1015,13 @@ export default function Servicios() {
       });
       const idleTick = () => {
         if (!sectionVisible) return;
+        // Keep the drum values glued to the LIVE rects even when the scroll
+        // itself is idle — the pin's scrub tween (and a paging glide's
+        // settling tail) keeps moving the track after the last scroll
+        // event, and this is what makes that tail animate smoothly instead
+        // of freezing and then jumping (see updateSpiral's comment). The
+        // loop below pushes every card afterwards, so no double-push.
+        updateSpiral();
         mouseCurrent.nx += (mouseTarget.nx - mouseCurrent.nx) * 0.06;
         mouseCurrent.ny += (mouseTarget.ny - mouseCurrent.ny) * 0.06;
         const t = gsap.ticker.time;

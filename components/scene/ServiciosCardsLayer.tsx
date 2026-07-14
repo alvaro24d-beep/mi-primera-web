@@ -60,6 +60,38 @@ function CardSlot({ id, isMobile }: { id: number; isMobile: boolean }) {
     // DOM's current-frame position — never a stale rect from a previous
     // frame (which made the glass trail its text during fast scrolls).
     const rect = slot?.anchor?.getBoundingClientRect();
+    if (!rect || rect.width < 1 || rect.height < 1) {
+      group.visible = false;
+      return;
+    }
+
+    // ---- Geometry/style measurement, deliberately BEFORE the on-screen
+    // cull below: as soon as the section is near (nearSections), every slot
+    // measures its anchor and rebuilds its ExtrudeGeometry while still
+    // off-screen, so a card scrolling in for the first time already has the
+    // right-sized mesh waiting at the edge instead of building it mid-entry.
+    const rw = Math.round(rect.width);
+    const rh = Math.round(rect.height);
+    // Rounded + tolerance-gated: sub-pixel float jitter in getBoundingClientRect
+    // (e.g. while sibling GSAP transforms recompute layout during the scroll-
+    // driven spiral in Servicios.tsx) must never flip this comparison, since
+    // any change here rebuilds VolumetricCard's ExtrudeGeometry — cheap once,
+    // catastrophic if it fires every frame.
+    if (Math.abs(rw - lastDims.current.width) > 1 || Math.abs(rh - lastDims.current.height) > 1) {
+      lastDims.current = { width: rw, height: rh };
+      setDims({ width: rw, height: rh });
+    }
+    const st = slot.style;
+    if (
+      st.color !== lastStyle.current.color ||
+      st.material !== lastStyle.current.material ||
+      st.curveX !== lastStyle.current.curveX ||
+      st.curveY !== lastStyle.current.curveY
+    ) {
+      lastStyle.current = st;
+      setStyle(st);
+    }
+
     // The reel's own GSAP ScrollTrigger stops updating once the pin's
     // scroll range is exhausted, freezing the sticky's last scrub position
     // as it un-pins and returns to normal flow — but a card's rect is still
@@ -67,15 +99,7 @@ function CardSlot({ id, isMobile }: { id: number; isMobile: boolean }) {
     // explicit on-screen check the mesh kept rendering (a stray,
     // mid-transition-yawed glass card) as that frozen content scrolled
     // past on its way off, well after the section itself was behind you.
-    if (
-      !rect ||
-      rect.width < 1 ||
-      rect.height < 1 ||
-      rect.right < -80 ||
-      rect.left > size.width + 80 ||
-      rect.bottom < -80 ||
-      rect.top > size.height + 80
-    ) {
+    if (rect.right < -80 || rect.left > size.width + 80 || rect.bottom < -80 || rect.top > size.height + 80) {
       group.visible = false;
       return;
     }
@@ -83,8 +107,14 @@ function CardSlot({ id, isMobile }: { id: number; isMobile: boolean }) {
     const { left: x, top: y, width, height } = rect;
     const t = slot.transform;
     // Skip drawing a card the exit-fade has already taken to ~0 — no point
-    // paying its (transmission) render pass while it's invisible.
-    group.visible = t.opacity > 0.01;
+    // paying its (transmission) render pass while it's invisible. ALSO never
+    // draw while the React-state geometry hasn't caught up with the anchor's
+    // measured size: `dims` applies one render after the setDims above, and
+    // drawing that frame anyway used the DEFAULT 560×373 slab — which
+    // flashed as an oversized glass card at the right edge the FIRST time
+    // each card scrolled in on mobile (first pass only, since dims stay
+    // cached afterwards).
+    group.visible = t.opacity > 0.01 && Math.abs(rw - dims.width) <= 1 && Math.abs(rh - dims.height) <= 1;
     if (!group.visible) return;
     group.position.x = x + width / 2 - size.width / 2 + t.x;
     group.position.y = -(y + height / 2 - size.height / 2) + t.y;
@@ -108,27 +138,6 @@ function CardSlot({ id, isMobile }: { id: number; isMobile: boolean }) {
       });
     }
 
-    // Rounded + tolerance-gated: sub-pixel float jitter in getBoundingClientRect
-    // (e.g. while sibling GSAP transforms recompute layout during the scroll-
-    // driven spiral in Servicios.tsx) must never flip this comparison, since
-    // any change here rebuilds VolumetricCard's ExtrudeGeometry — cheap once,
-    // catastrophic if it fires every frame.
-    const rw = Math.round(width);
-    const rh = Math.round(height);
-    if (Math.abs(rw - lastDims.current.width) > 1 || Math.abs(rh - lastDims.current.height) > 1) {
-      lastDims.current = { width: rw, height: rh };
-      setDims({ width: rw, height: rh });
-    }
-    const st = slot.style;
-    if (
-      st.color !== lastStyle.current.color ||
-      st.material !== lastStyle.current.material ||
-      st.curveX !== lastStyle.current.curveX ||
-      st.curveY !== lastStyle.current.curveY
-    ) {
-      lastStyle.current = st;
-      setStyle(st);
-    }
   });
 
   return (

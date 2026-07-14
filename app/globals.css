@@ -4237,6 +4237,13 @@ input[type="range"].nxr-ms-range::-moz-range-thumb {
   position: relative;
 }
 
+/* Slice clones for the centre card's mobile glitch-death: hidden everywhere
+   (desktop included) except while ZoomParallax.tsx flags the anchor with
+   .nxr-zp-glitching — see the mobile rules in this file's ZP media block. */
+.nxr-zp-glslice {
+  display: none;
+}
+
 .nxr-zp-card svg {
   width: calc(40px * var(--zp-max, 1));
   height: calc(40px * var(--zp-max, 1));
@@ -4362,17 +4369,45 @@ input[type="range"].nxr-ms-range::-moz-range-thumb {
     padding: calc(12px * var(--zp-max, 1));
   }
 
-  /* Digital-glitch dissolve of the centre card (mobile only): ZoomParallax.tsx
-     drives --zpg (signed jitter, −1..1), --zpgt/--zpgb (slice insets, %)
-     inline on the anchor per scroll frame; the opacity stutter rides the
-     anchor's inline opacity, which the WebGL glass mirrors. */
-  .nxr-zp-layer:nth-child(1) .nxr-zp-card {
+  /* Slice-glitch death of the centre card (mobile only, see the glitch
+     block in ZoomParallax.tsx): the anchor gets .nxr-zp-glitching while the
+     dissolve band runs; 5 full clones of the content (.nxr-zp-glslice) show
+     up, each clipped per frame to a horizontal band and displaced
+     independently — the card and its text visibly CUT into shifted bars
+     (referencia: slice-glitch estilo After Effects). Opacity strobing rides
+     the anchor's inline opacity, which the WebGL glass mirrors. */
+  .nxr-zp-img.nxr-zp-glitching {
+    /* Displaced bars must jut past the card silhouette. */
+    overflow: visible;
+  }
+  .nxr-zp-img.nxr-zp-glitching .nxr-zp-glslice {
+    display: block;
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    will-change: transform, opacity, clip-path;
+  }
+  /* Each bar carries a piece of CARD BODY (not just floating text): a solid
+     dark panel echoing the glass tint, so the card itself reads as chopped
+     into bars while the real mesh strobes underneath. */
+  .nxr-zp-glslice .nxr-zp-card {
+    background: rgba(15, 12, 19, 0.92);
+  }
+  /* Chromatic slices, like the reference frames: two of the five bands are
+     colour-shifted ghosts (anchor children: 1 = base card, 2-6 = slices). */
+  .nxr-zp-glslice:nth-child(3) {
+    filter: saturate(2.6) hue-rotate(-70deg) brightness(1.3);
+  }
+  .nxr-zp-glslice:nth-child(5) {
+    filter: saturate(2.6) hue-rotate(120deg) brightness(1.2);
+  }
+  /* Base (intact) content only — the clones get their own per-frame motion. */
+  .nxr-zp-layer:nth-child(1) .nxr-zp-img > .nxr-zp-card {
     transform: translateX(calc(var(--zpg, 0) * 12px));
-    clip-path: inset(calc(var(--zpgt, 0) * 1%) 0 calc(var(--zpgb, 0) * 1%) 0);
   }
   .nxr-zp-layer:nth-child(1) .nxr-zp-hero-text {
-    text-shadow: calc(var(--zpg, 0) * -8px) 0 rgba(239, 61, 13, 0.9),
-      calc(var(--zpg, 0) * 8px) 0 rgba(168, 240, 74, 0.9);
+    text-shadow: calc(var(--zpg, 0) * -10px) 0 rgba(239, 61, 13, 0.9),
+      calc(var(--zpg, 0) * 10px) 0 rgba(168, 240, 74, 0.9);
   }
   .nxr-zp-layer:nth-child(1) .nxr-zp-img {
     --zp-max: 2.2;

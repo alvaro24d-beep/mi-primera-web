@@ -122,6 +122,12 @@ export default function ZoomParallax() {
     const layers = layerRefs.current.filter(Boolean) as HTMLDivElement[];
     const rmMql = window.matchMedia("(prefers-reduced-motion: reduce)");
 
+    // Centre-card glitch actors, collected once: the intact base content and
+    // the 5 slice clones (see the JSX below).
+    const heroImg = imgRefs.current[0];
+    const heroBase = heroImg?.querySelector<HTMLElement>(":scope > .nxr-zp-card") ?? null;
+    const heroSlices = heroImg ? Array.from(heroImg.querySelectorAll<HTMLElement>(".nxr-zp-glslice")) : [];
+
     // Deterministic pseudo-random (shader-style hash): the glitch pattern is
     // a pure function of scroll progress, so scrubbing back through the
     // dissolve replays the exact same frames in reverse — no RAF loops, no
@@ -186,24 +192,53 @@ export default function ZoomParallax() {
         // --zpg* custom properties consumed in globals.css.
         if (i === 0 && isMobile) {
           const t = Math.min(1, Math.max(0, (progress - 0.55) / 0.35));
-          const fade = 1 - t * t * (3 - 2 * t); // smoothstep envelope
-          if (rmMql.matches || t <= 0 || t >= 1) {
+          const glitching = !rmMql.matches && t > 0 && t < 1;
+          if (!glitching) {
+            // Reduced motion keeps the plain smoothstep fade; outside the
+            // band this also serves as the reset/cleanup path.
+            const fade = 1 - t * t * (3 - 2 * t);
             img.style.opacity = fade.toFixed(3);
             img.style.setProperty("--zpg", "0");
-            img.style.setProperty("--zpgt", "0");
-            img.style.setProperty("--zpgb", "0");
+            if (img.classList.contains("nxr-zp-glitching")) {
+              img.classList.remove("nxr-zp-glitching");
+              if (heroBase) heroBase.style.opacity = "";
+              for (const sl of heroSlices) {
+                sl.style.opacity = "";
+                sl.style.transform = "";
+                sl.style.clipPath = "";
+              }
+            }
           } else {
-            // ~22 discrete glitch "frames" across the band; g ramps the
-            // violence in and out so it starts/ends clean.
-            const seed = Math.floor(t * 22);
-            const h1 = hash(seed);
-            const h2 = hash(seed + 13);
+            // Slice-glitch death (After-Effects style): the intact text is
+            // replaced almost immediately by 5 horizontal BANDS of the card
+            // (full clones clipped to stratified stripes), each displaced
+            // and strobed independently in ~26 discrete steps. The whole
+            // card holds near-full opacity while it shreds, then crashes
+            // late — the WebGL glass mirrors that strobe/death.
+            img.classList.add("nxr-zp-glitching");
+            const seed = Math.floor(t * 26);
             const g = Math.sin(Math.PI * t);
-            const flicker = h1 > 0.62 ? 0.45 + 0.4 * h2 : 1 - 0.12 * h2;
-            img.style.opacity = (fade * flicker).toFixed(3);
-            img.style.setProperty("--zpg", (((h1 - 0.5) * 2) * g).toFixed(3));
-            img.style.setProperty("--zpgt", (h1 * 30 * g).toFixed(2));
-            img.style.setProperty("--zpgb", (h2 * 24 * g).toFixed(2));
+            const u = Math.min(1, Math.max(0, (t - 0.55) / 0.45));
+            const die = 1 - u * u * (3 - 2 * u);
+            const st = hash(seed * 3 + 11);
+            const strobe = st > 0.68 ? 0.3 + 0.45 * hash(seed + 5) : 1;
+            img.style.opacity = (die * strobe).toFixed(3);
+            if (heroBase) heroBase.style.opacity = Math.max(0, 1 - t * 3.2).toFixed(3);
+            img.style.setProperty("--zpg", ((hash(seed) - 0.5) * 2 * g).toFixed(3));
+            const K = heroSlices.length || 1;
+            heroSlices.forEach((sl, k) => {
+              const h1 = hash(seed * 7 + k * 13);
+              const h2 = hash(seed * 7 + k * 13 + 101);
+              // Bands stratified over the middle 22–80% of the card, where
+              // the text lives — bars that cut THROUGH the letters are what
+              // sells the effect (bands on empty padding read as noise).
+              const top = 22 + ((k + h1 * 0.85) / K) * 58;
+              const hgt = 5 + h2 * 13;
+              const x = (h2 - 0.5) * 2 * (16 + 60 * g);
+              sl.style.clipPath = `inset(${top.toFixed(1)}% 0 ${Math.max(0, 100 - top - hgt).toFixed(1)}% 0)`;
+              sl.style.transform = `translateX(${x.toFixed(1)}px)`;
+              sl.style.opacity = h1 > 0.22 ? "1" : "0";
+            });
           }
         }
         // Real on-screen height AFTER the transform above — comparable
@@ -260,6 +295,17 @@ export default function ZoomParallax() {
               }}
             >
               {item.content}
+              {/* Slice layers for the centre card's mobile glitch-death:
+                  full clones of the content, each clipped to a horizontal
+                  band and displaced independently per scroll frame (see the
+                  glitch block in onScroll). display:none everywhere except
+                  while .nxr-zp-glitching is on the anchor (mobile only). */}
+              {i === 0 &&
+                Array.from({ length: 5 }, (_, k) => (
+                  <div className="nxr-zp-glslice" aria-hidden="true" key={`gs${k}`}>
+                    {item.content}
+                  </div>
+                ))}
             </div>
           </div>
         ))}

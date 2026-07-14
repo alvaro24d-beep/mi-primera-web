@@ -89,34 +89,6 @@ const fragmentShader = /* glsl */ `
   uniform sampler2D uSource;
   uniform vec2 uPixel;     // pixelation resolution (cells across / down)
   uniform vec2 uCoverScale; // aspect-correct "cover" crop: fraction of the video sampled per axis
-  uniform float uTime;
-
-  float hash(vec2 p) { return fract(sin(dot(p, vec2(41.3, 289.1))) * 43758.5453); }
-
-  vec3 barColor(float b) {
-    if (b < 0.5) return vec3(0.72);
-    else if (b < 1.5) return vec3(0.72, 0.72, 0.0);
-    else if (b < 2.5) return vec3(0.0, 0.66, 0.72);
-    else if (b < 3.5) return vec3(0.0, 0.66, 0.0);
-    else if (b < 4.5) return vec3(0.72, 0.0, 0.62);
-    else if (b < 5.5) return vec3(0.72, 0.12, 0.0);
-    return vec3(0.0, 0.16, 0.72);
-  }
-
-  // Zero-asset placeholder: SMPTE-ish colour bars over a band of rolling
-  // static, plus a soft bright retrace band sweeping up the screen.
-  vec3 proceduralTV(vec2 uv) {
-    vec3 col;
-    if (uv.y > 0.28) {
-      col = barColor(floor(uv.x * 7.0));
-    } else {
-      vec2 cell = floor(uv * vec2(150.0, 84.0));
-      col = vec3(hash(cell + floor(uTime * 9.0)));
-    }
-    float roll = smoothstep(0.06, 0.0, abs(fract(uv.y * 0.5 - uTime * 0.08) - 0.5));
-    col += roll * 0.12;
-    return col;
-  }
 
   vec3 sampleSource(vec2 uv) {
     if (uHasVideo > 0.5) {
@@ -127,7 +99,11 @@ const fragmentShader = /* glsl */ `
       vec2 cuv = vec2(0.5) + (uv - vec2(0.5)) * uCoverScale;
       return texture2D(uSource, cuv).rgb;
     }
-    return proceduralTV(uv);
+    // Pre-video / video-failed fallback: the plain dark base — the grid and
+    // depth glow on top still read as the designed wall. (The old SMPTE
+    // colour-bars placeholder flashed before every video start and was
+    // removed on request.)
+    return uBase;
   }
 
   void main() {
@@ -213,7 +189,6 @@ export default function SceneBackground({
       // distortion.
       uPixel: { value: new THREE.Vector2(180, Math.round(180 / WALL_ASPECT)) },
       uCoverScale: { value: new THREE.Vector2(1, 1) },
-      uTime: { value: 0 },
     }),
     // eslint-disable-next-line react-hooks/exhaustive-deps
     []
@@ -247,11 +222,22 @@ export default function SceneBackground({
   useEffect(() => {
     if (!tv || !videoSrc) return;
     const video = document.createElement("video");
-    video.src = videoSrc;
-    video.loop = true;
+    // Attributes AND properties: some engines only honor autoplay policy
+    // exemptions for detached videos when the muted/playsinline ATTRIBUTES
+    // are present (the property alone was why phones waited for a touch).
+    video.setAttribute("muted", "");
+    video.setAttribute("playsinline", "");
+    video.setAttribute("autoplay", "");
     video.muted = true;
     video.playsInline = true;
+    video.autoplay = true;
+    video.loop = true;
     video.preload = "auto";
+    video.src = videoSrc;
+    // Play IMMEDIATELY — play() before data is legal (the promise settles
+    // when playback actually starts), so the very first decoded frame plays
+    // instead of waiting for `loadeddata` to round-trip first.
+    video.play().catch(() => {});
     const tex = new THREE.VideoTexture(video);
     tex.colorSpace = THREE.SRGBColorSpace;
     tex.magFilter = THREE.NearestFilter; // keep the pixelation crisp
@@ -373,9 +359,7 @@ export default function SceneBackground({
     return () => window.clearInterval(id);
   }, [tv, active, invalidate]);
 
-  useFrame((state) => {
-    if (matRef.current) matRef.current.uniforms.uTime.value = state.clock.elapsedTime;
-
+  useFrame(() => {
     const c = current.current;
     const t = target.current;
     c.x += (t.x - c.x) * 0.09;

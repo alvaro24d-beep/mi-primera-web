@@ -36,6 +36,13 @@ export default function RootLayout({
   return (
     <html lang="es" className={`${manrope.variable} ${cormorant.variable}`}>
       <body suppressHydrationWarning>
+        {/* Start the wall video download IMMEDIATELY (the canvas itself
+            mounts lazily on idle — without these the fetch only began ~1-2s
+            in, which is why a placeholder used to show first). Orientation
+            media queries pick just the clip this device will actually play;
+            React 19 hoists these <link>s into <head>. */}
+        <link rel="preload" as="video" href="/bg-video.mp4" media="(orientation: landscape)" />
+        <link rel="preload" as="video" href="/bg-video-vertical.mp4" media="(orientation: portrait)" />
         <SmoothScroll />
         <ScrollProgress />
         {/* WebGL backdrop deferred off the load's critical path — see

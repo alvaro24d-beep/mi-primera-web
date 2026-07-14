@@ -118,7 +118,9 @@ export default function Hero() {
         scrollTrigger: {
           trigger: section,
           start: "top top",
-          end: () => (window.innerWidth < 768 ? "+=220%" : "+=360%"),
+          // Mobile: 160% (was 220%) — the mastery phrases needed too many
+          // swipes to get through ("que no haya que hacer tanto scroll").
+          end: () => (window.innerWidth < 768 ? "+=160%" : "+=360%"),
           scrub: 0.6,
           pin: stage,
           anticipatePin: 1,

@@ -1279,12 +1279,12 @@ h6 {
 }
 
 /* Phones: a shorter runway — after the phrase blur-fades out the reel must
-   arrive right away ("la sección servicios debe entrar antes en móvil"),
-   with no dead scroll in between. The fade-out sits at ~90% of the
-   timeline, so barely any empty runway remains past it. */
+   arrive right away, and the whole phrase moment costs fewer swipes ("que
+   no haya que hacer tanto scroll al pasar la frase"). The fade-out sits at
+   ~90% of the timeline, so barely any empty runway remains past it. */
 @media (max-width: 900px) {
   .nxr-servicios-head {
-    height: 95vh;
+    height: 70vh;
   }
 }
 

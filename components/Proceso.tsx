@@ -100,13 +100,13 @@ export default function Proceso() {
   // under the cursor while the glass stayed unrotated.
   useGlassPanels(sectionRef, ".nxr-paso-card", "#141018", []);
 
-  // Header paragraph curves like the concave backdrop (see useCurvedWords) —
-  // it sits on the right half of the screen, so its right edge wraps forward.
-  useCurvedWords(sectionRef, ".nxr-proceso-header-right", "right");
-
-  // Dynamic per-line bow on the (gradient) title too, riding the reveal's
-  // word spans — bowOnly leaves the CSS tilt and the char reveal untouched.
-  useCurvedWords(sectionRef, ".nxr-section-h2", "left", [], { bowOnly: true, useExistingWords: true });
+  // ONE plane + one bow field for the whole header (title + paragraph),
+  // Contacto-textblock pattern: the old split (h2 on its CSS plane, paragraph
+  // on the hook's) produced two visibly different vanishing points side by
+  // side ("la distorsión tiene que ser la misma en todos los textos"). The
+  // h2 keeps useTitleReveal's split (splitIgnore) and its word spans join
+  // this block's bow field.
+  useCurvedWords(sectionRef, ".nxr-proceso-textblock", "left", [], { splitIgnore: ".nxr-section-h2" });
 
   useEffect(() => {
     const track = trackRef.current;
@@ -178,17 +178,22 @@ export default function Proceso() {
     <section id="nxr-proceso" ref={sectionRef}>
       <div className="nxr-proceso-inner">
         <div className="nxr-proceso-header nxr-reveal">
-          <div>
-            <h2 className="nxr-section-h2" ref={titleRef}>
-              Un proceso claro,
-              <br />
-              <span className="nxr-gradient-text-lime">sin sorpresas.</span>
-            </h2>
+          {/* The plane can't live on the reveal element (it owns `transform`
+              for its entrance) — this inner block carries the flex layout AND
+              the hook-applied plane instead. */}
+          <div className="nxr-proceso-textblock">
+            <div>
+              <h2 className="nxr-section-h2" ref={titleRef}>
+                Un proceso claro,
+                <br />
+                <span className="nxr-gradient-text-lime">sin sorpresas.</span>
+              </h2>
+            </div>
+            <p className="nxr-proceso-header-right">
+              Cada proyecto sigue la misma metodología: entender bien antes de construir, construir rápido y mejorar
+              siempre. Sin reuniones infinitas, sin presupuestos que se disparan. Toca cada paso para ver el detalle.
+            </p>
           </div>
-          <p className="nxr-proceso-header-right">
-            Cada proyecto sigue la misma metodología: entender bien antes de construir, construir rápido y mejorar
-            siempre. Sin reuniones infinitas, sin presupuestos que se disparan. Toca cada paso para ver el detalle.
-          </p>
         </div>
 
         <div className="nxr-proceso-track" ref={trackRef}>

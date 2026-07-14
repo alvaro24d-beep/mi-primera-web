@@ -65,12 +65,10 @@ export default function Tech() {
     return () => io.disconnect();
   }, []);
 
-  // Header paragraph curves like the concave backdrop (see useCurvedWords) —
-  // it sits on the right half of the screen, so its right edge wraps forward.
-  useCurvedWords(sectionRef, ".nxr-tech-header-right", "right");
-
-  // Dynamic per-line bow on the (gradient) title too — see Proceso.tsx.
-  useCurvedWords(sectionRef, ".nxr-section-h2", "left", [], { bowOnly: true, useExistingWords: true });
+  // ONE plane + one bow field for the whole header (title + paragraph) —
+  // Contacto-textblock pattern; see the twin comment in Proceso.tsx. Safe to
+  // plane the header directly: the reveal lives on .nxr-tech-inner above it.
+  useCurvedWords(sectionRef, ".nxr-tech-header", "left", [], { splitIgnore: ".nxr-section-h2" });
 
   return (
     <section id="nxr-tech" ref={sectionRef}>

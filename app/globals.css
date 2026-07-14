@@ -265,16 +265,15 @@ h6 {
    `transform` for its entrance — Intro's headline wrapper takes it instead,
    composed with its sticky centering), safe on .nxr-section-h2 themselves
    (useTitleReveal only animates char spans inside). */
-/* (#nxr-contacto's h2 is NOT in these groups: it lives inside
-   .nxr-contacto-textblock and shares that block's hook-applied plane — title
-   and paragraph must point at the same vanishing point.) */
-#nxr-proceso .nxr-section-h2,
-#nxr-tech .nxr-section-h2,
+/* (The h2s of #nxr-contacto, #nxr-proceso, #nxr-tech and #nxr-aia-noche are
+   NOT in these groups: each lives inside its section's hook-planed textblock
+   (.nxr-contacto-textblock / .nxr-proceso-textblock / .nxr-tech-header /
+   .nxr-aia-nt-textblock) and shares that block's plane — title and
+   accompanying text must point at the same vanishing point, sitewide.) */
 #nxr-dwh-proceso .nxr-section-h2,
 #nxr-dwh-capacidades .nxr-section-h2,
 #nxr-dwh-tech .nxr-section-h2,
 #nxr-aia-casos .nxr-section-h2,
-#nxr-aia-noche .nxr-section-h2,
 #nxr-aia-pasos .nxr-section-h2,
 .nxr-srv-caption-tilt {
   transform: perspective(460px) rotateY(26deg);
@@ -294,11 +293,8 @@ h6 {
      outer-edge projection ~40px+ off the viewport frame — measured at
      1440px via scratchpad verify-perspective2.mjs; re-run it if these
      selectors change width. */
-  #nxr-proceso .nxr-section-h2,
-  #nxr-tech .nxr-section-h2 {
-    transform: translateX(20%) perspective(460px) rotateY(16deg);
-    transform-origin: 100% center;
-  }
+  /* (#nxr-proceso / #nxr-tech left this tier: their whole header row now
+     rides the hook-applied plane — see the textblock note above.) */
   /* The /desarrollo-web titles keep the h2's full 600px layout box (no
      narrow grid column shrinking them like the home's), so their projected
      left edge juts much further — they need the wide-block tier. */
@@ -306,7 +302,6 @@ h6 {
   #nxr-dwh-capacidades .nxr-section-h2,
   #nxr-dwh-tech .nxr-section-h2,
   #nxr-aia-casos .nxr-section-h2,
-  #nxr-aia-noche .nxr-section-h2,
   #nxr-aia-pasos .nxr-section-h2 {
     transform: translateX(48%) perspective(460px) rotateY(16deg);
     transform-origin: 100% center;
@@ -334,13 +329,10 @@ h6 {
      therefore the left-edge magnification match), and a 16% shift that
      lands the projected left edge at ~32px, aligned with the paragraphs'
      hook-computed indent (frameMargin 34). */
-  #nxr-proceso .nxr-section-h2,
-  #nxr-tech .nxr-section-h2,
   #nxr-dwh-proceso .nxr-section-h2,
   #nxr-dwh-capacidades .nxr-section-h2,
   #nxr-dwh-tech .nxr-section-h2,
   #nxr-aia-casos .nxr-section-h2,
-  #nxr-aia-noche .nxr-section-h2,
   #nxr-aia-pasos .nxr-section-h2 {
     margin-right: 64px;
     transform: translateX(16%) perspective(460px) rotateY(10deg);
@@ -370,9 +362,10 @@ h6 {
      RIGHT ("que dejen un espacio mayor a la derecha"), which also gives the
      left-side distortion room to breathe away from the frame. */
   .nxr-intro-textblock,
-  .nxr-tech-header-right,
-  .nxr-proceso-header-right,
-  .nxr-contacto-textblock {
+  .nxr-tech-header,
+  .nxr-proceso-textblock,
+  .nxr-contacto-textblock,
+  .nxr-aia-nt-textblock {
     margin-right: 64px;
   }
 
@@ -507,13 +500,13 @@ h6 {
     font-size: clamp(30px, 8vw, 42px);
   }
 
-  .nxr-proceso-header,
+  .nxr-proceso-textblock,
   .nxr-tech-header {
     flex-direction: column;
     align-items: flex-start;
   }
 
-  .nxr-proceso-header > div,
+  .nxr-proceso-textblock > div,
   .nxr-tech-header > div {
     width: 100%;
     text-align: left !important;
@@ -2951,12 +2944,23 @@ h6 {
 }
 
 .nxr-proceso-header {
-  display: flex;
-  align-items: flex-end;
-  justify-content: space-between;
-  gap: 40px;
   margin-bottom: 80px;
-  flex-wrap: wrap;
+}
+
+/* Title + paragraph STACKED in one narrow column (Contacto-textblock
+   geometry), carrying the hook-applied plane. Deliberately NOT the old
+   full-width title/paragraph row: an edge-pivot plane over a viewport-wide
+   block balloons the outer edge ~2.3x and the keep-in-frame shift then
+   pushes the pivot side clean off-screen (measured: the paragraph landed at
+   x=2800 on a 1440 viewport). Narrow block = sane projection, proven look.
+   Lives inside the reveal element (which owns `transform` for its
+   entrance), so the plane goes here, not on .nxr-proceso-header. */
+.nxr-proceso-textblock {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 22px;
+  max-width: 640px;
 }
 
 .nxr-proceso-header .nxr-section-h2 {
@@ -2964,11 +2968,10 @@ h6 {
 }
 
 .nxr-proceso-header-right {
-  max-width: 340px;
+  max-width: 520px;
   font-size: 15px;
   color: var(--c-salmon);
   line-height: 1.7;
-  flex-shrink: 0;
 }
 
 .nxr-proceso-track {
@@ -3267,7 +3270,7 @@ h6 {
   .nxr-proceso-track {
     grid-template-columns: 1fr;
   }
-  .nxr-proceso-header {
+  .nxr-proceso-textblock {
     flex-direction: column;
   }
   .nxr-proceso-header-right {
@@ -3290,12 +3293,14 @@ h6 {
   margin-bottom: 48px;
 }
 
+/* Stacked narrow column carrying the hook plane — same geometry note as
+   .nxr-proceso-textblock (a full-width planed row breaks the projection). */
 .nxr-tech-header {
   display: flex;
-  align-items: flex-end;
-  justify-content: space-between;
-  gap: 40px;
-  flex-wrap: wrap;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 22px;
+  max-width: 640px;
 }
 
 .nxr-tech-header .nxr-section-h2 {
@@ -3303,11 +3308,10 @@ h6 {
 }
 
 .nxr-tech-header-right {
-  max-width: 340px;
+  max-width: 520px;
   font-size: 15px;
   color: var(--c-salmon);
   line-height: 1.7;
-  flex-shrink: 0;
 }
 
 .nxr-marquee-wrap {
@@ -6832,7 +6836,10 @@ input[type="range"].nxr-ms-range::-moz-range-thumb {
   display: flex;
   align-items: center;
   gap: 5vw;
-  padding: 10vh max(var(--pad-x), calc((100vw - var(--max-w)) / 2));
+  /* Extra bottom padding: the floating bottom nav (#nxr-nav, ~63px tall,
+     20px off the bottom) owns that band while the stage is pinned — without
+     it the landing cards sat underneath the bar. */
+  padding: 8vh max(var(--pad-x), calc((100vw - var(--max-w)) / 2)) calc(8vh + 88px);
   box-sizing: border-box;
   overflow: hidden;
 }
@@ -6978,7 +6985,8 @@ input[type="range"].nxr-ms-range::-moz-range-thumb {
     justify-content: center;
     align-items: stretch;
     gap: 26px;
-    padding: 9vh 20px;
+    /* Clears the floating nav band on phones too. */
+    padding: 7vh 20px calc(100px + env(safe-area-inset-bottom));
   }
   .nxr-aia-nt-head {
     flex: none;

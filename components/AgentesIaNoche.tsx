@@ -63,9 +63,14 @@ export default function AgentesIaNoche() {
   const reducedMotion = useReducedMotion();
 
   useGlassPanels(sectionRef, ".nxr-aia-nt-card", "#0d1018", [reducedMotion]);
-  useCurvedWords(sectionRef, ".nxr-section-h2", "left", [reducedMotion], {
-    bowOnly: true,
-    useExistingWords: true,
+  // Clock + title + counter share ONE plane (Contacto-textblock pattern) —
+  // a CSS-tilted h2 sandwiched between a flat clock and a flat counter read
+  // as three different distortions ("tiene que ser la misma"). The clock and
+  // counter are splitIgnore'd (their text is rewritten per tick, which would
+  // destroy SplitText spans) — they ride the block plane without a bow; the
+  // h2's reveal spans join the block's bow field.
+  useCurvedWords(sectionRef, ".nxr-aia-nt-textblock", "left", [reducedMotion], {
+    splitIgnore: ".nxr-section-h2, .nxr-aia-nt-clock, .nxr-aia-nt-counter",
   });
 
   useGSAP(
@@ -193,16 +198,18 @@ export default function AgentesIaNoche() {
       <div className="nxr-aia-nt-stage" ref={stageRef}>
         <div className="nxr-aia-nt-veil" aria-hidden="true" />
         <div className="nxr-aia-nt-head">
-          <div className="nxr-aia-nt-clock" aria-hidden="true">
-            23<span>:</span>00
-          </div>
-          <div className="nxr-reveal">
-            <h2 className="nxr-section-h2" ref={titleRef}>
-              Mientras tú duermes, <span className="nxr-gradient-text-lime">él sigue en turno.</span>
-            </h2>
-          </div>
-          <div className="nxr-aia-nt-counter">
-            <b>0</b> gestiones resueltas antes de que suene tu despertador
+          <div className="nxr-aia-nt-textblock">
+            <div className="nxr-aia-nt-clock" aria-hidden="true">
+              23<span>:</span>00
+            </div>
+            <div className="nxr-reveal">
+              <h2 className="nxr-section-h2" ref={titleRef}>
+                Mientras tú duermes, <span className="nxr-gradient-text-lime">él sigue en turno.</span>
+              </h2>
+            </div>
+            <div className="nxr-aia-nt-counter">
+              <b>0</b> gestiones resueltas antes de que suene tu despertador
+            </div>
           </div>
         </div>
         <div className="nxr-aia-nt-pile">

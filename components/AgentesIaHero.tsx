@@ -215,6 +215,13 @@ export default function AgentesIaHero() {
       // Same Safari/Chrome `100lvh` disagreement fix as DesarrolloWebHero:
       // one real innerHeight measurement drives the mobile stage height.
       if (mobile) section.style.setProperty("--aia-vh", `${window.innerHeight}px`);
+      // Mobile actors stack below the REAL headline+CTA bottom edge (its
+      // height varies with the clamp()'d font size per phone width — a fixed
+      // padding overlapped on short/narrow screens).
+      if (mobile && head) {
+        const headBottom = (parseFloat(getComputedStyle(head).top) || 36) + head.offsetHeight;
+        section.style.setProperty("--aia-head-b", `${Math.round(headBottom)}px`);
+      }
 
       // ---- Measure beam anchor points for the WebGL scene. offsetLeft/Top
       // chains ignore transforms, so this reads REST positions even when
@@ -237,17 +244,17 @@ export default function AgentesIaHero() {
         const l = layoutRef.current;
         l.core = centerOf(coreSpot);
         // Beams should land on the panel EDGE facing the core, not under its
-        // centre. Desktop: chat right of core, tools left of core. Mobile:
-        // the core hides BEHIND the chat and the tools are a right-hand icon
-        // rail — beams leave the chat's right edge and land on each chip's
-        // left edge.
+        // centre. Desktop: chat right of core, tools rail left of core.
+        // Mobile: the core hides BEHIND the chat and the tool chips sit in a
+        // row right below it — beams drop from the chat's bottom edge onto
+        // each chip's top edge.
         l.chat = isMobileNow
-          ? { x: chatC.x + chat.offsetWidth / 2 - 6, y: chatC.y }
+          ? { x: chatC.x, y: chatC.y + chat.offsetHeight / 2 - 6 }
           : { x: chatC.x - chat.offsetWidth / 2 - 4, y: chatC.y };
         l.tools = tools.map((el) => {
           const c = centerOf(el);
           return isMobileNow
-            ? { x: c.x - el.offsetWidth / 2 - 4, y: c.y }
+            ? { x: c.x, y: c.y - el.offsetHeight / 2 - 4 }
             : { x: c.x + el.offsetWidth / 2 + 4, y: c.y };
         });
         l.ready = true;
@@ -372,11 +379,15 @@ export default function AgentesIaHero() {
         </div>
         <div className="nxr-aia-scene">
           <div className="nxr-aia-core-spot" aria-hidden="true" />
-          <ToolChips />
           {/* Full-height flex column centres the panel with pure layout —
-              beam anchors are measured via offset chains (transform-blind). */}
+              beam anchors are measured via offset chains (transform-blind).
+              The tool chips live INSIDE the column: desktop CSS lifts them
+              out to a side rail via position:absolute, mobile keeps them in
+              flow as a row under the chat — so on phones they can never
+              overlap the panel regardless of viewport height. */}
           <div className="nxr-aia-chat-col">
             <ChatPanel />
+            <ToolChips />
           </div>
         </div>
         <div className="nxr-aia-overlay">

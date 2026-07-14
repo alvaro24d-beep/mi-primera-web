@@ -274,6 +274,8 @@ h6 {
 #nxr-dwh-capacidades .nxr-section-h2,
 #nxr-dwh-tech .nxr-section-h2,
 #nxr-aia-casos .nxr-section-h2,
+#nxr-aia-noche .nxr-section-h2,
+#nxr-aia-pasos .nxr-section-h2,
 .nxr-srv-caption-tilt {
   transform: perspective(460px) rotateY(26deg);
   transform-origin: 70% center;
@@ -303,7 +305,9 @@ h6 {
   #nxr-dwh-proceso .nxr-section-h2,
   #nxr-dwh-capacidades .nxr-section-h2,
   #nxr-dwh-tech .nxr-section-h2,
-  #nxr-aia-casos .nxr-section-h2 {
+  #nxr-aia-casos .nxr-section-h2,
+  #nxr-aia-noche .nxr-section-h2,
+  #nxr-aia-pasos .nxr-section-h2 {
     transform: translateX(48%) perspective(460px) rotateY(16deg);
     transform-origin: 100% center;
   }
@@ -335,7 +339,9 @@ h6 {
   #nxr-dwh-proceso .nxr-section-h2,
   #nxr-dwh-capacidades .nxr-section-h2,
   #nxr-dwh-tech .nxr-section-h2,
-  #nxr-aia-casos .nxr-section-h2 {
+  #nxr-aia-casos .nxr-section-h2,
+  #nxr-aia-noche .nxr-section-h2,
+  #nxr-aia-pasos .nxr-section-h2 {
     margin-right: 64px;
     transform: translateX(16%) perspective(460px) rotateY(10deg);
     transform-origin: 100% center;
@@ -6279,10 +6285,12 @@ input[type="range"].nxr-ms-range::-moz-range-thumb {
   stroke-linejoin: round;
 }
 
-/* Tool chips column (desktop: left of the core, story flows chat→core→tools). */
+/* Tool chips (markup lives INSIDE .nxr-aia-chat-col so mobile can keep them
+   in flow). Desktop lifts them out to a side rail left of the core — offsets
+   stay measurable (offsetLeft is negative, offset chains handle that). */
 .nxr-aia-tools {
   position: absolute;
-  left: 25%;
+  right: calc(100% + 15vw);
   top: 0;
   bottom: 0;
   width: min(252px, 24vw);
@@ -6561,16 +6569,17 @@ input[type="range"].nxr-ms-range::-moz-range-thumb {
     padding: 11px 20px;
     font-size: 14px;
   }
-  /* Compact icon rail on the right; labels collapse to icon + check. */
+  /* Phones: the chips leave the rail and flow as a compact row UNDER the
+     chat panel (same flex column) — structurally impossible to overlap it,
+     whatever the viewport height. Labels collapse to icon + check. */
   .nxr-aia-tools {
-    left: auto;
-    right: 10px;
-    top: 0;
-    bottom: 0;
-    width: 54px;
+    position: static;
+    flex-direction: row;
     justify-content: center;
-    gap: 12px;
-    padding-bottom: 4vh;
+    width: auto;
+    gap: 10px;
+    margin-top: 14px;
+    padding: 0;
   }
   .nxr-aia-tool-inner {
     padding: 7px;
@@ -6593,47 +6602,85 @@ input[type="range"].nxr-ms-range::-moz-range-thumb {
   /* The core sits BEHIND the chat panel on phones (its glow reads through
      the frosted glass) — there's no free band for it between the stacked
      actors, and floating it higher overlapped the CTA (caught on the first
-     Playwright pass). */
+     Playwright pass). Anchored to the measured headline bottom, like the
+     chat column, so it tracks every phone size. */
   .nxr-aia-core-spot {
     left: 46%;
-    top: 48%;
+    top: calc(var(--aia-head-b, 200px) + 150px);
   }
+  /* Stacks right below the REAL headline+CTA bottom (--aia-head-b, measured
+     in JS) — the old fixed padding overlapped on short/narrow phones. */
   .nxr-aia-chat-col {
-    left: 14px;
-    right: 74px;
+    left: 16px;
+    right: 16px;
     width: auto;
     justify-content: flex-start;
-    padding-top: 252px;
+    padding-top: calc(var(--aia-head-b, 200px) + 20px);
   }
   .nxr-aia-chat-inner {
-    padding: 14px;
-    gap: 8px;
+    padding: 12px;
+    gap: 7px;
+  }
+  .nxr-aia-chat-head {
+    gap: 9px;
+    padding-bottom: 9px;
+  }
+  .nxr-aia-chat-avatar {
+    width: 30px;
+    height: 30px;
+  }
+  .nxr-aia-chat-avatar svg {
+    width: 16px;
+    height: 16px;
+  }
+  .nxr-aia-chat-name {
+    font-size: 13px;
+  }
+  .nxr-aia-chat-online {
+    font-size: 10.5px;
   }
   .nxr-aia-msg {
     font-size: 12.5px;
+    padding: 9px 11px;
   }
+  .nxr-aia-msg-meta {
+    font-size: 9.5px;
+  }
+  .nxr-aia-typing {
+    padding: 11px 12px;
+  }
+  .nxr-aia-badge {
+    margin-top: 8px;
+    padding: 6px 12px;
+    font-size: 11px;
+  }
+  /* One-line facet strip on phones (num + title only): the full description
+     panel ate ~150px of a very tight stage — the story is already told by
+     the chat + chips above. */
   .nxr-aia-facets-panel {
     left: 12px;
     right: 12px;
     width: auto;
-    bottom: calc(24px + env(safe-area-inset-bottom));
+    bottom: calc(16px + env(safe-area-inset-bottom));
   }
   .nxr-aia-facets-inner {
-    padding: 16px 18px;
-    min-height: 104px;
+    padding: 13px 16px;
+    min-height: 44px;
   }
   .nxr-aia-facet-label {
-    inset: 16px 18px;
+    inset: 13px 16px;
+    gap: 10px;
+    align-items: center;
   }
   .nxr-aia-facet-num {
-    font-size: 22px;
+    font-size: 17px;
   }
   .nxr-aia-facet-title {
-    font-size: 15px;
-    margin-bottom: 4px;
+    font-size: 14px;
+    margin-bottom: 0;
   }
   .nxr-aia-facet-desc {
-    font-size: 12.5px;
+    display: none;
   }
   .nxr-aia-static {
     padding: 130px 20px var(--section-pad);
@@ -6643,6 +6690,48 @@ input[type="range"].nxr-ms-range::-moz-range-thumb {
   }
   .nxr-aia-st-facets {
     grid-template-columns: 1fr;
+  }
+}
+
+/* Short phones (≤720px of viewport height): even the compact stack overflows
+   the trimmed stage (caught at 360×640 — chat + chips ran past the facet
+   strip). The facet strip goes (the chat + chips already tell the story) and
+   headline/chat compress another notch. */
+@media (max-width: 768px) and (max-height: 720px) {
+  .nxr-aia-h1 {
+    font-size: clamp(25px, 7vw, 34px);
+  }
+  .nxr-aia-cta {
+    margin-top: 14px;
+  }
+  .nxr-aia-cta-inner {
+    padding: 9px 18px;
+    font-size: 13px;
+  }
+  .nxr-aia-chat-col {
+    padding-top: calc(var(--aia-head-b, 180px) + 14px);
+  }
+  .nxr-aia-chat-inner {
+    padding: 10px;
+    gap: 6px;
+  }
+  .nxr-aia-msg {
+    font-size: 11.5px;
+    padding: 8px 10px;
+  }
+  .nxr-aia-typing {
+    padding: 10px 11px;
+  }
+  .nxr-aia-badge {
+    margin-top: 5px;
+    padding: 5px 10px;
+    font-size: 10.5px;
+  }
+  .nxr-aia-tools {
+    margin-top: 10px;
+  }
+  .nxr-aia-facets-panel {
+    display: none;
   }
 }
 
@@ -6721,5 +6810,401 @@ input[type="range"].nxr-ms-range::-moz-range-thumb {
   }
   .nxr-aia-caso {
     padding: 26px;
+  }
+}
+
+/* ===== Agentes IA (service page) — El turno de noche (reloj + pila) ===== */
+/* Pinned: the giant clock scrubs 23:00→07:00 while resolved chats land on a
+   notification pile (translate/scale/opacity ONLY — each card anchors a
+   volumetric glass mesh) and the counter ticks. See AgentesIaNoche.tsx. */
+
+.nxr-aia-noche {
+  position: relative;
+  z-index: 1;
+}
+
+/* Full-bleed box (the night veil must cover the whole viewport while
+   pinned); content centres itself via the max()'d padding instead of an
+   inner max-width wrapper. */
+.nxr-aia-nt-stage {
+  min-height: 100lvh;
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 5vw;
+  padding: 10vh max(var(--pad-x), calc((100vw - var(--max-w)) / 2));
+  box-sizing: border-box;
+  overflow: hidden;
+}
+
+.nxr-aia-nt-veil {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(2, 4, 10, 0.92), rgba(4, 6, 12, 0.6));
+  opacity: 0.12;
+  pointer-events: none;
+}
+
+.nxr-aia-nt-head {
+  flex: 0 0 44%;
+  position: relative;
+  z-index: 2;
+}
+
+.nxr-aia-nt-clock {
+  font-family: var(--font-cormorant);
+  font-size: clamp(80px, 10vw, 150px);
+  line-height: 0.95;
+  color: var(--c-white);
+  font-variant-numeric: tabular-nums;
+  margin-bottom: 18px;
+}
+
+.nxr-aia-nt-clock span {
+  color: var(--c-lime);
+}
+
+.nxr-aia-nt-counter {
+  margin-top: 14px;
+  font-size: 14.5px;
+  color: rgba(255, 255, 255, 0.55);
+}
+
+.nxr-aia-nt-counter b {
+  color: var(--c-lime);
+  font-size: 19px;
+  margin-right: 3px;
+}
+
+.nxr-aia-nt-pile {
+  flex: 1;
+  position: relative;
+  z-index: 2;
+  display: grid;
+  place-items: center;
+  min-height: 420px;
+}
+
+/* Anchor of a volumetric glass mesh — scrim only. All cards share the same
+   grid cell; GSAP moves them between pile slots. */
+.nxr-aia-nt-card {
+  grid-area: 1 / 1;
+  width: min(440px, 100%);
+  background: rgba(8, 10, 14, 0.34);
+  border-radius: var(--radius-lg);
+  visibility: hidden;
+  will-change: transform, opacity;
+}
+
+.nxr-aia-nt-inner {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+  padding: 18px;
+}
+
+.nxr-aia-nt-time {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: var(--c-salmon);
+}
+
+.nxr-aia-nt-q,
+.nxr-aia-nt-a {
+  max-width: 90%;
+  padding: 10px 12px;
+  border-radius: 12px;
+  font-size: 13px;
+  line-height: 1.45;
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.nxr-aia-nt-q {
+  align-self: flex-start;
+  background: rgba(255, 255, 255, 0.07);
+  border-top-left-radius: 4px;
+}
+
+.nxr-aia-nt-a {
+  align-self: flex-end;
+  background: rgba(168, 240, 74, 0.13);
+  border-top-right-radius: 4px;
+}
+
+.nxr-aia-nt-done {
+  align-self: flex-end;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 10px;
+  border-radius: 100px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--c-lime);
+  background: rgba(168, 240, 74, 0.1);
+  border: 1px solid rgba(168, 240, 74, 0.25);
+}
+
+.nxr-aia-nt-done svg {
+  width: 11px;
+  height: 11px;
+  stroke: currentColor;
+  fill: none;
+  stroke-width: 2.6;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+/* Reduced-motion fallback: dawn state, pile flattened into a grid. */
+.nxr-aia-nt-static .nxr-aia-nt-pile {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px;
+  place-items: stretch;
+}
+
+.nxr-aia-nt-static .nxr-aia-nt-card {
+  grid-area: auto;
+  width: auto;
+  visibility: visible;
+}
+
+@media (max-width: 768px) {
+  .nxr-aia-nt-stage {
+    flex-direction: column;
+    justify-content: center;
+    align-items: stretch;
+    gap: 26px;
+    padding: 9vh 20px;
+  }
+  .nxr-aia-nt-head {
+    flex: none;
+  }
+  .nxr-aia-nt-clock {
+    font-size: clamp(56px, 15vw, 84px);
+    margin-bottom: 12px;
+  }
+  .nxr-aia-nt-pile {
+    min-height: 300px;
+  }
+  .nxr-aia-nt-static .nxr-aia-nt-pile {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ===== Agentes IA (service page) — Así lo montamos (cable que se dibuja) ===== */
+/* A light cable draws itself with the scroll (stroke-dashoffset) and powers
+   up the 3 build stations as its tip reaches them. Desktop pins; mobile
+   scrubs un-pinned. See AgentesIaPasos.tsx. */
+
+.nxr-aia-pasos {
+  position: relative;
+  z-index: 1;
+}
+
+.nxr-aia-ps-stage {
+  min-height: 100lvh;
+  position: relative;
+  padding: 12vh max(var(--pad-x), calc((100vw - var(--max-w)) / 2)) 10vh;
+  box-sizing: border-box;
+}
+
+.nxr-aia-ps-cable {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.nxr-aia-ps-cable-line {
+  fill: none;
+  stroke: url(#nxr-aia-cable-grad);
+  stroke-width: 2.5;
+  vector-effect: non-scaling-stroke;
+  stroke-linecap: round;
+}
+
+.nxr-aia-ps-cable-glow {
+  fill: none;
+  stroke: rgba(168, 240, 74, 0.14);
+  stroke-width: 9;
+  vector-effect: non-scaling-stroke;
+  stroke-linecap: round;
+}
+
+.nxr-aia-ps-cards {
+  position: relative;
+  z-index: 2;
+}
+
+/* Anchor of a volumetric glass mesh — scrim only. */
+.nxr-aia-paso {
+  background: rgba(8, 10, 14, 0.34);
+  border-radius: var(--radius-lg);
+  visibility: hidden;
+  will-change: transform, opacity;
+}
+
+.nxr-aia-paso-inner {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 22px;
+}
+
+.nxr-aia-paso-num {
+  font-size: 26px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.nxr-aia-paso-title {
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--c-white);
+}
+
+.nxr-aia-paso-desc {
+  font-size: 13.5px;
+  line-height: 1.5;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.nxr-aia-ps-mini {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 10px;
+}
+
+.nxr-aia-ps-chip {
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.07);
+  color: var(--c-lime);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.nxr-aia-ps-chip svg {
+  width: 16px;
+  height: 16px;
+  stroke: currentColor;
+  fill: none;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.nxr-aia-ps-mini-doc {
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+  width: 100%;
+}
+
+.nxr-aia-ps-line {
+  display: block;
+  height: 6px;
+  width: 100%;
+  border-radius: 3px;
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.nxr-aia-ps-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 10px;
+  border-radius: 100px;
+  font-size: 11px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.85);
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.nxr-aia-ps-tag svg {
+  width: 11px;
+  height: 11px;
+  stroke: var(--c-lime);
+  fill: none;
+  stroke-width: 2.6;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.nxr-aia-ps-tag-live {
+  color: var(--c-lime);
+  background: rgba(168, 240, 74, 0.1);
+  border: 1px solid rgba(168, 240, 74, 0.25);
+}
+
+.nxr-aia-ps-tag-live i {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--c-lime);
+  box-shadow: 0 0 6px rgba(168, 240, 74, 0.8);
+  animation: nxr-aia-live 1.6s ease-in-out infinite;
+}
+
+@keyframes nxr-aia-live {
+  0%,
+  100% {
+    opacity: 0.5;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+@media (min-width: 769px) {
+  /* Stations sit along the desktop cable curve (PATH_DESKTOP in the TSX —
+     retune both together). */
+  .nxr-aia-ps-cards {
+    position: absolute;
+    inset: 0;
+  }
+  .nxr-aia-paso {
+    position: absolute;
+    width: min(300px, 24vw);
+  }
+  .nxr-aia-paso:nth-child(1) {
+    left: 8%;
+    top: 36%;
+  }
+  .nxr-aia-paso:nth-child(2) {
+    left: 39%;
+    top: 54%;
+  }
+  .nxr-aia-paso:nth-child(3) {
+    left: 70%;
+    top: 28%;
+  }
+}
+
+@media (max-width: 768px) {
+  .nxr-aia-ps-stage {
+    min-height: auto;
+    padding: 64px 20px 72px 46px;
+  }
+  .nxr-aia-ps-cards {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    margin-top: 28px;
+  }
+  .nxr-aia-paso {
+    width: 100%;
   }
 }

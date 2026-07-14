@@ -144,6 +144,8 @@ export default function SceneCanvas() {
       "nxr-dwh-capacidades",
       "nxr-aia-hero",
       "nxr-aia-casos",
+      "nxr-aia-noche",
+      "nxr-aia-pasos",
     ];
     // The hero hosts one mostly-static panel (the CTA button): it needs its
     // section tracked in `nearSections` so its PanelSlot does work when

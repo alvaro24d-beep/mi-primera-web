@@ -443,6 +443,9 @@ export default function Servicios() {
     bowOnly: true,
     onlyBelow: 901,
     exclude: ".nxr-srv-pills",
+    // Keeps this section's tuned bow while the sitewide MOBILE profile was
+    // softened to 0.04 ("reduce la distorsión dinámica... excepto Servicios").
+    fan: 0.07,
   });
 
   // ---- Registers each card's DOM anchor with the registry so its real R3F

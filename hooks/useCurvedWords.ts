@@ -43,7 +43,8 @@ const RAD2DEG = 180 / Math.PI;
 // unclamped, lines near the screen edges bowed 50px+ and their words climbed
 // clean out of their own block over neighbouring content (reported as a
 // lowercase word covering a title's capital letter). 240·fan caps the worst
-// case at ~29px desktop / ~17px mobile, all of which fits in normal margins.
+// case at ~29px desktop / ~10px mobile (~17px for Servicios' captions, which
+// keep fan 0.07 via opts.fan), all of which fits in normal margins.
 const DY_CAP = 240;
 
 // Same edge-pivot profile on EVERY viewport ("como en ordenador pero bien
@@ -62,10 +63,11 @@ const DY_CAP = 240;
 const PROFILE = () =>
   window.innerWidth >= 901
     ? { tilt: 12, forceDir: null as "left" | null, frameMargin: 40, fan: 0.12 }
-    : // Gentler on phones (10°, softer fan 0.07 — "reduce un poco más la
-      // deformación dinámica en móvil") and a generous frame margin so the
-      // distorted edge is clearly separated from the viewport sides.
-      { tilt: 10, forceDir: "left" as const, frameMargin: 34, fan: 0.07 };
+    : // MUCH gentler on phones (6°, fan 0.04 — second reduction round,
+      // sitewide except Servicios' captions, which keep their tuned strength
+      // via opts.fan) and a generous frame margin so the distorted edge is
+      // clearly separated from the viewport sides.
+      { tilt: 6, forceDir: "left" as const, frameMargin: 34, fan: 0.04 };
 
 type WordGeom = { node: HTMLElement; sRel: number; s2: number; lineMid: number };
 type ItemGeom = {
@@ -116,6 +118,10 @@ export function useCurvedWords(
    * geometry (wordsOf collects by class, not by split ownership), which is
    * the point: heading and paragraphs share one plane and one bow field
    * instead of two separately-tuned planes that "point" different ways.
+   *
+   * fan: per-call override of PROFILE().fan (bow strength). Servicios'
+   * captions keep their tuned mobile strength while the sitewide mobile
+   * profile was softened ("reduce la distorsión... excepto Servicios").
    */
   opts: {
     bowOnly?: boolean;
@@ -124,6 +130,7 @@ export function useCurvedWords(
     exclude?: string;
     alsoBow?: string;
     splitIgnore?: string;
+    fan?: number;
   } = {}
 ) {
   useEffect(() => {
@@ -260,7 +267,7 @@ export function useCurvedWords(
     // ---- Per-frame dynamic bow, driven by each line's LIVE screen height.
     const update = () => {
       const vhHalf = window.innerHeight / 2;
-      const { fan } = PROFILE();
+      const fan = opts.fan ?? PROFILE().fan;
       for (const g of geoms) {
         if (!g.near) continue;
         const rect = g.el.getBoundingClientRect();

@@ -329,13 +329,18 @@ h6 {
      therefore the left-edge magnification match), and a 16% shift that
      lands the projected left edge at ~32px, aligned with the paragraphs'
      hook-computed indent (frameMargin 34). */
+  /* 6° (was 10°) + a matching smaller shift: sitewide mobile softening of
+     the perspective distortion — must stay in lockstep with the hook's
+     mobile PROFILE (tilt 6) so CSS-tilted titles and hook-planed blocks
+     keep sharing one deformation plane. Servicios' caption tilt (below) is
+     the deliberate exception and keeps its own values. */
   #nxr-dwh-proceso .nxr-section-h2,
   #nxr-dwh-capacidades .nxr-section-h2,
   #nxr-dwh-tech .nxr-section-h2,
   #nxr-aia-casos .nxr-section-h2,
   #nxr-aia-pasos .nxr-section-h2 {
     margin-right: 64px;
-    transform: translateX(16%) perspective(460px) rotateY(10deg);
+    transform: translateX(10%) perspective(460px) rotateY(6deg);
     transform-origin: 100% center;
   }
   .nxr-srv-caption-tilt {
@@ -4840,9 +4845,9 @@ input[type="range"].nxr-ms-range::-moz-range-thumb {
     /* Drops the desktop sticky-centering translateY(-50%) (it applies
        regardless of position scheme). Left-edge-forward like every other
        mobile block, on the SAME deformation plane as the titles/paragraphs
-       (16%/10°, 64px right margin — see the mobile h2 rule above). */
+       (10%/6°, 64px right margin — see the mobile h2 rule above). */
     margin-right: 64px;
-    transform: translateX(16%) perspective(460px) rotateY(10deg);
+    transform: translateX(10%) perspective(460px) rotateY(6deg);
     transform-origin: 100% center;
   }
   .nxr-intro-headline {

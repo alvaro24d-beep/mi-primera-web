@@ -4135,7 +4135,11 @@ input[type="range"].nxr-ms-range::-moz-range-thumb {
 @media (max-width: 900px) {
   .nxr-contacto-grid {
     grid-template-columns: 1fr;
-    gap: 40px;
+    /* Wider than the desktop rhythm on purpose: stacked, the textblock's
+       dynamic bow dips its lowest line up to ~29px TOWARD the form below,
+       visually eating the old 40px gap ("por la deformación de perspectiva
+       se ve más junto"). */
+    gap: 80px;
   }
   .nxr-contacto-left .nxr-section-h2 {
     max-width: 100%;

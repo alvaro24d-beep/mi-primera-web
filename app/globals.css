@@ -294,8 +294,13 @@ h6 {
      outer-edge projection ~40px+ off the viewport frame — measured at
      1440px via scratchpad verify-perspective2.mjs; re-run it if these
      selectors change width. */
-  /* (#nxr-proceso / #nxr-tech left this tier: their whole header row now
-     rides the hook-applied plane — see the textblock note above.) */
+  /* Desktop-only: on phones these h2s live inside their section's unified
+     mobile textblock plane instead (no own transform there). */
+  #nxr-proceso .nxr-section-h2,
+  #nxr-tech .nxr-section-h2 {
+    transform: translateX(20%) perspective(460px) rotateY(16deg);
+    transform-origin: 100% center;
+  }
   /* The /desarrollo-web titles keep the h2's full 600px layout box (no
      narrow grid column shrinking them like the home's), so their projected
      left edge juts much further — they need the wide-block tier. */
@@ -2951,20 +2956,21 @@ h6 {
   margin-bottom: 80px;
 }
 
-/* Title + paragraph STACKED in one narrow column (Contacto-textblock
-   geometry), carrying the hook-applied plane. Deliberately NOT the old
-   full-width title/paragraph row: an edge-pivot plane over a viewport-wide
-   block balloons the outer edge ~2.3x and the keep-in-frame shift then
-   pushes the pivot side clean off-screen (measured: the paragraph landed at
-   x=2800 on a 1440 viewport). Narrow block = sane projection, proven look.
-   Lives inside the reveal element (which owns `transform` for its
-   entrance), so the plane goes here, not on .nxr-proceso-header. */
+/* Desktop: the ORIGINAL header row — title left (its own CSS tier plane),
+   paragraph right (its own hook plane). The unified stacked block only
+   exists on phones (the ≤900 override turns this column and the mobile-only
+   hook call planes it) — a viewport-wide planed row is geometrically
+   unusable (edge balloons ~2.3x, keep-in-frame shift ejects the pivot side;
+   measured at x=2800 on a 1440 viewport), and the narrow stacked block on
+   desktop read oversized ("están muy grandes, antes estaban bien"). Lives
+   inside the reveal element (which owns `transform` for its entrance), so
+   any plane goes here, never on .nxr-proceso-header. */
 .nxr-proceso-textblock {
   display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 22px;
-  max-width: 640px;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 40px;
+  flex-wrap: wrap;
 }
 
 .nxr-proceso-header .nxr-section-h2 {
@@ -2972,10 +2978,11 @@ h6 {
 }
 
 .nxr-proceso-header-right {
-  max-width: 520px;
+  max-width: 340px;
   font-size: 15px;
   color: var(--c-salmon);
   line-height: 1.7;
+  flex-shrink: 0;
 }
 
 .nxr-proceso-track {
@@ -3297,14 +3304,14 @@ h6 {
   margin-bottom: 48px;
 }
 
-/* Stacked narrow column carrying the hook plane — same geometry note as
-   .nxr-proceso-textblock (a full-width planed row breaks the projection). */
+/* Desktop row (title left / paragraph right); stacked + hook-planed only on
+   phones — same breakpoint split as .nxr-proceso-textblock above. */
 .nxr-tech-header {
   display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 22px;
-  max-width: 640px;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 40px;
+  flex-wrap: wrap;
 }
 
 .nxr-tech-header .nxr-section-h2 {
@@ -3312,10 +3319,11 @@ h6 {
 }
 
 .nxr-tech-header-right {
-  max-width: 520px;
+  max-width: 340px;
   font-size: 15px;
   color: var(--c-salmon);
   line-height: 1.7;
+  flex-shrink: 0;
 }
 
 .nxr-marquee-wrap {

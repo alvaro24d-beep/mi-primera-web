@@ -65,10 +65,18 @@ export default function Tech() {
     return () => io.disconnect();
   }, []);
 
-  // ONE plane + one bow field for the whole header (title + paragraph) —
-  // Contacto-textblock pattern; see the twin comment in Proceso.tsx. Safe to
-  // plane the header directly: the reveal lives on .nxr-tech-inner above it.
-  useCurvedWords(sectionRef, ".nxr-tech-header", "left", [], { splitIgnore: ".nxr-section-h2" });
+  // Split composition per breakpoint — see the twin comment in Proceso.tsx.
+  // Safe to plane the header directly: the reveal lives on .nxr-tech-inner.
+  useCurvedWords(sectionRef, ".nxr-tech-header", "left", [], {
+    onlyBelow: 901,
+    splitIgnore: ".nxr-section-h2",
+  });
+  useCurvedWords(sectionRef, ".nxr-tech-header-right", "right", [], { onlyAbove: 901 });
+  useCurvedWords(sectionRef, ".nxr-section-h2", "left", [], {
+    onlyAbove: 901,
+    bowOnly: true,
+    useExistingWords: true,
+  });
 
   return (
     <section id="nxr-tech" ref={sectionRef}>

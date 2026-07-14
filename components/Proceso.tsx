@@ -100,13 +100,24 @@ export default function Proceso() {
   // under the cursor while the glass stayed unrotated.
   useGlassPanels(sectionRef, ".nxr-paso-card", "#141018", []);
 
-  // ONE plane + one bow field for the whole header (title + paragraph),
-  // Contacto-textblock pattern: the old split (h2 on its CSS plane, paragraph
-  // on the hook's) produced two visibly different vanishing points side by
-  // side ("la distorsión tiene que ser la misma en todos los textos"). The
-  // h2 keeps useTitleReveal's split (splitIgnore) and its word spans join
-  // this block's bow field.
-  useCurvedWords(sectionRef, ".nxr-proceso-textblock", "left", [], { splitIgnore: ".nxr-section-h2" });
+  // Split composition per breakpoint (petición: "en ordenador el párrafo a
+  // la derecha como estaba antes; en móvil debajo del título"):
+  // — Desktop (≥901): original layout/planes — title left on its CSS tier
+  //   (see the min-901 tilt group) + dynamic bow riding the reveal's word
+  //   spans; paragraph right on its own right-edge hook plane.
+  // — Mobile (<901): both stacked inside ONE unified block/plane
+  //   (Contacto-textblock pattern; the h2 keeps useTitleReveal's split via
+  //   splitIgnore and its spans join this block's bow field).
+  useCurvedWords(sectionRef, ".nxr-proceso-textblock", "left", [], {
+    onlyBelow: 901,
+    splitIgnore: ".nxr-section-h2",
+  });
+  useCurvedWords(sectionRef, ".nxr-proceso-header-right", "right", [], { onlyAbove: 901 });
+  useCurvedWords(sectionRef, ".nxr-section-h2", "left", [], {
+    onlyAbove: 901,
+    bowOnly: true,
+    useExistingWords: true,
+  });
 
   useEffect(() => {
     const track = trackRef.current;

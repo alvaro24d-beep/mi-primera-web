@@ -100,6 +100,11 @@ export function useCurvedWords(
    * onlyBelow: activate only under this viewport width (e.g. the Servicios
    * captions curve on phones only — their desktop look is separately tuned).
    *
+   * onlyAbove: mirror gate — activate only at/above this width. Proceso/Tech
+   * use the pair to switch composition per breakpoint: desktop keeps the
+   * original split (title on its CSS tier plane, paragraph on its own
+   * right-edge hook plane), phones stack both inside one unified block.
+   *
    * exclude: words inside a matching ancestor are split but NEVER bowed —
    * for content with its own visible box (the Servicios pills), whose text
    * must stay squared inside its rounded border.
@@ -127,6 +132,7 @@ export function useCurvedWords(
     bowOnly?: boolean;
     useExistingWords?: boolean;
     onlyBelow?: number;
+    onlyAbove?: number;
     exclude?: string;
     alsoBow?: string;
     splitIgnore?: string;
@@ -137,6 +143,7 @@ export function useCurvedWords(
     const root = rootRef.current;
     if (!root) return;
     if (opts.onlyBelow && window.innerWidth >= opts.onlyBelow) return;
+    if (opts.onlyAbove && window.innerWidth < opts.onlyAbove) return;
     const els = Array.from(root.querySelectorAll<HTMLElement>(selector));
     if (!els.length) return;
 

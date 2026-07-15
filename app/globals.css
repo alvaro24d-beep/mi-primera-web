@@ -3593,6 +3593,19 @@ h6 {
   max-width: 440px;
 }
 
+/* Desktop-only size trim for this section's header copy ("está demasiado
+   grande" — the hook plane's near-edge magnification makes the global h2
+   clamp read oversized here). Phones keep the global sizes. */
+@media (min-width: 901px) {
+  #nxr-contacto .nxr-section-h2 {
+    font-size: clamp(28px, 3.2vw, 44px);
+  }
+  .nxr-contacto-desc {
+    font-size: 14.5px;
+    max-width: 400px;
+  }
+}
+
 .nxr-contacto-items {
   display: flex;
   flex-direction: column;

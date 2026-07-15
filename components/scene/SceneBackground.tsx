@@ -242,6 +242,11 @@ export default function SceneBackground({
     tex.colorSpace = THREE.SRGBColorSpace;
     tex.magFilter = THREE.NearestFilter; // keep the pixelation crisp
     tex.minFilter = THREE.LinearFilter;
+    // The zoomed-out sampling below can step slightly outside [0,1] on the
+    // wall's (mostly off-screen) outer fringes — mirror instead of clamped
+    // edge streaks. (WebGL2: fine on NPOT video textures.)
+    tex.wrapS = THREE.MirroredRepeatWrapping;
+    tex.wrapT = THREE.MirroredRepeatWrapping;
     // Captured once — the material is stable for this component's lifetime, so
     // the same instance is valid across every callback/cleanup below.
     const mat = matRef.current;
@@ -261,8 +266,17 @@ export default function SceneBackground({
         // unrolled aspect (see sampleSource in the fragment shader).
         const va = video.videoWidth / video.videoHeight || 1;
         const cover = mat.uniforms.uCoverScale.value as THREE.Vector2;
-        if (va > WALL_ASPECT) cover.set(WALL_ASPECT / va, 1);
-        else cover.set(1, va / WALL_ASPECT);
+        // Landscape (desktop) clips read "too close": pure cover sampled
+        // only the central 62% of the frame's width, and the wall's
+        // top/bottom overshoot the viewport, hiding another ~30% of its
+        // height. ZOOM = uniform zoom-out of the sampling on BOTH axes
+        // (aspect preserved, nothing stretches): at 1.3 a 900px-tall
+        // desktop sees ~92% of the frame's height and ~81% of its width.
+        // Out-of-range sampling on the off-screen fringes mirrors (see the
+        // texture wrap above). Portrait clips are authored 1:1 for phones.
+        const zoom = va > 1 ? 1.3 : 1;
+        if (va > WALL_ASPECT) cover.set((WALL_ASPECT / va) * zoom, zoom);
+        else cover.set(zoom, (va / WALL_ASPECT) * zoom);
       }
       video.play().catch(() => {});
       if (supportsRVFC) rvfcId = video.requestVideoFrameCallback(onFrame);

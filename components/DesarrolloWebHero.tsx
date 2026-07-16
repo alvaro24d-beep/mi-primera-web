@@ -5,6 +5,7 @@ import dynamic from "next/dynamic";
 import gsap from "gsap";
 import { useGSAP } from "@gsap/react";
 import BrowserBuild from "./dwh/BrowserBuild";
+import DecryptedText from "./DecryptedText";
 
 // Three.js + R3F + drei + postprocessing is by far the heaviest JS on this
 // route. Load it as a separate chunk after hydration (`ssr: false`) so it
@@ -277,10 +278,33 @@ export default function DesarrolloWebHero() {
         <BrowserBuild />
         <div className="nxr-dwh-overlay">
           <div className="nxr-dwh-head">
+            {/* DecryptedText (React Bits, adapted): the headline "compiles"
+                from code glyphs into words — the page's own promise, on
+                brand with the browser that builds itself below. Character
+                set is code punctuation, not random letters. SSR/SEO safe:
+                the real text is server-rendered and lives in the sr-only
+                twin. Only this animated branch uses it — the reduced-motion
+                branch above renders the plain h1. */}
             <h1 className="nxr-dwh-h1">
-              Construimos tu web,
+              <DecryptedText
+                text="Construimos tu web,"
+                animateOn="view"
+                sequential
+                speed={40}
+                characters={"</>{}[]()=#;$_"}
+                encryptedClassName="nxr-decrypt-char"
+              />
               <br />
-              <span className="nxr-gradient-text-lime">pieza a pieza.</span>
+              <span className="nxr-gradient-text-lime">
+                <DecryptedText
+                  text="pieza a pieza."
+                  animateOn="view"
+                  sequential
+                  speed={55}
+                  characters={"</>{}[]()=#;$_"}
+                  encryptedClassName="nxr-decrypt-char"
+                />
+              </span>
             </h1>
           </div>
           <div className="nxr-dwh-layers-panel nxr-glass-edge">

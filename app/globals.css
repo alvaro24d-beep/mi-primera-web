@@ -7335,3 +7335,58 @@ input[type="range"].nxr-ms-range::-moz-range-thumb {
     width: 100%;
   }
 }
+
+/* ===== Desarrollo Web — extras de React Bits (DecryptedText, CurvedLoop/DwhClaims) =====
+   ClickSpark no necesita CSS (canvas fixed con estilos inline). */
+
+/* Chars aún "cifrados" del H1 del hero mientras DecryptedText resuelve.
+   Solo opacity: el span del gradiente lima usa background-clip:text, y
+   cualquier color/text-fill aquí lo pisaría. */
+.nxr-decrypt-char {
+  opacity: 0.45;
+}
+
+/* CurvedLoop (React Bits, adaptado — components/CurvedLoop.tsx): su CSS de
+   fábrica se pliega aquí por la convención de hoja única. El min-height:100vh
+   original era de demo; esto es una cinta, no una sección entera. */
+.nxr-curvedloop {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  touch-action: pan-y; /* el drag horizontal no debe secuestrar el scroll táctil */
+}
+
+.nxr-curvedloop-svg {
+  user-select: none;
+  -webkit-user-select: none;
+  width: 100%;
+  aspect-ratio: 100 / 12;
+  overflow: visible;
+  display: block;
+  font-size: 5.5rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  line-height: 1;
+}
+
+/* La cinta de claims entre Capacidades y el stack: tipografía outline
+   (relleno casi nulo + trazo) — las palabras del oficio pasando en bucle. */
+.nxr-dwh-claims {
+  padding: 12px 0 28px;
+  overflow: hidden;
+}
+
+.nxr-dwh-claims-text {
+  fill: rgba(255, 255, 255, 0.06);
+  stroke: rgba(255, 255, 255, 0.34);
+  stroke-width: 1.4px;
+  letter-spacing: 0.05em;
+  paint-order: stroke;
+}
+
+@media (max-width: 768px) {
+  .nxr-dwh-claims {
+    padding: 4px 0 16px;
+  }
+}

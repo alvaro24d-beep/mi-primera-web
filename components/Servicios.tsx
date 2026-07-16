@@ -707,12 +707,16 @@ export default function Servicios() {
       // definition on every viewport, so TAIL_START > 1 keeps its peek fully
       // opaque and the dissolve happens across the SECOND step out.
       const TAIL_START = isDesktopUI ? 0.9 : 1.05;
-      // Mobile 2.3 (was 1.75): the materialization/dissolve now spans ~1.25
-      // card-steps (~370px of scroll) instead of ~0.7 — the first card
-      // FADES IN gently at the edge park across a real stretch of scroll
-      // rather than popping in over one flick ("que la entrada sea más
-      // suave, no tan rápida").
-      const TAIL_END = isDesktopUI ? 1.35 : 2.3;
+      // Mobile 1.9: smoother than the original 1.75 (dissolve spans ~0.85
+      // steps ≈ 250px) but STRICTLY under TAIL_START + 1.0. The 2.3 attempt
+      // ("entrada más suave") made the dissolve span MORE than one card-step
+      // — so card N+1 began materializing at the edge park while card N was
+      // still fading in there itself: on arrival the first card appeared,
+      // and "the same card" immediately re-appeared behind it and turned
+      // out to be Agentes IA ("sale otra más que no debería estar"). With
+      // the span < 1 step, the park hosts at most ONE materializing card at
+      // any moment, by construction.
+      const TAIL_END = isDesktopUI ? 1.35 : 1.9;
       // Extra z recession (px) at full tail, on top of the drum's own.
       const TAIL_DEPTH = isDesktopUI ? 260 : 140;
       // Extra vertical drift (px) at full tail, continuing the helix pitch.
@@ -1038,9 +1042,27 @@ export default function Servicios() {
           pin: sticky,
           anticipatePin: 1,
           invalidateOnRefresh: true,
-          onUpdate: () => {
+          onUpdate: (self) => {
             updateSpiral();
             pushAll();
+            // First-arrival WALL (mobile): until the reel has presented
+            // card 0 (presentedFirst flips in trySnap's firstSettle), a
+            // flick's inertia must not carry the scroll past card 0's
+            // centred position — the overshoot pulled card 1 toward centre
+            // (caption crossfading to "Agentes IA") before the settle glid
+            // back, reading as a phantom card. Immediate write-back each
+            // update truncates the inertia exactly at centre; the wall
+            // lifts after the first settle, so the next swipe pages to
+            // card 1 normally.
+            if (!presentedFirst && window.innerWidth <= 900) {
+              const cap = pOf(0);
+              if (progressNow(self) > cap) {
+                const y = scrollAt(self, cap);
+                const lenis = window.__nxrLenis;
+                if (lenis) lenis.scrollTo(y, { immediate: true });
+                else window.scrollTo(0, y);
+              }
+            }
             window.clearTimeout(snapTimer);
             // Short idle window so cards "click" into selection as you
             // pass them rather than long after the scroll stops. The

@@ -786,10 +786,19 @@ export default function Servicios() {
           const steps = Math.abs(slideCenterX - centerX) / stepPx;
 
           const theta = gsap.utils.clamp(-1.1, 1.1, nx) * THETA_MAX;
+          // Mobile EXIT side: no tail at all — the departing card slides out
+          // through the left edge as a rigid carousel, keeping its step
+          // distance to the card on its right ("quiero que desaparezca
+          // yéndose por la izquierda... como un carrusel"; supersedes the
+          // earlier dissolve-behind ending there). The ENTRY side keeps the
+          // materialization tail on every device; desktop keeps both sides.
+          const tailActive = isDesktopUI || nxRaw > 0;
           // Tail parameter: 0 on the lane, 1 fully dissolved. Squared where
           // it feeds motion so the card PEELS off the lane smoothly instead
           // of kinking at the threshold; linear for the fade itself.
-          const tail = gsap.utils.clamp(0, 1, (steps - TAIL_START) / (TAIL_END - TAIL_START));
+          const tail = tailActive
+            ? gsap.utils.clamp(0, 1, (steps - TAIL_START) / (TAIL_END - TAIL_START))
+            : 0;
           const tail2 = tail * tail;
           scrollYaw[i] = (theta * 180) / Math.PI;
           scrollZ[i] = -drumR * (1 - Math.cos(theta)) - TAIL_DEPTH * tail2;
@@ -820,7 +829,9 @@ export default function Servicios() {
             // static fade; no cancel at all made the dissolve happen
             // off-screen on mobile (screen narrower than one step). The
             // drift factor is edge-calibrated in PARK_DRIFT's comment.
-            x: -Math.sign(nx) * Math.max(0, Math.abs(slideCenterX - centerX) - stepPx) * (1 - PARK_DRIFT),
+            x: tailActive
+              ? -Math.sign(nx) * Math.max(0, Math.abs(slideCenterX - centerX) - stepPx) * (1 - PARK_DRIFT)
+              : 0,
             y: ARC_AMPLITUDE * nx + Math.sign(nx) * tail2 * TAIL_CLIMB,
             // Depth-correct DOM painting: a dissolving tail card must never
             // paint OVER the front card's content (WebGL sorts by real z;

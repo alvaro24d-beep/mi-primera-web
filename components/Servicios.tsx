@@ -643,19 +643,16 @@ export default function Servicios() {
         return track.getBoundingClientRect().left - currentX;
       };
       const centredX = () => window.innerWidth / 2 - cardWidth() / 2 - trackBaseLeft();
-      // Rest position of the FIRST card, expressed so it sits INSIDE the
-      // spiral tail (see TAIL_START/TAIL_END below) on both platforms:
-      // half-dissolved in depth rather than fully lit on the lane. That is
-      // what kills the old "card rides up with the page" read before the pin
-      // ("se ve la primera card subir desde abajo") — during the approach
-      // the card is a translucent shape deep in the helix, and the pin's
-      // first scroll brings it forward along the spiral. Mobile rests at
-      // nx ≈ 1.15 (t ≈ 0.3 — still clearly visible during the title's fade,
-      // per the previous request); desktop at nx ≈ 1.1 (t ≈ 0.33).
-      const entryOffset = () =>
-        window.innerWidth <= 900
-          ? window.innerWidth * 0.5 + cardWidth() * 0.12
-          : sticky.clientWidth * 0.55;
+      // Rest position of the FIRST card: exactly at the spiral tail's END
+      // (opacity 0) on both platforms, so NOTHING is visible in the reel
+      // during the pre-pin approach — any card visible there inevitably
+      // reads as "riding up with the page" (the sticky block is still in
+      // normal flow), which survived the previous half-dissolved attempt
+      // ("se sigue viendo subir por abajo"). The very first pixel of pin
+      // scroll starts materializing it from the helix's depth instead.
+      // TAIL_END is declared below but only read when this is CALLED (first
+      // use: the gsap.set(track) after the constants), so no TDZ issue.
+      const entryOffset = () => cardStep() * (TAIL_END + 0.02);
       const startX = () => centredX() + entryOffset();
       const amount = () => entryOffset() + Math.max(0, track.scrollWidth - cardWidth());
       const endX = () => startX() - amount();
@@ -678,19 +675,22 @@ export default function Servicios() {
       // well before the raw anchor rect would otherwise be culled.
       const MAX_YAW_DEG = isDesktopUI ? 58 : 18;
       const THETA_MAX = (MAX_YAW_DEG * Math.PI) / 180;
-      // Spiral-tail range, in the same normalized |nx| units used everywhere
-      // else, applied on BOTH sides (enter/exit) and BOTH platforms. Beyond
-      // TAIL_START the card peels off the linear lane: it pulls back toward
-      // the drum's axis (never crossing the screen edge), gains extra depth
-      // and vertical drift along the helix (exit climbs, entry sits lower),
-      // and dissolves — fully gone by TAIL_END. Adjacent cards sit ~1.0
-      // apart in nx, so mobile's start is just past 1.0 to keep the resting
-      // neighbours' peek fully opaque; desktop's 0.95 preserves the old
-      // "hold until the next-next enters" exit timing.
-      const TAIL_START = isDesktopUI ? 0.95 : 1.02;
-      const TAIL_END = isDesktopUI ? 1.4 : 1.45;
-      // × halfW of horizontal pull toward the axis at full tail.
-      const TAIL_PULLBACK = isDesktopUI ? 0.5 : 0.42;
+      // Spiral-tail range, in CARD-STEP units (distance between adjacent
+      // slides), applied on BOTH sides (enter/exit) and BOTH platforms.
+      // Beyond TAIL_START the card peels off the linear lane: it pulls back
+      // toward the drum's axis (never crossing the screen edge), gains extra
+      // depth and vertical drift along the helix (exit climbs, entry sits
+      // lower), and dissolves — fully gone by TAIL_END.
+      // CARD-STEPS, not the nx half-viewport units: on desktop one step ≈
+      // 1.08·halfW so both scales roughly agree, but on MOBILE one step ≈
+      // 1.5·halfW — the first version measured the tail in nx and silently
+      // put the resting neighbours (±1 step = nx ±1.5) INSIDE the dissolve,
+      // wiping out the edge peek ("en móvil se tienen que ver un poco las
+      // cards que están a los lados"). In step units the neighbour is 1.0 by
+      // definition on every viewport, so TAIL_START > 1 keeps its peek fully
+      // opaque and the dissolve happens across the SECOND step out.
+      const TAIL_START = isDesktopUI ? 0.9 : 1.05;
+      const TAIL_END = isDesktopUI ? 1.35 : 1.75;
       // Extra z recession (px) at full tail, on top of the drum's own.
       const TAIL_DEPTH = isDesktopUI ? 260 : 140;
       // Extra vertical drift (px) at full tail, continuing the helix pitch.
@@ -735,6 +735,7 @@ export default function Servicios() {
         const centerX = stickyRect.left + stickyRect.width / 2;
         const halfW = stickyRect.width / 2;
         const drumR = halfW / Math.sin(THETA_MAX);
+        const stepPx = cardStep() || halfW;
         slides.forEach((slide, i) => {
           const r = slide.getBoundingClientRect();
           // Base lane position: the rect minus the slide's OWN tail x-pull
@@ -743,12 +744,14 @@ export default function Servicios() {
           const slideX = Number(gsap.getProperty(slide, "x")) || 0;
           const slideCenterX = r.left + r.width / 2 - slideX;
           const nx = gsap.utils.clamp(-1.6, 1.6, (slideCenterX - centerX) / halfW);
+          // Tail distance in CARD-STEP units (see TAIL_START/TAIL_END).
+          const steps = Math.abs(slideCenterX - centerX) / stepPx;
 
           const theta = gsap.utils.clamp(-1.1, 1.1, nx) * THETA_MAX;
           // Tail parameter: 0 on the lane, 1 fully dissolved. Squared where
           // it feeds motion so the card PEELS off the lane smoothly instead
           // of kinking at the threshold; linear for the fade itself.
-          const tail = gsap.utils.clamp(0, 1, (Math.abs(nx) - TAIL_START) / (TAIL_END - TAIL_START));
+          const tail = gsap.utils.clamp(0, 1, (steps - TAIL_START) / (TAIL_END - TAIL_START));
           const tail2 = tail * tail;
           scrollYaw[i] = (theta * 180) / Math.PI;
           scrollZ[i] = -drumR * (1 - Math.cos(theta)) - TAIL_DEPTH * tail2;
@@ -761,11 +764,16 @@ export default function Servicios() {
           lastNx[i] = nx;
 
           gsap.set(slide, {
-            // Helix return arc: horizontal pull toward the drum's axis (the
-            // card decelerates and comes BACK instead of crossing the screen
-            // edge) + the linear pitch extended with an extra climb (exit,
-            // up) / sink (entry, down).
-            x: -Math.sign(nx) * tail2 * TAIL_PULLBACK * halfW,
+            // Hard PARK at the neighbour's slot (1 card-step from centre):
+            // beyond it the card stops tracking the track's x entirely and
+            // plays the whole tail — climb, depth, dissolve — standing at
+            // the peek position. A proportional pull looked right on
+            // desktop, but on mobile the screen is narrower than one step,
+            // so the dissolve happened OFF-SCREEN and exits still read as
+            // "cards leave through the edge". Parking guarantees the spiral
+            // ending is visible on every viewport, exactly where the
+            // neighbour peek lives.
+            x: -Math.sign(nx) * Math.max(0, Math.abs(slideCenterX - centerX) - stepPx),
             y: ARC_AMPLITUDE * nx + Math.sign(nx) * tail2 * TAIL_CLIMB,
             // Depth-correct DOM painting: a dissolving tail card must never
             // paint OVER the front card's content (WebGL sorts by real z;

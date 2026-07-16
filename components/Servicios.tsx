@@ -720,7 +720,18 @@ export default function Servicios() {
       // Extra z recession (px) at full tail, on top of the drum's own.
       const TAIL_DEPTH = isDesktopUI ? 260 : 140;
       // Extra vertical drift (px) at full tail, continuing the helix pitch.
-      const TAIL_CLIMB = isDesktopUI ? 110 : 42;
+      const TAIL_CLIMB = isDesktopUI ? 110 : 60;
+      // SOFT park: fraction of the beyond-the-park travel the card KEEPS.
+      // The hard park (factor 0) froze the exiting card at the peek slot and
+      // its whole dissolve read as a static fade on mobile ("hace como un
+      // desvanecimiento fijo, quiero que se mueva"). With a residual drift
+      // the card keeps gliding outward while it climbs/recedes/fades —
+      // motion all the way through. Calibrated against the screen edge: on
+      // mobile (peek sliver ≈ 39px, max overshoot 0.9 steps ≈ 266px), 0.15
+      // puts opacity at ~0.03 exactly when the last pixels would touch the
+      // edge — it still never visibly leaves through the side. Desktop has
+      // ~270px of margin at its park, so 0.2 is nowhere near the edge.
+      const PARK_DRIFT = isDesktopUI ? 0.2 : 0.15;
 
       // Helical trajectory on a REAL cylinder, bottom-right → top-left: the
       // cards ride the surface of a vertical-axis drum whose radius R is
@@ -801,16 +812,15 @@ export default function Servicios() {
           lastNx[i] = nxRaw;
 
           gsap.set(slide, {
-            // Hard PARK at the neighbour's slot (1 card-step from centre):
-            // beyond it the card stops tracking the track's x entirely and
-            // plays the whole tail — climb, depth, dissolve — standing at
-            // the peek position. A proportional pull looked right on
-            // desktop, but on mobile the screen is narrower than one step,
-            // so the dissolve happened OFF-SCREEN and exits still read as
-            // "cards leave through the edge". Parking guarantees the spiral
-            // ending is visible on every viewport, exactly where the
-            // neighbour peek lives.
-            x: -Math.sign(nx) * Math.max(0, Math.abs(slideCenterX - centerX) - stepPx),
+            // SOFT park at the neighbour's slot (1 card-step from centre):
+            // beyond it the card cancels most of the track's x — keeping
+            // PARK_DRIFT of the overshoot as residual outward glide — and
+            // plays the tail (climb, depth, dissolve) while still visibly
+            // moving. Full-cancel (hard park) made mobile exits read as a
+            // static fade; no cancel at all made the dissolve happen
+            // off-screen on mobile (screen narrower than one step). The
+            // drift factor is edge-calibrated in PARK_DRIFT's comment.
+            x: -Math.sign(nx) * Math.max(0, Math.abs(slideCenterX - centerX) - stepPx) * (1 - PARK_DRIFT),
             y: ARC_AMPLITUDE * nx + Math.sign(nx) * tail2 * TAIL_CLIMB,
             // Depth-correct DOM painting: a dissolving tail card must never
             // paint OVER the front card's content (WebGL sorts by real z;

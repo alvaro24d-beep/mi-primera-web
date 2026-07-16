@@ -63,6 +63,28 @@ export default function SmoothScroll() {
     });
     window.__nxrLenis = lenis;
 
+    // Per-gesture reach CAP. The 2.0 inertia exponent gives medium flicks
+    // their native-like glide, but the power curve explodes on HARD flicks
+    // (|v|^2: at 80px/frame that's ~6400px — "deslizo una vez y se me
+    // desplaza varias secciones"). Lenis has no built-in max, so: right
+    // after it computes the release-inertia target (its own touchend
+    // listener runs first — registered at init), clamp how far ahead of
+    // the current position that target may sit. scrollTo with the same
+    // syncTouchLerp keeps the braking tail's feel identical — hard flicks
+    // just run out of runway at ~1.6 screens instead of 4+. Servicios'
+    // pagination glides are unaffected (their per-frame immediate writes
+    // overwrite any target this sets).
+    const capFlickReach = () => {
+      requestAnimationFrame(() => {
+        const ahead = lenis.targetScroll - lenis.animatedScroll;
+        const cap = window.innerHeight * 1.6;
+        if (Math.abs(ahead) > cap) {
+          lenis.scrollTo(lenis.animatedScroll + Math.sign(ahead) * cap, { lerp: 0.055 });
+        }
+      });
+    };
+    window.addEventListener("touchend", capFlickReach, { passive: true });
+
     // Any ScrollTrigger created anywhere in the app (this is the only place
     // that should own a Lenis instance) needs to recompute on Lenis' own
     // scroll event, since Lenis drives scroll via rAF rather than firing
@@ -78,6 +100,7 @@ export default function SmoothScroll() {
 
     return () => {
       cancelAnimationFrame(rafId);
+      window.removeEventListener("touchend", capFlickReach);
       delete window.__nxrLenis;
       lenis.destroy();
     };

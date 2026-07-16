@@ -41,18 +41,25 @@ export default function SmoothScroll() {
       // Wheel smoothing only slightly snappier than Lenis' default 0.1 —
       // desktop feel, unchanged.
       lerp: 0.16,
-      // Touch: back at Lenis' own DEFAULT (0.075). The raised 0.18 made the
-      // leftover momentum after lifting the finger converge in a few frames
-      // — reported as "the scroll brakes immediately on mobile". The default
-      // lets a flick glide out naturally (native-feeling decay). All touch-
-      // inertia knobs (touchInertiaMultiplier/Exponent) also stay at their
-      // defaults for the same reason — an earlier 1.2 exponent override had
-      // the same braking side-effect and was reverted. Servicios' one-card-
-      // per-swipe pagination is NOT affected by longer momentum: its glideTo
-      // writes `scrollTo(..., immediate)` every frame (killing Lenis'
-      // internal inertia each write) and holds until verifiably converged
-      // (see the holdFrames loop in Servicios.tsx).
-      syncTouchLerp: 0.075,
+      // Touch feel — the PHYSICS (from lenis source, so the knobs stop
+      // being guessed at): on release, coast distance = |velocity| **
+      // touchInertiaExponent, and the tail converges by lerping with
+      // syncTouchLerp each frame. Higher exponent = flies farther; LOWER
+      // lerp = takes longer to stop. History decoded with that in hand:
+      // syncTouchLerp 0.18 braked (converged in a handful of frames), and
+      // the old 1.2 exponent ALSO braked because 1.2 is BELOW the 1.7
+      // default — both past reverts were the same knob-direction mistake.
+      // Current tuning (petición: "que vaya más ligero, como el scroll
+      // predeterminado de una web normal, que tarde más en pararse"):
+      // exponent 2.0 → a medium flick coasts ~2-3× farther (native-like
+      // momentum reach), lerp 0.055 → the glide takes ~1s to die instead
+      // of ~0.65s. Servicios' one-card-per-swipe pagination is immune to
+      // longer momentum: its glideTo writes `scrollTo(..., immediate)`
+      // every frame (killing Lenis' internal inertia each write) and holds
+      // until verifiably converged (see the holdFrames loop), and the
+      // first-arrival wall clamps regardless of inertia.
+      syncTouchLerp: 0.055,
+      touchInertiaExponent: 2.0,
     });
     window.__nxrLenis = lenis;
 

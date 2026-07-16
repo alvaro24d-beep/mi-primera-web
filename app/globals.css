@@ -1309,31 +1309,39 @@ h6 {
    reel — replaces the old top-right sticky overlay. Flat and centred on
    purpose: no perspective tilt here (it was removed from the tilt rule
    groups), the blur is the whole entrance. */
-/* The section-title moment lives INSIDE the pinned sticky now (absolute
-   overlay, dead-centred by flex): while pinned it physically cannot travel
-   ("que se quede fija sin subir ni bajar") — the old version was a sticky
-   h2 inside a 165vh/70vh runway ABOVE the sticky, which visibly rode up
-   with the page at both ends of its fade. The runway is gone entirely; the
-   scroll distance the phrase needs is a PROLOGUE segment of the reel's own
-   pin (see PROLOGUE in Servicios.tsx), so the section also pins/starts as
-   soon as it reaches the top ("que la sección empiece antes"). */
+/* The section-title moment: a viewport-FIXED overlay (rule below) driven by
+   two scrubs in Servicios.tsx — an approach scrub fades it in while Intro's
+   cards are still leaving above, and the reel pin's PROLOGUE holds it and
+   fades it out into the first card's materialization. History: originally a
+   sticky h2 inside a 165vh/70vh runway (rode up with the page at its fade
+   edges), then an absolute overlay inside the pinned sticky (couldn't
+   appear until the pin, i.e. until Intro was fully gone). */
 .nxr-servicios-head {
-  position: absolute;
+  /* FIXED to the viewport (not absolute-in-sticky): the phrase starts
+     fading in during the APPROACH, while Intro's cards are still on screen
+     above — and being viewport-anchored it never travels a pixel, before,
+     during or after the pin. Lives as a direct child of the SECTION, not
+     the sticky: the sticky's perspective:1000px would become a fixed
+     descendant's containing block and silently turn this into
+     absolute-like positioning. */
+  position: fixed;
   top: 0;
   left: 0;
   right: 0;
-  /* VISUAL viewport height, not the sticky's 100lvh box: lvh is the
-     toolbar-collapsed (largest) viewport, so on mobile centering in it sat
-     the phrase visibly BELOW the real mid-screen ("sale más abajo, no a
-     mitad de altura"). --vh-100 is the live innerHeight variable Hero.tsx
+  /* VISUAL viewport height, not 100lvh: lvh is the toolbar-collapsed
+     (largest) viewport, so on mobile centering in it sat the phrase
+     visibly BELOW the real mid-screen ("sale más abajo, no a mitad de
+     altura"). --vh-100 is the live innerHeight variable Hero.tsx
      maintains; desktop is unaffected (both are equal there). */
   height: var(--vh-100, 100lvh);
   display: flex;
   align-items: center;
   justify-content: center;
   pointer-events: none;
-  /* Above the slides' depth-sorted z-indexes (≤50): a materializing card
-     must never paint over the dissolving title. */
+  /* Inside the section's stacking context (z-index 1 at root): above the
+     sticky and the slides' depth-sorted z-indexes (≤50) so a materializing
+     card never paints over the dissolving title — still far below the
+     floating nav / GradualBlur (9998+). */
   z-index: 60;
 }
 

@@ -506,15 +506,39 @@ export default function Servicios() {
       const cards = q(".nxr-srv-card") as HTMLElement[];
       const captions = q(".nxr-servicios-captions .nxr-srv-caption") as HTMLElement[];
 
-      // ---- Section-title moment: the heading is an absolute overlay INSIDE
-      // the pinned sticky (see .nxr-servicios-head CSS) and its whole blur
-      // moment is scrubbed as the PROLOGUE of the reel's main timeline (see
-      // buildTl below) — fade in, hold DEAD-STILL at screen centre (pinned
-      // element: zero travel, "sin subir ni bajar"), fade out overlapping
-      // the first card's materialization. The old version (own runway +
-      // sticky h2 + separate ScrollTrigger) visibly rode up with the page at
-      // both ends of its fade.
+      // ---- Section-title moment, split across TWO drivers on one
+      // viewport-FIXED element (see .nxr-servicios-head CSS):
+      //  1) APPROACH scrub (below): fades the phrase in while the sticky is
+      //     still climbing to the top — i.e. while Intro's cards are still
+      //     visible above ("que empiece a salir cuando aún las cards de
+      //     intro están arriba"). Fixed positioning = zero travel even
+      //     though the page is scrolling.
+      //  2) The pin timeline's PROLOGUE (buildTl below): long hold, then
+      //     the fade-out that overlaps the first card's materialization.
+      // The handoff is clean by construction: the approach range ends
+      // exactly where the pin starts, and the pin timeline never touches
+      // opacity before its fade-out — whatever the approach wrote (1) just
+      // persists.
       const headTitle = q(".nxr-servicios-head .nxr-section-h2")[0] as HTMLElement | undefined;
+      if (headTitle) {
+        gsap
+          .timeline({
+            scrollTrigger: {
+              trigger: sticky,
+              // Starts while the previous section's cards still occupy the
+              // upper ~70% of the screen; fully bright the moment the pin
+              // engages.
+              start: "top 70%",
+              end: "top top",
+              scrub: 0.5,
+            },
+          })
+          .fromTo(
+            headTitle,
+            { opacity: 0, filter: "blur(18px)" },
+            { opacity: 1, filter: "blur(0px)", ease: "none" }
+          );
+      }
 
       // One live transform per card, owned by the hover-tilt quickTo
       // instances below. The scroll-driven spiral yaw and the idle drift are
@@ -956,22 +980,12 @@ export default function Servicios() {
         t.clear();
         const pro = PROLOGUE();
         if (headTitle) {
-          // Explicit initial state: a fromTo positioned PAST 0 in a timeline
-          // does NOT immediateRender its `from` values — without this the
-          // title sat fully visible before the pin's first scrub tick.
-          gsap.set(headTitle, { opacity: 0, filter: "blur(18px)" });
-          // Near-INSTANT entrance (in by 0.11·pro ≈ 15-19vh): the phrase
-          // must show up right after Intro's cards ("salía justo después de
-          // las cards de intro"), not after half a prologue of dead scroll.
-          // Fade-out only from 0.85·pro → the full-brightness HOLD spans
-          // ~0.74·pro (≈125vh desktop / ≈100vh mobile of scroll) — the
-          // ZoomParallax-hero class of persistence the user asked for.
-          t.fromTo(
-            headTitle,
-            { opacity: 0, filter: "blur(18px)" },
-            { opacity: 1, filter: "blur(0px)", ease: "none", duration: pro * 0.1 },
-            pro * 0.01
-          );
+          // ONLY the fade-out lives in the pin timeline — the fade-in
+          // belongs to the approach scrub above (so the phrase can appear
+          // while Intro is still leaving), and everything before 0.85·pro
+          // must leave opacity untouched at the approach's final value (1):
+          // the whole prologue is the HOLD (≈145vh desktop / ≈115vh mobile
+          // counting the approach — the ZoomParallax class of persistence).
           // The fade-out deliberately runs PAST the prologue into the first
           // stretch of track motion: the first card is already
           // materializing out of the helix while the phrase dissolves
@@ -1429,16 +1443,19 @@ export default function Servicios() {
           in useGSAP above), and its blur fade is scrubbed there. GSAP owns
           opacity/filter — no .nxr-reveal (its CSS transition would fight
           the tween) and no char-reveal ref (the blur IS the entrance). */}
+      {/* FIXED to the viewport (see globals.css) and OUTSIDE the sticky on
+          purpose: the sticky's perspective:1000px would hijack a fixed
+          descendant's containing block. Being viewport-fixed lets the
+          phrase start fading in during the APPROACH — while Intro's cards
+          are still leaving up top — without ever travelling with the page:
+          its position is screen-centred from the first moment to the last. */}
+      <div className="nxr-servicios-head">
+        <h2 className="nxr-section-h2">
+          Todo lo que tu negocio necesita para{" "}
+          <span className="nxr-gradient-text-salmon">crecer en la era de la IA.</span>
+        </h2>
+      </div>
       <div className="nxr-servicios-sticky" ref={stickyRef}>
-        {/* Inside the PINNED element (absolute overlay, see globals.css):
-            the phrase holds dead-still while the pin scrubs its prologue —
-            it can't ride the page like the old runway version did. */}
-        <div className="nxr-servicios-head">
-          <h2 className="nxr-section-h2">
-            Todo lo que tu negocio necesita para{" "}
-            <span className="nxr-gradient-text-salmon">crecer en la era de la IA.</span>
-          </h2>
-        </div>
         <div className="nxr-servicios-content" ref={contentRef}>
           {/*
             Each `.nxr-srv-slide` is one reel item: the `.nxr-srv-card`

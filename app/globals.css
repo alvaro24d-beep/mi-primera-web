@@ -1275,11 +1275,14 @@ h6 {
   perspective: 1000px;
 }
 
-/* Separate from `.nxr-servicios-sticky` (the pinned element itself) so the
-   one-shot entrance scale/fade (see Servicios.tsx) never touches the box
-   GSAP's `pin` measures. Fills the pinned viewport; the track below takes
-   the leftover height and centers the cards in it, so they can never hang
-   off the bottom edge regardless of viewport height / browser zoom. */
+/* Separate from `.nxr-servicios-sticky` (the pinned element itself) so any
+   future content-level animation never touches the box GSAP's `pin`
+   measures. (The old one-shot entrance scale/fade that lived here is GONE —
+   its mid-flight scale shrank the cards' measured rects and made the layer
+   hide their meshes once the pin started right after the section top.)
+   Fills the pinned viewport; the track below takes the leftover height and
+   centers the cards in it, so they can never hang off the bottom edge
+   regardless of viewport height / browser zoom. */
 .nxr-servicios-content {
   flex: 1;
   min-height: 0;
@@ -1313,7 +1316,15 @@ h6 {
    soon as it reaches the top ("que la sección empiece antes"). */
 .nxr-servicios-head {
   position: absolute;
-  inset: 0;
+  top: 0;
+  left: 0;
+  right: 0;
+  /* VISUAL viewport height, not the sticky's 100lvh box: lvh is the
+     toolbar-collapsed (largest) viewport, so on mobile centering in it sat
+     the phrase visibly BELOW the real mid-screen ("sale más abajo, no a
+     mitad de altura"). --vh-100 is the live innerHeight variable Hero.tsx
+     maintains; desktop is unaffected (both are equal there). */
+  height: var(--vh-100, 100lvh);
   display: flex;
   align-items: center;
   justify-content: center;

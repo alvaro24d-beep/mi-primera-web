@@ -594,14 +594,14 @@ export default function Servicios() {
         if (inner) gsap.set(inner, { rotationX: -rotX, rotationY: rotY, z, scale, opacity });
       };
 
-      gsap.set(content, { opacity: 0, scale: 0.92 });
-      gsap.to(content, {
-        opacity: 1,
-        scale: 1,
-        duration: 0.8,
-        ease: "power2.out",
-        scrollTrigger: { trigger: section, start: "top 90%", toggleActions: "play none none none" },
-      });
+      // NO one-shot content entrance (the old opacity/scale 0.92→1 tween on
+      // section approach): with the runway gone the pin starts ~1 viewport
+      // after the section top, so that tween was still mid-flight when the
+      // first cards materialized — its scale shrank every card's measured
+      // rect, ServiciosCardsLayer's dims gate (±1px) saw a mismatch and
+      // HID the meshes: content without glass, glass popping in late ("las
+      // cards salen bugeadas"). The spiral materialization IS the entrance
+      // now; the content container starts at identity, nothing to animate.
 
       // Track x runs from startX (FIRST card a bit right of centre — it must
       // arrive AT the centre with the first bit of scroll, not start there

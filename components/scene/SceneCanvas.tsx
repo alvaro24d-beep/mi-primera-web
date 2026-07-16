@@ -139,6 +139,7 @@ export default function SceneCanvas() {
       "nxr-zoom-parallax",
       "nxr-intro",
       "nxr-proceso",
+      "nxr-tech",
       "nxr-contacto",
       "nxr-dwh-proceso",
       "nxr-dwh-capacidades",

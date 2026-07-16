@@ -3,6 +3,7 @@
 import { useEffect, useRef } from "react";
 import { useTitleReveal } from "@/hooks/useTitleReveal";
 import { useCurvedWords } from "@/hooks/useCurvedWords";
+import { useGlassPanels } from "@/hooks/useGlassPanels";
 
 const FILA_1 = [
   { name: "OpenAI GPT-4", cat: "IA & LLMs", color: "#A8F04A" },
@@ -49,6 +50,15 @@ function TechRow({ items }: { items: typeof FILA_1 }) {
 export default function Tech() {
   const titleRef = useTitleReveal<HTMLHeadingElement>();
   const sectionRef = useRef<HTMLElement>(null);
+
+  // The 4 stat cards become real volumetric fluid-glass meshes (same as
+  // Intro/Proceso/Contacto — GlassPanelsLayer renders them; the DOM card is
+  // just a transparent content shell + legibility scrim, see globals.css).
+  // The marquee CHIPS above deliberately stay CSS glass — see the comment on
+  // .nxr-tech-card. `nxr-tech` is in SceneCanvas's observed-ids list; without
+  // that the meshes would never be visible. No reduced-motion dep: this
+  // component renders a single branch.
+  useGlassPanels(sectionRef, ".nxr-tech-strip-card", "#12141c", []);
 
   // The two infinite CSS marquees only animate while the section is on
   // screen ("lo que no está en pantalla, no renderiza") — same philosophy as

@@ -3466,32 +3466,21 @@ h6 {
   gap: 16px;
 }
 
+/* Anchor for a real volumetric fluid-glass mesh (see useGlassPanels in
+   Tech.tsx + components/scene/GlassPanelsLayer.tsx): the element paints NO
+   glass of its own anymore — background/border/blur/shine all come from the
+   WebGL card behind it. Only layout/content styling remains, plus the same
+   legibility scrim as .nxr-intro-card (clear mesh over bright video regions
+   washes white text out). */
 .nxr-tech-strip-card {
-  background: var(--glass-bg);
-  backdrop-filter: var(--glass-blur);
+  background: rgba(8, 10, 14, 0.34);
   border-radius: var(--radius-md);
   padding: 28px 24px;
   display: flex;
   flex-direction: column;
   gap: 6px;
-  transition: transform 0.3s, box-shadow 0.3s;
-  box-shadow: var(--glass-shine);
+  transition: transform 0.3s;
   position: relative;
-}
-
-.nxr-tech-strip-card::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  border-radius: var(--radius-md);
-  padding: 1px;
-  background: var(--glass-border-gradient);
-  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
-  -webkit-mask-composite: xor;
-  mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
-  mask-composite: exclude;
-  pointer-events: none;
-  z-index: 1;
 }
 
 .nxr-tech-strip-num,
@@ -3500,9 +3489,11 @@ h6 {
   z-index: 2;
 }
 
+/* The mesh tracks the anchor's live rect per frame, so the lift carries the
+   glass with it; the CSS shine that used to swap on hover is the mesh's job
+   now. */
 .nxr-tech-strip-card:hover {
   transform: translateY(-3px);
-  box-shadow: var(--glass-shine-hover);
 }
 
 .nxr-tech-strip-num {

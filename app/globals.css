@@ -1303,29 +1303,28 @@ h6 {
    reel — replaces the old top-right sticky overlay. Flat and centred on
    purpose: no perspective tilt here (it was removed from the tilt rule
    groups), the blur is the whole entrance. */
+/* The section-title moment lives INSIDE the pinned sticky now (absolute
+   overlay, dead-centred by flex): while pinned it physically cannot travel
+   ("que se quede fija sin subir ni bajar") — the old version was a sticky
+   h2 inside a 165vh/70vh runway ABOVE the sticky, which visibly rode up
+   with the page at both ends of its fade. The runway is gone entirely; the
+   scroll distance the phrase needs is a PROLOGUE segment of the reel's own
+   pin (see PROLOGUE in Servicios.tsx), so the section also pins/starts as
+   soon as it reaches the top ("que la sección empiece antes"). */
 .nxr-servicios-head {
-  position: relative;
-  /* Long runway = long CENTRED hold: the phrase must survive a real
-     scroll flick ("no dura nada"). */
-  height: 165vh;
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   pointer-events: none;
-}
-
-/* Phones: a shorter runway — after the phrase blur-fades out the reel must
-   arrive right away, and the whole phrase moment costs fewer swipes ("que
-   no haya que hacer tanto scroll al pasar la frase"). The fade-out sits at
-   ~90% of the timeline, so barely any empty runway remains past it. */
-@media (max-width: 900px) {
-  .nxr-servicios-head {
-    height: 70vh;
-  }
+  /* Above the slides' depth-sorted z-indexes (≤50): a materializing card
+     must never paint over the dissolving title. */
+  z-index: 60;
 }
 
 .nxr-servicios-head .nxr-section-h2 {
-  position: sticky;
-  top: 50%;
-  transform: translateY(-50%);
-  margin: 0 auto;
+  margin: 0;
   text-align: center;
   max-width: 900px;
   padding: 0 var(--pad-x);
@@ -2952,7 +2951,11 @@ h6 {
 
 @media (max-width: 900px) {
   #nxr-proceso {
-    margin-top: -180px;
+    /* -110 (was -180): the stronger pull glued "Un proceso claro, sin
+       sorpresas." to the ZoomParallax cards ending just above ("queda muy
+       pegado a las cards") — keep some overlap-tightening, but let the
+       title breathe. */
+    margin-top: -110px;
   }
 }
 

@@ -506,38 +506,15 @@ export default function Servicios() {
       const cards = q(".nxr-srv-card") as HTMLElement[];
       const captions = q(".nxr-servicios-captions .nxr-srv-caption") as HTMLElement[];
 
-      // ---- Section-title moment: the heading sits sticky-centred in its
-      // own 110vh runway above the reel (see .nxr-servicios-head CSS) and
-      // blur-fades IN at screen centre, holds, then blur-fades OUT to hand
-      // over to the cards ("entrando con difuminado y saliendo con
-      // difuminado para dar paso a la sección"). Opacity/filter ONLY — the
-      // sticky centering owns the transform.
+      // ---- Section-title moment: the heading is an absolute overlay INSIDE
+      // the pinned sticky (see .nxr-servicios-head CSS) and its whole blur
+      // moment is scrubbed as the PROLOGUE of the reel's main timeline (see
+      // buildTl below) — fade in, hold DEAD-STILL at screen centre (pinned
+      // element: zero travel, "sin subir ni bajar"), fade out overlapping
+      // the first card's materialization. The old version (own runway +
+      // sticky h2 + separate ScrollTrigger) visibly rode up with the page at
+      // both ends of its fade.
       const headTitle = q(".nxr-servicios-head .nxr-section-h2")[0] as HTMLElement | undefined;
-      if (headTitle) {
-        gsap.set(headTitle, { opacity: 0, filter: "blur(18px)" });
-        // Long centred HOLD (0.28→0.68 of a 165vh desktop / 95vh mobile
-        // runway — several hundred px of scroll at full brightness, so a
-        // flick can't skip it), and a fade-out that ends at 0.92 so almost
-        // no dead runway remains before the reel (mobile complaint: "mucho
-        // espacio vacío entre que la frase desaparece y entra la sección").
-        gsap
-          .timeline({
-            scrollTrigger: {
-              trigger: q(".nxr-servicios-head")[0] as HTMLElement,
-              start: "top 60%",
-              // Ends when the runway's BOTTOM nears the viewport top — i.e.
-              // right where the reel pin takes over, so the fade-out (at
-              // 0.92 of this range) finishes with almost no dead scroll
-              // before the cards ("la sección servicios debe entrar antes").
-              end: "bottom 10%",
-              scrub: 0.5,
-            },
-          })
-          .to(headTitle, { opacity: 1, filter: "blur(0px)", duration: 0.22, ease: "none" }, 0.06)
-          .to({}, { duration: 0.4 }, 0.28)
-          .to(headTitle, { opacity: 0, filter: "blur(18px)", duration: 0.24, ease: "none" }, 0.68)
-          .to({}, { duration: 0.08 }, 0.92);
-      }
 
       // One live transform per card, owned by the hover-tilt quickTo
       // instances below. The scroll-driven spiral yaw and the idle drift are
@@ -653,9 +630,19 @@ export default function Servicios() {
       // TAIL_END is declared below but only read when this is CALLED (first
       // use: the gsap.set(track) after the constants), so no TDZ issue.
       const entryOffset = () => cardStep() * (TAIL_END + 0.02);
+      // PROLOGUE: scroll distance at the very start of the pin where the
+      // track holds still and the title overlay plays its whole blur moment
+      // (replaces the old 165vh/70vh runway above the sticky — the pin, and
+      // with it the section, now starts as soon as the sticky reaches the
+      // top: "que la sección empiece antes").
+      const PROLOGUE = () => Math.round(window.innerHeight * (isDesktopUI ? 1.0 : 0.7));
       const startX = () => centredX() + entryOffset();
-      const amount = () => entryOffset() + Math.max(0, track.scrollWidth - cardWidth());
-      const endX = () => startX() - amount();
+      // Pin distance = prologue + actual track travel; the track only moves
+      // during the post-prologue stretch (1px of scroll = 1px of x, as
+      // before).
+      const moveAmount = () => entryOffset() + Math.max(0, track.scrollWidth - cardWidth());
+      const amount = () => PROLOGUE() + moveAmount();
+      const endX = () => startX() - moveAmount();
 
       // Smaller arc on phones: the stretched glass there nearly fills the
       // space between heading and captions, so a tall arc would ride the
@@ -886,7 +873,7 @@ export default function Servicios() {
       const pOf = (i: number) => {
         const total = amount();
         const step = cardStep();
-        return total && step ? (entryOffset() + i * step) / total : 0;
+        return total && step ? (PROLOGUE() + entryOffset() + i * step) / total : 0;
       };
       const progressNow = (st: ScrollTrigger) => (window.scrollY - st.start) / (st.end - st.start);
       const scrollAt = (st: ScrollTrigger, p: number) => st.start + p * (st.end - st.start);
@@ -909,6 +896,10 @@ export default function Servicios() {
         const total = amount();
         if (!total || !cardStep()) return;
         const progress = progressNow(st);
+        // Never idle-snap while still inside the prologue (the phrase's
+        // hold): the nearest card there is always card 0, and the glide
+        // would fast-forward the whole title moment.
+        if (progress * total < PROLOGUE() * 0.98) return;
         const bestP = pOf(nearestIdx(progress));
         const exact = scrollAt(st, bestP);
         // Within ~1.5px of centre a glide would be imperceptible: write the
@@ -938,6 +929,45 @@ export default function Servicios() {
       window.addEventListener("wheel", cancelSnap, { passive: true });
       window.addEventListener("touchstart", cancelSnap, { passive: true });
 
+      // Timeline children use PX as their time unit (1 unit = 1px of pin
+      // scroll; total duration = amount()) and are REBUILT on every refresh:
+      // fixed fractional positions would silently desync the prologue/track
+      // proportions from the live pOf() math after a resize. Declared (with
+      // the nullable tlRef) BEFORE the timeline: ScrollTrigger can fire
+      // onRefresh SYNCHRONOUSLY while gsap.timeline() is still executing —
+      // both `tl` and a later-declared const would be in their TDZ there.
+      // That early call is a harmless no-op; the explicit buildTl() after
+      // creation does the first real build.
+      let tlRef: gsap.core.Timeline | null = null;
+      const buildTl = () => {
+        const t = tlRef;
+        if (!t) return;
+        t.clear();
+        const pro = PROLOGUE();
+        if (headTitle) {
+          // Explicit initial state: a fromTo positioned PAST 0 in a timeline
+          // does NOT immediateRender its `from` values — without this the
+          // title sat fully visible before the pin's first scrub tick.
+          gsap.set(headTitle, { opacity: 0, filter: "blur(18px)" });
+          t.fromTo(
+            headTitle,
+            { opacity: 0, filter: "blur(18px)" },
+            { opacity: 1, filter: "blur(0px)", ease: "none", duration: pro * 0.22 },
+            pro * 0.08
+          );
+          // The fade-out deliberately runs PAST the prologue into the first
+          // stretch of track motion: the first card is already
+          // materializing out of the helix while the phrase dissolves
+          // ("que al desaparecer justo entre la primera card").
+          t.to(
+            headTitle,
+            { opacity: 0, filter: "blur(18px)", ease: "none", duration: pro * 0.3 + entryOffset() * 0.25 },
+            pro * 0.7
+          );
+        }
+        t.fromTo(track, { x: startX() }, { x: endX(), ease: "none", duration: moveAmount() }, pro);
+      };
+
       const tl = gsap.timeline({
         scrollTrigger: {
           // The STICKY is the trigger (not the section): the section has
@@ -965,13 +995,15 @@ export default function Servicios() {
             snapTimer = window.setTimeout(trySnap, 140);
           },
           onRefresh: () => {
+            buildTl();
             gsap.set(track, { x: startX() });
             updateSpiral();
             pushAll();
           },
         },
       });
-      tl.fromTo(track, { x: startX }, { x: endX, ease: "none" }, 0);
+      tlRef = tl;
+      buildTl();
 
       updateSpiral();
       pushAll();
@@ -1375,18 +1407,21 @@ export default function Servicios() {
 
   return (
     <section id="nxr-servicios" ref={sectionRef}>
-      {/* Title moment: a 110vh runway in normal flow ABOVE the pinned reel;
-          the h2 sticks dead-centre inside it and blur-fades in/out via the
-          scrub timeline in useGSAP above (GSAP owns opacity/filter — no
-          .nxr-reveal here, its CSS transition would fight the tween; no
-          char-reveal ref either, the blur IS the entrance). */}
-      <div className="nxr-servicios-head">
-        <h2 className="nxr-section-h2">
-          Todo lo que tu negocio necesita para{" "}
-          <span className="nxr-gradient-text-salmon">crecer en la era de la IA.</span>
-        </h2>
-      </div>
+      {/* Title moment: no runway anymore — the phrase's scroll distance is
+          the PROLOGUE segment of the reel's own pin (see the main timeline
+          in useGSAP above), and its blur fade is scrubbed there. GSAP owns
+          opacity/filter — no .nxr-reveal (its CSS transition would fight
+          the tween) and no char-reveal ref (the blur IS the entrance). */}
       <div className="nxr-servicios-sticky" ref={stickyRef}>
+        {/* Inside the PINNED element (absolute overlay, see globals.css):
+            the phrase holds dead-still while the pin scrubs its prologue —
+            it can't ride the page like the old runway version did. */}
+        <div className="nxr-servicios-head">
+          <h2 className="nxr-section-h2">
+            Todo lo que tu negocio necesita para{" "}
+            <span className="nxr-gradient-text-salmon">crecer en la era de la IA.</span>
+          </h2>
+        </div>
         <div className="nxr-servicios-content" ref={contentRef}>
           {/*
             Each `.nxr-srv-slide` is one reel item: the `.nxr-srv-card`

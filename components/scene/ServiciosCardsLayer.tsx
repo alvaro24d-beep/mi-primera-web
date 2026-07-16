@@ -125,7 +125,7 @@ function CardSlot({ id, isMobile }: { id: number; isMobile: boolean }) {
     // garbage flash as the first cards appeared on mobile ("las cards
     // aparecen un poco bugeadas la primera vez"). The prologue (title hold)
     // provides plenty of hidden frames for this to complete.
-    const warming = warmFrames.current < 30;
+    const warming = warmFrames.current < 45;
     if (warming) warmFrames.current++;
     group.visible =
       (warming || t.opacity > 0.01) && Math.abs(rw - dims.width) <= 1 && Math.abs(rh - dims.height) <= 1;

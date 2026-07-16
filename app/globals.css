@@ -1229,7 +1229,10 @@ h6 {
 #nxr-servicios {
   position: relative;
   z-index: 1;
-  padding: var(--section-pad) 0;
+  /* No top padding: the pin (and with it the phrase fading in at its very
+     start) must engage as soon as Intro's last card is past — dead approach
+     scroll above the sticky reads as "la frase tarda mucho en salir". */
+  padding: 0 0 var(--section-pad);
 }
 
 /* All the always-on CSS keyframe demos inside the glass cards sleep while

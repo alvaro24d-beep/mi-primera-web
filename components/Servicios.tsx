@@ -635,12 +635,13 @@ export default function Servicios() {
       // (replaces the old 165vh/70vh runway above the sticky — the pin, and
       // with it the section, now starts as soon as the sticky reaches the
       // top: "que la sección empiece antes").
-      // 1.7/1.2 (was 1.0/0.7): with the shorter prologue the full-brightness
-      // hold was ~40vh/28vh of scroll — a normal flick blew straight past
-      // the phrase ("no dura nada, te la pasas sin querer"). Rule of thumb
-      // this enforces: content must stay legible for a comfortable stretch
-      // of NORMAL user scrolling, not just technically appear.
-      const PROLOGUE = () => Math.round(window.innerHeight * (isDesktopUI ? 1.7 : 1.2));
+      // 1.7/1.35: with a short prologue the full-brightness hold was tiny —
+      // a normal flick blew straight past the phrase ("no dura nada, te la
+      // pasas sin querer", twice). Rule of thumb this enforces: content must
+      // stay legible for a comfortable stretch of NORMAL user scrolling —
+      // the reference the user gave is the ZoomParallax centre card
+      // ("Construido con maestría."), which survives its whole section.
+      const PROLOGUE = () => Math.round(window.innerHeight * (isDesktopUI ? 1.7 : 1.35));
       const startX = () => centredX() + entryOffset();
       // Pin distance = prologue + actual track travel; the track only moves
       // during the post-prologue stretch (1px of scroll = 1px of x, as
@@ -682,7 +683,12 @@ export default function Servicios() {
       // definition on every viewport, so TAIL_START > 1 keeps its peek fully
       // opaque and the dissolve happens across the SECOND step out.
       const TAIL_START = isDesktopUI ? 0.9 : 1.05;
-      const TAIL_END = isDesktopUI ? 1.35 : 1.75;
+      // Mobile 2.3 (was 1.75): the materialization/dissolve now spans ~1.25
+      // card-steps (~370px of scroll) instead of ~0.7 — the first card
+      // FADES IN gently at the edge park across a real stretch of scroll
+      // rather than popping in over one flick ("que la entrada sea más
+      // suave, no tan rápida").
+      const TAIL_END = isDesktopUI ? 1.35 : 2.3;
       // Extra z recession (px) at full tail, on top of the drum's own.
       const TAIL_DEPTH = isDesktopUI ? 260 : 140;
       // Extra vertical drift (px) at full tail, continuing the helix pitch.
@@ -954,14 +960,17 @@ export default function Servicios() {
           // does NOT immediateRender its `from` values — without this the
           // title sat fully visible before the pin's first scrub tick.
           gsap.set(headTitle, { opacity: 0, filter: "blur(18px)" });
-          // Fade-in done by 0.25·pro, fade-out only from 0.78·pro: the
-          // full-brightness HOLD spans ~0.53·pro (≈90vh desktop / ≈63vh
-          // mobile of scroll) — long enough to read at a normal scroll pace.
+          // Near-INSTANT entrance (in by 0.11·pro ≈ 15-19vh): the phrase
+          // must show up right after Intro's cards ("salía justo después de
+          // las cards de intro"), not after half a prologue of dead scroll.
+          // Fade-out only from 0.85·pro → the full-brightness HOLD spans
+          // ~0.74·pro (≈125vh desktop / ≈100vh mobile of scroll) — the
+          // ZoomParallax-hero class of persistence the user asked for.
           t.fromTo(
             headTitle,
             { opacity: 0, filter: "blur(18px)" },
-            { opacity: 1, filter: "blur(0px)", ease: "none", duration: pro * 0.2 },
-            pro * 0.05
+            { opacity: 1, filter: "blur(0px)", ease: "none", duration: pro * 0.1 },
+            pro * 0.01
           );
           // The fade-out deliberately runs PAST the prologue into the first
           // stretch of track motion: the first card is already
@@ -969,8 +978,8 @@ export default function Servicios() {
           // ("que al desaparecer justo entre la primera card").
           t.to(
             headTitle,
-            { opacity: 0, filter: "blur(18px)", ease: "none", duration: pro * 0.22 + entryOffset() * 0.25 },
-            pro * 0.78
+            { opacity: 0, filter: "blur(18px)", ease: "none", duration: pro * 0.15 + entryOffset() * 0.25 },
+            pro * 0.85
           );
         }
         t.fromTo(track, { x: startX() }, { x: endX(), ease: "none", duration: moveAmount() }, pro);

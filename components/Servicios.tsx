@@ -840,6 +840,15 @@ export default function Servicios() {
       // (wheel/touch) cancels the glide immediately.
       let snapRaf = 0;
       let snapTimer = 0;
+      // Mobile: whether the reel has already presented its first card. A
+      // hard flick from Intro carries Lenis' syncTouch inertia straight
+      // through the prologue and can OVERSHOOT past card 0 — the idle snap
+      // then corrected to whatever card was nearest with its short ease-out,
+      // which read as a stray card sweeping through before the first one
+      // settled ("sale otra súper rápido y se pasa sola"). Until this flag
+      // flips, the first settle is always card 0, on the long soft
+      // page-style glide.
+      let presentedFirst = false;
       // `page` = mobile one-card-per-swipe pagination (touchend). Those
       // glides take over from a live finger gesture, and the default
       // ease-OUT cubic starts at PEAK velocity — an instant speed/direction
@@ -856,8 +865,13 @@ export default function Servicios() {
         const dist = target - from;
         if (Math.abs(dist) < 1) return;
         const t0 = performance.now();
+        // Page cap 1200 (was 750): one-step pages (~300px) keep their old
+        // feel via the floor, but LONG settles — the first card gliding in
+        // from the prologue/an overshot flick — get a real time budget
+        // instead of whipping across ("que posicionar la primera card en el
+        // centro vaya mucho más suave").
         const dur = page
-          ? Math.min(750, Math.max(420, Math.abs(dist) * 1.4))
+          ? Math.min(1200, Math.max(480, Math.abs(dist) * 1.4))
           : Math.min(500, Math.max(220, Math.abs(dist)));
         // After the ease completes, keep re-writing the exact target until
         // the scroll has verifiably CONVERGED (stable within 1px for a few
@@ -935,7 +949,16 @@ export default function Servicios() {
         // hold): the nearest card there is always card 0, and the glide
         // would fast-forward the whole title moment.
         if (progress * total < PROLOGUE() * 0.98) return;
-        const bestP = pOf(nearestIdx(progress));
+        // First settle on mobile: force card 0 (unless the flick genuinely
+        // sailed past card 1) and use the page-style ease-in-out glide —
+        // see `presentedFirst` above.
+        const firstSettle = window.innerWidth <= 900 && !presentedFirst;
+        let idx = nearestIdx(progress);
+        if (firstSettle) {
+          presentedFirst = true;
+          if (progress < pOf(1)) idx = 0;
+        }
+        const bestP = pOf(idx);
         const exact = scrollAt(st, bestP);
         // Within ~1.5px of centre a glide would be imperceptible: write the
         // exact position once and let the per-frame updateSpiral converge
@@ -955,7 +978,7 @@ export default function Servicios() {
           }
           return;
         }
-        glideTo(exact);
+        glideTo(exact, firstSettle);
       };
       const cancelSnap = () => {
         cancelAnimationFrame(snapRaf);
@@ -1093,6 +1116,12 @@ export default function Servicios() {
           touchInPin = false;
           const dy = touchY - (e.changedTouches[0]?.clientY ?? touchY);
           const p = progressNow(st);
+          // Released still inside the prologue: leave the scroll natural.
+          // Hijacking it into a glide-to-card-0 both fast-forwarded the
+          // phrase's hold AND swept the card across the screen at glide
+          // speed (up to ~1600px in 750ms — the "ghost card" whip). The
+          // idle snap's firstSettle path takes over once past the prologue.
+          if (p * amount() < PROLOGUE() * 0.98) return;
           const eps = 0.02;
           let targetIdx: number | null = null;
           if (dy > 25) {

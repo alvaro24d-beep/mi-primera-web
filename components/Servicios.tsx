@@ -1025,9 +1025,25 @@ export default function Servicios() {
             // 1.5px, trySnap no-ops.
             snapTimer = window.setTimeout(trySnap, 140);
           },
-          onRefresh: () => {
+          onRefresh: (self) => {
             buildTl();
-            gsap.set(track, { x: startX() });
+            if (self.progress <= 0) {
+              // Refresh landed above/at the pin start: park the track at
+              // its rest position.
+              gsap.set(track, { x: startX() });
+            } else {
+              // MID-PIN refresh — this happens in the wild: on a slow
+              // mobile load the user is already inside the section when the
+              // window "load" event fires ScrollTrigger.refresh(). The old
+              // unconditional reset to startX() left the 0.5s scrub visibly
+              // CHASING the real position — a stray card sweeping through
+              // on its own before the first one settled ("sale otra súper
+              // rápido y se pasa sola"). Rendering the rebuilt timeline at
+              // the live progress right here leaves the scrub nothing to
+              // chase. tlRef (nullable), not tl: the creation-time refresh
+              // fires while gsap.timeline() is still executing.
+              tlRef?.progress(self.progress);
+            }
             updateSpiral();
             pushAll();
           },
@@ -1035,6 +1051,12 @@ export default function Servicios() {
       });
       tlRef = tl;
       buildTl();
+      // Reload landing mid-pin (browser scroll restoration): the creation-
+      // time refresh ran before tlRef existed, so sync the fresh timeline to
+      // the live progress now — otherwise the scrub visibly chases from 0.
+      if (tl.scrollTrigger && tl.scrollTrigger.progress > 0) {
+        tl.progress(tl.scrollTrigger.progress);
+      }
 
       updateSpiral();
       pushAll();

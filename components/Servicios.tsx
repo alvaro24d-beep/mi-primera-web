@@ -635,7 +635,12 @@ export default function Servicios() {
       // (replaces the old 165vh/70vh runway above the sticky — the pin, and
       // with it the section, now starts as soon as the sticky reaches the
       // top: "que la sección empiece antes").
-      const PROLOGUE = () => Math.round(window.innerHeight * (isDesktopUI ? 1.0 : 0.7));
+      // 1.7/1.2 (was 1.0/0.7): with the shorter prologue the full-brightness
+      // hold was ~40vh/28vh of scroll — a normal flick blew straight past
+      // the phrase ("no dura nada, te la pasas sin querer"). Rule of thumb
+      // this enforces: content must stay legible for a comfortable stretch
+      // of NORMAL user scrolling, not just technically appear.
+      const PROLOGUE = () => Math.round(window.innerHeight * (isDesktopUI ? 1.7 : 1.2));
       const startX = () => centredX() + entryOffset();
       // Pin distance = prologue + actual track travel; the track only moves
       // during the post-prologue stretch (1px of scroll = 1px of x, as
@@ -949,11 +954,14 @@ export default function Servicios() {
           // does NOT immediateRender its `from` values — without this the
           // title sat fully visible before the pin's first scrub tick.
           gsap.set(headTitle, { opacity: 0, filter: "blur(18px)" });
+          // Fade-in done by 0.25·pro, fade-out only from 0.78·pro: the
+          // full-brightness HOLD spans ~0.53·pro (≈90vh desktop / ≈63vh
+          // mobile of scroll) — long enough to read at a normal scroll pace.
           t.fromTo(
             headTitle,
             { opacity: 0, filter: "blur(18px)" },
-            { opacity: 1, filter: "blur(0px)", ease: "none", duration: pro * 0.22 },
-            pro * 0.08
+            { opacity: 1, filter: "blur(0px)", ease: "none", duration: pro * 0.2 },
+            pro * 0.05
           );
           // The fade-out deliberately runs PAST the prologue into the first
           // stretch of track motion: the first card is already
@@ -961,8 +969,8 @@ export default function Servicios() {
           // ("que al desaparecer justo entre la primera card").
           t.to(
             headTitle,
-            { opacity: 0, filter: "blur(18px)", ease: "none", duration: pro * 0.3 + entryOffset() * 0.25 },
-            pro * 0.7
+            { opacity: 0, filter: "blur(18px)", ease: "none", duration: pro * 0.22 + entryOffset() * 0.25 },
+            pro * 0.78
           );
         }
         t.fromTo(track, { x: startX() }, { x: endX(), ease: "none", duration: moveAmount() }, pro);

@@ -43,6 +43,8 @@ function CardSlot({ id, isMobile }: { id: number; isMobile: boolean }) {
   const lastDims = useRef(dims);
   const lastStyle = useRef(style);
   const lastOpacity = useRef(1);
+  // Frames already spent warming this mesh up (see the visibility gate).
+  const warmFrames = useRef(0);
 
   useFrame(() => {
     const group = groupRef.current;
@@ -114,7 +116,19 @@ function CardSlot({ id, isMobile }: { id: number; isMobile: boolean }) {
     // flashed as an oversized glass card at the right edge the FIRST time
     // each card scrolled in on mobile (first pass only, since dims stay
     // cached afterwards).
-    group.visible = t.opacity > 0.01 && Math.abs(rw - dims.width) <= 1 && Math.abs(rh - dims.height) <= 1;
+    // ---- One-time warm-up: the first ~30 near-frames draw the mesh even
+    // while the spiral tail still holds it at opacity 0 (a fully transparent
+    // draw is invisible but real): the transmission material's shader
+    // compiles and the shared transmission capture spins up BEFORE the
+    // card's first actual materialization. Without this, both first-time
+    // costs landed exactly on the first visible frame — a one-off stutter /
+    // garbage flash as the first cards appeared on mobile ("las cards
+    // aparecen un poco bugeadas la primera vez"). The prologue (title hold)
+    // provides plenty of hidden frames for this to complete.
+    const warming = warmFrames.current < 30;
+    if (warming) warmFrames.current++;
+    group.visible =
+      (warming || t.opacity > 0.01) && Math.abs(rw - dims.width) <= 1 && Math.abs(rh - dims.height) <= 1;
     if (!group.visible) return;
     group.position.x = x + width / 2 - size.width / 2 + t.x;
     group.position.y = -(y + height / 2 - size.height / 2) + t.y;

@@ -769,7 +769,8 @@ export default function Servicios() {
           // would feed back into the very offset that computes it.
           const slideX = Number(gsap.getProperty(slide, "x")) || 0;
           const slideCenterX = r.left + r.width / 2 - slideX;
-          const nx = gsap.utils.clamp(-1.6, 1.6, (slideCenterX - centerX) / halfW);
+          const nxRaw = (slideCenterX - centerX) / halfW;
+          const nx = gsap.utils.clamp(-1.6, 1.6, nxRaw);
           // Tail distance in CARD-STEP units (see TAIL_START/TAIL_END).
           const steps = Math.abs(slideCenterX - centerX) / stepPx;
 
@@ -786,8 +787,18 @@ export default function Servicios() {
 
           // Slide/caption style writes only when this slide actually moved —
           // at rest the per-frame recompute above costs rect reads only.
-          if (Math.abs(nx - lastNx[i]) < 0.0004) return;
-          lastNx[i] = nx;
+          // GATE ON THE UNCLAMPED VALUE. The clamped nx pins far cards at
+          // ±1.6, so while a big instant scroll write (first-arrival wall,
+          // snap glide, refresh) had the scrub dragging the track hundreds
+          // of px, their "nx didn't change" — this gate skipped the park-x
+          // rewrite and a STALE pull (computed for the old base position)
+          // shoved them across the viewport while the per-frame tailFade
+          // (never gated, never clamped) was fading them IN: THE ghost card
+          // crossing the screen on mobile arrival ("sale otra card y cambia
+          // a la de agentes ia"). Caught live in the Playwright repro log:
+          // slide 1 at left=-134, opacity 0.73, mid catch-up.
+          if (Math.abs(nxRaw - lastNx[i]) < 0.0004) return;
+          lastNx[i] = nxRaw;
 
           gsap.set(slide, {
             // Hard PARK at the neighbour's slot (1 card-step from centre):

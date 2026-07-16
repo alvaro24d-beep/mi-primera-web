@@ -643,13 +643,16 @@ export default function Servicios() {
         return track.getBoundingClientRect().left - currentX;
       };
       const centredX = () => window.innerWidth / 2 - cardWidth() / 2 - trackBaseLeft();
-      // Mobile: the first card starts FULLY OFF-SCREEN to the right (centre
-      // offset > half viewport + half card), so arriving at the section
-      // shows only the heading and the card slides in from the side as you
-      // scroll. Desktop keeps the partial peek.
+      // Mobile: the first card rests with a ~38% PEEK inside the right edge
+      // (was fully off-screen +24px): the sticky area below the fading title
+      // is already mostly on screen during the fade-out tail, so the peek
+      // makes the card visibly entering RIGHT as the phrase dissolves ("que
+      // al momento justo antes de desaparecer ya salga la primera card") —
+      // and centring it costs ~140px less pin scroll. Desktop keeps its
+      // wider partial peek.
       const entryOffset = () =>
         window.innerWidth <= 900
-          ? window.innerWidth * 0.5 + cardWidth() * 0.5 + 24
+          ? window.innerWidth * 0.5 + cardWidth() * 0.12
           : Math.min(sticky.clientWidth * 0.24, 340);
       const startX = () => centredX() + entryOffset();
       const amount = () => entryOffset() + Math.max(0, track.scrollWidth - cardWidth());

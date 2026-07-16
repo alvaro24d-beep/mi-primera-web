@@ -389,13 +389,17 @@ export default function VolumetricCard({
           // Thicker (26) purely for a stronger refraction bend at the curved
           // edges — the darkening that thickness used to cause is offset by
           // the longer attenuationDistance (380) and near-clear glassColor.
-          // 40, up from 26: `thickness` is the refraction budget — the
-          // maximum ON-SCREEN displacement the refracted background can have
-          // is proportional to it (the shader marches thickness·refract and
-          // reprojects). At 26px the liquid warp maxed out around ~10px of
-          // displacement, invisible over an already-blurred backdrop; ~40
-          // finally puts the bending in clearly-perceivable range.
-          thickness={40}
+          // 52, up from 40 (and 26 before that): `thickness` is the
+          // refraction budget — the maximum ON-SCREEN displacement the
+          // refracted background can have is proportional to it (the shader
+          // marches thickness·refract and reprojects). At 26px the liquid
+          // warp maxed out around ~10px of displacement, invisible over an
+          // already-blurred backdrop; 40 made it perceivable; 52 makes the
+          // wobble unmistakable (user request: "que lo de detrás se
+          // distorsione como liquid glass"). Side effect kept in mind:
+          // thickness also feeds the frost smear (thickness·roughness^⅓),
+          // so going much higher than this mushes the transmitted image.
+          thickness={52}
           attenuationColor={color}
           // Long distance: with the near-black attenuation tints, anything
           // shorter visibly darkens the transmitted light ("grey glass").
@@ -413,13 +417,19 @@ export default function VolumetricCard({
           // SCALE NOTE: MTM feeds worldPosition·distortionScale into its
           // noise, and this scene's world units are PIXELS (PixelCamera) —
           // drei's demo-sized default (0.5, meshes ~1 unit) put the noise at
-          // per-pixel frequency here, which averaged out to nothing. 0.007 ≈
-          // one smooth wave every ~140px — broad ripples gliding across the
-          // glass; distortion 0.8 tilts the sampling normal hard enough for
-          // those ripples to displace the background visibly.
-          distortion={0.8}
-          distortionScale={0.007}
-          temporalDistortion={0.4}
+          // per-pixel frequency here, which averaged out to nothing. 0.006 ≈
+          // one smooth wave every ~165px — broad ripples gliding across the
+          // glass (slightly broader than the previous 0.007 so the stronger
+          // displacement below reads as liquid, not noise); distortion 1.35
+          // (was 0.8) tilts the sampling normal hard enough for the ripples
+          // to clearly bend the background, and temporalDistortion 0.55
+          // (was 0.4) keeps them drifting at a livelier pace. All three are
+          // plain shader uniforms — raising them costs zero extra GPU (the
+          // expensive knobs are `samples` and the capture resolution, which
+          // stay untouched).
+          distortion={1.35}
+          distortionScale={0.006}
+          temporalDistortion={0.55}
           clearcoat={1}
           clearcoatRoughness={0.08}
           ior={1.5}

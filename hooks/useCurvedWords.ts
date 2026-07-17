@@ -145,6 +145,12 @@ export function useCurvedWords(
     splitIgnore?: string;
     fan?: number;
     tiltDesktop?: number;
+    /** Symmetric parabola for CENTERED blocks (the hero h1): the bow pivots
+       at the block's CENTRE (zero there, curving toward both edges) instead
+       of at one edge — an edge-anchored parabola reads lopsided on centred
+       text. s² and the word-lean slope are renormalized so edge magnitudes
+       match the edge-pivot mode. */
+    centerPivot?: boolean;
   } = {}
 ) {
   useEffect(() => {
@@ -239,8 +245,11 @@ export function useCurvedWords(
         const words: WordGeom[] = [];
         for (const w of wordsOf(it)) {
           const r = w.getBoundingClientRect();
-          const sRel = ((r.left + r.right) / 2 - box.left) / W - pivot;
-          words.push({ node: w, sRel, s2: sRel * sRel, lineMid: (r.top + r.bottom) / 2 - box.top });
+          const sRel = ((r.left + r.right) / 2 - box.left) / W - (opts.centerPivot ? 0.5 : pivot);
+          // centerPivot: sRel spans ±0.5, so ×4 renormalizes s² to reach 1
+          // at the edges (same magnitude scale as the edge-pivot mode).
+          const s2 = opts.centerPivot ? sRel * sRel * 4 : sRel * sRel;
+          words.push({ node: w, sRel, s2, lineMid: (r.top + r.bottom) / 2 - box.top });
         }
         let topBias = 0;
         if (!bowOnly) {
@@ -312,8 +321,9 @@ export function useCurvedWords(
           const dy = Math.max(-DY_CAP, Math.min(DY_CAP, dyRaw));
           const ty = dy * fan * w.s2;
           // Lean each word onto the local slope of its bowed line so the
-          // curve reads smooth instead of a per-word stair-step.
-          const rot = ((dy * fan * 2 * w.sRel) / g.W) * RAD2DEG;
+          // curve reads smooth instead of a per-word stair-step. (The slope
+          // of s² is 2s; with centerPivot's ×4 renormalization it's 8s.)
+          const rot = ((dy * fan * (opts.centerPivot ? 8 : 2) * w.sRel) / g.W) * RAD2DEG;
           w.node.style.transform = `translateY(${ty.toFixed(1)}px) rotate(${rot.toFixed(2)}deg)`;
         }
       }

@@ -92,7 +92,9 @@ h4,
 h5,
 h6 {
   font-family: var(--font-rajdhani), system-ui, sans-serif !important;
-  font-weight: 600 !important;
+  /* 500 (was 600): "reduce el grosor de letra de todos los títulos un
+     poco" — same weight on the div/span-based card titles below. */
+  font-weight: 500 !important;
   font-style: normal !important;
 }
 
@@ -126,7 +128,7 @@ p.nxr-hero-mastery-line {
 .nxr-dwh-layer-title,
 .nxr-aia-caso-title {
   font-family: var(--font-rajdhani), system-ui, sans-serif;
-  font-weight: 600;
+  font-weight: 500;
 }
 
 /* Word spans created by useTextScramble's own splitter (only where a
@@ -3258,7 +3260,7 @@ p.nxr-hero-mastery-line {
 
 .nxr-paso-title {
   font-family: var(--font-rajdhani), system-ui, sans-serif;
-  font-weight: 600;
+  font-weight: 500;
   font-size: 22px;
   font-weight: 400;
   font-style: normal;
@@ -4380,7 +4382,7 @@ input[type="range"].nxr-ms-range::-moz-range-thumb {
 
 .nxr-zp-card-title {
   font-family: var(--font-rajdhani), system-ui, sans-serif;
-  font-weight: 600;
+  font-weight: 500;
   font-size: calc(22px * var(--zp-max, 1));
   font-weight: 400;
   letter-spacing: -0.01em;

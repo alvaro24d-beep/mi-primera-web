@@ -6,7 +6,6 @@ import gsap from "gsap";
 import { useGSAP } from "@gsap/react";
 import { useReducedMotion } from "@/hooks/useReducedMotion";
 import { useGlassPanels } from "@/hooks/useGlassPanels";
-import { useCurvedWords } from "@/hooks/useCurvedWords";
 
 const ARROW = (
   <svg
@@ -72,18 +71,6 @@ export default function Hero() {
   // GlassPanelsLayer, and its rect (scaled by the hero's exit `scale` tween)
   // is tracked per frame.
   useGlassPanels(sectionRef, ".nxr-btn-secondary", "#141018", [reducedMotion]);
-
-  // Parabola bow on the hero headline ("la perspectiva de parábola"):
-  // bowOnly — the h1 carries .nxr-reveal, which owns the ELEMENT transform
-  // for its entrance, so only the per-word bow is applied (word spans are
-  // ours via the hook's own split). centerPivot because this title is
-  // CENTERED: the arc pivots at the middle and curves toward both edges,
-  // matching the concave wall behind it — an edge-anchored parabola reads
-  // lopsided on centred text.
-  useCurvedWords(sectionRef, ".nxr-hero-h1", "left", [reducedMotion], {
-    bowOnly: true,
-    centerPivot: true,
-  });
 
   useEffect(() => {
     // Mobile browsers can still have their address bar shown at the exact

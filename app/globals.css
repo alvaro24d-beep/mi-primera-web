@@ -230,26 +230,46 @@ p.nxr-hero-mastery-line {
    anymore, just layout + a legibility scrim, same treatment as the other
    glass-panel cards. */
 .nxr-btn-secondary {
+  position: relative;
   display: inline-flex;
   align-items: center;
   gap: 8px;
   padding: 14px 30px;
   border-radius: 100px;
+  overflow: hidden;
   color: var(--c-white);
   font-size: 15px;
   font-weight: 500;
   font-family: var(--font);
-  transition: background 0.2s;
   cursor: pointer;
   border: 1px solid transparent;
   background: rgba(8, 10, 14, 0.34);
 }
-.nxr-btn-secondary:hover {
+/* Hover como overlay con FUNDIDO: el estado anterior cambiaba
+   background-image (degradados) en el :hover, y background-image no es
+   transicionable — el claro/oscuro entraba de golpe. El mismo look vive
+   ahora en un ::before cuya opacidad sí transiciona. */
+.nxr-btn-secondary::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
   background-image: linear-gradient(
       rgba(255, 255, 255, 0.1),
       rgba(255, 255, 255, 0.1)
     ),
     var(--glass-border-gradient);
+  opacity: 0;
+  transition: opacity 0.35s ease;
+  pointer-events: none;
+}
+.nxr-btn-secondary:hover::before {
+  opacity: 1;
+}
+/* El contenido (texto + flecha) por encima del overlay. */
+.nxr-btn-secondary > * {
+  position: relative;
+  z-index: 1;
 }
 
 .nxr-reveal {
@@ -466,6 +486,23 @@ p.nxr-hero-mastery-line {
    dark body instead of popping in once its chunk arrives. */
 .nxr-scene-arrive {
   animation: nxr-scene-arrive 0.6s ease-out both;
+}
+
+/* Sombreado oscuro en los BORDES de la pantalla del fondo: una viñeta
+   estática sobre el canvas (y bajo todo el contenido — vive dentro del
+   contenedor fixed z:-1000). Capa compuesta una sola vez: coste por frame
+   cero, y en móvil (sin EffectComposer/Vignette) es la única viñeta. */
+.nxr-scene-arrive::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: radial-gradient(
+    ellipse 115% 95% at 50% 48%,
+    transparent 52%,
+    rgba(0, 0, 0, 0.28) 78%,
+    rgba(0, 0, 0, 0.62) 100%
+  );
 }
 
 @keyframes nxr-scene-arrive {
@@ -1167,11 +1204,16 @@ p.nxr-hero-mastery-line {
   margin-top: 24px;
 }
 
+/* Tipografía de títulos en el CTA ("en tipografía de los títulos con
+   letras mayúsculas"): Rajdhani 500 uppercase con tracking — sustituye al
+   acento serif Cormorant que llevaba desde el rediseño tipográfico. */
 .nxr-hero-cta-text {
-  font-family: var(--font-cormorant), serif;
-  font-weight: 400;
+  font-family: var(--font-rajdhani), system-ui, sans-serif;
+  font-weight: 500;
   font-style: normal;
-  font-size: 17px;
+  font-size: 15px;
+  text-transform: uppercase;
+  letter-spacing: 0.09em;
 }
 
 .nxr-hero-cta-arrow {

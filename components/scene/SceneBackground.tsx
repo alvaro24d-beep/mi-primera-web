@@ -111,6 +111,7 @@ const fragmentShader = /* glsl */ `
   uniform vec2 uPixel;     // pixelation resolution (cells across / down)
   uniform vec2 uCoverScale; // aspect-correct "cover" crop: fraction of the video sampled per axis
   uniform vec2 uPanels;    // monitor-tile counts (across / down) for the panel-wall read
+  uniform vec2 uRes;       // drawing-buffer size, for the SCREEN-SPACE edge vignette
 
   vec3 sampleSource(vec2 uv) {
     if (uHasVideo > 0.5) {
@@ -175,6 +176,18 @@ const fragmentShader = /* glsl */ `
     // the separators cut through everything, like real bezels.
     col = mix(col, col * 0.16, sep);
     col *= (0.42 + 0.58 * vig);
+
+    // SCREEN-SPACE edge vignette ("sombra del vídeo de fondo") — inside the
+    // wall shader on purpose: it dims ONLY the wall/video; the glass cards
+    // render after and stay untouched by construction. Intensity at the
+    // approved MIDDLE level (V15.66: clear centre ~38%, ~0.45 dark at
+    // mid-field, 0.85 at the corners) — the later max level read too heavy.
+    vec2 sc = gl_FragCoord.xy / uRes;
+    vec2 sd = vec2((sc.x - 0.5) * 2.0, ((sc.y - 0.52) * 2.0) / 0.85);
+    float rr = length(sd);
+    float edge = 0.45 * smoothstep(0.38, 0.72, rr) + 0.40 * smoothstep(0.72, 1.0, rr);
+    col *= (1.0 - min(edge, 0.85));
+
     gl_FragColor = vec4(col, 1.0);
   }
 `;
@@ -200,6 +213,7 @@ export default function SceneBackground({
 
   const target = useRef({ x: 0, y: 0 });
   const current = useRef({ x: 0, y: 0 });
+  const scratchSize = useRef(new THREE.Vector2());
   // Live handle to the current <video> for the keep-alive interval below —
   // rendering must never depend on the video actually playing (phones can
   // refuse/delay autoplay, and in "demand" mode the video's rVFC is the
@@ -231,6 +245,7 @@ export default function SceneBackground({
       uPixel: { value: new THREE.Vector2(180, Math.round(180 / wallAspect(WALL_MODES.landscape))) },
       uCoverScale: { value: new THREE.Vector2(1, 1) },
       uPanels: { value: new THREE.Vector2(15, Math.round(15 / wallAspect(WALL_MODES.landscape))) },
+      uRes: { value: new THREE.Vector2(1, 1) },
     }),
     // eslint-disable-next-line react-hooks/exhaustive-deps
     []
@@ -431,7 +446,14 @@ export default function SceneBackground({
     return () => window.clearInterval(id);
   }, [tv, active, invalidate]);
 
-  useFrame(() => {
+  useFrame(({ gl }) => {
+    // Drawing-buffer size for the screen-space vignette (scratch vector
+    // reused — correct across resizes and DPR changes for free).
+    const matV = matRef.current;
+    if (matV) {
+      gl.getDrawingBufferSize(scratchSize.current);
+      (matV.uniforms.uRes.value as THREE.Vector2).copy(scratchSize.current);
+    }
     const c = current.current;
     const t = target.current;
     c.x += (t.x - c.x) * 0.09;

@@ -1305,12 +1305,12 @@ p.nxr-hero-mastery-line {
   .nxr-hero-actions {
     flex-direction: column;
     width: 100%;
-    /* 152 (was 84 = 28px air + the 56px "h1 up, CTA fixed" trade half —
-       see .nxr-hero-fade's padding-bottom above): +68px more push the
-       button into the THUMB zone (bottom third of the phone screen, "que
-       salga más al alcance del pulgar"). The hero stage has empty runway
-       below the CTA, and its glass mesh follows the live rect per frame. */
-    margin-top: 152px;
+    /* 116 (was 152): the V15.52 lowering of the WHOLE hero block (the
+       120px padding-top above) stacked on top of the thumb-zone push and
+       left the button TOO low ("está muy bajo, súbelo un poco") — -36px
+       brings it back into the comfortable thumb band. The glass mesh
+       follows the live rect per frame. */
+    margin-top: 116px;
     padding: 0 16px;
   }
 

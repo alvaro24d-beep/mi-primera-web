@@ -7540,7 +7540,18 @@ input[type="range"].nxr-ms-range::-moz-range-thumb {
    cada escritura repintaba su área y re-layerizaba el árbol. Promocionarlos
    convierte esas escrituras en trabajo puro de compositor. Deliberadamente
    NO se promocionan los cientos de .nxr-cw-word (memoria de capas). */
-.nxr-srv-slide,
+/* Slide: transform ONLY. `will-change: opacity` is a GROUPING property —
+   it flattens this element's `transform-style: preserve-3d`, so the
+   inner's CSS rotation stopped projecting through the sticky's shared
+   perspective camera and the mini-anims visibly detached from their glass
+   while cards passed ("las animaciones se despegan de las cards"). The
+   slide never animates opacity anyway (that lives on the inner/mesh). */
+.nxr-srv-slide {
+  will-change: transform;
+}
+
+/* Inner (the 3D-rotated leaf itself): grouping only affects DESCENDANTS'
+   3D, and the mini-anims inside are 2D — safe to hint both. */
 .nxr-srv-inner {
   will-change: transform, opacity;
 }

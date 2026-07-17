@@ -7532,3 +7532,19 @@ input[type="range"].nxr-ms-range::-moz-range-thumb {
     transform: translate3d(var(--drift-x, 0px), var(--drift-y, 0px), 0) perspective(1200px) rotateY(10deg);
   }
 }
+
+/* ===== Promociones de capa (perf: trazas con Layerize 750ms + Paint/PrePaint
+   1.6s por ventana de 9s en Servicios) ===== */
+/* Los elementos que el reel anima CADA frame (transform/opacity en slides e
+   inners, opacity+blur en captions) no tenían capa de compositor estable:
+   cada escritura repintaba su área y re-layerizaba el árbol. Promocionarlos
+   convierte esas escrituras en trabajo puro de compositor. Deliberadamente
+   NO se promocionan los cientos de .nxr-cw-word (memoria de capas). */
+.nxr-srv-slide,
+.nxr-srv-inner {
+  will-change: transform, opacity;
+}
+
+.nxr-servicios-captions .nxr-srv-caption {
+  will-change: transform, opacity, filter;
+}

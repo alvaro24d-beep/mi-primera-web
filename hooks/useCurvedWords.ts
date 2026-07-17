@@ -283,15 +283,30 @@ export function useCurvedWords(
     layout();
 
     // ---- Per-frame dynamic bow, driven by each line's LIVE screen height.
+    // 30Hz on purpose (every other ticker frame): the bow is a ≤29px offset
+    // whose 16ms of extra latency is imperceptible, but its per-WORD style
+    // writes were a top main-thread cost while scrolling through text-heavy
+    // sections (Intro measured 17fps at CPU×3 before this).
+    let frameFlip = false;
     const update = () => {
+      frameFlip = !frameFlip;
+      if (frameFlip) return;
       const vhHalf = window.innerHeight / 2;
       const fan = opts.fan ?? PROFILE().fan;
+      // READ pass first, WRITE pass after: interleaving them per block made
+      // every block's rect read force a reflow against the previous block's
+      // just-written word transforms (layout thrashing at ticker frequency
+      // in text-heavy sections).
+      const jobs: { g: ItemGeom; topNow: number }[] = [];
       for (const g of geoms) {
         if (!g.near) continue;
         const rect = g.el.getBoundingClientRect();
         const topNow = rect.top + g.topBias;
         if (Math.abs(topNow - g.lastTop) < 0.3) continue;
         g.lastTop = topNow;
+        jobs.push({ g, topNow });
+      }
+      for (const { g, topNow } of jobs) {
         for (const w of g.words) {
           const dyRaw = topNow + w.lineMid - vhHalf;
           const dy = Math.max(-DY_CAP, Math.min(DY_CAP, dyRaw));

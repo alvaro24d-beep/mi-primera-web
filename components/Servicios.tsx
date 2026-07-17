@@ -777,18 +777,43 @@ export default function Servicios() {
       // pointer-events gate uses). Cached lookups: this runs per frame.
       const lastCapVis = captions.map(() => 0);
       const capDescs = captions.map((c) => c.querySelector<HTMLElement>(".nxr-srv-desc"));
+      // Style-write caches (perf pass: Servicios measured 13fps at CPU×3 —
+      // the reel was re-writing every style every frame): captions only
+      // rewrite when their quantized visibility moved, zIndex/pointerEvents
+      // only on real change.
+      const lastCapShown = captions.map(() => -1);
+      const lastZ = slides.map(() => -1);
+      const lastPE = slides.map(() => "");
+      // DEDUPE guard: updateSpiral runs from BOTH the pin's onUpdate (via
+      // Lenis' rAF) and idleTick (gsap ticker) — the same browser frame ran
+      // the whole rect-read + style-write pass TWICE. One pass per ~frame.
+      let lastSpiralAt = 0;
       const updateSpiral = () => {
+        const nowMs = performance.now();
+        if (nowMs - lastSpiralAt < 4) return;
+        lastSpiralAt = nowMs;
+        // ---- READ pass: every layout read happens BEFORE any style write.
+        // The previous shape interleaved them per slide (read rect → write
+        // styles → read next rect), so each subsequent read forced a
+        // synchronous reflow against the just-dirtied styles — one layout
+        // per SLIDE per frame instead of one per frame, the top main-thread
+        // cost in the 13fps CPU×3 profile of this section.
         const stickyRect = sticky.getBoundingClientRect();
         const centerX = stickyRect.left + stickyRect.width / 2;
         const halfW = stickyRect.width / 2;
         const drumR = halfW / Math.sin(THETA_MAX);
         const stepPx = cardStep() || halfW;
+        const slideReads = slides.map((slide) => ({
+          r: slide.getBoundingClientRect(),
+          slideX: Number(gsap.getProperty(slide, "x")) || 0,
+        }));
+
+        // ---- COMPUTE + WRITE pass (no more layout reads below).
         slides.forEach((slide, i) => {
-          const r = slide.getBoundingClientRect();
+          const { r, slideX } = slideReads[i];
           // Base lane position: the rect minus the slide's OWN tail x-pull
           // below — nx must come from the track's layout alone, or the pull
           // would feed back into the very offset that computes it.
-          const slideX = Number(gsap.getProperty(slide, "x")) || 0;
           const slideCenterX = r.left + r.width / 2 - slideX;
           const nxRaw = (slideCenterX - centerX) / halfW;
           const nx = gsap.utils.clamp(-1.6, 1.6, nxRaw);
@@ -843,15 +868,23 @@ export default function Servicios() {
               ? -Math.sign(nx) * Math.max(0, Math.abs(slideCenterX - centerX) - stepPx) * (1 - PARK_DRIFT)
               : 0,
             y: ARC_AMPLITUDE * nx + Math.sign(nx) * tail2 * TAIL_CLIMB,
-            // Depth-correct DOM painting: a dissolving tail card must never
-            // paint OVER the front card's content (WebGL sorts by real z;
-            // the DOM needs this hint — slides are flex items, so z-index
-            // applies without position).
-            zIndex: 50 - Math.round(Math.abs(nx) * 10),
-            // A near-invisible card must not steal hovers/taps from the
-            // front cards it now overlaps in projection.
-            pointerEvents: tail > 0.5 ? "none" : "auto",
           });
+          // Depth-correct DOM painting (WebGL sorts by real z; the DOM needs
+          // this hint — slides are flex items, so z-index applies without
+          // position) + hover shielding for near-invisible tails. Written
+          // DIRECTLY and only on real change: these mutate rarely, and the
+          // per-frame gsap.set of identical values was measurable style
+          // churn.
+          const zi = 50 - Math.round(Math.abs(nx) * 10);
+          if (zi !== lastZ[i]) {
+            lastZ[i] = zi;
+            slide.style.zIndex = String(zi);
+          }
+          const pe = tail > 0.5 ? "none" : "auto";
+          if (pe !== lastPE[i]) {
+            lastPE[i] = pe;
+            slide.style.pointerEvents = pe;
+          }
 
           const cap = captions[i];
           if (cap) {
@@ -863,16 +896,31 @@ export default function Servicios() {
               if (d) scrambleElement(d);
             }
             lastCapVis[i] = vis;
-            gsap.set(cap, {
-              opacity: vis,
-              filter: `blur(${((1 - vis) * 5).toFixed(2)}px)`,
-              y: (1 - vis) * 14,
-              pointerEvents: vis > 0.5 ? "auto" : "none",
-            });
+            // Quantized to 2% steps and only written on change: the blur()
+            // filter string + opacity + transform on 5 captions EVERY frame
+            // was a top style-churn source in the 13fps profile; a 0.02
+            // opacity step is invisible through the crossfade.
+            const visQ = Math.round(vis * 50) / 50;
+            if (visQ !== lastCapShown[i]) {
+              lastCapShown[i] = visQ;
+              gsap.set(cap, {
+                opacity: visQ,
+                filter: `blur(${((1 - visQ) * 5).toFixed(1)}px)`,
+                y: (1 - visQ) * 14,
+                pointerEvents: visQ > 0.5 ? "auto" : "none",
+              });
+            }
           }
         });
       };
+      // Same double-caller dedupe as updateSpiral (onUpdate + idleTick hit
+      // this in the same browser frame): 5 × (registry mutation + gsap.set
+      // of a 3D transform on the inner) once per frame, not twice.
+      let lastPushAt = 0;
       const pushAll = () => {
+        const nowMs = performance.now();
+        if (nowMs - lastPushAt < 4) return;
+        lastPushAt = nowMs;
         for (let i = 0; i < cards.length; i++) push(i);
       };
 

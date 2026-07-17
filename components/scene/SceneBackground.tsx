@@ -18,10 +18,20 @@ import * as THREE from "three";
 //
 // All numbers are world units: 1 unit == 1 CSS pixel at z=0 (see PixelCamera).
 // Sized so the projected arc overfills both a wide desktop and a tall phone.
-const R = 1300; // cylinder radius (smaller = tighter curve)
-const PHI_MAX = 1.1; // half-arc in radians (~63°): how far the wall wraps forward at the edges
-const Z_CENTER = -1050; // depth of the arc's farthest (central) column — deep so the centre reads clearly farther than the sides
-const HEIGHT = 2600; // vertical span (straight — axis is vertical, so no vertical curvature)
+// DEEP-TUBE tuning ("más profundidad: curvatura mucho más pronunciada, el eje
+// central mucho más al fondo"): the four numbers move TOGETHER — pushing the
+// centre deeper shrinks its projection, so height/radius/arc must grow to
+// keep screen coverage. Resulting depth vs the previous set (R 1300, φ 1.1,
+// z -1050, h 2600): sagitta centre↔edges 710 → 1172 (+65% of forward wrap)
+// and the central column sits at camera-distance 2900 vs 2050 (+41% farther).
+// Coverage checks (1 unit = 1px at z=0, camera at +1000): edge columns
+// project to ±892px (≥ the old ±865) and the centre strip's height projects
+// to ~1170px — same envelope as before, all fringes fading into the dark
+// vignette/body exactly like the old wall.
+const R = 1600; // cylinder radius (smaller = tighter curve)
+const PHI_MAX = 1.3; // half-arc in radians (~75°): how far the wall wraps forward at the edges
+const Z_CENTER = -1900; // depth of the arc's farthest (central) column — deep so the centre reads clearly farther than the sides
+const HEIGHT = 3400; // vertical span (straight — axis is vertical, so no vertical curvature)
 const COLS = 220;
 const ROWS = 72;
 // Unrolled surface width of the arc (2·R·φmax) — the wall's TRUE width for

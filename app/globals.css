@@ -1185,7 +1185,12 @@ h6 {
      where it was, headline+sub 56px higher. */
   .nxr-hero-fade,
   .nxr-hero-static {
-    padding-bottom: 56px;
+    /* Was padding-bottom: 56px (lifted the block). Now the WHOLE hero
+       composition — h1, párrafo y CTA — sits visibly LOWER on phones
+       ("baja más el contenido de la hero en móvil"): asymmetric padding
+       shifts the flex-centred block ~88px down vs the previous tune. */
+    padding-top: 120px;
+    padding-bottom: 0;
   }
 
   /* "Construido con maestría / Entregado con precisión" pinned to the middle

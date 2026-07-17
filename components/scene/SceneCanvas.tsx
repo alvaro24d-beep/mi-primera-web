@@ -240,6 +240,7 @@ export default function SceneCanvas() {
           tv
           videoSrc={isPortrait ? "/bg-video-vertical.mp4" : "/bg-video.mp4"}
           active={active}
+          portrait={isPortrait}
         />
         <ServiciosCardsLayer isMobile={isMobile} />
         <ZoomParallaxCardsLayer isMobile={isMobile} />

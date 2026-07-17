@@ -17,44 +17,55 @@ import * as THREE from "three";
 // ride on top of it.
 //
 // All numbers are world units: 1 unit == 1 CSS pixel at z=0 (see PixelCamera).
-// Sized so the projected arc overfills both a wide desktop and a tall phone.
-// DEEP-TUBE tuning ("más profundidad: curvatura mucho más pronunciada, el eje
-// central mucho más al fondo"): the four numbers move TOGETHER — pushing the
-// centre deeper shrinks its projection, so height/radius/arc must grow to
-// keep screen coverage. Resulting depth vs the previous set (R 1300, φ 1.1,
-// z -1050, h 2600): sagitta centre↔edges 710 → 1172 (+65% of forward wrap)
-// and the central column sits at camera-distance 2900 vs 2050 (+41% farther).
-// Coverage checks (1 unit = 1px at z=0, camera at +1000): edge columns
-// project to ±892px (≥ the old ±865) and the centre strip's height projects
-// to ~1170px — same envelope as before, all fringes fading into the dark
-// vignette/body exactly like the old wall.
-const R = 1600; // cylinder radius (smaller = tighter curve)
-const PHI_MAX = 1.3; // half-arc in radians (~75°): how far the wall wraps forward at the edges
-const Z_CENTER = -1900; // depth of the arc's farthest (central) column — deep so the centre reads clearly farther than the sides
-const HEIGHT = 3400; // vertical span (straight — axis is vertical, so no vertical curvature)
+//
+// TWO WALLS, one per orientation (deep-tube + barrel, alche.studio ref): a
+// phone only ever sees the central ~half of a desktop-sized drum — its
+// geometrically FLATTEST region — so no landscape tuning can ever read as
+// curved through a 390px-wide window (measured: ~7px of row bow). Portrait
+// therefore gets its OWN much tighter drum: small R puts the curvature
+// INSIDE the visible window (~22px+ of bow per row), sized to the phone's
+// own coverage needs. The geometry rebuilds on orientation flip — the same
+// live signal that already swaps the portrait/landscape video clip.
+//   R        cylinder radius (smaller = tighter horizontal curve)
+//   PHI      horizontal half-arc (rad): forward wrap of the side edges
+//   Z        depth of the farthest (central) column
+//   H        projected vertical span
+//   PSI      vertical half-arc (rad): BARREL bow — the reference curves on
+//            BOTH axes, top/bottom rows wrap forward like a barrel interior
+//   PANELS_X monitor-tile columns of the panel wall (rows derive from aspect)
+type WallMode = { R: number; PHI: number; Z: number; H: number; PSI: number; PANELS_X: number };
+const WALL_MODES: { landscape: WallMode; portrait: WallMode } = {
+  landscape: { R: 1600, PHI: 1.4, Z: -1900, H: 3400, PSI: 0.6, PANELS_X: 15 },
+  portrait: { R: 700, PHI: 1.35, Z: -1500, H: 2600, PSI: 0.8, PANELS_X: 8 },
+};
+// Unrolled surface width (2·R·φmax) over height — the wall's TRUE aspect for
+// cover/pixel/panel math, since u parameterizes angle (≈ arc length), not
+// the chord. Videos must be "cover"-mapped against THIS or they stretch.
+const wallAspect = (m: WallMode) => (2 * m.R * m.PHI) / m.H;
 const COLS = 220;
 const ROWS = 72;
-// Unrolled surface width of the arc (2·R·φmax) — the wall's TRUE width for
-// aspect math, since u is parameterized by angle (≈ arc length), not by the
-// chord. Wall aspect ≈ 1.1 : videos must be "cover"-mapped against this or
-// they stretch to fill the whole wall (a 16:9 clip squashed onto a ~1.1:1
-// surface was the reported distortion).
-const ARC_LEN = 2 * R * PHI_MAX;
-const WALL_ASPECT = ARC_LEN / HEIGHT;
 
-function buildArcGeometry() {
+function buildArcGeometry(m: WallMode) {
   const positions: number[] = [];
   const uvs: number[] = [];
   const indices: number[] = [];
 
+  // Vertical barrel radius: derived so the projected vertical span still
+  // equals m.H (rows near the middle unchanged; extreme rows come forward).
+  const rv = m.H / (2 * Math.sin(m.PSI));
+
   for (let j = 0; j <= ROWS; j++) {
     const v = j / ROWS;
-    const y = (v - 0.5) * HEIGHT;
+    // Barrel: each row rides its own vertical arc — y follows sin(ψ) and
+    // the row's z comes FORWARD by rv·(1−cos ψ) toward top/bottom.
+    const psi = (v - 0.5) * 2 * m.PSI;
+    const y = rv * Math.sin(psi);
+    const zBow = rv * (1 - Math.cos(psi));
     for (let i = 0; i <= COLS; i++) {
       const u = i / COLS;
-      const phi = (u - 0.5) * 2 * PHI_MAX;
-      const x = R * Math.sin(phi);
-      const z = Z_CENTER + R * (1 - Math.cos(phi));
+      const phi = (u - 0.5) * 2 * m.PHI;
+      const x = m.R * Math.sin(phi);
+      const z = m.Z + m.R * (1 - Math.cos(phi)) + zBow;
       positions.push(x, y, z);
       uvs.push(u, v);
     }
@@ -99,6 +110,7 @@ const fragmentShader = /* glsl */ `
   uniform sampler2D uSource;
   uniform vec2 uPixel;     // pixelation resolution (cells across / down)
   uniform vec2 uCoverScale; // aspect-correct "cover" crop: fraction of the video sampled per axis
+  uniform vec2 uPanels;    // monitor-tile counts (across / down) for the panel-wall read
 
   vec3 sampleSource(vec2 uv) {
     if (uHasVideo > 0.5) {
@@ -122,6 +134,18 @@ const fragmentShader = /* glsl */ `
     vec2 gr = abs(fract(g - 0.5) - 0.5) / fwidth(g);
     float line = 1.0 - min(min(gr.x, gr.y), 1.0);
 
+    // ---- Panel wall (alche.studio reference): thick dark separators split
+    // the surface into individual "monitor" tiles, and each tile carries its
+    // own luminance so the wall reads as MANY PHYSICAL SCREENS, not one
+    // continuous texture. Screen-space band width via fwidth = constant
+    // ~2.5px separators regardless of depth/curvature.
+    vec2 p = vUv * uPanels;
+    vec2 pid = floor(p);
+    vec2 pr = abs(fract(p - 0.5) - 0.5) / fwidth(p);
+    float sep = 1.0 - smoothstep(0.0, 2.5, min(pr.x, pr.y));
+    float ph = fract(sin(dot(pid, vec2(127.1, 311.7))) * 43758.5453);
+    float panelLum = 0.84 + 0.32 * ph;
+
     // Depth: light pooling toward uFocus + outward vignette.
     float d = distance(vUv, uFocus);
     float glow = smoothstep(0.85, 0.0, d);
@@ -144,9 +168,12 @@ const fragmentShader = /* glsl */ `
       fill = uBase;
     }
 
-    vec3 col = fill;
+    vec3 col = fill * panelLum;
     col += uGlowCol * glow * 0.10;
     col += uLine * line * (0.05 + 0.28 * glow);
+    // Deep dark gaps between the monitor tiles — applied AFTER glow/grid so
+    // the separators cut through everything, like real bezels.
+    col = mix(col, col * 0.16, sep);
     col *= (0.42 + 0.58 * vig);
     gl_FragColor = vec4(col, 1.0);
   }
@@ -156,12 +183,17 @@ export default function SceneBackground({
   tv,
   videoSrc,
   active,
+  portrait,
 }: {
   tv: boolean;
   videoSrc: string | null;
   active: boolean;
+  portrait: boolean;
 }) {
-  const geometry = useMemo(() => buildArcGeometry(), []);
+  // Stable per-orientation references (WALL_MODES entries never change), so
+  // the geometry memo only rebuilds on a real orientation flip.
+  const mode = portrait ? WALL_MODES.portrait : WALL_MODES.landscape;
+  const geometry = useMemo(() => buildArcGeometry(mode), [mode]);
   const groupRef = useRef<THREE.Group>(null);
   const matRef = useRef<THREE.ShaderMaterial>(null);
   const invalidate = useThree((s) => s.invalidate);
@@ -193,12 +225,12 @@ export default function SceneBackground({
       uTv: { value: tv ? 1 : 0 },
       uHasVideo: { value: 0 },
       uSource: { value: blankTex as THREE.Texture },
-      // Square CRT pixels: rows derived from the wall's real (unrolled)
-      // aspect — the old fixed 180×110 grid had ~16×24-world-unit cells,
-      // whose 1.5× vertical stretch was itself part of the reported
-      // distortion.
-      uPixel: { value: new THREE.Vector2(180, Math.round(180 / WALL_ASPECT)) },
+      // Square CRT pixels / square-ish monitor tiles: initialized for
+      // landscape; the [mode] effect below re-derives both from the ACTIVE
+      // wall's unrolled aspect (portrait wall has its own).
+      uPixel: { value: new THREE.Vector2(180, Math.round(180 / wallAspect(WALL_MODES.landscape))) },
       uCoverScale: { value: new THREE.Vector2(1, 1) },
+      uPanels: { value: new THREE.Vector2(15, Math.round(15 / wallAspect(WALL_MODES.landscape))) },
     }),
     // eslint-disable-next-line react-hooks/exhaustive-deps
     []
@@ -207,6 +239,21 @@ export default function SceneBackground({
   useEffect(() => {
     if (matRef.current) matRef.current.uniforms.uTv.value = tv ? 1 : 0;
   }, [tv]);
+
+  // Re-derive the aspect-dependent uniforms for the ACTIVE wall on
+  // orientation flips (pixel grid and panel tiles must stay square-ish on
+  // both drums).
+  useEffect(() => {
+    const mat = matRef.current;
+    if (!mat) return;
+    const a = wallAspect(mode);
+    (mat.uniforms.uPixel.value as THREE.Vector2).set(180, Math.round(180 / a));
+    (mat.uniforms.uPanels.value as THREE.Vector2).set(
+      mode.PANELS_X,
+      Math.max(2, Math.round(mode.PANELS_X / a))
+    );
+    invalidate();
+  }, [mode, invalidate]);
 
   useEffect(() => () => geometry.dispose(), [geometry]);
   useEffect(() => () => blankTex.dispose(), [blankTex]);
@@ -272,9 +319,10 @@ export default function SceneBackground({
       if (mat) {
         mat.uniforms.uSource.value = tex;
         mat.uniforms.uHasVideo.value = 1;
-        // Aspect-correct cover crop for THIS clip against the wall's
+        // Aspect-correct cover crop for THIS clip against the ACTIVE wall's
         // unrolled aspect (see sampleSource in the fragment shader).
         const va = video.videoWidth / video.videoHeight || 1;
+        const wa = wallAspect(portrait ? WALL_MODES.portrait : WALL_MODES.landscape);
         const cover = mat.uniforms.uCoverScale.value as THREE.Vector2;
         // Landscape (desktop) clips read "too close": pure cover sampled
         // only the central 62% of the frame's width, and the wall's
@@ -285,8 +333,8 @@ export default function SceneBackground({
         // Out-of-range sampling on the off-screen fringes mirrors (see the
         // texture wrap above). Portrait clips are authored 1:1 for phones.
         const zoom = va > 1 ? 1.3 : 1;
-        if (va > WALL_ASPECT) cover.set((WALL_ASPECT / va) * zoom, zoom);
-        else cover.set(zoom, (va / WALL_ASPECT) * zoom);
+        if (va > wa) cover.set((wa / va) * zoom, zoom);
+        else cover.set(zoom, (va / wa) * zoom);
       }
       video.play().catch(() => {});
       if (supportsRVFC) rvfcId = video.requestVideoFrameCallback(onFrame);
@@ -350,7 +398,7 @@ export default function SceneBackground({
         mat.uniforms.uSource.value = blankTex;
       }
     };
-  }, [tv, videoSrc, blankTex, invalidate]);
+  }, [tv, videoSrc, blankTex, invalidate, portrait]);
 
   // Cursor parallax. Each mousemove kicks a render (the canvas runs
   // "demand" off the card sections), and the ease-out below re-invalidates

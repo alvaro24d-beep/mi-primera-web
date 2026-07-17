@@ -266,6 +266,11 @@ export default function SceneCanvas() {
           </EffectComposer>
         )}
       </Canvas>
+      {/* Viñeta de bordes de pantalla — un DIV real DESPUÉS del canvas (el
+          intento como ::after del contenedor quedaba pintado bajo el canvas
+          acelerado y el vídeo nunca se oscurecía). Estático: coste cero por
+          frame. Estilos en .nxr-scene-vignette. */}
+      <div className="nxr-scene-vignette" aria-hidden="true" />
     </div>
   );
 }

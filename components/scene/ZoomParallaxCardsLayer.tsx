@@ -57,11 +57,13 @@ const ZP_STYLES = [
 // single winner with a clear, FIXED gap can't have that ambiguity.
 const BEHIND_Z = -30;
 
-// Fluid-glass transmission for ZP cards — every device (user request), with
-// a cheaper `samples` count on mobile. Slightly below Servicios' fully-clear
-// 1: these cards carry big white stat text directly on the glass, so they
-// keep a touch more body for contrast against the bright TV-wall video.
-const ZP_TRANSMISSION = 0.9;
+// Fluid-glass transmission for ZP cards — every device, with a cheaper
+// `samples` count on mobile. 1, SAME as Servicios/panels: the old 0.9 ("a
+// touch more body for the white stat text") routed 10% of the light through
+// the diffuse path and read as milky grey next to the other cards ("se ven
+// más opacas y grises, tienen que ser como las demás"). Text contrast is
+// carried by the mesh's frosted blur alone, like everywhere else.
+const ZP_TRANSMISSION = 1;
 
 export default function ZoomParallaxCardsLayer({ isMobile }: { isMobile: boolean }) {
   const { size } = useThree();

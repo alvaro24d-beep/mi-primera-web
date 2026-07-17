@@ -436,7 +436,9 @@ p.nxr-hero-mastery-line {
   .nxr-intro-text,
   .nxr-tech-header-right,
   .nxr-proceso-header-right,
-  .nxr-contacto-desc {
+  .nxr-contacto-desc,
+  .nxr-contacto-item-title,
+  .nxr-contacto-item-desc {
     font-size: 13px;
   }
 
@@ -3679,22 +3681,26 @@ p.nxr-hero-mastery-line {
   gap: 32px;
 }
 
+/* 15px/1.7 = the sitewide section-paragraph size (.nxr-tech-header-right is
+   the reference): "que sea del mismo tamaño de letra que el resto de
+   párrafos". Phones drop to 13px via the shared mobile block near the top
+   of this file, same as every other section paragraph. */
 .nxr-contacto-desc {
-  font-size: 16px;
+  font-size: 15px;
   color: var(--c-salmon);
   line-height: 1.7;
   max-width: 440px;
 }
 
-/* Desktop-only size trim for this section's header copy ("está demasiado
-   grande" — the hook plane's near-edge magnification makes the global h2
-   clamp read oversized here). Phones keep the global sizes. */
+/* Desktop-only size trim for this section's TITLE ("está demasiado grande"
+   — the hook plane's near-edge magnification makes the global h2 clamp read
+   oversized here). The old 14.5px desc trim here is gone: the paragraph now
+   uses the standard 15px at every width. */
 @media (min-width: 901px) {
   #nxr-contacto .nxr-section-h2 {
     font-size: clamp(28px, 3.2vw, 44px);
   }
   .nxr-contacto-desc {
-    font-size: 14.5px;
     max-width: 400px;
   }
 }
@@ -3731,15 +3737,18 @@ p.nxr-hero-mastery-line {
   stroke-linejoin: round;
 }
 
+/* Both item lines at the standard 15px section-paragraph size (same as
+   .nxr-contacto-desc / .nxr-tech-header-right) — "del mismo tamaño que el
+   resto de párrafos". */
 .nxr-contacto-item-title {
-  font-size: 14px;
+  font-size: 15px;
   font-weight: 700;
   color: var(--c-white);
   margin-bottom: 2px;
 }
 
 .nxr-contacto-item-desc {
-  font-size: 13px;
+  font-size: 15px;
   color: var(--c-salmon);
 }
 

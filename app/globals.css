@@ -497,11 +497,17 @@ p.nxr-hero-mastery-line {
   position: absolute;
   inset: 0;
   pointer-events: none;
+  /* z-index explícito: sin él, el pseudo quedaba pintado BAJO el canvas
+     (solo se veía a través de sus zonas transparentes, "detrás de la
+     pantalla") y el vídeo nunca se oscurecía en los bordes. Con 1 queda
+     sobre el canvas y sigue bajo todo el contenido de la página (el
+     contenedor entero vive en z-index -1000). */
+  z-index: 1;
   background: radial-gradient(
-    ellipse 115% 95% at 50% 48%,
-    transparent 52%,
-    rgba(0, 0, 0, 0.28) 78%,
-    rgba(0, 0, 0, 0.62) 100%
+    ellipse 110% 92% at 50% 48%,
+    transparent 48%,
+    rgba(0, 0, 0, 0.34) 76%,
+    rgba(0, 0, 0, 0.7) 100%
   );
 }
 

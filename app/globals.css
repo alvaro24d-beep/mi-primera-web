@@ -7493,3 +7493,42 @@ input[type="range"].nxr-ms-range::-moz-range-thumb {
     padding: 4px 0 16px;
   }
 }
+
+/* ===== Deriva global con el cursor (components/CursorDrift.tsx) =====
+   El driver escribe --drift-x/--drift-y en :root (suavizadas, ±9/±6px) y
+   estas reglas las aplican a contenedores de contenido CURADOS: cada uno
+   vive por debajo del pin de su sección (un ancestro transformado rompería
+   el position:fixed de los pins y overlays), no tiene dueño previo de su
+   transform (GSAP/reveals) y no contiene descendientes fixed. Las mallas de
+   cristal siguen los rects vivos del DOM, así que acompañan la deriva solas.
+   Solo puntero fino (desktop); con reduced motion el driver no escribe las
+   vars y el translate queda en 0. */
+@media (pointer: fine) {
+  .nxr-hero-center,
+  .nxr-hero-mastery,
+  .nxr-intro-inner,
+  .nxr-zp-layers,
+  .nxr-proceso-inner,
+  .nxr-marquee-wrap,
+  .nxr-tech-inner,
+  .nxr-contacto-inner,
+  .nxr-servicios-content,
+  .nxr-servicios-head,
+  .nxr-dwh-overlay,
+  .nxr-dwh-tech-inner,
+  .nxr-dwh-cap-deck {
+    transform: translate3d(var(--drift-x, 0px), var(--drift-y, 0px), 0);
+  }
+
+  /* Capa "cercana": factor mayor = leen como más próximas al espectador. */
+  .nxr-servicios-captions,
+  .nxr-tech-strip {
+    transform: translate3d(calc(var(--drift-x, 0px) * 1.6), calc(var(--drift-y, 0px) * 1.6), 0);
+  }
+
+  /* Compuesta con su plano CSS propio (la deriva primero, en espacio de
+     pantalla; luego la perspectiva del reel). */
+  .nxr-dwh-proceso-tilt {
+    transform: translate3d(var(--drift-x, 0px), var(--drift-y, 0px), 0) perspective(1200px) rotateY(10deg);
+  }
+}

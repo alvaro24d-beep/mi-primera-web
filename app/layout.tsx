@@ -6,6 +6,7 @@ import SceneCanvasLazy from "@/components/scene/SceneCanvasLazy";
 import RevealInit from "@/components/RevealInit";
 import SmoothScroll from "@/components/SmoothScroll";
 import ScrollProgress from "@/components/ScrollProgress";
+import CursorDrift from "@/components/CursorDrift";
 import GradualBlur from "@/components/GradualBlur";
 
 const manrope = Manrope({
@@ -62,6 +63,9 @@ export default function RootLayout({
         <link rel="preload" as="video" href="/bg-video-vertical.mp4" media="(orientation: portrait)" />
         <SmoothScroll />
         <ScrollProgress />
+        {/* Deriva global de contenido con el cursor (vars CSS en :root; la
+            lista curada de contenedores vive en globals.css). */}
+        <CursorDrift />
         {/* WebGL backdrop deferred off the load's critical path — see
             SceneCanvasLazy (dynamic import + idle mount + fade-in). */}
         <SceneCanvasLazy />

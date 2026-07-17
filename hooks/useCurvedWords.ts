@@ -127,6 +127,13 @@ export function useCurvedWords(
    * fan: per-call override of PROFILE().fan (bow strength). Servicios'
    * captions keep their tuned mobile strength while the sitewide mobile
    * profile was softened ("reduce la distorsión... excepto Servicios").
+   *
+   * tiltDesktop: per-call override of the DESKTOP tilt angle (mobile keeps
+   * the profile's 6°). The near-edge magnification grows with tilt × block
+   * width (scale ≈ P/(P − W·sinθ)): Contacto's wide block at the sitewide
+   * 12° hit ~1.25× at its outer edge — text read oversized and the h2
+   * rasterized blurry ("borroso como si se estuviese ampliando"). 7° caps
+   * it at ~1.13×.
    */
   opts: {
     bowOnly?: boolean;
@@ -137,6 +144,7 @@ export function useCurvedWords(
     alsoBow?: string;
     splitIgnore?: string;
     fan?: number;
+    tiltDesktop?: number;
   } = {}
 ) {
   useEffect(() => {
@@ -202,7 +210,10 @@ export function useCurvedWords(
     const geoms: ItemGeom[] = [];
 
     const layout = () => {
-      const { tilt, forceDir, frameMargin } = PROFILE();
+      const profile = PROFILE();
+      const { forceDir, frameMargin } = profile;
+      const tilt =
+        opts.tiltDesktop !== undefined && window.innerWidth >= 901 ? opts.tiltDesktop : profile.tilt;
       const effDir = forceDir ?? dir;
       const pivot = effDir === "left" ? 1 : 0;
       const yaw = effDir === "left" ? tilt : -tilt;

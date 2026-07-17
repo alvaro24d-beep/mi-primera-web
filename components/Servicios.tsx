@@ -1162,6 +1162,30 @@ export default function Servicios() {
         cancelSnap();
       });
 
+      // AUTHORITY CLAMP for the viewport-FIXED title. Its opacity has TWO
+      // scrubbed drivers (approach fade-in + the pin timeline's fade-out);
+      // on a normal continuous scroll they hand over cleanly, but an INSTANT
+      // scroll jump (browser scroll restoration on reload, programmatic
+      // teleports) sets both catch-up tweens racing over the same property —
+      // and whichever writes LAST wins: caught live painting the phrase at
+      // full opacity over the Contacto section. Whenever the scroll sits
+      // outside the whole phrase-moment range, the title must be OFF —
+      // enforced every ticker frame (cost: two property reads + a string
+      // compare; the gsap.set only fires while a stray catch-up is writing).
+      if (headTitle) {
+        const clampTitle = () => {
+          const st = tl.scrollTrigger;
+          if (!st) return;
+          const y = window.scrollY;
+          const outside = y < st.start - window.innerHeight || y > st.end;
+          if (outside && headTitle.style.opacity !== "0") {
+            gsap.set(headTitle, { opacity: 0 });
+          }
+        };
+        gsap.ticker.add(clampTitle);
+        cleanups.push(() => gsap.ticker.remove(clampTitle));
+      }
+
       // ---- Mobile pagination: ONE card per swipe. A flick's inertia would
       // otherwise fly past several cards; instead, on touchend we glide to
       // exactly one step from the card that was current at touchstart (or

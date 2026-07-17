@@ -58,6 +58,14 @@ export default function Contacto() {
   useCurvedWords(sectionRef, ".nxr-contacto-textblock", "left", [], {
     alsoBow: ".nxr-contacto-item-icon",
     splitIgnore: ".nxr-section-h2",
+    // 7° (vs the sitewide 12°) on desktop: this block is the widest hook
+    // plane on the site (~500px incl. the reassurance items), and at 12° its
+    // outer edge magnified ~1.25× — the copy read oversized despite the
+    // standard 15px, and the h2 inside the plane rasterized visibly blurry
+    // ("se ve borroso como si se estuviese ampliando"). At 7° the max
+    // magnification is ~1.13× and the average ~1.07 — true-size copy, crisp
+    // title, the curved identity intact.
+    tiltDesktop: 7,
   });
   // Scramble entrance on the section paragraph (the Intro-paragraph effect,
   // sitewide per request). AFTER the curved-words call: reuses its spans.

@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { useTitleReveal } from "@/hooks/useTitleReveal";
 import { useGlassPanels } from "@/hooks/useGlassPanels";
 import { useCurvedWords } from "@/hooks/useCurvedWords";
+import { useTextScramble } from "@/hooks/useTextScramble";
 
 const PASOS = [
   {
@@ -113,6 +114,9 @@ export default function Proceso() {
     splitIgnore: ".nxr-section-h2",
   });
   useCurvedWords(sectionRef, ".nxr-proceso-header-right", "right", [], { onlyAbove: 901 });
+  // Scramble entrance on the section paragraph (the Intro-paragraph effect,
+  // sitewide per request). AFTER the curved-words calls: reuses their spans.
+  useTextScramble(sectionRef, ".nxr-proceso-header-right");
   useCurvedWords(sectionRef, ".nxr-section-h2", "left", [], {
     onlyAbove: 901,
     bowOnly: true,

@@ -129,6 +129,13 @@ p.nxr-hero-mastery-line {
   font-weight: 600;
 }
 
+/* Word spans created by useTextScramble's own splitter (only where a
+   paragraph has no .nxr-cw-word spans to reuse): inline-block so the
+   per-word width-lock during the scramble actually applies. */
+.nxr-scr-word {
+  display: inline-block;
+}
+
 /* Div/span-based body copy — visually paragraphs even though they aren't
    <p> tags — joins Space Mono with the same weight as the global p rule. */
 .nxr-zp-card-desc,

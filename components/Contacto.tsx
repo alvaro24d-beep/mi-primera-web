@@ -4,6 +4,7 @@ import { useRef, useState } from "react";
 import { useTitleReveal } from "@/hooks/useTitleReveal";
 import { useGlassPanels } from "@/hooks/useGlassPanels";
 import { useCurvedWords } from "@/hooks/useCurvedWords";
+import { useTextScramble } from "@/hooks/useTextScramble";
 
 const BUDGET_VALUES = [
   "< 500€",
@@ -58,6 +59,9 @@ export default function Contacto() {
     alsoBow: ".nxr-contacto-item-icon",
     splitIgnore: ".nxr-section-h2",
   });
+  // Scramble entrance on the section paragraph (the Intro-paragraph effect,
+  // sitewide per request). AFTER the curved-words call: reuses its spans.
+  useTextScramble(sectionRef, ".nxr-contacto-desc");
   const [negocio, setNegocio] = useState<string | null>(null);
   const [servicios, setServicios] = useState<string[]>([]);
   const [budgetIndex, setBudgetIndex] = useState(2);

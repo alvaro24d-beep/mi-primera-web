@@ -4,6 +4,7 @@ import { useEffect, useRef } from "react";
 import { useTitleReveal } from "@/hooks/useTitleReveal";
 import { useCurvedWords } from "@/hooks/useCurvedWords";
 import { useGlassPanels } from "@/hooks/useGlassPanels";
+import { useTextScramble } from "@/hooks/useTextScramble";
 
 const FILA_1 = [
   { name: "OpenAI GPT-4", cat: "IA & LLMs", color: "#A8F04A" },
@@ -82,6 +83,9 @@ export default function Tech() {
     splitIgnore: ".nxr-section-h2",
   });
   useCurvedWords(sectionRef, ".nxr-tech-header-right", "right", [], { onlyAbove: 901 });
+  // Scramble entrance on the section paragraph (the Intro-paragraph effect,
+  // sitewide per request). AFTER the curved-words calls: reuses their spans.
+  useTextScramble(sectionRef, ".nxr-tech-header-right");
   useCurvedWords(sectionRef, ".nxr-section-h2", "left", [], {
     onlyAbove: 901,
     bowOnly: true,

@@ -7,6 +7,7 @@ import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { useTitleReveal } from "@/hooks/useTitleReveal";
 import { useReducedMotion } from "@/hooks/useReducedMotion";
 import { useCurvedWords } from "@/hooks/useCurvedWords";
+import { scrambleElement } from "@/hooks/useTextScramble";
 import { useServiciosCardsRegistry } from "@/store/useServiciosCardsRegistry";
 
 gsap.registerPlugin(ScrollTrigger);
@@ -770,6 +771,12 @@ export default function Servicios() {
       // card eases into its centred state continuously. Does NOT push —
       // callers do (idleTick already pushes every card every visible frame).
       const lastNx = slides.map(() => NaN);
+      // Caption-desc scramble bookkeeping: each service paragraph plays the
+      // Intro-style scramble entrance every time ITS caption takes over
+      // (visibility crossing up through 0.55 — the same threshold the
+      // pointer-events gate uses). Cached lookups: this runs per frame.
+      const lastCapVis = captions.map(() => 0);
+      const capDescs = captions.map((c) => c.querySelector<HTMLElement>(".nxr-srv-desc"));
       const updateSpiral = () => {
         const stickyRect = sticky.getBoundingClientRect();
         const centerX = stickyRect.left + stickyRect.width / 2;
@@ -849,6 +856,13 @@ export default function Servicios() {
           const cap = captions[i];
           if (cap) {
             const vis = gsap.utils.clamp(0, 1, gsap.utils.mapRange(0.55, 0.2, 0, 1, Math.abs(nx)));
+            // Scramble the service paragraph as its caption takes over
+            // ("los párrafos de servicios" join the Intro entrance).
+            if (vis >= 0.55 && lastCapVis[i] < 0.55) {
+              const d = capDescs[i];
+              if (d) scrambleElement(d);
+            }
+            lastCapVis[i] = vis;
             gsap.set(cap, {
               opacity: vis,
               filter: `blur(${((1 - vis) * 5).toFixed(2)}px)`,

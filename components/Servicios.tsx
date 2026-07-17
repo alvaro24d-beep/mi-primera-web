@@ -414,8 +414,11 @@ function Caption({ c }: { c: (typeof CARDS)[number] }) {
       <div className="nxr-srv-cta-wrap">
         <a href={c.href} className="nxr-srv-cta nxr-glass-edge">
           <span className="nxr-glass-edge-content">{c.cta}</span>
+          {/* Flecha ↗ (arriba-derecha), estilo lucide arrow-up-right: la
+              diagonal + la esquina superior derecha — el gesto "abrir"
+              de la referencia alche.studio ("More Works ↗"). */}
           <svg className="nxr-glass-edge-content" viewBox="0 0 24 24">
-            <path d="M5 12h14M12 5l7 7-7 7" />
+            <path d="M7 17L17 7M7 7h10v10" />
           </svg>
         </a>
       </div>

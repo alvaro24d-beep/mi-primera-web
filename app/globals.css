@@ -1211,9 +1211,12 @@ h6 {
   .nxr-hero-actions {
     flex-direction: column;
     width: 100%;
-    /* 28px of visual air + the 56px half of the "h1 up, CTA fixed" trade
-       (see .nxr-hero-fade's padding-bottom above). */
-    margin-top: 84px;
+    /* 152 (was 84 = 28px air + the 56px "h1 up, CTA fixed" trade half —
+       see .nxr-hero-fade's padding-bottom above): +68px more push the
+       button into the THUMB zone (bottom third of the phone screen, "que
+       salga más al alcance del pulgar"). The hero stage has empty runway
+       below the CTA, and its glass mesh follows the live rect per frame. */
+    margin-top: 152px;
     padding: 0 16px;
   }
 
@@ -1486,7 +1489,9 @@ h6 {
   .nxr-servicios-captions .nxr-srv-cta-wrap {
     position: absolute;
     right: 0;
-    bottom: 0;
+    /* Un poco por debajo del borde de la caption ("baja los CTAs"); las
+       captions asientan a 18vh del fondo, hay margen de sobra. */
+    bottom: -14px;
     margin: 0;
   }
 }
@@ -1646,7 +1651,8 @@ h6 {
 }
 
 .nxr-srv-cta:hover svg {
-  transform: translateX(3px);
+  /* Diagonal nudge matching the ↗ arrow's direction. */
+  transform: translate(3px, -3px);
 }
 
 /* CTA bottom-RIGHT of the caption (per the alche.studio reference's "More
@@ -1654,7 +1660,8 @@ h6 {
 .nxr-srv-cta-wrap {
   display: flex;
   justify-content: flex-end;
-  margin-top: 2px;
+  /* 14 (was 2): un poco más bajo respecto al texto, en ambas plataformas. */
+  margin-top: 14px;
 }
 
 @media (max-width: 900px) {

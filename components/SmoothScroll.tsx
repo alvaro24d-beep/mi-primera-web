@@ -59,7 +59,13 @@ export default function SmoothScroll() {
       // until verifiably converged (see the holdFrames loop), and the
       // first-arrival wall clamps regardless of inertia.
       syncTouchLerp: 0.055,
-      touchInertiaExponent: 2.0,
+      // 1.85 (was 2.0) + touchMultiplier 0.8: "reduce la sensibilidad
+      // general del scroll en móvil, va demasiado rápido". The multiplier
+      // slows the FINGER-DRAG mapping itself (~20% less travel per gesture,
+      // the direct sensitivity knob); the exponent trims how far flicks
+      // coast on top of that. Desktop wheel untouched.
+      touchInertiaExponent: 1.85,
+      touchMultiplier: 0.8,
     });
     window.__nxrLenis = lenis;
 
@@ -77,7 +83,9 @@ export default function SmoothScroll() {
     const capFlickReach = () => {
       requestAnimationFrame(() => {
         const ahead = lenis.targetScroll - lenis.animatedScroll;
-        const cap = window.innerHeight * 1.6;
+        // 1.35 pantallas (antes 1.6): acompaña la bajada general de
+        // sensibilidad táctil.
+        const cap = window.innerHeight * 1.35;
         if (Math.abs(ahead) > cap) {
           lenis.scrollTo(lenis.animatedScroll + Math.sign(ahead) * cap, { lerp: 0.055 });
         }

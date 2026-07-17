@@ -1021,11 +1021,23 @@ export default function Servicios() {
       // lag and would aim glides at a moving target): card i sits centred
       // once progress = (entryOffset + i·step)/total, now that startX/endX
       // are anchored to the track's real layout origin via trackBaseLeft().
-      const pOf = (i: number) => {
-        const total = amount();
-        const step = cardStep();
-        return total && step ? (PROLOGUE() + entryOffset() + i * step) / total : 0;
-      };
+      //
+      // The geometry is a SNAPSHOT frozen in buildTl (i.e. at every
+      // ScrollTrigger refresh — the same moment the pin's own start/end
+      // freeze), NOT the live PROLOGUE()/amount() closures. On a real phone
+      // the address bar hides during scroll and window.innerHeight GROWS
+      // ~8% while ignoreMobileResize (deliberately) keeps the pin's range
+      // frozen — live reads made pOf() drift against the actual timeline
+      // mapping, so every pagination glide/snap landed ~30px off centre
+      // once the toolbar was away ("al rato de scrolearla se bugea").
+      // Desktop-emulated viewports never resize mid-scroll, which is why
+      // no wheel/touch stress harness ever reproduced it.
+      let snapPro = 0;
+      let snapEntry = 0;
+      let snapStep = 0;
+      let snapAmount = 0;
+      const pOf = (i: number) =>
+        snapAmount && snapStep ? (snapPro + snapEntry + i * snapStep) / snapAmount : 0;
       const progressNow = (st: ScrollTrigger) => (window.scrollY - st.start) / (st.end - st.start);
       const scrollAt = (st: ScrollTrigger, p: number) => st.start + p * (st.end - st.start);
       const nearestIdx = (p: number) => {
@@ -1044,13 +1056,13 @@ export default function Servicios() {
       const trySnap = () => {
         const st = tl.scrollTrigger;
         if (!st || !st.isActive) return;
-        const total = amount();
-        if (!total || !cardStep()) return;
+        const total = snapAmount;
+        if (!total || !snapStep) return;
         const progress = progressNow(st);
         // Never idle-snap while still inside the prologue (the phrase's
         // hold): the nearest card there is always card 0, and the glide
         // would fast-forward the whole title moment.
-        if (progress * total < PROLOGUE() * 0.98) return;
+        if (progress * total < snapPro * 0.98) return;
         // First settle on mobile: force card 0 (unless the flick genuinely
         // sailed past card 1) and use the page-style ease-in-out glide —
         // see `presentedFirst` above.
@@ -1100,10 +1112,19 @@ export default function Servicios() {
       // creation does the first real build.
       let tlRef: gsap.core.Timeline | null = null;
       const buildTl = () => {
+        // Freeze the pagination/snap geometry HERE, in the same refresh
+        // pass that recomputes the pin's start/end — pOf() and friends must
+        // read these snapshots, never the live closures (see pOf above).
+        // Assigned before the tlRef guard so even the creation-time refresh
+        // (tlRef still null) leaves the snapshots valid.
+        snapPro = PROLOGUE();
+        snapEntry = entryOffset();
+        snapStep = cardStep();
+        snapAmount = amount();
         const t = tlRef;
         if (!t) return;
         t.clear();
-        const pro = PROLOGUE();
+        const pro = snapPro;
         if (headTitle) {
           // ONLY the fade-out lives in the pin timeline — the fade-in
           // belongs to the approach scrub above (so the phrase can appear
@@ -1117,7 +1138,7 @@ export default function Servicios() {
           // ("que al desaparecer justo entre la primera card").
           t.to(
             headTitle,
-            { opacity: 0, filter: "blur(18px)", ease: "none", duration: pro * 0.15 + entryOffset() * 0.25 },
+            { opacity: 0, filter: "blur(18px)", ease: "none", duration: pro * 0.15 + snapEntry * 0.25 },
             pro * 0.85
           );
         }
@@ -1265,7 +1286,7 @@ export default function Servicios() {
           // phrase's hold AND swept the card across the screen at glide
           // speed (up to ~1600px in 750ms — the "ghost card" whip). The
           // idle snap's firstSettle path takes over once past the prologue.
-          if (p * amount() < PROLOGUE() * 0.98) return;
+          if (p * snapAmount < snapPro * 0.98) return;
           const eps = 0.02;
           let targetIdx: number | null = null;
           if (dy > 25) {

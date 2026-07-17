@@ -502,14 +502,13 @@ p.nxr-hero-mastery-line {
   inset: 0;
   pointer-events: none;
   z-index: 2;
-  /* Intensidad alta a petición ("aumenta la intensidad a ver si noto
-     diferencia") — el centro queda limpio hasta el ~38% y los bordes caen
-     con fuerza hasta un 88% de negro en las esquinas. */
+  /* Segunda subida de intensidad a petición: centro limpio solo hasta el
+     ~28%, media pantalla ya al 60% de negro y esquinas casi opacas (97%). */
   background: radial-gradient(
-    ellipse 105% 88% at 50% 48%,
-    transparent 38%,
-    rgba(0, 0, 0, 0.45) 68%,
-    rgba(0, 0, 0, 0.88) 100%
+    ellipse 100% 85% at 50% 48%,
+    transparent 28%,
+    rgba(0, 0, 0, 0.6) 58%,
+    rgba(0, 0, 0, 0.97) 100%
   );
 }
 

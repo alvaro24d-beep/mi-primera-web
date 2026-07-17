@@ -492,25 +492,7 @@ p.nxr-hero-mastery-line {
    estática sobre el canvas (y bajo todo el contenido — vive dentro del
    contenedor fixed z:-1000). Capa compuesta una sola vez: coste por frame
    cero, y en móvil (sin EffectComposer/Vignette) es la única viñeta. */
-/* Sombreado oscuro de los bordes de pantalla del fondo. DIV REAL, hermano
-   del canvas y posterior a él en el árbol (los dos intentos como ::after
-   del contenedor acababan pintados bajo el canvas acelerado — "se carga
-   por debajo del vídeo"). Vive dentro del contenedor fixed z:-1000: sobre
-   todo lo que dibuje el canvas, bajo todo el contenido de la página. */
-.nxr-scene-vignette {
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  z-index: 2;
-  /* Segunda subida de intensidad a petición: centro limpio solo hasta el
-     ~28%, media pantalla ya al 60% de negro y esquinas casi opacas (97%). */
-  background: radial-gradient(
-    ellipse 100% 85% at 50% 48%,
-    transparent 28%,
-    rgba(0, 0, 0, 0.6) 58%,
-    rgba(0, 0, 0, 0.97) 100%
-  );
-}
+
 
 @keyframes nxr-scene-arrive {
   from {

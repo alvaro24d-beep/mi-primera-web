@@ -266,11 +266,10 @@ export default function SceneCanvas() {
           </EffectComposer>
         )}
       </Canvas>
-      {/* Viñeta de bordes de pantalla — un DIV real DESPUÉS del canvas (el
-          intento como ::after del contenedor quedaba pintado bajo el canvas
-          acelerado y el vídeo nunca se oscurecía). Estático: coste cero por
-          frame. Estilos en .nxr-scene-vignette. */}
-      <div className="nxr-scene-vignette" aria-hidden="true" />
+      {/* (La viñeta de bordes vive ahora DENTRO del shader del muro — en
+          espacio de pantalla — para oscurecer solo la pared/vídeo y nunca
+          las cards de cristal, que se dibujan en este mismo canvas. Ver el
+          bloque uRes en SceneBackground.tsx.) */}
     </div>
   );
 }

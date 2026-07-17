@@ -8,6 +8,7 @@ import { useTitleReveal } from "@/hooks/useTitleReveal";
 import { useReducedMotion } from "@/hooks/useReducedMotion";
 import { useCurvedWords } from "@/hooks/useCurvedWords";
 import { scrambleElement } from "@/hooks/useTextScramble";
+import Link from "next/link";
 import { useServiciosCardsRegistry } from "@/store/useServiciosCardsRegistry";
 
 gsap.registerPlugin(ScrollTrigger);
@@ -413,7 +414,7 @@ function Caption({ c }: { c: (typeof CARDS)[number] }) {
         </div>
       </div>
       <div className="nxr-srv-cta-wrap">
-        <a href={c.href} className="nxr-srv-cta nxr-glass-edge">
+        <Link href={c.href} className="nxr-srv-cta nxr-glass-edge">
           <span className="nxr-glass-edge-content">{c.cta}</span>
           {/* Flecha ↗ (arriba-derecha), estilo lucide arrow-up-right: la
               diagonal + la esquina superior derecha — el gesto "abrir"
@@ -421,7 +422,7 @@ function Caption({ c }: { c: (typeof CARDS)[number] }) {
           <svg className="nxr-glass-edge-content" viewBox="0 0 24 24">
             <path d="M7 17L17 7M7 7h10v10" />
           </svg>
-        </a>
+        </Link>
       </div>
     </div>
   );

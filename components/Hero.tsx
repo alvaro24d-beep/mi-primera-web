@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
+import Link from "next/link";
 import gsap from "gsap";
 import { useGSAP } from "@gsap/react";
 import { useReducedMotion } from "@/hooks/useReducedMotion";
@@ -36,10 +37,10 @@ function HeroCopy() {
       </p>
 
       <div className="nxr-hero-actions nxr-reveal nxr-reveal-delay-4">
-        <a href="/contacto" className="nxr-btn-secondary">
+        <Link href="/contacto" className="nxr-btn-secondary">
           <span className="nxr-hero-cta-text">Empezar proyecto</span>
           {ARROW}
-        </a>
+        </Link>
       </div>
     </div>
   );

@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { usePathname } from "next/navigation";
+import Link from "next/link";
 
 const NAV_LINKS = [
   { href: "/", label: "Inicio" },
@@ -149,18 +150,18 @@ export default function Header() {
       <div id="nxr-srv-overlay" className={srvOpen ? "nxr-open" : ""} onClick={closeDD} />
 
       <header id="nxr-header" className={navHidden ? "nxr-hidden" : ""}>
-        <a href="/" className="nxr-header-logo">
+        <Link href="/" className="nxr-header-logo">
           Nexora<span>.</span>
-        </a>
+        </Link>
         <nav className="nxr-header-links">
           {NAV_LINKS.map((l) => (
-            <a key={l.href} href={l.href} className="nxr-header-link">
+            <Link key={l.href} href={l.href} className="nxr-header-link">
               {l.label}
-            </a>
+            </Link>
           ))}
-          <a href="/contacto" className="nxr-header-cta nxr-glass-edge">
+          <Link href="/contacto" className="nxr-header-cta nxr-glass-edge">
             <span className="nxr-glass-edge-content">Hablemos</span>
-          </a>
+          </Link>
         </nav>
         <button
           className={`nxr-hamburger${hamburgerOpen ? " open" : ""}`}
@@ -175,13 +176,13 @@ export default function Header() {
 
       <div id="nxr-mobile-menu" className={hamburgerOpen ? "open" : ""}>
         {NAV_LINKS.map((l) => (
-          <a key={l.href} href={l.href} className="nxr-mobile-link">
+          <Link key={l.href} href={l.href} className="nxr-mobile-link" onClick={() => setHamburgerOpen(false)}>
             {l.label}
-          </a>
+          </Link>
         ))}
-        <a href="/contacto" className="nxr-mobile-cta">
+        <Link href="/contacto" className="nxr-mobile-cta" onClick={() => setHamburgerOpen(false)}>
           Hablemos
-        </a>
+        </Link>
       </div>
 
       <nav
@@ -195,7 +196,7 @@ export default function Header() {
         }}
       >
         <div id="nxr-nav-row">
-          <a
+          <Link
             href="/"
             className={`nxr-nav-link nxr-nav-home nxr-glass-edge${isActive("/") ? " active" : ""}`}
             // The inner "Inicio" span is display:none in the mobile pill
@@ -208,7 +209,7 @@ export default function Header() {
               <path d="M9 21V12h6v9" />
             </svg>
             <span className="nxr-glass-edge-content">Inicio</span>
-          </a>
+          </Link>
           <button
             className="nxr-nav-link"
             id="nxr-srv-btn"
@@ -233,34 +234,34 @@ export default function Header() {
               <path d="M6 9l6 6 6-6" />
             </svg>
           </button>
-          <a href="/nosotros" className={`nxr-nav-link${isActive("/nosotros") ? " active" : ""}`}>
+          <Link href="/nosotros" className={`nxr-nav-link${isActive("/nosotros") ? " active" : ""}`}>
             <svg viewBox="0 0 24 24">
               <circle cx="12" cy="8" r="4" />
               <path d="M4 20c0-4 3.6-7 8-7s8 3 8 7" />
             </svg>
             <span>Nosotros</span>
-          </a>
-          <a href="/casos" className={`nxr-nav-link${isActive("/casos") ? " active" : ""}`}>
+          </Link>
+          <Link href="/casos" className={`nxr-nav-link${isActive("/casos") ? " active" : ""}`}>
             <svg viewBox="0 0 24 24">
               <path d="M3 17l4-8 4 5 3-3 4 6" />
             </svg>
             <span>Casos</span>
-          </a>
+          </Link>
           {/* aria-label for the same reason as the home link: the text span
               hides in the icon-only mobile pill. */}
-          <a href="/contacto" className="nxr-nav-cta nxr-glass-edge" aria-label="Hablemos">
+          <Link href="/contacto" className="nxr-nav-cta nxr-glass-edge" aria-label="Hablemos">
             <svg className="nxr-glass-edge-content" viewBox="0 0 24 24">
               <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" />
             </svg>
             <span className="nxr-glass-edge-content">Hablemos</span>
-          </a>
+          </Link>
         </div>
 
         <div id="nxr-nav-sep" className={srvOpen ? "nxr-open" : ""}></div>
 
         <div id="nxr-nav-services" className={srvOpen ? "nxr-open" : ""}>
           {SERVICIOS.map((s) => (
-            <a key={s.href} href={s.href} className="nxr-nav-srv-item">
+            <Link key={s.href} href={s.href} className="nxr-nav-srv-item" onClick={closeDD}>
               <div className="nxr-nav-srv-icon" style={{ background: s.bg, color: s.color }}>
                 {s.icon}
               </div>
@@ -268,7 +269,7 @@ export default function Header() {
                 <div className="nxr-nav-srv-title">{s.title}</div>
                 <div className="nxr-nav-srv-desc">{s.desc}</div>
               </div>
-            </a>
+            </Link>
           ))}
         </div>
       </nav>

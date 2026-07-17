@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { usePathname } from "next/navigation";
 import { Canvas } from "@react-three/fiber";
 import { Environment, Lightformer } from "@react-three/drei";
 import { EffectComposer, Bloom, Vignette } from "@react-three/postprocessing";
@@ -44,6 +45,10 @@ function SceneEnvironment() {
 
 export default function SceneCanvas() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  // Client-side navigation keeps this canvas ALIVE across routes (that's the
+  // whole point — the backdrop never reloads); the section observer below
+  // re-arms per pathname so the NEW route's sections get tracked.
+  const pathname = usePathname();
   const [isMobile] = useState(() => typeof window !== "undefined" && window.innerWidth < 768);
   const [active, setActive] = useState(true);
   // Frameloop has THREE regimes (see the `frameloop` prop below):
@@ -178,7 +183,11 @@ export default function SceneCanvas() {
       io.disconnect();
       nearSections.clear();
     };
-  }, []);
+    // [pathname]: the ids are looked up with getElementById at effect time —
+    // with the canvas persisting across client-side navigations, a
+    // mount-once observe would leave every section of the NEXT route
+    // untracked (meshes invisible forever).
+  }, [pathname]);
 
   return (
     <div

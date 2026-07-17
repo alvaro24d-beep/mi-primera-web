@@ -7559,3 +7559,28 @@ input[type="range"].nxr-ms-range::-moz-range-thumb {
 .nxr-servicios-captions .nxr-srv-caption {
   will-change: transform, opacity, filter;
 }
+
+/* ===== Transición de entrada entre rutas (app/template.tsx) ===== */
+/* Solo opacidad: transform/filter aquí convertirían este wrapper en el
+   containing block de todos los position:fixed de la página (pins de
+   ScrollTrigger, la frase fija de Servicios). Con el layout persistiendo
+   (fondo/nav/Lenis nunca recargan), el fade basta para que el cambio de
+   ruta se lea como un mismo espacio continuo. */
+@keyframes nxr-route-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.nxr-route-enter {
+  animation: nxr-route-in 0.5s ease-out both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .nxr-route-enter {
+    animation: none;
+  }
+}

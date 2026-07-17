@@ -111,7 +111,6 @@ const fragmentShader = /* glsl */ `
   uniform vec2 uPixel;     // pixelation resolution (cells across / down)
   uniform vec2 uCoverScale; // aspect-correct "cover" crop: fraction of the video sampled per axis
   uniform vec2 uPanels;    // monitor-tile counts (across / down) for the panel-wall read
-  uniform vec2 uRes;       // drawing-buffer size, for the SCREEN-SPACE edge vignette
 
   vec3 sampleSource(vec2 uv) {
     if (uHasVideo > 0.5) {
@@ -176,19 +175,6 @@ const fragmentShader = /* glsl */ `
     // the separators cut through everything, like real bezels.
     col = mix(col, col * 0.16, sep);
     col *= (0.42 + 0.58 * vig);
-
-    // SCREEN-SPACE edge vignette ("sombreado oscuro en los bordes de la
-    // pantalla") — INSIDE the wall shader on purpose: a CSS overlay above
-    // the canvas darkened the GLASS CARDS too (they render in this same
-    // canvas); here it dims ONLY the wall/video, and the meshes drawn after
-    // stay untouched. Profile matches the approved CSS ramp: clear centre
-    // to ~28%, ~60% dark at mid-field, near-black corners.
-    vec2 sc = gl_FragCoord.xy / uRes;
-    vec2 sd = vec2((sc.x - 0.5) * 2.0, ((sc.y - 0.52) * 2.0) / 0.85);
-    float rr = length(sd);
-    float edge = 0.6 * smoothstep(0.28, 0.58, rr) + 0.37 * smoothstep(0.58, 1.0, rr);
-    col *= (1.0 - min(edge, 0.97));
-
     gl_FragColor = vec4(col, 1.0);
   }
 `;
@@ -214,7 +200,6 @@ export default function SceneBackground({
 
   const target = useRef({ x: 0, y: 0 });
   const current = useRef({ x: 0, y: 0 });
-  const scratchSize = useRef(new THREE.Vector2());
   // Live handle to the current <video> for the keep-alive interval below —
   // rendering must never depend on the video actually playing (phones can
   // refuse/delay autoplay, and in "demand" mode the video's rVFC is the
@@ -246,7 +231,6 @@ export default function SceneBackground({
       uPixel: { value: new THREE.Vector2(180, Math.round(180 / wallAspect(WALL_MODES.landscape))) },
       uCoverScale: { value: new THREE.Vector2(1, 1) },
       uPanels: { value: new THREE.Vector2(15, Math.round(15 / wallAspect(WALL_MODES.landscape))) },
-      uRes: { value: new THREE.Vector2(1, 1) },
     }),
     // eslint-disable-next-line react-hooks/exhaustive-deps
     []
@@ -447,14 +431,7 @@ export default function SceneBackground({
     return () => window.clearInterval(id);
   }, [tv, active, invalidate]);
 
-  useFrame(({ gl }) => {
-    // Drawing-buffer size for the screen-space vignette (scratch vector
-    // reused — stays correct across resizes and DPR changes for free).
-    const mat0 = matRef.current;
-    if (mat0) {
-      gl.getDrawingBufferSize(scratchSize.current);
-      (mat0.uniforms.uRes.value as THREE.Vector2).copy(scratchSize.current);
-    }
+  useFrame(() => {
     const c = current.current;
     const t = target.current;
     c.x += (t.x - c.x) * 0.09;

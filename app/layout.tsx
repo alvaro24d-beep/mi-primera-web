@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Manrope, Cormorant_Garamond } from "next/font/google";
+import { Manrope, Cormorant_Garamond, Rajdhani, Space_Mono } from "next/font/google";
 import "./globals.css";
 import Header from "@/components/Header";
 import SceneCanvasLazy from "@/components/scene/SceneCanvasLazy";
@@ -13,12 +13,29 @@ const manrope = Manrope({
   subsets: ["latin"],
 });
 
-// Serif used site-wide for headings (see the `h1, h2, h3` rule in globals.css) —
-// always regular weight/style; never bold or italic.
+// Serif reserved for the two hero phrases ("Construido con maestría…" /
+// "Todo lo que tu negocio necesita…") and a few accents (hero CTA text,
+// AgentesIA clock) — the general heading font is Rajdhani below.
 const cormorant = Cormorant_Garamond({
   variable: "--font-cormorant",
   weight: "400",
   style: "normal",
+  subsets: ["latin"],
+});
+
+// Display sans for ALL titles site-wide (see the h1-h6 rule in globals.css),
+// medium weights per spec ("grosores medios").
+const rajdhani = Rajdhani({
+  variable: "--font-rajdhani",
+  weight: ["500", "600", "700"],
+  subsets: ["latin"],
+});
+
+// Monospace for ALL paragraphs site-wide (global `p` rule in globals.css).
+// Space Mono only ships 400/700 — 400 is its medium-reading weight.
+const spaceMono = Space_Mono({
+  variable: "--font-space-mono",
+  weight: ["400", "700"],
   subsets: ["latin"],
 });
 
@@ -34,7 +51,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="es" className={`${manrope.variable} ${cormorant.variable}`}>
+    <html lang="es" className={`${manrope.variable} ${cormorant.variable} ${rajdhani.variable} ${spaceMono.variable}`}>
       <body suppressHydrationWarning>
         {/* Start the wall video download IMMEDIATELY (the canvas itself
             mounts lazily on idle — without these the fetch only began ~1-2s

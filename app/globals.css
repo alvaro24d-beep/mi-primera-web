@@ -81,19 +81,64 @@ a {
   text-decoration: none;
 }
 
-/* Every heading site-wide uses the Cormorant Garamond serif, always regular
-   weight/style — `!important` because dozens of section-specific heading
-   classes (`.nxr-section-h2`, `.nxr-hero-h1`, etc.) set their own font-weight
-   (usually 700) that would otherwise win on specificity alone. */
+/* Every heading site-wide uses Rajdhani at a medium weight — `!important`
+   because dozens of section-specific heading classes (`.nxr-section-h2`,
+   `.nxr-hero-h1`, etc.) set their own font-weight that would otherwise win
+   on specificity alone. */
 h1,
 h2,
 h3,
 h4,
 h5,
 h6 {
+  font-family: var(--font-rajdhani), system-ui, sans-serif !important;
+  font-weight: 600 !important;
+  font-style: normal !important;
+}
+
+/* THE serif exception ("menos la frase de todo lo que tu negocio
+   necesita"): the Servicios section-title moment keeps Cormorant in both
+   its animated and reduced-motion branches. Its gradient span follows via
+   the `inherit` on .nxr-gradient-text* below. */
+.nxr-servicios-head .nxr-section-h2,
+.nxr-servicios-static .nxr-section-h2 {
   font-family: var(--font-cormorant), serif !important;
   font-weight: 400 !important;
-  font-style: normal !important;
+}
+
+/* Every paragraph site-wide reads in Space Mono (400 — its medium-reading
+   weight; the family only ships 400/700). */
+p {
+  font-family: var(--font-space-mono), ui-monospace, monospace;
+  font-weight: 400;
+}
+
+/* The OTHER exempt phrases ("Construido con maestría." / "Entregado con
+   precisión."): the reduced-motion hero renders them as <p> — keep them on
+   the brand sans they've always used, not the paragraph mono. */
+p.nxr-hero-mastery-line {
+  font-family: var(--font);
+}
+
+/* Div/span-based card titles (not HTML headings, so the h1-h6 rule can't
+   reach them) join Rajdhani explicitly. */
+.nxr-dwh-cap-title,
+.nxr-dwh-layer-title,
+.nxr-aia-caso-title {
+  font-family: var(--font-rajdhani), system-ui, sans-serif;
+  font-weight: 600;
+}
+
+/* Div/span-based body copy — visually paragraphs even though they aren't
+   <p> tags — joins Space Mono with the same weight as the global p rule. */
+.nxr-zp-card-desc,
+.nxr-dwh-cap-desc,
+.nxr-dwh-layer-desc,
+.nxr-aia-caso-desc,
+.nxr-tech-strip-label,
+.nxr-nav-srv-desc {
+  font-family: var(--font-space-mono), ui-monospace, monospace;
+  font-weight: 400;
 }
 
 .nxr-container,
@@ -487,8 +532,10 @@ h6 {
 .nxr-gradient-text,
 .nxr-gradient-text-lime,
 .nxr-gradient-text-salmon {
-  font-family: var(--font-cormorant), serif;
-  font-weight: 400;
+  /* Follow the PARENT heading's family/weight: Rajdhani in normal titles,
+     Cormorant inside the exempt Servicios phrase — one rule serves both. */
+  font-family: inherit;
+  font-weight: inherit;
   font-style: normal;
 }
 
@@ -3201,7 +3248,8 @@ h6 {
 }
 
 .nxr-paso-title {
-  font-family: var(--font-cormorant), serif;
+  font-family: var(--font-rajdhani), system-ui, sans-serif;
+  font-weight: 600;
   font-size: 22px;
   font-weight: 400;
   font-style: normal;
@@ -4315,8 +4363,8 @@ input[type="range"].nxr-ms-range::-moz-range-thumb {
 }
 
 .nxr-zp-card-title {
-  /* Garamond serif, matching the Servicios caption titles. */
-  font-family: var(--font-cormorant), serif;
+  font-family: var(--font-rajdhani), system-ui, sans-serif;
+  font-weight: 600;
   font-size: calc(22px * var(--zp-max, 1));
   font-weight: 400;
   letter-spacing: -0.01em;

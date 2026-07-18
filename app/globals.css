@@ -811,16 +811,21 @@ p.nxr-hero-mastery-line {
   position: absolute;
   inset: 0;
 }
+/* Tonos oscuros de marca para el barrido ("colores más oscuros y acordes
+   con la identidad"): rojo Nexora quemado y azul grafito de la base —
+   nada de acentos vivos a pantalla completa. */
 .nxr-mm-layer-a {
-  background: var(--c-red);
+  background: #571804;
 }
 .nxr-mm-layer-b {
-  background: var(--c-salmon);
+  background: #122b40;
 }
 .nxr-mm-panel {
   position: absolute;
   inset: 0;
-  background: rgba(10, 22, 34, 0.96);
+  /* Cristal de verdad: fondo translúcido para que el blur muestre la
+     página detrás (el 0.96 anterior era opaco y mataba el efecto). */
+  background: rgba(10, 22, 34, 0.62);
   backdrop-filter: blur(24px);
   display: flex;
   flex-direction: column;

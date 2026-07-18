@@ -100,17 +100,26 @@ export default function DesarrolloWebHero() {
       // ---- Everything except the title is hidden at load ("sin nada más").
       gsap.set(canvasWrap ?? [], { opacity: 0 });
       gsap.set(facetPanel ?? [], { opacity: 0, y: 24 });
-      // Starts strongly angled + small; it turns toward you and grows across
-      // the whole build (see the long tween below) so the browser visibly
-      // MOVES with the scroll, not just fills in.
-      gsap.set(q(".nxr-bw-browser"), { opacity: 0, rotateY: -30, rotateX: 12, scale: 0.88 });
-      gsap.set(q(".nxr-bw-wire"), { opacity: 0, scale: 0.9, transformOrigin: "left center" });
+      // ContainerScroll signature start (Aceternity pattern, GSAP-driven per
+      // the repo convention): the card lies tipped BACK (rotateX 20°, con la
+      // perspective:1000px de .nxr-bw-scene) and slightly over/under-scaled;
+      // it straightens continuously across the whole build.
+      // rotateY: 0 explícito — el CSS base trae una pose rotateY(-15deg)
+      // (la conserva la rama estática de reduced-motion) y GSAP preserva
+      // los ejes no tocados: sin esto, la carta gira de lado además de
+      // tumbarse, y el patrón es un tilt X puro.
+      gsap.set(q(".nxr-bw-browser"), { opacity: 0, rotateX: 20, rotateY: 0, scale: mobile ? 0.7 : 1.05 });
+      // Wires drop in from ABOVE (y -12): each piece reads as being laid
+      // down top-to-bottom while the build descends.
+      gsap.set(q(".nxr-bw-wire"), { opacity: 0, y: -12 });
       gsap.set(q(".nxr-bw-fill"), { opacity: 0 });
       gsap.set(q(".nxr-bw-url-text"), { opacity: 0 });
       gsap.set(q(".nxr-bw-perf"), { opacity: 0, scale: 0.6 });
       gsap.set(q(".nxr-bw-perf-ring"), { strokeDashoffset: PERF_C });
       gsap.set(q(".nxr-bw-data"), { opacity: 0, y: 10 });
-      gsap.set(q(".nxr-bw-bar"), { scaleY: 0.08, transformOrigin: "bottom center" });
+      // Scoped to the CHART bars — a bare ".nxr-bw-bar" also matched the
+      // browser's top chrome bar (same class name) and squashed it.
+      gsap.set(q(".nxr-bw-chart .nxr-bw-bar"), { scaleY: 0.08, transformOrigin: "bottom center" });
       gsap.set(q(".nxr-bw-phone"), { opacity: 0, xPercent: 45, rotateY: -45 });
       gsap.set(q(".nxr-bw-chip"), { opacity: 0, scale: 0.6 });
       gsap.set(q(".nxr-bw-livebadge"), { opacity: 0, scale: 0.6, y: -6 });
@@ -151,14 +160,14 @@ export default function DesarrolloWebHero() {
       tl.to(q(".nxr-bw-browser"), { opacity: 1, duration: 0.6, ease: "power2.out" }, 1.15);
       tl.to(facetPanel ?? {}, { opacity: 1, y: 0, duration: 0.5 }, 1.25);
 
-      // Continuous scroll-driven MOTION of the whole window across the build:
-      // it turns from a steep 3/4 view toward face-on and grows to full size,
-      // with a couple of eased waypoints so the rotation keeps changing (feels
-      // alive / advancing) rather than settling early.
-      tl.to(q(".nxr-bw-browser"), { rotateY: -18, rotateX: 8, scale: 0.95, duration: 1.6, ease: "sine.inOut" }, 1.4);
-      tl.to(q(".nxr-bw-browser"), { rotateY: -13, rotateX: 5, duration: 1.4, ease: "sine.inOut" }, 3.0);
-      tl.to(q(".nxr-bw-browser"), { rotateY: -6, rotateX: 3, scale: 1, duration: 1.4, ease: "power1.inOut" }, 4.2);
-      tl.to(q(".nxr-bw-browser"), { rotateY: -9, duration: 0.6, ease: "sine.inOut" }, 5.6);
+      // ContainerScroll: one LONG tween bound to the whole build — the card
+      // straightens (rotateX 20→0) and settles its scale (1.05→1 desktop,
+      // 0.7→0.9 móvil) continuously with the scroll, never early.
+      tl.to(
+        q(".nxr-bw-browser"),
+        { rotateX: 0, scale: mobile ? 0.9 : 1, duration: 4.15, ease: "power1.inOut" },
+        1.4
+      );
       if (labels[0]) tl.to(labels[0], { opacity: 1, filter: "blur(0px)", duration: 0.4 }, 1.3);
 
       // ===== Progress bar + status text (drives % and stage label from the
@@ -185,52 +194,70 @@ export default function DesarrolloWebHero() {
       );
       tl.to(q(".nxr-bw-progress-fill"), { scaleX: 1, duration: 3.65, ease: "none" }, 1.4);
 
-      // ===== PHASE B — the build =====
-      // Stage 1 — Diseño: wireframe skeleton (nav, hero, line, cards)
-      tl.to(q(".nxr-bw-wire"), { opacity: 1, scale: 1, duration: 0.7, stagger: 0.05, ease: "power2.out" }, 1.45);
-      crossfadeFacet(tl, labels, 0, 1, 2.3);
+      // ===== PHASE B — la web se construye de ARRIBA HACIA ABAJO =====
+      // Cada franja del mockup aparece en su orden vertical real (chrome →
+      // nav → hero → línea → cards → panel de datos → publicado), con el
+      // wireframe cayendo desde arriba y su color llegando justo después —
+      // la página "se va construyendo" hacia abajo conforme subes el scroll.
 
-      // Stage 2 — Frontend: colour fills, hero image, headline, CTA, nav button
-      tl.to(q(".nxr-bw-fill"), { opacity: 1, duration: 0.6, stagger: 0.045, ease: "power2.out" }, 2.35);
-      tl.to(q(".nxr-bw-url-text"), { opacity: 1, duration: 0.4 }, 2.4);
-      tl.to(q(".nxr-bw-chip-code"), { opacity: 1, scale: 1, duration: 0.5, ease: "back.out(1.6)" }, 2.7);
-      crossfadeFacet(tl, labels, 1, 2, 3.3);
+      // Chrome: la URL escribe primero (borde superior).
+      tl.to(q(".nxr-bw-url-text"), { opacity: 1, duration: 0.35 }, 1.45);
 
-      // Stage 3 — Backend & Datos: data panel + chart bars grow + users count
-      tl.to(q(".nxr-bw-data"), { opacity: 1, y: 0, duration: 0.6, ease: "power2.out" }, 3.35);
-      tl.to(q(".nxr-bw-bar"), { scaleY: 1, duration: 0.55, stagger: 0.08, ease: "back.out(1.4)" }, 3.5);
+      // Nav: logo + enlaces, después su botón coloreado.
+      tl.to(q(".nxr-bw-nav .nxr-bw-wire"), { opacity: 1, y: 0, duration: 0.5, stagger: 0.08, ease: "power2.out" }, 1.6);
+      tl.to(q(".nxr-bw-nav .nxr-bw-fill"), { opacity: 1, duration: 0.4 }, 2.05);
+
+      // Hero: marco → imagen de fondo → titulares → CTA.
+      tl.to(q(".nxr-bw-hero"), { opacity: 1, y: 0, duration: 0.55, ease: "power2.out" }, 2.2);
+      tl.to(q(".nxr-bw-hero-fill"), { opacity: 1, duration: 0.5 }, 2.5);
+      tl.to(q(".nxr-bw-hero-copy .nxr-bw-fill"), { opacity: 1, duration: 0.45, stagger: 0.12, ease: "power2.out" }, 2.65);
+      tl.to(q(".nxr-bw-chip-code"), { opacity: 1, scale: 1, duration: 0.5, ease: "back.out(1.6)" }, 2.75);
+      crossfadeFacet(tl, labels, 0, 1, 2.55);
+
+      // Anillo de rendimiento (vive en la esquina del hero).
+      tl.to(q(".nxr-bw-perf"), { opacity: 1, scale: 1, duration: 0.5, ease: "back.out(1.5)" }, 3.0);
+      tl.to(q(".nxr-bw-perf-ring"), { strokeDashoffset: PERF_C * 0.02, duration: 0.8, ease: "power1.out" }, 3.0);
+      tl.to(
+        perfProxy,
+        {
+          val: 98,
+          duration: 0.8,
+          onUpdate: () => {
+            if (perfNum) perfNum.textContent = String(Math.round(perfProxy.val));
+          },
+        },
+        3.0
+      );
+
+      // Línea de contenido bajo el hero.
+      tl.to(q(".nxr-bw-line"), { opacity: 1, y: 0, duration: 0.4, ease: "power2.out" }, 3.4);
+      tl.to(q(".nxr-bw-line .nxr-bw-fill"), { opacity: 1, duration: 0.35 }, 3.55);
+
+      // Fila de cards, de izquierda a derecha.
+      tl.to(q(".nxr-bw-cards .nxr-bw-wire"), { opacity: 1, y: 0, duration: 0.5, stagger: 0.12, ease: "power2.out" }, 3.65);
+      tl.to(q(".nxr-bw-cards .nxr-bw-fill"), { opacity: 1, duration: 0.4, stagger: 0.1 }, 3.9);
+
+      // Panel de datos (parte baja del body) + barras + contador.
+      crossfadeFacet(tl, labels, 1, 2, 4.05);
+      tl.to(q(".nxr-bw-data"), { opacity: 1, y: 0, duration: 0.55, ease: "power2.out" }, 4.15);
+      tl.to(q(".nxr-bw-chart .nxr-bw-bar"), { scaleY: 1, duration: 0.5, stagger: 0.07, ease: "back.out(1.4)" }, 4.3);
       tl.to(
         statProxy,
         {
           val: 2840,
-          duration: 0.9,
+          duration: 0.8,
           ease: "power1.out",
           onUpdate: () => {
             if (statNum) statNum.textContent = Math.round(statProxy.val).toLocaleString("es-ES");
           },
         },
-        3.5
+        4.3
       );
-      crossfadeFacet(tl, labels, 2, 3, 4.2);
 
-      // Stage 4 — Rendimiento & SEO: perf ring sweeps to 98, phone docks
-      tl.to(q(".nxr-bw-perf"), { opacity: 1, scale: 1, duration: 0.5, ease: "back.out(1.5)" }, 4.25);
-      tl.to(q(".nxr-bw-perf-ring"), { strokeDashoffset: PERF_C * 0.02, duration: 0.9, ease: "power1.out" }, 4.25);
-      tl.to(
-        perfProxy,
-        {
-          val: 98,
-          duration: 0.9,
-          onUpdate: () => {
-            if (perfNum) perfNum.textContent = String(Math.round(perfProxy.val));
-          },
-        },
-        4.25
-      );
-      tl.to(q(".nxr-bw-phone"), { opacity: 1, xPercent: 0, rotateY: -14, duration: 0.9, ease: "power3.out" }, 4.4);
-      tl.to(q(".nxr-bw-chip-perf"), { opacity: 1, scale: 1, duration: 0.5, ease: "back.out(1.6)" }, 4.7);
-
-      // Final — published / live
+      // Responsive + publicado.
+      crossfadeFacet(tl, labels, 2, 3, 4.5);
+      tl.to(q(".nxr-bw-phone"), { opacity: 1, xPercent: 0, rotateY: -14, duration: 0.8, ease: "power3.out" }, 4.6);
+      tl.to(q(".nxr-bw-chip-perf"), { opacity: 1, scale: 1, duration: 0.5, ease: "back.out(1.6)" }, 4.85);
       tl.to(q(".nxr-bw-livebadge"), { opacity: 1, scale: 1, y: 0, duration: 0.5, ease: "back.out(1.7)" }, 5.05);
 
       // Hold so the finished, settled site is what's on screen at the pin end.

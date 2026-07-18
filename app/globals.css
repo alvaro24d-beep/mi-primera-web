@@ -5910,6 +5910,13 @@ input[type="range"].nxr-ms-range::-moz-range-thumb {
   pointer-events: none;
 }
 
+.nxr-bw-scene {
+  /* Requerido por el patrón ContainerScroll: el rotateX 20°→0 del navegador
+     necesita foreshortening real (sin perspective, la inclinación renderiza
+     ortográfica y se ve como un aplastamiento plano). 1000px = el valor del
+     patrón original y el mismo pinhole que PixelCamera. */
+  perspective: 1000px;
+}
 .nxr-bw-tilt,
 .nxr-bw-float {
   transform-style: preserve-3d;

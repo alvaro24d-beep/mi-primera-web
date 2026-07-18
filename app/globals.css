@@ -829,8 +829,18 @@ p.nxr-hero-mastery-line {
   backdrop-filter: blur(24px);
   display: flex;
   flex-direction: column;
-  padding: 104px 30px 36px;
+  /* Compacto ("sube todo un poco, está demasiado abajo"): en un móvil real
+     la toolbar recorta ~60-100px del alto — el contenido entero debe caber
+     en ~650px para que el CTA no se corte por abajo. */
+  padding: 84px 28px 30px;
   overflow-y: auto;
+}
+/* Sin animación de capas en reduced-motion: quedarían aparcadas a pantalla
+   completa tapando el cristal. */
+@media (prefers-reduced-motion: reduce) {
+  .nxr-mm-layer {
+    display: none;
+  }
 }
 .nxr-mm-item {
   overflow: hidden;
@@ -839,10 +849,10 @@ p.nxr-hero-mastery-line {
   display: flex;
   align-items: baseline;
   gap: 14px;
-  padding: 9px 0;
+  padding: 7px 0;
   text-decoration: none;
   font-family: var(--font-rajdhani), system-ui, sans-serif;
-  font-size: 44px;
+  font-size: 40px;
   font-weight: 600;
   letter-spacing: 0.02em;
   text-transform: uppercase;
@@ -862,7 +872,7 @@ p.nxr-hero-mastery-line {
 .nxr-mm-sep {
   height: 1px;
   background: rgba(255, 255, 255, 0.12);
-  margin: 26px 0 18px;
+  margin: 16px 0 12px;
 }
 .nxr-mm-srv-label {
   font-family: var(--font-space-mono), monospace;
@@ -875,12 +885,13 @@ p.nxr-hero-mastery-line {
 .nxr-mm-srv {
   display: flex;
   flex-direction: column;
+  margin-bottom: 20px;
 }
 .nxr-mm-srv-item {
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 9px 0;
+  padding: 7px 0;
   text-decoration: none;
   font-family: var(--font-space-mono), monospace;
   font-size: 15px;
@@ -901,6 +912,8 @@ p.nxr-hero-mastery-line {
 }
 .nxr-mm-cta {
   margin-top: auto;
+  /* Si el contenido desborda (móviles bajos), que el CTA conserve aire. */
+  margin-bottom: env(safe-area-inset-bottom, 0px);
   align-self: flex-start;
   display: inline-flex;
   align-items: center;

@@ -160,9 +160,14 @@ export default function Header() {
     const q = gsap.utils.selector(root);
     const tl = gsap.timeline({ paused: true, defaults: { ease: "power4.out" } });
     tl.set(root, { visibility: "visible", pointerEvents: "all" }, 0)
-      .fromTo(q(".nxr-mm-layer-a"), { xPercent: 100 }, { xPercent: 0, duration: 0.5 }, 0)
-      .fromTo(q(".nxr-mm-layer-b"), { xPercent: 100 }, { xPercent: 0, duration: 0.5 }, 0.07)
-      .fromTo(q(".nxr-mm-panel"), { xPercent: 100 }, { xPercent: 0, duration: 0.6 }, 0.14)
+      // Las capas CRUZAN la pantalla entera (100 → -101) en vez de aparcarse
+      // en 0: si se quedan detrás, el backdrop-filter del panel difumina la
+      // capa opaca en lugar de la página y el cristal se ve sólido ("no se
+      // ve nada de transparencia"). El panel (último en el DOM, por encima)
+      // entra mientras la segunda capa aún cruza y la tapa al salir.
+      .fromTo(q(".nxr-mm-layer-a"), { xPercent: 100 }, { xPercent: -101, duration: 0.85, ease: "power3.inOut" }, 0)
+      .fromTo(q(".nxr-mm-layer-b"), { xPercent: 100 }, { xPercent: -101, duration: 0.85, ease: "power3.inOut" }, 0.08)
+      .fromTo(q(".nxr-mm-panel"), { xPercent: 100 }, { xPercent: 0, duration: 0.6 }, 0.2)
       .fromTo(
         q(".nxr-mm-link"),
         { yPercent: 130, rotate: 5 },

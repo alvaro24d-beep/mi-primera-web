@@ -4,7 +4,7 @@ import { useEffect, useRef } from "react";
 import dynamic from "next/dynamic";
 import gsap from "gsap";
 import { useGSAP } from "@gsap/react";
-import BrowserBuild from "./dwh/BrowserBuild";
+import MacbookBuild from "./dwh/MacbookBuild";
 import DecryptedText from "./DecryptedText";
 
 // Three.js + R3F + drei + postprocessing is by far the heaviest JS on this
@@ -16,23 +16,22 @@ const HeroScene = dynamic(() => import("./dwh/HeroScene"), { ssr: false });
 import { FACETS } from "./dwh/facets";
 import { useReducedMotion } from "@/hooks/useReducedMotion";
 
-const PERF_C = 2 * Math.PI * 26;
-
 export default function DesarrolloWebHero() {
   const sectionRef = useRef<HTMLElement>(null);
   const stageRef = useRef<HTMLDivElement>(null);
   const reducedMotion = useReducedMotion();
 
-  // Mouse-driven 3D tilt of the browser rig (separate from the scroll timeline).
+  // Mouse-driven 3D tilt of the MacBook rig (separate from the scroll
+  // timeline): with the scene's strong perspective, even ±6° reads deep.
   useEffect(() => {
     if (reducedMotion) return;
-    const tilt = sectionRef.current?.querySelector<HTMLElement>(".nxr-bw-tilt");
+    const tilt = sectionRef.current?.querySelector<HTMLElement>(".nxr-mb-tilt");
     if (!tilt) return;
     const rotY = gsap.quickTo(tilt, "rotationY", { duration: 0.7, ease: "power2" });
     const rotX = gsap.quickTo(tilt, "rotationX", { duration: 0.7, ease: "power2" });
     const onMove = (e: MouseEvent) => {
-      rotY((e.clientX / window.innerWidth - 0.5) * 12);
-      rotX(-(e.clientY / window.innerHeight - 0.5) * 8);
+      rotY((e.clientX / window.innerWidth - 0.5) * 10);
+      rotX(-(e.clientY / window.innerHeight - 0.5) * 7);
     };
     window.addEventListener("mousemove", onMove, { passive: true });
     return () => window.removeEventListener("mousemove", onMove);
@@ -48,11 +47,11 @@ export default function DesarrolloWebHero() {
       const q = gsap.utils.selector(section);
       const head = q(".nxr-dwh-head")[0] as HTMLElement | undefined;
       const canvasWrap = q(".nxr-dwh-canvas-wrap")[0] as HTMLElement | undefined;
-      const browser = q(".nxr-bw-browser")[0] as HTMLElement | undefined;
-      const statNum = q(".nxr-bw-stat-num")[0] as HTMLElement | undefined;
-      const perfNum = q(".nxr-bw-perf-num")[0] as HTMLElement | undefined;
-      const pctEl = q(".nxr-bw-progress-pct")[0] as HTMLElement | undefined;
-      const statusEl = q(".nxr-bw-status-text")[0] as HTMLElement | undefined;
+      const laptop = q(".nxr-mb-laptop")[0] as HTMLElement | undefined;
+      const lid = q(".nxr-mb-lid")[0] as HTMLElement | undefined;
+      const pageEl = q(".nxr-mb-page")[0] as HTMLElement | undefined;
+      const viewEl = q(".nxr-mb-viewport")[0] as HTMLElement | undefined;
+      const statUsers = q(".nxr-mb-stat-users")[0] as HTMLElement | undefined;
       const labels = q(".nxr-dwh-layer-label");
       const facetPanel = q(".nxr-dwh-layers-panel")[0] as HTMLElement | undefined;
       const mobile = window.innerWidth < 768;
@@ -60,15 +59,15 @@ export default function DesarrolloWebHero() {
       // The mobile `.nxr-dwh-stage` height is driven by this SAME window.innerHeight
       // reading (see globals.css: `calc(var(--dwh-vh) - 70px)`) rather than the
       // CSS `100lvh` unit — Safari and Chrome define/report the "large viewport"
-      // (toolbar-collapsed) height differently, which visibly shifted the browser
-      // mockup + facet cards between the two. One real JS measurement, used by
-      // both the stage box AND the title geometry below, keeps every mobile
-      // browser pixel-consistent.
+      // (toolbar-collapsed) height differently, which visibly shifted the mockup
+      // + facet cards between the two. One real JS measurement, used by both the
+      // stage box AND the title geometry below, keeps every mobile browser
+      // pixel-consistent.
       if (mobile) section.style.setProperty("--dwh-vh", `${window.innerHeight}px`);
 
-      // ---- Title-intro geometry: the headline starts BIG at mid-height and
-      // shrinks to its resting top-left spot. Left-anchored (origin left top),
-      // translated up to the vertical centre; only Y + scale animate (GPU).
+      // ---- Title-intro geometry: the headline starts BIG at mid-height.
+      // On scroll it exits STRAIGHT UP off-screen (total redesign: no more
+      // shrinking to a resting top-left spot) while the MacBook rises in.
       const S = mobile ? 1.25 : 1.8;
       const vh = window.innerHeight;
       const restTop = head ? parseFloat(getComputedStyle(head).top) || 44 : 44;
@@ -76,70 +75,47 @@ export default function DesarrolloWebHero() {
       const y0 = vh / 2 - restTop - (hh * S) / 2;
       if (head) gsap.set(head, { transformOrigin: "left top", scale: S, y: y0 });
 
-      // ---- On mobile, centre the browser mockup in the REAL band between the
-      // title's resting bottom edge and the facet card's top edge, measured
-      // live (not an approximate fixed CSS padding-bottom) — the title's own
-      // height varies with its clamp()'d font-size, and a static guess only
-      // ever matched one specific phone height, leaving the mockup too high
-      // (or overlapping) on every other one.
+      // ---- On mobile, centre the MacBook in the REAL band between the top
+      // edge and the facet card's top edge, measured live — the facet card
+      // height varies per phone.
       if (mobile) {
-        const scene = q(".nxr-bw-scene")[0] as HTMLElement | undefined;
+        const scene = q(".nxr-mb-scene")[0] as HTMLElement | undefined;
         if (scene && facetPanel) {
           const stageHeight = stage.offsetHeight;
-          const headBottom = restTop + hh; // resting (scale 1) position, not the big intro state
           const panelBottomOffset = parseFloat(getComputedStyle(facetPanel).bottom) || 0;
           const panelTop = stageHeight - panelBottomOffset - facetPanel.offsetHeight;
-          const bandCenter = (headBottom + panelTop) / 2;
-          // `align-items: center` puts the content's centre at
-          // (stageHeight - paddingBottom) / 2 when paddingTop is 0 — solve for
-          // the paddingBottom that lands that centre exactly on bandCenter.
+          // Sin título en reposo, la banda útil va del margen superior (64px
+          // de header) al borde del panel de facetas.
+          const bandCenter = (64 + panelTop) / 2;
           scene.style.paddingBottom = `${Math.max(0, stageHeight - 2 * bandCenter)}px`;
         }
       }
 
-      // ---- Everything except the title is hidden at load ("sin nada más").
+      // ---- Hidden start states.
       gsap.set(canvasWrap ?? [], { opacity: 0 });
       gsap.set(facetPanel ?? [], { opacity: 0, y: 24 });
-      // ContainerScroll signature start (Aceternity pattern, GSAP-driven per
-      // the repo convention): the card lies tipped BACK (rotateX 20°, con la
-      // perspective:1000px de .nxr-bw-scene) and slightly over/under-scaled;
-      // it straightens continuously across the whole build.
-      // rotateY: 0 explícito — el CSS base trae una pose rotateY(-15deg)
-      // (la conserva la rama estática de reduced-motion) y GSAP preserva
-      // los ejes no tocados: sin esto, la carta gira de lado además de
-      // tumbarse, y el patrón es un tilt X puro.
-      gsap.set(q(".nxr-bw-browser"), { opacity: 0, rotateX: 20, rotateY: 0, scale: mobile ? 0.7 : 1.05 });
-      // Wires drop in from ABOVE (y -12): each piece reads as being laid
-      // down top-to-bottom while the build descends.
-      gsap.set(q(".nxr-bw-wire"), { opacity: 0, y: -12 });
-      gsap.set(q(".nxr-bw-fill"), { opacity: 0 });
-      gsap.set(q(".nxr-bw-url-text"), { opacity: 0 });
-      gsap.set(q(".nxr-bw-perf"), { opacity: 0, scale: 0.6 });
-      gsap.set(q(".nxr-bw-perf-ring"), { strokeDashoffset: PERF_C });
-      gsap.set(q(".nxr-bw-data"), { opacity: 0, y: 10 });
-      // Scoped to the CHART bars — a bare ".nxr-bw-bar" also matched the
-      // browser's top chrome bar (same class name) and squashed it.
-      gsap.set(q(".nxr-bw-chart .nxr-bw-bar"), { scaleY: 0.08, transformOrigin: "bottom center" });
-      gsap.set(q(".nxr-bw-phone"), { opacity: 0, xPercent: 45, rotateY: -45 });
-      gsap.set(q(".nxr-bw-chip"), { opacity: 0, scale: 0.6 });
-      gsap.set(q(".nxr-bw-livebadge"), { opacity: 0, scale: 0.6, y: -6 });
-      gsap.set(q(".nxr-bw-progress-fill"), { scaleX: 0 });
+      // El MacBook espera abajo, pequeño y con la TAPA casi cerrada (la
+      // bisagra es el transform-origin del lid) — la perspective fuerte de
+      // .nxr-mb-scene hace el resto.
+      gsap.set(laptop ?? [], { y: vh * 0.55, scale: mobile ? 0.78 : 0.8, autoAlpha: 0 });
+      gsap.set(lid ?? [], { rotateX: -34, transformOrigin: "center bottom" });
+      // Piezas de la página: caen desde arriba en su franja (construcción
+      // descendente).
+      gsap.set(q(".nxr-mb-el"), { opacity: 0, y: -14 });
+      gsap.set(q(".nxr-mb-url-load"), { scaleX: 0 });
+      gsap.set(q(".nxr-mb-live"), { opacity: 0, scale: 0.6, y: -6 });
       gsap.set(labels, { opacity: 0, filter: "blur(10px)" });
 
-      // Now that every animated piece is in its hidden start state, reveal the
-      // containers that CSS keeps `visibility:hidden` until here — this prevents
-      // the finished, server-rendered browser from flashing on first paint
-      // (before this layout effect runs) and vanishing once GSAP initialises.
-      gsap.set([q(".nxr-bw-scene"), facetPanel ?? []].flat(), { visibility: "visible" });
+      // Reveal the containers CSS keeps `visibility:hidden` until here (stops
+      // the finished server-rendered page flashing before this effect runs).
+      gsap.set([q(".nxr-mb-scene"), facetPanel ?? []].flat(), { visibility: "visible" });
 
-      if (statNum) statNum.textContent = "0";
-      if (perfNum) perfNum.textContent = "0";
-      if (pctEl) pctEl.textContent = "0%";
-      if (statusEl) statusEl.textContent = "Iniciando…";
-
+      if (statUsers) statUsers.textContent = "0";
       const statProxy = { val: 0 };
-      const perfProxy = { val: 0 };
-      const pctProxy = { val: 0 };
+      // Auto-scroll interno de la página: la construcción baja y el viewport
+      // de Safari la sigue. Function-based para sobrevivir refreshes.
+      const maxShift = () =>
+        pageEl && viewEl ? Math.max(0, pageEl.scrollHeight - viewEl.clientHeight) : 0;
 
       const tl = gsap.timeline({
         scrollTrigger: {
@@ -153,94 +129,39 @@ export default function DesarrolloWebHero() {
         },
       });
 
-      // ===== PHASE A — title intro: big centred → small top-left =====
-      tl.to(head ?? {}, { scale: 1, y: 0, duration: 1.4, ease: "power2.inOut" }, 0);
-      // As the title reaches the top, the scene + browser appear.
-      tl.to(canvasWrap ?? {}, { opacity: 1, duration: 0.6 }, 1.0);
-      tl.to(q(".nxr-bw-browser"), { opacity: 1, duration: 0.6, ease: "power2.out" }, 1.15);
-      tl.to(facetPanel ?? {}, { opacity: 1, y: 0, duration: 0.5 }, 1.25);
+      // ===== PHASE A — el título sale RECTO hacia arriba =====
+      tl.to(head ?? {}, { y: -(restTop + hh * S + vh * 0.08), duration: 1.15, ease: "power2.in" }, 0);
 
-      // ContainerScroll: one LONG tween bound to the whole build — the card
-      // straightens (rotateX 20→0) and settles its scale (1.05→1 desktop,
-      // 0.7→0.9 móvil) continuously with the scroll, never early.
-      tl.to(
-        q(".nxr-bw-browser"),
-        { rotateX: 0, scale: mobile ? 0.9 : 1, duration: 4.15, ease: "power1.inOut" },
-        1.4
-      );
+      // ===== La pantalla ENTRA y se posiciona (mucho 3D) =====
+      tl.to(canvasWrap ?? {}, { opacity: 1, duration: 0.6 }, 0.6);
+      tl.to(laptop ?? {}, { autoAlpha: 1, duration: 0.35 }, 0.55);
+      tl.to(laptop ?? {}, { y: 0, scale: mobile ? 0.95 : 1, duration: 1.6, ease: "power2.out" }, 0.6);
+      // La tapa se ABRE desde la bisagra mientras el portátil llega.
+      tl.to(lid ?? {}, { rotateX: 0, duration: 1.5, ease: "power2.inOut" }, 0.85);
+      tl.to(facetPanel ?? {}, { opacity: 1, y: 0, duration: 0.5 }, 1.15);
       if (labels[0]) tl.to(labels[0], { opacity: 1, filter: "blur(0px)", duration: 0.4 }, 1.3);
+      // Deriva 3D continua durante TODO el build: crece y se inclina un
+      // pelín hacia ti — nunca se queda quieta.
+      tl.to(laptop ?? {}, { scale: mobile ? 1.02 : 1.1, duration: 3.3, ease: "sine.inOut" }, 2.3);
+      tl.to(lid ?? {}, { rotateX: 2.5, duration: 3.3, ease: "sine.inOut" }, 2.3);
 
-      // ===== Progress bar + status text (drives % and stage label from the
-      // build progress, so it stays correct scrubbing in BOTH directions) =====
-      tl.to(
-        pctProxy,
-        {
-          val: 100,
-          duration: 3.65,
-          ease: "none",
-          onUpdate: () => {
-            const v = pctProxy.val;
-            if (pctEl) pctEl.textContent = `${Math.round(v)}%`;
-            let txt = "Maquetando…";
-            if (v > 96) txt = "Publicado ✓";
-            else if (v > 66) txt = "Optimizando…";
-            else if (v > 42) txt = "Conectando datos…";
-            else if (v > 17) txt = "Aplicando estilos…";
-            if (statusEl && statusEl.textContent !== txt) statusEl.textContent = txt;
-            if (browser) browser.classList.toggle("nxr-bw-live", v > 96);
-          },
-        },
-        1.4
-      );
-      tl.to(q(".nxr-bw-progress-fill"), { scaleX: 1, duration: 3.65, ease: "none" }, 1.4);
+      // ===== La página se CONSTRUYE de arriba hacia abajo =====
+      // La barra de carga del campo de URL es el progreso global del build.
+      tl.to(q(".nxr-mb-url-load"), { scaleX: 1, duration: 3.5, ease: "none" }, 1.7);
 
-      // ===== PHASE B — la web se construye de ARRIBA HACIA ABAJO =====
-      // Cada franja del mockup aparece en su orden vertical real (chrome →
-      // nav → hero → línea → cards → panel de datos → publicado), con el
-      // wireframe cayendo desde arriba y su color llegando justo después —
-      // la página "se va construyendo" hacia abajo conforme subes el scroll.
+      const reveal = (sel: string, at: number, stagger = 0) =>
+        tl.to(q(sel), { opacity: 1, y: 0, duration: 0.5, stagger, ease: "power2.out" }, at);
 
-      // Chrome: la URL escribe primero (borde superior).
-      tl.to(q(".nxr-bw-url-text"), { opacity: 1, duration: 0.35 }, 1.45);
-
-      // Nav: logo + enlaces, después su botón coloreado.
-      tl.to(q(".nxr-bw-nav .nxr-bw-wire"), { opacity: 1, y: 0, duration: 0.5, stagger: 0.08, ease: "power2.out" }, 1.6);
-      tl.to(q(".nxr-bw-nav .nxr-bw-fill"), { opacity: 1, duration: 0.4 }, 2.05);
-
-      // Hero: marco → imagen de fondo → titulares → CTA.
-      tl.to(q(".nxr-bw-hero"), { opacity: 1, y: 0, duration: 0.55, ease: "power2.out" }, 2.2);
-      tl.to(q(".nxr-bw-hero-fill"), { opacity: 1, duration: 0.5 }, 2.5);
-      tl.to(q(".nxr-bw-hero-copy .nxr-bw-fill"), { opacity: 1, duration: 0.45, stagger: 0.12, ease: "power2.out" }, 2.65);
-      tl.to(q(".nxr-bw-chip-code"), { opacity: 1, scale: 1, duration: 0.5, ease: "back.out(1.6)" }, 2.75);
-      crossfadeFacet(tl, labels, 0, 1, 2.55);
-
-      // Anillo de rendimiento (vive en la esquina del hero).
-      tl.to(q(".nxr-bw-perf"), { opacity: 1, scale: 1, duration: 0.5, ease: "back.out(1.5)" }, 3.0);
-      tl.to(q(".nxr-bw-perf-ring"), { strokeDashoffset: PERF_C * 0.02, duration: 0.8, ease: "power1.out" }, 3.0);
-      tl.to(
-        perfProxy,
-        {
-          val: 98,
-          duration: 0.8,
-          onUpdate: () => {
-            if (perfNum) perfNum.textContent = String(Math.round(perfProxy.val));
-          },
-        },
-        3.0
-      );
-
-      // Línea de contenido bajo el hero.
-      tl.to(q(".nxr-bw-line"), { opacity: 1, y: 0, duration: 0.4, ease: "power2.out" }, 3.4);
-      tl.to(q(".nxr-bw-line .nxr-bw-fill"), { opacity: 1, duration: 0.35 }, 3.55);
-
-      // Fila de cards, de izquierda a derecha.
-      tl.to(q(".nxr-bw-cards .nxr-bw-wire"), { opacity: 1, y: 0, duration: 0.5, stagger: 0.12, ease: "power2.out" }, 3.65);
-      tl.to(q(".nxr-bw-cards .nxr-bw-fill"), { opacity: 1, duration: 0.4, stagger: 0.1 }, 3.9);
-
-      // Panel de datos (parte baja del body) + barras + contador.
-      crossfadeFacet(tl, labels, 1, 2, 4.05);
-      tl.to(q(".nxr-bw-data"), { opacity: 1, y: 0, duration: 0.55, ease: "power2.out" }, 4.15);
-      tl.to(q(".nxr-bw-chart .nxr-bw-bar"), { scaleY: 1, duration: 0.5, stagger: 0.07, ease: "back.out(1.4)" }, 4.3);
+      reveal(".nxr-mb-pnav", 1.75);
+      reveal(".nxr-mb-phero .nxr-mb-el", 2.05, 0.09);
+      crossfadeFacet(tl, labels, 0, 1, 2.7);
+      reveal(".nxr-mb-plogos .nxr-mb-el", 2.85, 0.06);
+      tl.to(pageEl ?? {}, { y: () => -0.28 * maxShift(), duration: 0.5, ease: "power1.inOut" }, 3.0);
+      reveal(".nxr-mb-pfeats .nxr-mb-el", 3.1, 0.12);
+      crossfadeFacet(tl, labels, 1, 2, 3.5);
+      tl.to(pageEl ?? {}, { y: () => -0.55 * maxShift(), duration: 0.5, ease: "power1.inOut" }, 3.55);
+      reveal(".nxr-mb-pmedia", 3.65);
+      reveal(".nxr-mb-pstats .nxr-mb-el", 3.95, 0.1);
       tl.to(
         statProxy,
         {
@@ -248,23 +169,26 @@ export default function DesarrolloWebHero() {
           duration: 0.8,
           ease: "power1.out",
           onUpdate: () => {
-            if (statNum) statNum.textContent = Math.round(statProxy.val).toLocaleString("es-ES");
+            if (statUsers) statUsers.textContent = Math.round(statProxy.val).toLocaleString("es-ES");
           },
         },
-        4.3
+        4.0
       );
+      tl.to(pageEl ?? {}, { y: () => -0.8 * maxShift(), duration: 0.5, ease: "power1.inOut" }, 4.3);
+      reveal(".nxr-mb-pquote", 4.35);
+      crossfadeFacet(tl, labels, 2, 3, 4.6);
+      tl.to(pageEl ?? {}, { y: () => -maxShift(), duration: 0.45, ease: "power1.inOut" }, 4.65);
+      reveal(".nxr-mb-pfoot", 4.7);
 
-      // Responsive + publicado.
-      crossfadeFacet(tl, labels, 2, 3, 4.5);
-      tl.to(q(".nxr-bw-phone"), { opacity: 1, xPercent: 0, rotateY: -14, duration: 0.8, ease: "power3.out" }, 4.6);
-      tl.to(q(".nxr-bw-chip-perf"), { opacity: 1, scale: 1, duration: 0.5, ease: "back.out(1.6)" }, 4.85);
-      tl.to(q(".nxr-bw-livebadge"), { opacity: 1, scale: 1, y: 0, duration: 0.5, ease: "back.out(1.7)" }, 5.05);
+      // ===== Publicado: vuelve arriba y sella EN VIVO =====
+      tl.to(pageEl ?? {}, { y: 0, duration: 0.5, ease: "power2.inOut" }, 5.25);
+      tl.to(q(".nxr-mb-live"), { opacity: 1, scale: 1, y: 0, duration: 0.5, ease: "back.out(1.7)" }, 5.35);
 
-      // Hold so the finished, settled site is what's on screen at the pin end.
-      tl.to({}, { duration: 0.5 }, 5.6);
+      // Hold so the finished site is what's on screen at the pin end.
+      tl.to({}, { duration: 0.45 }, 5.75);
 
       // Idle breathing (independent of scroll).
-      gsap.to(q(".nxr-bw-float"), { yPercent: -2.2, duration: 3.4, ease: "sine.inOut", yoyo: true, repeat: -1 });
+      gsap.to(q(".nxr-mb-float"), { yPercent: -2, duration: 3.4, ease: "sine.inOut", yoyo: true, repeat: -1 });
     },
     { scope: sectionRef, dependencies: [reducedMotion] }
   );
@@ -302,16 +226,12 @@ export default function DesarrolloWebHero() {
         <div className="nxr-dwh-canvas-wrap">
           <HeroScene />
         </div>
-        <BrowserBuild />
+        <MacbookBuild />
         <div className="nxr-dwh-overlay">
           <div className="nxr-dwh-head">
             {/* DecryptedText (React Bits, adapted): the headline "compiles"
-                from code glyphs into words — the page's own promise, on
-                brand with the browser that builds itself below. Character
-                set is code punctuation, not random letters. SSR/SEO safe:
-                the real text is server-rendered and lives in the sr-only
-                twin. Only this animated branch uses it — the reduced-motion
-                branch above renders the plain h1. */}
+                from code glyphs into words. SSR/SEO safe (real text in the
+                sr-only twin). The reduced-motion branch renders a plain h1. */}
             <h1 className="nxr-dwh-h1">
               <DecryptedText
                 text="Construimos tu web,"

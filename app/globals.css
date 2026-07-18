@@ -1586,9 +1586,10 @@ p.nxr-hero-mastery-line {
   .nxr-servicios-captions .nxr-srv-cta-wrap {
     position: absolute;
     right: 0;
-    /* Un poco por debajo del borde de la caption ("baja los CTAs"); las
-       captions asientan a 18vh del fondo, hay margen de sobra. */
-    bottom: -14px;
+    /* Un poco por debajo del borde de la caption ("baja los CTAs"; segunda
+       bajada -14 → -28); las captions asientan a 18vh del fondo, hay margen
+       de sobra. */
+    bottom: -28px;
     margin: 0;
   }
 }
@@ -2954,6 +2955,12 @@ p.nxr-hero-mastery-line {
   .nxr-srv-cta-wrap {
     /* Extra air between the feature pills and the CTA row. */
     margin-top: 12px;
+    /* Baja el botón SIN tocar el layout: la caption está anclada por su
+       borde INFERIOR (bottom: calc(...) arriba), así que más margin-top
+       solo empujaría el texto hacia arriba dejando el CTA donde está. El
+       translate lo desplaza de verdad; 12px mantiene holgura sobre la
+       bottom nav en el peor caso (barra de URL visible). */
+    transform: translateY(12px);
   }
   /* Compact heading while pinned: every px the head gives up is a px the
      card gets — on a phone the natural card content barely fits the

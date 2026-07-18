@@ -94,11 +94,16 @@ export default function DesarrolloWebHero() {
       // ---- Hidden start states.
       gsap.set(canvasWrap ?? [], { opacity: 0 });
       gsap.set(facetPanel ?? [], { opacity: 0, y: 24 });
-      // El MacBook espera abajo, pequeño y con la TAPA casi cerrada (la
-      // bisagra es el transform-origin del lid) — la perspective fuerte de
-      // .nxr-mb-scene hace el resto.
-      gsap.set(laptop ?? [], { y: vh * 0.55, scale: mobile ? 0.78 : 0.8, autoAlpha: 0 });
-      gsap.set(lid ?? [], { rotateX: -34, transformOrigin: "center bottom" });
+      // El MacBook espera abajo, pequeño y con la TAPA BIEN cerrada. -68°
+      // (no -34): entrando muy por debajo del origen de perspectiva, una
+      // tapa a -34° se proyecta casi plana y SE LEÍA COMO ABIERTA, y al
+      // subir el portátil el mismo ángulo se escorzaba de golpe — "primero
+      // se ve desplegado y pega un salto a más plegado". A -68° la tapa se
+      // lee cerrada desde cualquier ángulo de cámara. La entrada también es
+      // menos profunda (0.42·vh) para que el barrido del punto de vista sea
+      // menor.
+      gsap.set(laptop ?? [], { y: vh * 0.42, scale: mobile ? 0.76 : 0.78, autoAlpha: 0 });
+      gsap.set(lid ?? [], { rotateX: -68, transformOrigin: "center bottom" });
       // Piezas de la página: caen desde arriba en su franja (construcción
       // descendente).
       gsap.set(q(".nxr-mb-el"), { opacity: 0, y: -14 });
@@ -134,16 +139,18 @@ export default function DesarrolloWebHero() {
 
       // ===== La pantalla ENTRA y se posiciona (mucho 3D) =====
       tl.to(canvasWrap ?? {}, { opacity: 1, duration: 0.6 }, 0.6);
-      tl.to(laptop ?? {}, { autoAlpha: 1, duration: 0.35 }, 0.55);
+      tl.to(laptop ?? {}, { autoAlpha: 1, duration: 0.3 }, 0.55);
       tl.to(laptop ?? {}, { y: 0, scale: mobile ? 0.95 : 1, duration: 1.6, ease: "power2.out" }, 0.6);
-      // La tapa se ABRE desde la bisagra mientras el portátil llega.
-      tl.to(lid ?? {}, { rotateX: 0, duration: 1.5, ease: "power2.inOut" }, 0.85);
+      // La tapa se ABRE desde la bisagra, progresiva y LARGA (termina en
+      // 2.75) — la apertura es el gesto protagonista de la entrada.
+      tl.to(lid ?? {}, { rotateX: 0, duration: 1.9, ease: "power2.inOut" }, 0.85);
       tl.to(facetPanel ?? {}, { opacity: 1, y: 0, duration: 0.5 }, 1.15);
       if (labels[0]) tl.to(labels[0], { opacity: 1, filter: "blur(0px)", duration: 0.4 }, 1.3);
       // Deriva 3D continua durante TODO el build: crece y se inclina un
-      // pelín hacia ti — nunca se queda quieta.
+      // pelín hacia ti — nunca se queda quieta. (Empieza tras acabar la
+      // apertura: dos tweens del mismo rotateX no deben solaparse.)
       tl.to(laptop ?? {}, { scale: mobile ? 1.02 : 1.1, duration: 3.3, ease: "sine.inOut" }, 2.3);
-      tl.to(lid ?? {}, { rotateX: 2.5, duration: 3.3, ease: "sine.inOut" }, 2.3);
+      tl.to(lid ?? {}, { rotateX: 2.5, duration: 2.8, ease: "sine.inOut" }, 2.85);
 
       // ===== La página se CONSTRUYE de arriba hacia abajo =====
       // La barra de carga del campo de URL es el progreso global del build.

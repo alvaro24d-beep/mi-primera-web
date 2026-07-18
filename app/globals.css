@@ -559,6 +559,24 @@ p.nxr-hero-mastery-line {
   background: var(--c-red);
   box-shadow: 0 0 10px rgba(239, 61, 13, 0.55);
   will-change: transform;
+  /* Agarrable (el contenedor sigue en pointer-events: none): arrastrarla
+     scrubbea la página vía Lenis (ScrollProgress.tsx). touch-action: none
+     para que el navegador no convierta el gesto en scroll nativo. */
+  pointer-events: auto;
+  cursor: grab;
+  touch-action: none;
+  transition: box-shadow 0.2s;
+}
+/* Zona de agarre invisible: la píldora mide 3.5px — sin esto sería
+   inagarrable. ~34×32px de hit-area centrada en ella. */
+.nxr-scrollruler-pill::before {
+  content: "";
+  position: absolute;
+  inset: -14px -10px;
+}
+.nxr-scrollruler-pill.is-drag {
+  cursor: grabbing;
+  box-shadow: 0 0 16px rgba(239, 61, 13, 0.85);
 }
 @media (max-width: 900px) {
   .nxr-scrollruler {
@@ -575,6 +593,10 @@ p.nxr-hero-mastery-line {
     width: 10px;
     height: 3px;
     right: 0;
+  }
+  /* Pulgar en el borde de la pantalla: hit-area algo más alta. */
+  .nxr-scrollruler-pill::before {
+    inset: -16px -12px;
   }
 }
 

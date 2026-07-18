@@ -522,7 +522,7 @@ p.nxr-hero-mastery-line {
 .nxr-scrollruler {
   position: fixed;
   top: 50%;
-  right: 10px;
+  right: 7px;
   height: 320px;
   transform: translateY(-50%);
   z-index: 9998;
@@ -532,10 +532,12 @@ p.nxr-hero-mastery-line {
   justify-content: space-between;
   align-items: flex-end;
 }
+/* Afinada tras la primera versión ("más fino, que no entre tanto"):
+   ticks 13/17 → 8/11, grosor 1.5 → 1, píldora 24×5 → 14×3.5. */
 .nxr-scrollruler-tick {
   display: block;
-  width: 13px;
-  height: 1.5px;
+  width: 8px;
+  height: 1px;
   border-radius: 999px;
   background: #fff;
   opacity: 0.16;
@@ -544,35 +546,35 @@ p.nxr-hero-mastery-line {
   transition: none;
 }
 .nxr-scrollruler-tick.is-accent {
-  width: 17px;
+  width: 11px;
   opacity: 0.38;
 }
 .nxr-scrollruler-pill {
   position: absolute;
   top: 0;
-  right: -2px;
-  width: 24px;
-  height: 5px;
+  right: -1px;
+  width: 14px;
+  height: 3.5px;
   border-radius: 999px;
   background: var(--c-red);
-  box-shadow: 0 0 12px rgba(239, 61, 13, 0.55);
+  box-shadow: 0 0 10px rgba(239, 61, 13, 0.55);
   will-change: transform;
 }
 @media (max-width: 900px) {
   .nxr-scrollruler {
-    right: 6px;
+    right: 5px;
     height: 230px;
   }
   .nxr-scrollruler-tick {
-    width: 10px;
+    width: 6px;
   }
   .nxr-scrollruler-tick.is-accent {
-    width: 13px;
+    width: 8px;
   }
   .nxr-scrollruler-pill {
-    width: 18px;
-    height: 4px;
-    right: -1px;
+    width: 10px;
+    height: 3px;
+    right: 0;
   }
 }
 

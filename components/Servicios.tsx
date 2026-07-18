@@ -664,14 +664,15 @@ export default function Servicios() {
       // (replaces the old 165vh/70vh runway above the sticky — the pin, and
       // with it the section, now starts as soon as the sticky reaches the
       // top: "que la sección empiece antes").
-      // 1.4/1.1 (antes 1.7/1.35 — "reduce un poco la cantidad de scroll para
-      // pasar la frase"): with a short prologue the full-brightness hold was
-      // tiny — a normal flick blew straight past the phrase ("no dura nada,
-      // te la pasas sin querer", twice). Rule of thumb this still enforces:
-      // content must stay legible for a comfortable stretch of NORMAL user
-      // scrolling — hold ≈ 0.85·pro ≈ 119vh desktop / 94vh móvil, above the
-      // 80-90vh/60vh floor (see the ZoomParallax centre card reference).
-      const PROLOGUE = () => Math.round(window.innerHeight * (isDesktopUI ? 1.4 : 1.1));
+      // Desktop 1.4 (antes 1.7 — "reduce un poco el scroll para pasar la
+      // frase"). Móvil DE VUELTA a 1.35: la bajada a 1.1 (V15.79) rompió la
+      // entrada de las cards en teléfono real dos veces seguidas ("no salen
+      // del lado... sigue mal, antes funcionaba bien") — todo el sistema de
+      // primera llegada (muro + snap + cap de flick a 1.35 pantallas) estaba
+      // afinado contra esta geometría, y 1.35 es el único valor validado en
+      // dispositivo real. No volver a bajarlo sin re-validar en teléfono
+      // físico, no solo en el arnés emulado.
+      const PROLOGUE = () => Math.round(window.innerHeight * (isDesktopUI ? 1.4 : 1.35));
       const startX = () => centredX() + entryOffset();
       // Pin distance = prologue + actual track travel; the track only moves
       // during the post-prologue stretch (1px of scroll = 1px of x, as
@@ -952,6 +953,12 @@ export default function Servicios() {
       // flips, the first settle is always card 0, on the long soft
       // page-style glide.
       let presentedFirst = false;
+      // Finger currently on screen (mobile): the first-arrival wall's soft
+      // brake must NOT re-aim Lenis while a drag is live — syncTouch sets
+      // the target to the finger position every move, and re-aiming it at
+      // card 0's centre each onUpdate makes the two targets ping-pong every
+      // frame (visible jitter). Brake only once the finger lifts.
+      let fingerDown = false;
       // `page` = mobile one-card-per-swipe pagination (touchend). Those
       // glides take over from a live finger gesture, and the default
       // ease-OUT cubic starts at PEAK velocity — an instant speed/direction
@@ -1192,7 +1199,7 @@ export default function Servicios() {
               // from the side and lands centred, instead of the position
               // crossing and the hard clamp below teleporting it back
               // (which read as the card appearing without its side entry).
-              if (lenis && progressNow(self) <= cap && lenis.targetScroll > capY) {
+              if (lenis && !fingerDown && progressNow(self) <= cap && lenis.targetScroll > capY) {
                 lenis.scrollTo(capY, { lerp: 0.12 });
               }
               if (progressNow(self) > cap) {
@@ -1287,13 +1294,19 @@ export default function Servicios() {
         let touchY = 0;
         let touchInPin = false;
         const onTouchStart = (e: TouchEvent) => {
+          fingerDown = true;
           const st = tl.scrollTrigger;
           touchInPin = !!st?.isActive;
           if (!st || !touchInPin) return;
           touchY = e.touches[0]?.clientY ?? 0;
           touchIdx = nearestIdx(progressNow(st));
         };
+        const onTouchCancel = () => {
+          fingerDown = false;
+          touchInPin = false;
+        };
         const onTouchEnd = (e: TouchEvent) => {
+          fingerDown = false;
           const st = tl.scrollTrigger;
           if (!touchInPin || !st?.isActive) return;
           touchInPin = false;
@@ -1319,9 +1332,11 @@ export default function Servicios() {
         };
         window.addEventListener("touchstart", onTouchStart, { passive: true });
         window.addEventListener("touchend", onTouchEnd, { passive: true });
+        window.addEventListener("touchcancel", onTouchCancel, { passive: true });
         cleanups.push(() => {
           window.removeEventListener("touchstart", onTouchStart);
           window.removeEventListener("touchend", onTouchEnd);
+          window.removeEventListener("touchcancel", onTouchCancel);
         });
       }
 

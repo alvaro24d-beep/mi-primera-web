@@ -194,6 +194,22 @@ export default function DesarrolloWebHero() {
       // Hold so the finished site is what's on screen at the pin end.
       tl.to({}, { duration: 0.45 }, 5.75);
 
+      // Navegación cliente: este efecto corre ANTES que el del template que
+      // resetea el scroll a 0 (los efectos de React van de hijo a padre),
+      // así que el ScrollTrigger puede nacer con el scroll de la página
+      // ANTERIOR (progreso ≈ 1 → renderiza el portátil abierto) y el scrub
+      // de 0.6 perseguía la vuelta a 0 a la vista ("el ordenador está en
+      // posición abierta y luego pliega de golpe"). Un frame después del
+      // montaje, cuando el template ya ha movido el scroll, completamos el
+      // catch-up del scrub al instante — sin persecución visible.
+      requestAnimationFrame(() => {
+        const st = tl.scrollTrigger;
+        if (!st) return;
+        st.update();
+        const scrubTween = typeof st.getTween === "function" ? st.getTween() : null;
+        if (scrubTween) scrubTween.progress(1);
+      });
+
       // Idle breathing (independent of scroll).
       gsap.to(q(".nxr-mb-float"), { yPercent: -2, duration: 3.4, ease: "sine.inOut", yoyo: true, repeat: -1 });
     },

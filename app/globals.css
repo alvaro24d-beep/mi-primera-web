@@ -5894,6 +5894,19 @@ input[type="range"].nxr-ms-range::-moz-range-thumb {
 .nxr-dwh-hero:not(.nxr-dwh-static) .nxr-dwh-layers-panel {
   visibility: hidden;
 }
+/* Suelo pre-GSAP: pase lo que pase con las carreras de inicialización
+   (hidratación lenta, navegación cliente con el ScrollTrigger creado antes
+   del reset de scroll del template), el portátil espera PLEGADO y
+   transparente — es imposible pintar el estado abierto antes de que el
+   timeline tome el control. Los estilos inline de GSAP ganan a estas
+   reglas en cuanto existen. */
+.nxr-dwh-hero:not(.nxr-dwh-static) .nxr-mb-laptop {
+  opacity: 0;
+}
+.nxr-dwh-hero:not(.nxr-dwh-static) .nxr-mb-lid {
+  transform: rotateX(-68deg);
+  transform-origin: center bottom;
+}
 
 .nxr-mb-scene {
   position: absolute;

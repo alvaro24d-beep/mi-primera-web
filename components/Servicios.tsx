@@ -1060,10 +1060,18 @@ export default function Servicios() {
         const total = snapAmount;
         if (!total || !snapStep) return;
         const progress = progressNow(st);
-        // Never idle-snap while still inside the prologue (the phrase's
-        // hold): the nearest card there is always card 0, and the glide
-        // would fast-forward the whole title moment.
-        if (progress * total < snapPro * 0.98) return;
+        // Never idle-snap while the phrase still HOLDS at full brightness
+        // (< 0.85·pro — its fade-out starts exactly there, see buildTl):
+        // the nearest card there is always card 0, and the glide would
+        // fast-forward the whole title moment. Past that point the phrase
+        // is already dissolving, and 0.98 left a DEAD ZONE (rest between
+        // fade-start and 0.98·pro = phrase gone, card still hidden in the
+        // tail, and nothing pulling it in — "las cards no salen del lado"
+        // after the V15.79 prologue reduction made normal swipes land
+        // there). Snapping from the fade zone glides card 0 in from the
+        // side while the phrase finishes dissolving — the intended
+        // handoff.
+        if (progress * total < snapPro * 0.85) return;
         // First settle on mobile: force card 0 (unless the flick genuinely
         // sailed past card 1) and use the page-style ease-in-out glide —
         // see `presentedFirst` above.
@@ -1176,11 +1184,20 @@ export default function Servicios() {
             // card 1 normally.
             if (!presentedFirst && window.innerWidth <= 900) {
               const cap = pOf(0);
+              const capY = scrollAt(self, cap);
+              const lenis = window.__nxrLenis;
+              // Soft brake FIRST: if the flick's inertia TARGET points past
+              // card 0's centre but the position hasn't crossed yet, re-aim
+              // Lenis at the centre with a lerp — the card decelerates in
+              // from the side and lands centred, instead of the position
+              // crossing and the hard clamp below teleporting it back
+              // (which read as the card appearing without its side entry).
+              if (lenis && progressNow(self) <= cap && lenis.targetScroll > capY) {
+                lenis.scrollTo(capY, { lerp: 0.12 });
+              }
               if (progressNow(self) > cap) {
-                const y = scrollAt(self, cap);
-                const lenis = window.__nxrLenis;
-                if (lenis) lenis.scrollTo(y, { immediate: true });
-                else window.scrollTo(0, y);
+                if (lenis) lenis.scrollTo(capY, { immediate: true });
+                else window.scrollTo(0, capY);
               }
             }
             window.clearTimeout(snapTimer);
@@ -1282,12 +1299,13 @@ export default function Servicios() {
           touchInPin = false;
           const dy = touchY - (e.changedTouches[0]?.clientY ?? touchY);
           const p = progressNow(st);
-          // Released still inside the prologue: leave the scroll natural.
-          // Hijacking it into a glide-to-card-0 both fast-forwarded the
-          // phrase's hold AND swept the card across the screen at glide
-          // speed (up to ~1600px in 750ms — the "ghost card" whip). The
-          // idle snap's firstSettle path takes over once past the prologue.
-          if (p * snapAmount < snapPro * 0.98) return;
+          // Released while the phrase still holds at full brightness:
+          // leave the scroll natural. Hijacking it into a glide-to-card-0
+          // both fast-forwarded the phrase's hold AND swept the card
+          // across the screen at glide speed (up to ~1600px in 750ms —
+          // the "ghost card" whip). 0.85 (not 0.98) so releases in the
+          // fade zone DO page card 0 in — same dead-zone fix as trySnap.
+          if (p * snapAmount < snapPro * 0.85) return;
           const eps = 0.02;
           let targetIdx: number | null = null;
           if (dy > 25) {

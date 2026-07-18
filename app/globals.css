@@ -503,8 +503,8 @@ p.nxr-hero-mastery-line {
   }
 }
 
-/* Native scrollbar hidden — replaced by the custom red scroll-progress bar
-   (see ScrollProgress.tsx + .nxr-scrollprogress below). */
+/* Native scrollbar hidden — replaced by the custom tick-ruler indicator
+   (see ScrollProgress.tsx + .nxr-scrollruler below). */
 ::-webkit-scrollbar {
   width: 0;
   height: 0;
@@ -513,27 +513,67 @@ p.nxr-hero-mastery-line {
   scrollbar-width: none;
 }
 
-/* Scroll-progress bar pinned to the right edge: a flat red fill (the brand
-   button red) that grows top→bottom with scroll — a progress bar, not a
-   floating pill. */
-.nxr-scrollprogress {
+/* ===== Scroll ruler (indicador de posición) ===== */
+/* Regla vertical COMPACTA pegada al marco derecho: líneas finas (acentos
+   cada 5) + píldora roja de marca marcando la posición actual. Los ticks
+   cercanos a la píldora se estiran/iluminan con falloff (lo escribe
+   ScrollProgress.tsx por rAF; aquí solo estados base). Centrada en
+   vertical, deliberadamente NO ocupa toda la altura. */
+.nxr-scrollruler {
   position: fixed;
-  top: 0;
-  right: 0;
-  width: 4px;
-  height: 100lvh;
+  top: 50%;
+  right: 10px;
+  height: 320px;
+  transform: translateY(-50%);
   z-index: 9998;
   pointer-events: none;
-  background: rgba(255, 255, 255, 0.05);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  align-items: flex-end;
 }
-.nxr-scrollprogress-fill {
-  width: 100%;
-  height: 100%;
-  transform-origin: top center;
-  transform: scaleY(0);
+.nxr-scrollruler-tick {
+  display: block;
+  width: 13px;
+  height: 1.5px;
+  border-radius: 999px;
+  background: #fff;
+  opacity: 0.16;
+  /* Se estiran hacia DENTRO de la pantalla, ancladas al marco. */
+  transform-origin: right center;
+  transition: none;
+}
+.nxr-scrollruler-tick.is-accent {
+  width: 17px;
+  opacity: 0.38;
+}
+.nxr-scrollruler-pill {
+  position: absolute;
+  top: 0;
+  right: -2px;
+  width: 24px;
+  height: 5px;
+  border-radius: 999px;
   background: var(--c-red);
-  box-shadow: 0 0 10px rgba(239, 61, 13, 0.55);
+  box-shadow: 0 0 12px rgba(239, 61, 13, 0.55);
   will-change: transform;
+}
+@media (max-width: 900px) {
+  .nxr-scrollruler {
+    right: 6px;
+    height: 230px;
+  }
+  .nxr-scrollruler-tick {
+    width: 10px;
+  }
+  .nxr-scrollruler-tick.is-accent {
+    width: 13px;
+  }
+  .nxr-scrollruler-pill {
+    width: 18px;
+    height: 4px;
+    right: -1px;
+  }
 }
 
 /* SOLID brand-accent colors — the animated background-clip:text gradients

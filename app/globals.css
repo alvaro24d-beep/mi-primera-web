@@ -531,6 +531,18 @@ p.nxr-hero-mastery-line {
   flex-direction: column;
   justify-content: space-between;
   align-items: flex-end;
+  /* Oculta por defecto: aparece a partir de #nxr-intro y se desvanece a
+     los ~2s sin actividad (clase .is-visible desde ScrollProgress.tsx). */
+  opacity: 0;
+  transition: opacity 0.45s;
+}
+.nxr-scrollruler.is-visible {
+  opacity: 1;
+}
+/* Invisible ⇒ inagarrable: sin esto la píldora oculta seguiría cazando
+   el ratón junto al borde. */
+.nxr-scrollruler:not(.is-visible) .nxr-scrollruler-pill {
+  pointer-events: none;
 }
 /* Afinada tras la primera versión ("más fino, que no entre tanto"):
    ticks 13/17 → 8/11, grosor 1.5 → 1, píldora 24×5 → 14×3.5. */
@@ -559,12 +571,12 @@ p.nxr-hero-mastery-line {
   background: var(--c-red);
   box-shadow: 0 0 10px rgba(239, 61, 13, 0.55);
   will-change: transform;
-  /* Agarrable (el contenedor sigue en pointer-events: none): arrastrarla
-     scrubbea la página vía Lenis (ScrollProgress.tsx). touch-action: none
-     para que el navegador no convierta el gesto en scroll nativo. */
+  /* Agarrable con RATÓN (el contenedor sigue en pointer-events: none):
+     arrastrarla scrubbea la página vía Lenis (ScrollProgress.tsx). En
+     móvil se desactiva más abajo — la zona de agarre caía justo donde el
+     pulgar hace swipe y secuestraba scrolls normales. */
   pointer-events: auto;
   cursor: grab;
-  touch-action: none;
   transition: box-shadow 0.2s;
 }
 /* Zona de agarre invisible: la píldora mide 3.5px — sin esto sería
@@ -593,10 +605,10 @@ p.nxr-hero-mastery-line {
     width: 10px;
     height: 3px;
     right: 0;
-  }
-  /* Pulgar en el borde de la pantalla: hit-area algo más alta. */
-  .nxr-scrollruler-pill::before {
-    inset: -16px -12px;
+    /* Solo indicador en táctil: la zona de agarre está exactamente donde
+       el pulgar scrollea por el borde derecho — los swipes normales caían
+       en ella y el scrub secuestraba el gesto ("la píldora se bugea"). */
+    pointer-events: none;
   }
 }
 

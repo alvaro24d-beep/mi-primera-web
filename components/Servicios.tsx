@@ -664,13 +664,14 @@ export default function Servicios() {
       // (replaces the old 165vh/70vh runway above the sticky — the pin, and
       // with it the section, now starts as soon as the sticky reaches the
       // top: "que la sección empiece antes").
-      // 1.7/1.35: with a short prologue the full-brightness hold was tiny —
-      // a normal flick blew straight past the phrase ("no dura nada, te la
-      // pasas sin querer", twice). Rule of thumb this enforces: content must
-      // stay legible for a comfortable stretch of NORMAL user scrolling —
-      // the reference the user gave is the ZoomParallax centre card
-      // ("Construido con maestría."), which survives its whole section.
-      const PROLOGUE = () => Math.round(window.innerHeight * (isDesktopUI ? 1.7 : 1.35));
+      // 1.4/1.1 (antes 1.7/1.35 — "reduce un poco la cantidad de scroll para
+      // pasar la frase"): with a short prologue the full-brightness hold was
+      // tiny — a normal flick blew straight past the phrase ("no dura nada,
+      // te la pasas sin querer", twice). Rule of thumb this still enforces:
+      // content must stay legible for a comfortable stretch of NORMAL user
+      // scrolling — hold ≈ 0.85·pro ≈ 119vh desktop / 94vh móvil, above the
+      // 80-90vh/60vh floor (see the ZoomParallax centre card reference).
+      const PROLOGUE = () => Math.round(window.innerHeight * (isDesktopUI ? 1.4 : 1.1));
       const startX = () => centredX() + entryOffset();
       // Pin distance = prologue + actual track travel; the track only moves
       // during the post-prologue stretch (1px of scroll = 1px of x, as

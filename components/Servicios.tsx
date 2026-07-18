@@ -824,13 +824,18 @@ export default function Servicios() {
           const steps = Math.abs(slideCenterX - centerX) / stepPx;
 
           const theta = gsap.utils.clamp(-1.1, 1.1, nx) * THETA_MAX;
-          // Mobile EXIT side: no tail at all — the departing card slides out
-          // through the left edge as a rigid carousel, keeping its step
-          // distance to the card on its right ("quiero que desaparezca
-          // yéndose por la izquierda... como un carrusel"; supersedes the
-          // earlier dissolve-behind ending there). The ENTRY side keeps the
-          // materialization tail on every device; desktop keeps both sides.
-          const tailActive = isDesktopUI || nxRaw > 0;
+          // Mobile: NO tail on either side — the reel is a rigid carousel.
+          // Exits slide out through the left edge keeping their step
+          // distance ("como un carrusel", V15.4x), and entries now mirror
+          // it ("que entren viniendo de la derecha a la misma distancia
+          // siempre de la seleccionada, como un carrusel en fila"): cards
+          // hold their natural track slot — exactly one cardStep apart —
+          // and enter PHYSICALLY through the right edge at full opacity,
+          // no materialization/climb/park-pull. This also retires the
+          // whole ghost-card failure class on mobile (every past ghost was
+          // fade × stale-park-pull interplay). Desktop keeps the spiral
+          // tail on both sides.
+          const tailActive = isDesktopUI;
           // Tail parameter: 0 on the lane, 1 fully dissolved. Squared where
           // it feeds motion so the card PEELS off the lane smoothly instead
           // of kinking at the threshold; linear for the fade itself.

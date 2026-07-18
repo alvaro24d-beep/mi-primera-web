@@ -3,6 +3,8 @@
 import { useEffect, useRef, useState } from "react";
 import { usePathname } from "next/navigation";
 import Link from "next/link";
+import gsap from "gsap";
+import { useReducedMotion } from "@/hooks/useReducedMotion";
 
 const NAV_LINKS = [
   { href: "/", label: "Inicio" },
@@ -88,6 +90,9 @@ export default function Header() {
   const [srvOpen, setSrvOpen] = useState(false);
   const navRef = useRef<HTMLElement>(null);
   const isDesktopRef = useRef(true);
+  const menuRef = useRef<HTMLDivElement>(null);
+  const menuTl = useRef<gsap.core.Timeline | null>(null);
+  const reducedMotion = useReducedMotion();
 
   const normalize = (p: string) => p.replace(/\/$/, "") || "/";
   const isActive = (href: string) => normalize(href) === normalize(pathname || "/");
@@ -122,7 +127,10 @@ export default function Header() {
     };
 
     const onKeydown = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setSrvOpen(false);
+      if (e.key === "Escape") {
+        setSrvOpen(false);
+        setHamburgerOpen(false);
+      }
     };
 
     window.addEventListener("resize", onResize, { passive: true });
@@ -137,9 +145,57 @@ export default function Header() {
     };
   }, []);
 
+  // Staggered-menu timeline (React Bits StaggeredMenu pattern, adapted):
+  // two brand-color prelayers sweep in from the right, the dark glass panel
+  // follows, then the big links reveal through an overflow mask with
+  // stagger + slight rotation, and the services/CTA cascade after. Built
+  // once, paused; open plays it, close reverses it slightly faster. The
+  // root's visibility/pointer-events live INSIDE the timeline (a `set` at
+  // t=0 reverts when the reverse playhead crosses it), so CSS only needs
+  // the resting hidden state.
+  useEffect(() => {
+    if (reducedMotion) return;
+    const root = menuRef.current;
+    if (!root) return;
+    const q = gsap.utils.selector(root);
+    const tl = gsap.timeline({ paused: true, defaults: { ease: "power4.out" } });
+    tl.set(root, { visibility: "visible", pointerEvents: "all" }, 0)
+      .fromTo(q(".nxr-mm-layer-a"), { xPercent: 100 }, { xPercent: 0, duration: 0.5 }, 0)
+      .fromTo(q(".nxr-mm-layer-b"), { xPercent: 100 }, { xPercent: 0, duration: 0.5 }, 0.07)
+      .fromTo(q(".nxr-mm-panel"), { xPercent: 100 }, { xPercent: 0, duration: 0.6 }, 0.14)
+      .fromTo(
+        q(".nxr-mm-link"),
+        { yPercent: 130, rotate: 5 },
+        { yPercent: 0, rotate: 0, duration: 0.7, stagger: 0.08 },
+        0.3
+      )
+      .fromTo(q(".nxr-mm-sep, .nxr-mm-srv-label"), { opacity: 0 }, { opacity: 1, duration: 0.4 }, 0.55)
+      .fromTo(q(".nxr-mm-srv-item"), { x: 28, opacity: 0 }, { x: 0, opacity: 1, duration: 0.45, stagger: 0.05 }, 0.58)
+      .fromTo(q(".nxr-mm-cta"), { y: 24, opacity: 0 }, { y: 0, opacity: 1, duration: 0.45 }, 0.72);
+    menuTl.current = tl;
+    return () => {
+      tl.kill();
+      menuTl.current = null;
+    };
+  }, [reducedMotion]);
+
   useEffect(() => {
     document.body.style.overflow = hamburgerOpen ? "hidden" : "";
-  }, [hamburgerOpen]);
+    const root = menuRef.current;
+    if (!root) return;
+    if (reducedMotion) {
+      // Static branch: show/hide instantly, children at natural positions.
+      gsap.set(root, {
+        visibility: hamburgerOpen ? "visible" : "hidden",
+        pointerEvents: hamburgerOpen ? "all" : "none",
+      });
+      return;
+    }
+    const tl = menuTl.current;
+    if (!tl) return;
+    if (hamburgerOpen) tl.timeScale(1).play();
+    else tl.timeScale(1.35).reverse();
+  }, [hamburgerOpen, reducedMotion]);
 
   const openDD = () => setSrvOpen(true);
   const closeDD = () => setSrvOpen(false);
@@ -174,15 +230,42 @@ export default function Header() {
         </button>
       </header>
 
-      <div id="nxr-mobile-menu" className={hamburgerOpen ? "open" : ""}>
-        {NAV_LINKS.map((l) => (
-          <Link key={l.href} href={l.href} className="nxr-mobile-link" onClick={() => setHamburgerOpen(false)}>
-            {l.label}
+      <div id="nxr-mobile-menu" ref={menuRef} aria-hidden={!hamburgerOpen}>
+        <div className="nxr-mm-layer nxr-mm-layer-a" />
+        <div className="nxr-mm-layer nxr-mm-layer-b" />
+        <div className="nxr-mm-panel">
+          <nav className="nxr-mm-links" aria-label="Menú móvil">
+            {NAV_LINKS.map((l, i) => (
+              // The overflow-hidden wrapper is the reveal MASK: the link
+              // animates yPercent 130→0 inside it (StaggeredMenu's
+              // signature masked rise).
+              <div className="nxr-mm-item" key={l.href}>
+                <Link href={l.href} className="nxr-mm-link" onClick={() => setHamburgerOpen(false)}>
+                  <span className="nxr-mm-num">0{i + 1}</span>
+                  {l.label}
+                </Link>
+              </div>
+            ))}
+          </nav>
+          <div className="nxr-mm-sep" />
+          <div className="nxr-mm-srv-label">Servicios</div>
+          <div className="nxr-mm-srv">
+            {SERVICIOS.map((s) => (
+              <Link key={s.href} href={s.href} className="nxr-mm-srv-item" onClick={() => setHamburgerOpen(false)}>
+                <span className="nxr-mm-srv-ico" style={{ color: s.color }}>
+                  {s.icon}
+                </span>
+                {s.title}
+              </Link>
+            ))}
+          </div>
+          <Link href="/contacto" className="nxr-mm-cta" onClick={() => setHamburgerOpen(false)}>
+            Hablemos
+            <svg viewBox="0 0 24 24">
+              <path d="M7 17L17 7M7 7h10v10" />
+            </svg>
           </Link>
-        ))}
-        <Link href="/contacto" className="nxr-mobile-cta" onClick={() => setHamburgerOpen(false)}>
-          Hablemos
-        </Link>
+        </div>
       </div>
 
       <nav

@@ -795,55 +795,131 @@ p.nxr-hero-mastery-line {
   transform: translateY(-7px) rotate(-45deg);
 }
 
+/* ===== Menú móvil staggered (patrón React Bits StaggeredMenu) ===== */
+/* GSAP (Header.tsx) posee las transforms y la visibilidad del root vía
+   timeline; aquí solo el estado de reposo oculto y el diseño. Dos capas
+   de color de marca barren antes que el panel; los enlaces grandes se
+   revelan a través de máscaras overflow-hidden. */
 #nxr-mobile-menu {
   position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
+  inset: 0;
   z-index: 9997;
-  background: rgba(12, 28, 42, 0.97);
-  backdrop-filter: blur(20px);
+  visibility: hidden;
+  pointer-events: none;
+}
+.nxr-mm-layer {
+  position: absolute;
+  inset: 0;
+}
+.nxr-mm-layer-a {
+  background: var(--c-red);
+}
+.nxr-mm-layer-b {
+  background: var(--c-salmon);
+}
+.nxr-mm-panel {
+  position: absolute;
+  inset: 0;
+  background: rgba(10, 22, 34, 0.96);
+  backdrop-filter: blur(24px);
   display: flex;
   flex-direction: column;
+  padding: 104px 30px 36px;
+  overflow-y: auto;
+}
+.nxr-mm-item {
+  overflow: hidden;
+}
+.nxr-mm-link {
+  display: flex;
+  align-items: baseline;
+  gap: 14px;
+  padding: 9px 0;
+  text-decoration: none;
+  font-family: var(--font-rajdhani), system-ui, sans-serif;
+  font-size: 44px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  line-height: 1.05;
+  color: var(--c-white);
+  will-change: transform;
+}
+.nxr-mm-link:active {
+  color: var(--c-salmon);
+}
+.nxr-mm-num {
+  font-family: var(--font-space-mono), monospace;
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  color: var(--c-red);
+}
+.nxr-mm-sep {
+  height: 1px;
+  background: rgba(255, 255, 255, 0.12);
+  margin: 26px 0 18px;
+}
+.nxr-mm-srv-label {
+  font-family: var(--font-space-mono), monospace;
+  font-size: 11px;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.45);
+  margin-bottom: 10px;
+}
+.nxr-mm-srv {
+  display: flex;
+  flex-direction: column;
+}
+.nxr-mm-srv-item {
+  display: flex;
   align-items: center;
-  justify-content: center;
-  gap: 8px;
-  opacity: 0;
-  pointer-events: none;
-  transition: opacity 0.35s cubic-bezier(0.22, 1, 0.36, 1);
-}
-
-#nxr-mobile-menu.open {
-  opacity: 1;
-  pointer-events: all;
-}
-
-.nxr-mobile-link {
-  font-size: 28px;
-  font-weight: 700;
-  color: rgba(255, 255, 255, 0.6);
+  gap: 12px;
+  padding: 9px 0;
   text-decoration: none;
-  padding: 12px 24px;
-  border-radius: 16px;
-  transition: color 0.2s, background 0.2s;
-  letter-spacing: -0.02em;
+  font-family: var(--font-space-mono), monospace;
+  font-size: 15px;
+  color: rgba(255, 255, 255, 0.78);
 }
-
-.nxr-mobile-link:hover {
-  color: var(--c-white);
-  background: rgba(255, 255, 255, 0.06);
+.nxr-mm-srv-ico {
+  display: inline-flex;
+  flex-shrink: 0;
 }
-
-.nxr-mobile-cta {
-  font-size: 18px;
-  font-weight: 700;
-  color: var(--c-white);
+.nxr-mm-srv-ico svg {
+  width: 18px;
+  height: 18px;
+  stroke: currentColor;
+  fill: none;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.nxr-mm-cta {
+  margin-top: auto;
+  align-self: flex-start;
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
   background: var(--c-red);
+  color: var(--c-white);
   text-decoration: none;
-  padding: 14px 32px;
+  font-family: var(--font-rajdhani), system-ui, sans-serif;
+  font-size: 17px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  padding: 14px 30px;
   border-radius: 100px;
-  margin-top: 16px;
+  box-shadow: 0 0 24px rgba(239, 61, 13, 0.35);
+}
+.nxr-mm-cta svg {
+  width: 15px;
+  height: 15px;
+  stroke: currentColor;
+  fill: none;
+  stroke-width: 2.2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
 }
 
 #nxr-bg-blur {

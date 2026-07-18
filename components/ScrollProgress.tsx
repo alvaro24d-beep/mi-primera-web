@@ -47,9 +47,33 @@ export default function ScrollProgress() {
     let grabOff = 0; // clientY offset finger↔pill-top at grab, keeps it from jumping
     let hideTimer = 0;
 
+    // ALL layout reads live here, time-gated — never in the per-frame path.
+    // clientHeight/offsetHeight/scrollHeight/getBoundingClientRect force a
+    // synchronous reflow whenever layout is dirty, and during the pinned
+    // reel GSAP dirties it EVERY frame: reading per tick/per scroll event
+    // meant a forced full-document reflow per frame. Invisible on a desktop
+    // CPU (~2ms), 15-30ms on a mid phone — the whole reel visibly stuttered
+    // ("va mal"). Reads now happen at mount/resize and at most every 800ms
+    // while the user scrolls; everything else is pure arithmetic.
+    let trackH = 1; // ruler height minus pill height
+    let pillH = 0;
+    let maxY = 1; // page scroll range
+    let gateY = 0; // absolute scrollY where the ruler becomes visible
+    let lastMeasure = -1;
+    const bases = ticks.map((t) => +t.dataset.base!);
+    const measure = () => {
+      pillH = pill.offsetHeight;
+      trackH = root.clientHeight - pillH;
+      maxY = Math.max(1, document.documentElement.scrollHeight - window.innerHeight);
+      const gate = document.getElementById("nxr-intro");
+      // Umbral: el top de #nxr-intro cruza el 55% del viewport. Rutas sin
+      // esa sección: aparece tras un scroll mínimo.
+      gateY = gate ? gate.getBoundingClientRect().top + window.scrollY - window.innerHeight * 0.55 : 40;
+      lastMeasure = performance.now();
+    };
+
     const write = (p: number) => {
-      const h = root.clientHeight - pill.offsetHeight;
-      pill.style.transform = `translateY(${p * h}px)${dragging ? " scale(1.35)" : ""}`;
+      pill.style.transform = `translateY(${p * trackH}px)${dragging ? " scale(1.35)" : ""}`;
       const pos = p * (TICKS - 1);
       for (let i = 0; i < TICKS; i++) {
         const d = Math.abs(i - pos);
@@ -57,15 +81,11 @@ export default function ScrollProgress() {
         const ease = f * f;
         const t = ticks[i];
         t.style.transform = `scaleX(${1 + 0.5 * ease})`;
-        t.style.opacity = String(Math.min(1, +t.dataset.base! + 0.5 * ease));
+        t.style.opacity = String(Math.min(1, bases[i] + 0.5 * ease));
       }
     };
 
-    const maxScroll = () => document.documentElement.scrollHeight - window.innerHeight;
-    const target = () => {
-      const max = maxScroll();
-      return max > 0 ? Math.max(0, Math.min(1, window.scrollY / max)) : 0;
-    };
+    const target = () => Math.max(0, Math.min(1, window.scrollY / maxY));
 
     const tick = () => {
       raf = 0;
@@ -87,14 +107,11 @@ export default function ScrollProgress() {
     };
 
     // ---- Visibility: from #nxr-intro onward, auto-hide after idle ----
-    const visibilityOk = () => {
-      const gate = document.getElementById("nxr-intro");
-      // Routes without the Intro section: appear after a small scroll.
-      if (!gate) return window.scrollY > 40;
-      return gate.getBoundingClientRect().top <= window.innerHeight * 0.55;
-    };
     const activity = () => {
-      if (visibilityOk()) {
+      // Re-measure at most every 800ms (layout can shift under us: pins,
+      // route changes, toolbar) — pure arithmetic in between.
+      if (performance.now() - lastMeasure > 800) measure();
+      if (window.scrollY >= gateY) {
         root.classList.add("is-visible");
         window.clearTimeout(hideTimer);
         hideTimer = window.setTimeout(() => {
@@ -108,10 +125,11 @@ export default function ScrollProgress() {
 
     // ---- Drag-to-scrub (mouse only, see header comment) ----
     const moveTo = (clientY: number) => {
-      const rect = root.getBoundingClientRect();
-      const span = rect.height - pill.offsetHeight;
-      dragP = Math.max(0, Math.min(1, (clientY - grabOff - rect.top) / span));
-      const y = dragP * maxScroll();
+      // Cached geometry only — the ruler is fixed and centred, so its top
+      // is derivable without touching layout mid-drag.
+      const rootTop = (window.innerHeight - (trackH + pillH)) / 2;
+      dragP = Math.max(0, Math.min(1, (clientY - grabOff - rootTop) / trackH));
+      const y = dragP * maxY;
       const lenis = window.__nxrLenis;
       // Small lerp: the page chases the pill smoothly instead of
       // teleporting (immediate writes would race every pinned scrub).
@@ -153,15 +171,20 @@ export default function ScrollProgress() {
     // Hovering the (visible) pill keeps the ruler from fading mid-reach.
     pill.addEventListener("pointerenter", activity);
 
+    const onResize = () => {
+      measure();
+      activity();
+    };
+    measure();
     tick();
     activity(); // reload mid-page (scroll restoration): show, then idle-fade
     window.addEventListener("scroll", activity, { passive: true });
-    window.addEventListener("resize", activity, { passive: true });
+    window.addEventListener("resize", onResize, { passive: true });
     return () => {
       cancelAnimationFrame(raf);
       window.clearTimeout(hideTimer);
       window.removeEventListener("scroll", activity);
-      window.removeEventListener("resize", activity);
+      window.removeEventListener("resize", onResize);
       pill.removeEventListener("pointerdown", onPointerDown);
       pill.removeEventListener("pointermove", onPointerMove);
       pill.removeEventListener("pointerup", endDrag);

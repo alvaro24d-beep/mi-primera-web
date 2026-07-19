@@ -660,20 +660,25 @@ export default function Servicios() {
       // scroll starts materializing it from the helix's depth instead.
       // TAIL_END is declared below but only read when this is CALLED (first
       // use: the gsap.set(track) after the constants), so no TDZ issue.
-      const entryOffset = () => cardStep() * (TAIL_END + 0.02);
+      // Móvil 1.22 (V16.16, "la sección tiene que entrar antes... mucho
+      // vacío"): sin espiral en móvil (carrusel rígido, V15.83), TAIL_END
+      // solo definía la distancia de arranque de la card 0 — a 1.22 pasos
+      // queda JUSTO fuera del borde (entra ~1.16) y asoma con el primer
+      // tramo de track en vez de viajar 0.7 pasos invisibles. Desktop
+      // conserva TAIL_END+0.02 (la espiral necesita nacer en su cola).
+      const entryOffset = () => cardStep() * (isDesktopUI ? TAIL_END + 0.02 : 1.22);
       // PROLOGUE: scroll distance at the very start of the pin where the
       // track holds still and the title overlay plays its whole blur moment
       // (replaces the old 165vh/70vh runway above the sticky — the pin, and
       // with it the section, now starts as soon as the sticky reaches the
       // top: "que la sección empiece antes").
-      // Desktop 0.9 (1.7 → 1.4 → 1.05 → 0.9, "que se pasen haciendo menos
-      // scroll"). Móvil SIGUE en 1.35: se probó 1.2 (V16.5) y hasta el
-      // arnés emulado — que en las roturas anteriores daba verde — mostró
-      // degradación (frame de salto en la entrada suave, el triple flick
-      // vence al muro y aterriza en la card 1, una página perdida en el
-      // test de toolbar). La ganancia era ~0.15·vh; no compensa. 1.35 es la
-      // única geometría validada en teléfono físico — no bajarla.
-      const PROLOGUE = () => Math.round(window.innerHeight * (isDesktopUI ? 0.9 : 1.35));
+      // Desktop 0.65 (V16.16, "la sección tiene que entrar antes"). Móvil
+      // SIGUE en 1.35: geometría validada en teléfono físico (bajarla
+      // rompió la entrada dos veces; 1.2 mostró degradación hasta en el
+      // arnés) — en móvil la entrada anticipada se logra con el
+      // entryOffset corto (la card arranca justo fuera del borde) y con la
+      // frase acompañando casi todo el prólogo, no tocando la geometría.
+      const PROLOGUE = () => Math.round(window.innerHeight * (isDesktopUI ? 0.65 : 1.35));
       const startX = () => centredX() + entryOffset();
       // Pin distance = prologue + actual track travel; the track only moves
       // during the post-prologue stretch (1px of scroll = 1px of x, as
@@ -1175,9 +1180,13 @@ export default function Servicios() {
           // (un reposo ahí muestra contenido, no pantalla vacía), y desde
           // 0.32 cualquier reposo trae la card 0 mientras la frase
           // termina.
+          // Duración 0.8·pro (V16.16, "hay mucho vacío entre la frase y la
+          // primera card"): la disolución ACOMPAÑA hasta 0.85·pro — sigue
+          // sin haber ni un píxel de scroll con la frase quieta (se funde
+          // desde 0.05·pro), pero ya no deja medio prólogo en blanco.
           t.to(
             headTitle,
-            { opacity: 0, filter: "blur(18px)", ease: "none", duration: pro * 0.45 },
+            { opacity: 0, filter: "blur(18px)", ease: "none", duration: pro * 0.8 },
             pro * 0.05
           );
         }
@@ -1296,7 +1305,12 @@ export default function Servicios() {
           const st = tl.scrollTrigger;
           if (!st) return;
           const y = window.scrollY;
-          const outside = y < st.start - window.innerHeight || y > st.end;
+          // Fuera del rango completo del momento-frase, O ya pasado el
+          // final de su fade-out DENTRO del pin (V16.16: el fade termina a
+          // 0.85·pro — más allá la frase debe estar apagada SIEMPRE; una
+          // carrera de catch-ups tras un salto la dejaba pintada sobre las
+          // cards del reel: "no se oculta y se queda sobre la sección").
+          const outside = y < st.start - window.innerHeight || y > st.end || y > st.start + snapPro * 0.95;
           if (outside && headTitle.style.opacity !== "0") {
             gsap.set(headTitle, { opacity: 0 });
           }

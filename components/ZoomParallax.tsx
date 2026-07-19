@@ -190,21 +190,14 @@ export default function ZoomParallax() {
         // ordenador. Las demás cards conservan el pacing global (curva S
         // con cola lenta) intacto: la sección no se acelera (lección de
         // V15.95-96).
-        // La frase NUNCA está estática (V16.14, "que salga despacio y se
-        // oculte despacio pero que no se quede sticky"): llega ENTERA
-        // durante la aproximación natural (el V16.13 la sacaba ya durante
-        // la subida y aparecía a medias — revertido), y en el INSTANTE en
-        // que la sección pinnea su salida ya está en marcha — lineal sobre
-        // raw (movimiento desde el primer píxel de scroll interno, sin
-        // curva de arranque lento) completándose al 60% de la sección:
-        // suave, continuo, jamás quieta. Las demás cards siguen con el
-        // progress normal (curva S con cola lenta).
-        // Span 0.45 + ease-out ^1.6 (V16.15): la lineal /0.6 arrancaba casi
-        // imperceptible (0.94 de escala tras un 5% de scroll — "se queda
-        // quieta"); con esto a raw 5% ya va por 0.88 y el movimiento se ve
-        // desde el primer gesto.
-        const t0 = Math.min(1, raw / 0.45);
-        const p = i === 0 ? 1 - Math.pow(1 - t0, 1.6) : progress;
+        // TODAS las cards comparten el MISMO progress (V16.16): el driver
+        // propio de la card central (V16.2-16.15) desincronizaba su ritmo
+        // del de las vecinas y Álvaro lo rechazó ("las cards de alrededor
+        // no van al mismo ritmo que la central; antes estaba bien — nunca
+        // cambies algo que no te haya pedido"). La menor duración de la
+        // frase se gestiona exclusivamente con su disolución (banda 0.55
+        // del progress en móvil), no con ritmos propios.
+        const p = progress;
         const scale = max - (max - 1) * p;
         img.style.transform = `scale(${scale / max})`;
         // Mobile only: the CENTRE card (index 0, the one that fills the
@@ -216,9 +209,7 @@ export default function ZoomParallax() {
         // horizontal slices (clip-path) and RGB-splits its text via the
         // --zpg* custom properties consumed in globals.css.
         if (i === 0 && isMobile) {
-          // Keyed on the card's own advanced progress `p` (not the global):
-          // the glitch dissolve keeps its relationship with the card's size
-          // and therefore fires proportionally earlier in scroll terms.
+          // Banda original 0.55-0.9 sobre el progress compartido (V16.16).
           const t = Math.min(1, Math.max(0, (p - 0.55) / 0.35));
           const glitching = !rmMql.matches && t > 0 && t < 1;
           if (!glitching) {

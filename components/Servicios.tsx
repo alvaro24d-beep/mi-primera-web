@@ -664,15 +664,15 @@ export default function Servicios() {
       // (replaces the old 165vh/70vh runway above the sticky — the pin, and
       // with it the section, now starts as soon as the sticky reaches the
       // top: "que la sección empiece antes").
-      // Desktop 1.4 (antes 1.7 — "reduce un poco el scroll para pasar la
-      // frase"). Móvil DE VUELTA a 1.35: la bajada a 1.1 (V15.79) rompió la
-      // entrada de las cards en teléfono real dos veces seguidas ("no salen
-      // del lado... sigue mal, antes funcionaba bien") — todo el sistema de
-      // primera llegada (muro + snap + cap de flick a 1.35 pantallas) estaba
-      // afinado contra esta geometría, y 1.35 es el único valor validado en
-      // dispositivo real. No volver a bajarlo sin re-validar en teléfono
-      // físico, no solo en el arnés emulado.
-      const PROLOGUE = () => Math.round(window.innerHeight * (isDesktopUI ? 1.4 : 1.35));
+      // Desktop 1.05 (1.7 → 1.4 → 1.05, "que dure desplegada mucho menos";
+      // el hold a brillo completo queda en ~0.85·105 ≈ 89vh, justo sobre el
+      // suelo de legibilidad). Móvil SIGUE en 1.35: la bajada a 1.1
+      // (V15.79) rompió la entrada de las cards en teléfono real dos veces
+      // seguidas — todo el sistema de primera llegada (muro + snap + cap de
+      // flick a 1.35 pantallas) está afinado contra esta geometría, y 1.35
+      // es el único valor validado en dispositivo físico. No bajarlo sin
+      // que Álvaro valide el valor nuevo en su teléfono.
+      const PROLOGUE = () => Math.round(window.innerHeight * (isDesktopUI ? 1.05 : 1.35));
       const startX = () => centredX() + entryOffset();
       // Pin distance = prologue + actual track travel; the track only moves
       // during the post-prologue stretch (1px of scroll = 1px of x, as

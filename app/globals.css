@@ -1735,8 +1735,9 @@ p.nxr-hero-mastery-line {
   .nxr-servicios-captions {
     right: var(--pad-x);
     max-width: none;
-    /* Higher than the base 12vh (desktop-only request: "sube los textos"). */
-    bottom: 18vh;
+    /* 18vh → 14.5vh ("baja un poco más el resto del texto de cada
+       servicio"): el bloque de texto baja ~3.5vh. */
+    bottom: 14.5vh;
   }
   .nxr-servicios-captions .nxr-srv-caption {
     position: relative;
@@ -1749,10 +1750,10 @@ p.nxr-hero-mastery-line {
   .nxr-servicios-captions .nxr-srv-cta-wrap {
     position: absolute;
     right: 0;
-    /* Un poco por debajo del borde de la caption ("baja los CTAs"; segunda
-       bajada -14 → -28); las captions asientan a 18vh del fondo, hay margen
-       de sobra. */
-    bottom: -28px;
+    /* -28 → -14: el botón baja MENOS que el texto (la caption entera bajó
+       3.5vh; con -14 el botón queda ~17px más abajo en absoluto y el texto
+       ~31px — "baja un poco el botón y un poco más el resto"). */
+    bottom: -14px;
     margin: 0;
   }
 }
@@ -1883,7 +1884,10 @@ p.nxr-hero-mastery-line {
   letter-spacing: 0.04em;
   text-transform: uppercase;
   color: var(--c-white);
-  background: rgba(239, 61, 13, 0.85);
+  /* Sin fondo rojo ("quita el fondo rojo al CTA"): píldora de cristal como
+     las pills de la caption, texto blanco intacto. */
+  background: rgba(255, 255, 255, 0.07);
+  border: 1px solid rgba(255, 255, 255, 0.22);
   backdrop-filter: blur(8px);
   border-radius: 100px;
   padding: 9px 18px;
@@ -1906,8 +1910,8 @@ p.nxr-hero-mastery-line {
 }
 
 .nxr-srv-cta:hover {
-  background: rgba(212, 52, 10, 0.92);
-  box-shadow: 0 0 20px rgba(239, 61, 13, 0.4);
+  background: rgba(255, 255, 255, 0.14);
+  box-shadow: var(--glass-shine-hover);
   transform: translateX(3px);
 }
 
@@ -3111,9 +3115,10 @@ p.nxr-hero-mastery-line {
        CTA above the nav in the worst (bar visible) state; when the bar
        hides it simply rides a little higher. Plain fallback first for
        engines without svh/lvh. */
-    /* Nudged down a touch from the previous 195px/127px. */
-    bottom: 182px;
-    bottom: calc(100lvh - 100svh + 114px);
+    /* Bajada adicional V16.2 ("baja un poco más el resto del texto"):
+       114 → 104px sobre el fondo visible. */
+    bottom: 172px;
+    bottom: calc(100lvh - 100svh + 104px);
   }
   .nxr-srv-cta-wrap {
     /* Extra air between the feature pills and the CTA row. */
@@ -3121,9 +3126,10 @@ p.nxr-hero-mastery-line {
     /* Baja el botón SIN tocar el layout: la caption está anclada por su
        borde INFERIOR (bottom: calc(...) arriba), así que más margin-top
        solo empujaría el texto hacia arriba dejando el CTA donde está. El
-       translate lo desplaza de verdad; 12px mantiene holgura sobre la
-       bottom nav en el peor caso (barra de URL visible). */
-    transform: translateY(12px);
+       translate lo desplaza de verdad. 12 → 10 (V16.2): la caption entera
+       bajó 10px, así el botón baja 8 en absoluto y el texto 10 — "un poco
+       el botón, un poco más el texto" — con holgura sobre la bottom nav. */
+    transform: translateY(10px);
   }
   /* Compact heading while pinned: every px the head gives up is a px the
      card gets — on a phone the natural card content barely fits the

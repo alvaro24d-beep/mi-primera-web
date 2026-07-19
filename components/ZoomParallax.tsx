@@ -180,7 +180,15 @@ export default function ZoomParallax() {
         const img = layer.querySelector<HTMLElement>(".nxr-zp-img");
         imgs.push(img);
         if (!img) return;
-        const scale = max - (max - 1) * progress;
+        // La card CENTRAL (la frase "Construido con maestría") cede el
+        // protagonismo mucho antes: SU escala corre sobre un progreso
+        // adelantado (front-loaded ^2.2) mientras las demás cards conservan
+        // el pacing global intacto. Historia obligada: los recortes de
+        // altura y la curva rápida GLOBALES se revirtieron ("el scroll más
+        // despacio", V15.95-96) — "que la frase dure desplegada mucho
+        // menos" se logra acelerando SOLO a la frase, no a la sección.
+        const p = i === 0 ? 1 - Math.pow(1 - progress, 2.2) : progress;
+        const scale = max - (max - 1) * p;
         img.style.transform = `scale(${scale / max})`;
         // Mobile only: the CENTRE card (index 0, the one that fills the
         // screen at the start) dissolves while the surrounding cards scale
@@ -191,7 +199,10 @@ export default function ZoomParallax() {
         // horizontal slices (clip-path) and RGB-splits its text via the
         // --zpg* custom properties consumed in globals.css.
         if (i === 0 && isMobile) {
-          const t = Math.min(1, Math.max(0, (progress - 0.55) / 0.35));
+          // Keyed on the card's own advanced progress `p` (not the global):
+          // the glitch dissolve keeps its relationship with the card's size
+          // and therefore fires proportionally earlier in scroll terms.
+          const t = Math.min(1, Math.max(0, (p - 0.55) / 0.35));
           const glitching = !rmMql.matches && t > 0 && t < 1;
           if (!glitching) {
             // Reduced motion keeps the plain smoothstep fade; outside the

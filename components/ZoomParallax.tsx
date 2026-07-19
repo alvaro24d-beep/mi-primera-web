@@ -190,7 +190,10 @@ export default function ZoomParallax() {
         // ordenador. Las demás cards conservan el pacing global (curva S
         // con cola lenta) intacto: la sección no se acelera (lección de
         // V15.95-96).
-        const p = i === 0 ? 1 - Math.pow(1 - raw, 2.6) : progress;
+        // ^3.4 (2.6 → 3.4, V16.12 "reduce más el tiempo sticky"): la frase
+        // cede aún antes — a raw 10% ya lleva un 30% de su salida, y en
+        // móvil la disolución (keyed a p) dispara proporcionalmente antes.
+        const p = i === 0 ? 1 - Math.pow(1 - raw, 3.4) : progress;
         const scale = max - (max - 1) * p;
         img.style.transform = `scale(${scale / max})`;
         // Mobile only: the CENTRE card (index 0, the one that fills the

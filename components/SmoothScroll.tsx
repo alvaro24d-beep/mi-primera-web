@@ -38,9 +38,10 @@ export default function SmoothScroll() {
       // their content by a frame on phones. syncTouch makes touch scroll
       // advance inside Lenis' rAF — the same frame the scene reads.
       syncTouch: true,
-      // Wheel smoothing only slightly snappier than Lenis' default 0.1 —
-      // desktop feel, unchanged.
-      lerp: 0.16,
+      // 0.16 → 0.1 (V16.11, "el scroll se frena muy rápido, quiero que
+      // mantenga más la inercia"): el planeo de la rueda tarda más en
+      // morir — más deslizamiento tras cada gesto en desktop.
+      lerp: 0.1,
       // Touch feel — the PHYSICS (from lenis source, so the knobs stop
       // being guessed at): on release, coast distance = |velocity| **
       // touchInertiaExponent, and the tail converges by lerping with
@@ -58,7 +59,10 @@ export default function SmoothScroll() {
       // every frame (killing Lenis' internal inertia each write) and holds
       // until verifiably converged (see the holdFrames loop), and the
       // first-arrival wall clamps regardless of inertia.
-      syncTouchLerp: 0.055,
+      // 0.055 → 0.04 (V16.11): la cola táctil decae más despacio — el
+      // flick mantiene la inercia más tiempo (misma distancia máxima: el
+      // cap de 1.35 pantallas no cambia, solo tarda más en frenar).
+      syncTouchLerp: 0.04,
       // 1.85 (was 2.0) + touchMultiplier 0.8: "reduce la sensibilidad
       // general del scroll en móvil, va demasiado rápido". The multiplier
       // slows the FINGER-DRAG mapping itself (~20% less travel per gesture,
@@ -87,7 +91,7 @@ export default function SmoothScroll() {
         // sensibilidad táctil.
         const cap = window.innerHeight * 1.35;
         if (Math.abs(ahead) > cap) {
-          lenis.scrollTo(lenis.animatedScroll + Math.sign(ahead) * cap, { lerp: 0.055 });
+          lenis.scrollTo(lenis.animatedScroll + Math.sign(ahead) * cap, { lerp: 0.04 });
         }
       });
     };

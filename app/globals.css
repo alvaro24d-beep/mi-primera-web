@@ -4499,19 +4499,19 @@ input[type="range"].nxr-ms-range::-moz-range-thumb {
 /* ===== Zoom parallax ===== */
 #nxr-zoom-parallax {
   position: relative;
-  /* 240vh (V16.5, "acorta las dos secciones de las frases"): recorte
-     MODERADO del 20% — el -43% de V15.93 se sintió "rapidísimo" y se
-     revirtió entero; a -20% el movimiento por píxel sube solo un 25%.
-     La frase además ya cede pronto por su cuenta (front-load ^2.2,
-     V16.2). Si vuelve a sentirse rápido, el punto medio es 260-270vh. */
-  height: 240vh;
+  /* 200vh (V16.11, tercer recorte del sticky: 300 → 240 → 200). Los
+     LÍMITES conocidos por prueba real de Álvaro: 170vh se sintió
+     "rapidísimo" (revertido entero en V15.96) y 240vh "sigue teniendo
+     mucho scroll" — 200 es el punto intermedio. La frase además cede
+     pronto por su cuenta (salida sobre raw ^2.6, V16.6). */
+  height: 200vh;
   z-index: 1;
 }
 
 @media (max-width: 768px) {
   #nxr-zoom-parallax {
-    /* 190vh (V16.5): mismo recorte moderado ~20% que desktop. */
-    height: 190vh;
+    /* 160vh (V16.11): tercer recorte, en proporción con desktop. */
+    height: 160vh;
     /* -80px (V16.8, "reduce el espacio entre Servicios y ZoomParallax"):
        remonte MODERADO. El límite seguro es ~-100px — la card central
        arranca a +120px del top de la sección, así que durante el pin del

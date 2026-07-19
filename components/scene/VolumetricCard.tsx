@@ -427,6 +427,9 @@ export default function VolumetricCard({
           // plain shader uniforms — raising them costs zero extra GPU (the
           // expensive knobs are `samples` and the capture resolution, which
           // stay untouched).
+          // envMapIntensity 1.6 → 1.0 en los dos materiales de cristal (y
+          // 1.1 → 0.75 en el metálico) — V16.9, "reflejan demasiado": los
+          // brochazos de los Lightformers bajan ~35% de intensidad.
           distortion={1.35}
           distortionScale={0.006}
           temporalDistortion={0.55}
@@ -435,7 +438,7 @@ export default function VolumetricCard({
           ior={1.5}
           reflectivity={0.55}
           metalness={0.04}
-          envMapIntensity={1.6}
+          envMapIntensity={1.0}
         />
       ) : isGlass ? (
         // ---- Opaque dark glass (mobile fallback — transmission off) ----
@@ -455,7 +458,7 @@ export default function VolumetricCard({
           ior={1.5}
           reflectivity={0.55}
           metalness={0.04}
-          envMapIntensity={1.6}
+          envMapIntensity={1.0}
         />
       ) : (
         <meshPhysicalMaterial
@@ -465,7 +468,7 @@ export default function VolumetricCard({
           clearcoat={0.5}
           clearcoatRoughness={0.25}
           metalness={0.85}
-          envMapIntensity={1.1}
+          envMapIntensity={0.75}
         />
       )}
     </mesh>

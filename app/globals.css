@@ -4509,16 +4509,14 @@ input[type="range"].nxr-ms-range::-moz-range-thumb {
 
 @media (max-width: 768px) {
   #nxr-zoom-parallax {
-    /* 190vh (V16.5): mismo recorte moderado ~20% que desktop. La rampa de
-       entrada (V16.4) ancla al top de la sección — independiente de la
-       altura. */
+    /* 190vh (V16.5): mismo recorte moderado ~20% que desktop. */
     height: 190vh;
-    /* Pulls the section up under Servicios' departing tail (same pattern as
-       #nxr-proceso's -180px below ZP) so the first ZP card arrives while
-       Servicios is still leaving instead of after a long empty stretch —
-       "no perder continuidad". Pin math is unaffected: ZoomParallax.tsx
-       reads the section's live rect, wherever flow puts it. */
-    margin-top: -160px;
+    /* SIN remonte (-160px eliminado, V16.6): el solape bajo la cola del
+       reel era la raíz de "la card vacía tapando media pantalla" — la card
+       central gigante asomaba su mitad sin texto. Sin solape, la sección
+       aparece COMO EN ORDENADOR: llega, y la card está ahí entera (la
+       rampa de opacidad de V16.4 también se eliminó al sobrar). */
+    margin-top: 0;
   }
   /* Nudges the whole stuck layer stack up a bit — a plain transform rather
      than re-deriving each card's individual `top: calc(50% - Xvh)` math,

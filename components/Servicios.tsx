@@ -950,6 +950,13 @@ export default function Servicios() {
       // (wheel/touch) cancels the glide immediately.
       let snapRaf = 0;
       let snapTimer = 0;
+      // Glide activo (asentamiento o paginación): mientras corre, el MURO de
+      // primera llegada se retira — ambos escriben la posición cada frame y
+      // si el glide apunta más allá de pOf(0) con el muro devolviéndola, la
+      // oscilación deja el scroll clavado ("se queda pillao, no deja hacer
+      // scroll"). El glide es acotado y aterriza en una card; trySnap voltea
+      // presentedFirst justo después.
+      let snapGliding = false;
       // Mobile: whether the reel has already presented its first card. A
       // hard flick from Intro carries Lenis' syncTouch inertia straight
       // through the prologue and can OVERSHOOT past card 0 — the idle snap
@@ -977,9 +984,11 @@ export default function Servicios() {
       // responsive, not abrupt.
       const glideTo = (target: number, page = false) => {
         cancelAnimationFrame(snapRaf);
+        snapGliding = false;
         const from = window.scrollY;
         const dist = target - from;
         if (Math.abs(dist) < 1) return;
+        snapGliding = true;
         const t0 = performance.now();
         // Page cap 1200 (was 750): one-step pages (~300px) keep their old
         // feel via the floor, but LONG settles — the first card gliding in
@@ -1010,7 +1019,10 @@ export default function Servicios() {
           // this rAF (between Lenis write and ScrollTrigger.update) proved
           // flaky enough to kill legitimate glides.
           const st = tl.scrollTrigger;
-          if (!st || window.scrollY < st.start - 4 || window.scrollY > st.end + 4) return;
+          if (!st || window.scrollY < st.start - 4 || window.scrollY > st.end + 4) {
+            snapGliding = false;
+            return;
+          }
           const t = Math.min(1, (now - t0) / dur);
           const eased = page
             ? t < 0.5
@@ -1027,6 +1039,7 @@ export default function Servicios() {
           }
           stableFrames = Math.abs(window.scrollY - target) <= 1 ? stableFrames + 1 : 0;
           if (stableFrames < 5 && holdFrames-- > 0) snapRaf = requestAnimationFrame(tick);
+          else snapGliding = false;
         };
         snapRaf = requestAnimationFrame(tick);
       };
@@ -1074,17 +1087,11 @@ export default function Servicios() {
         if (!total || !snapStep) return;
         const progress = progressNow(st);
         // Never idle-snap while the phrase still HOLDS at full brightness
-        // (< 0.85·pro — its fade-out starts exactly there, see buildTl):
-        // the nearest card there is always card 0, and the glide would
-        // fast-forward the whole title moment. Past that point the phrase
-        // is already dissolving, and 0.98 left a DEAD ZONE (rest between
-        // fade-start and 0.98·pro = phrase gone, card still hidden in the
-        // tail, and nothing pulling it in — "las cards no salen del lado"
-        // after the V15.79 prologue reduction made normal swipes land
-        // there). Snapping from the fade zone glides card 0 in from the
-        // side while the phrase finishes dissolving — the intended
-        // handoff.
-        if (progress * total < snapPro * 0.85) return;
+        // (< 0.5·pro — its fade-out starts exactly there, see buildTl; los
+        // umbrales de momentos solapados comparten constante). Cualquier
+        // reposo con la frase ya desvaneciéndose desliza la card 0 desde el
+        // lado mientras la frase termina de disolverse.
+        if (progress * total < snapPro * 0.5) return;
         // First settle on mobile: force card 0 (unless the flick genuinely
         // sailed past card 1) and use the page-style ease-in-out glide —
         // see `presentedFirst` above.
@@ -1118,6 +1125,7 @@ export default function Servicios() {
       };
       const cancelSnap = () => {
         cancelAnimationFrame(snapRaf);
+        snapGliding = false;
         window.clearTimeout(snapTimer);
       };
       window.addEventListener("wheel", cancelSnap, { passive: true });
@@ -1158,10 +1166,16 @@ export default function Servicios() {
           // stretch of track motion: the first card is already
           // materializing out of the helix while the phrase dissolves
           // ("que al desaparecer justo entre la primera card").
+          // Fade-out a MITAD del prólogo (antes 0.85·pro): "termina la
+          // animación de entrada, muy poco scroll sticky, y continúa la
+          // salida" — el hold a brillo completo queda en 0.5·pro y la frase
+          // está disuelta hacia 0.8·pro. Los guards de snap/paginación se
+          // alinean a la MISMA constante 0.5 (regla: umbrales de momentos
+          // solapados comparten constante — Bug-Log-Zona-Muerta).
           t.to(
             headTitle,
-            { opacity: 0, filter: "blur(18px)", ease: "none", duration: pro * 0.15 + snapEntry * 0.25 },
-            pro * 0.85
+            { opacity: 0, filter: "blur(18px)", ease: "none", duration: pro * 0.3 },
+            pro * 0.5
           );
         }
         t.fromTo(track, { x: startX() }, { x: endX(), ease: "none", duration: moveAmount() }, pro);
@@ -1195,7 +1209,7 @@ export default function Servicios() {
             // update truncates the inertia exactly at centre; the wall
             // lifts after the first settle, so the next swipe pages to
             // card 1 normally.
-            if (!presentedFirst && window.innerWidth <= 900) {
+            if (!presentedFirst && window.innerWidth <= 900 && !snapGliding) {
               const cap = pOf(0);
               const capY = scrollAt(self, cap);
               const lenis = window.__nxrLenis;
@@ -1205,6 +1219,7 @@ export default function Servicios() {
               // from the side and lands centred, instead of the position
               // crossing and the hard clamp below teleporting it back
               // (which read as the card appearing without its side entry).
+              // `!snapGliding` en todo el muro: ver la declaración del flag.
               if (lenis && !fingerDown && progressNow(self) <= cap && lenis.targetScroll > capY) {
                 lenis.scrollTo(capY, { lerp: 0.12 });
               }
@@ -1319,12 +1334,10 @@ export default function Servicios() {
           const dy = touchY - (e.changedTouches[0]?.clientY ?? touchY);
           const p = progressNow(st);
           // Released while the phrase still holds at full brightness:
-          // leave the scroll natural. Hijacking it into a glide-to-card-0
-          // both fast-forwarded the phrase's hold AND swept the card
-          // across the screen at glide speed (up to ~1600px in 750ms —
-          // the "ghost card" whip). 0.85 (not 0.98) so releases in the
-          // fade zone DO page card 0 in — same dead-zone fix as trySnap.
-          if (p * snapAmount < snapPro * 0.85) return;
+          // leave the scroll natural. 0.5 = el inicio del fade-out (misma
+          // constante que buildTl/trySnap) — soltar con la frase ya
+          // desvaneciéndose pagina la card 0.
+          if (p * snapAmount < snapPro * 0.5) return;
           const eps = 0.02;
           let targetIdx: number | null = null;
           if (dy > 25) {

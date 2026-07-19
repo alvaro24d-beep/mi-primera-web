@@ -28,74 +28,24 @@ export default function SmoothScroll() {
     // rock-steady while the toolbar animates (pros do this on any pinned site).
     ScrollTrigger.config({ ignoreMobileResize: true });
 
+    // EXPERIMENTO V16.17 ("prueba a volver a los ajustes predeterminados
+    // de Lenis"): SOLO quedan los dos ajustes ESTRUCTURALES — autoRaf
+    // false (el rAF lo llevamos nosotros junto a ScrollTrigger.update) y
+    // syncTouch true (sin él, el scroll táctil es nativo/asíncrono y las
+    // cards de cristal WebGL, posicionadas por frame desde rects DOM, van
+    // un frame por detrás del contenido en móvil — no es tuning, es
+    // requisito de la arquitectura). Todo lo demás, de serie: lerp 0.1,
+    // syncTouchLerp 0.075, touchInertiaExponent 1.7, touchMultiplier 1.
+    // También se retiró el TOPE de alcance por flick (1.35 pantallas, el
+    // listener capFlickReach) — sin él, un flick fuerte puede volar varias
+    // secciones (|v|^1.7 sin límite; fue el motivo original del tope).
+    // Afinado anterior por si se revierte: lerp 0.1, syncTouchLerp 0.04,
+    // touchInertiaExponent 1.85, touchMultiplier 0.8, cap 1.35·vh.
     const lenis = new Lenis({
       autoRaf: false,
-      // Touch scrolling must ALSO be Lenis-driven (by default it stays
-      // native/async, moved by the browser's compositor thread): with
-      // native touch scroll the DOM visibly moves BEFORE any JS can read
-      // its position, so the WebGL glass cards (positioned per-frame from
-      // DOM rects, see components/scene/ServiciosCardsLayer.tsx) trailed
-      // their content by a frame on phones. syncTouch makes touch scroll
-      // advance inside Lenis' rAF — the same frame the scene reads.
       syncTouch: true,
-      // 0.16 → 0.1 (V16.11, "el scroll se frena muy rápido, quiero que
-      // mantenga más la inercia"): el planeo de la rueda tarda más en
-      // morir — más deslizamiento tras cada gesto en desktop.
-      lerp: 0.1,
-      // Touch feel — the PHYSICS (from lenis source, so the knobs stop
-      // being guessed at): on release, coast distance = |velocity| **
-      // touchInertiaExponent, and the tail converges by lerping with
-      // syncTouchLerp each frame. Higher exponent = flies farther; LOWER
-      // lerp = takes longer to stop. History decoded with that in hand:
-      // syncTouchLerp 0.18 braked (converged in a handful of frames), and
-      // the old 1.2 exponent ALSO braked because 1.2 is BELOW the 1.7
-      // default — both past reverts were the same knob-direction mistake.
-      // Current tuning (petición: "que vaya más ligero, como el scroll
-      // predeterminado de una web normal, que tarde más en pararse"):
-      // exponent 2.0 → a medium flick coasts ~2-3× farther (native-like
-      // momentum reach), lerp 0.055 → the glide takes ~1s to die instead
-      // of ~0.65s. Servicios' one-card-per-swipe pagination is immune to
-      // longer momentum: its glideTo writes `scrollTo(..., immediate)`
-      // every frame (killing Lenis' internal inertia each write) and holds
-      // until verifiably converged (see the holdFrames loop), and the
-      // first-arrival wall clamps regardless of inertia.
-      // 0.055 → 0.04 (V16.11): la cola táctil decae más despacio — el
-      // flick mantiene la inercia más tiempo (misma distancia máxima: el
-      // cap de 1.35 pantallas no cambia, solo tarda más en frenar).
-      syncTouchLerp: 0.04,
-      // 1.85 (was 2.0) + touchMultiplier 0.8: "reduce la sensibilidad
-      // general del scroll en móvil, va demasiado rápido". The multiplier
-      // slows the FINGER-DRAG mapping itself (~20% less travel per gesture,
-      // the direct sensitivity knob); the exponent trims how far flicks
-      // coast on top of that. Desktop wheel untouched.
-      touchInertiaExponent: 1.85,
-      touchMultiplier: 0.8,
     });
     window.__nxrLenis = lenis;
-
-    // Per-gesture reach CAP. The 2.0 inertia exponent gives medium flicks
-    // their native-like glide, but the power curve explodes on HARD flicks
-    // (|v|^2: at 80px/frame that's ~6400px — "deslizo una vez y se me
-    // desplaza varias secciones"). Lenis has no built-in max, so: right
-    // after it computes the release-inertia target (its own touchend
-    // listener runs first — registered at init), clamp how far ahead of
-    // the current position that target may sit. scrollTo with the same
-    // syncTouchLerp keeps the braking tail's feel identical — hard flicks
-    // just run out of runway at ~1.6 screens instead of 4+. Servicios'
-    // pagination glides are unaffected (their per-frame immediate writes
-    // overwrite any target this sets).
-    const capFlickReach = () => {
-      requestAnimationFrame(() => {
-        const ahead = lenis.targetScroll - lenis.animatedScroll;
-        // 1.35 pantallas (antes 1.6): acompaña la bajada general de
-        // sensibilidad táctil.
-        const cap = window.innerHeight * 1.35;
-        if (Math.abs(ahead) > cap) {
-          lenis.scrollTo(lenis.animatedScroll + Math.sign(ahead) * cap, { lerp: 0.04 });
-        }
-      });
-    };
-    window.addEventListener("touchend", capFlickReach, { passive: true });
 
     // Any ScrollTrigger created anywhere in the app (this is the only place
     // that should own a Lenis instance) needs to recompute on Lenis' own
@@ -112,7 +62,6 @@ export default function SmoothScroll() {
 
     return () => {
       cancelAnimationFrame(rafId);
-      window.removeEventListener("touchend", capFlickReach);
       delete window.__nxrLenis;
       lenis.destroy();
     };

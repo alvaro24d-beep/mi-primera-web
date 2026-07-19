@@ -152,6 +152,13 @@ export function useCurvedWords(
     if (!root) return;
     if (opts.onlyBelow && window.innerWidth >= opts.onlyBelow) return;
     if (opts.onlyAbove && window.innerWidth < opts.onlyAbove) return;
+    // Móvil SIN perspectiva en textos (V16.1, "solo en móvil quita el
+    // efecto perspectiva de todos los textos"): en teléfonos el hook no
+    // aplica plano ni bow — los bloques quedan planos donde el layout los
+    // ponga. Las reglas CSS móviles equivalentes (títulos, caption del
+    // reel, .nxr-intro-left, .nxr-dwh-proceso-tilt) están en transform:
+    // none en globals.css; ambos lados deben mantenerse en lockstep.
+    if (window.innerWidth < 901) return;
     const els = Array.from(root.querySelectorAll<HTMLElement>(selector));
     if (!els.length) return;
 

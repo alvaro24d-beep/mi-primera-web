@@ -408,26 +408,19 @@ p.nxr-hero-mastery-line {
      therefore the left-edge magnification match), and a 16% shift that
      lands the projected left edge at ~32px, aligned with the paragraphs'
      hook-computed indent (frameMargin 34). */
-  /* 6° (was 10°) + a matching smaller shift: sitewide mobile softening of
-     the perspective distortion — must stay in lockstep with the hook's
-     mobile PROFILE (tilt 6) so CSS-tilted titles and hook-planed blocks
-     keep sharing one deformation plane. Servicios' caption tilt (below) is
-     the deliberate exception and keeps its own values. */
+  /* SIN perspectiva en móvil ("solo en móvil quita el efecto perspectiva
+     de todos los textos", V16.1): los títulos y la caption del reel quedan
+     PLANOS en teléfonos — anula el 26° de la regla base. El hook
+     useCurvedWords hace lo propio (early-return < 901px), así que ningún
+     bloque de texto lleva plano en móvil. Desktop no cambia. */
   #nxr-dwh-capacidades .nxr-section-h2,
   #nxr-dwh-tech .nxr-section-h2,
   #nxr-aia-casos .nxr-section-h2,
   #nxr-aia-pasos .nxr-section-h2 {
-    margin-right: 64px;
-    transform: translateX(10%) perspective(460px) rotateY(6deg);
-    transform-origin: 100% center;
+    transform: none;
   }
   .nxr-srv-caption-tilt {
-    /* Same plane profile; top-anchored vertical origin as desktop (lines
-       ascend, not droop). Smaller shift + padding than the first pass:
-       tag/title/desc/pills sit closer to the left frame ("mueve... un poco
-       más a la izquierda, un poco más cerca del marco"). */
-    transform: translateX(6%) perspective(460px) rotateY(10deg);
-    transform-origin: 100% 0%;
+    transform: none;
     padding-left: 12px;
     padding-right: 6px;
   }
@@ -5222,13 +5215,9 @@ input[type="range"].nxr-ms-range::-moz-range-thumb {
   .nxr-intro-left {
     position: static;
     top: auto;
-    /* Drops the desktop sticky-centering translateY(-50%) (it applies
-       regardless of position scheme). Left-edge-forward like every other
-       mobile block, on the SAME deformation plane as the titles/paragraphs
-       (10%/6°, 64px right margin — see the mobile h2 rule above). */
-    margin-right: 64px;
-    transform: translateX(10%) perspective(460px) rotateY(6deg);
-    transform-origin: 100% center;
+    /* Drops the desktop sticky-centering translateY(-50%). Sin plano de
+       perspectiva en móvil (V16.1) — el bloque queda plano. */
+    transform: none;
   }
   .nxr-intro-headline {
     font-size: clamp(30px, 8vw, 40px);
@@ -5498,11 +5487,12 @@ input[type="range"].nxr-ms-range::-moz-range-thumb {
   transform-origin: left center;
 }
 
-/* Softer reel plane on phones (sitewide mobile reduction) — this override
-   must live AFTER the base rule (same specificity: source order decides). */
+/* Reel plane FLAT on phones (V16.1: sin perspectiva de textos en móvil) —
+   this override must live AFTER the base rule (same specificity: source
+   order decides). */
 @media (max-width: 768px) {
   .nxr-dwh-proceso-tilt {
-    transform: perspective(1000px) rotateY(6deg);
+    transform: none;
   }
   .nxr-dwh-proceso-content {
     padding: 0 8px 0 20px;

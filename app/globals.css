@@ -4498,21 +4498,21 @@ input[type="range"].nxr-ms-range::-moz-range-thumb {
 /* ===== Zoom parallax ===== */
 #nxr-zoom-parallax {
   position: relative;
-  /* 300vh — RESTAURADO (V15.96): la tanda de recortes 300→255→210→170
-     ("menos scroll para las frases") acabó haciendo que toda la sección
-     "se desplace mucho más rápido" — menos recorrido = más movimiento por
-     píxel de scroll — y Álvaro pidió volver a como estaba. Esta altura y
-     las curvas de ZoomParallax.tsx están afinadas JUNTAS (la cola lenta
-     consume los últimos 60vh); no recortarla sin su visto bueno explícito
-     tras probarlo. */
-  height: 300vh;
+  /* 240vh (V16.5, "acorta las dos secciones de las frases"): recorte
+     MODERADO del 20% — el -43% de V15.93 se sintió "rapidísimo" y se
+     revirtió entero; a -20% el movimiento por píxel sube solo un 25%.
+     La frase además ya cede pronto por su cuenta (front-load ^2.2,
+     V16.2). Si vuelve a sentirse rápido, el punto medio es 260-270vh. */
+  height: 240vh;
   z-index: 1;
 }
 
 @media (max-width: 768px) {
   #nxr-zoom-parallax {
-    /* 240vh — RESTAURADO (V15.96), ver el comentario desktop de arriba. */
-    height: 240vh;
+    /* 190vh (V16.5): mismo recorte moderado ~20% que desktop. La rampa de
+       entrada (V16.4) ancla al top de la sección — independiente de la
+       altura. */
+    height: 190vh;
     /* Pulls the section up under Servicios' departing tail (same pattern as
        #nxr-proceso's -180px below ZP) so the first ZP card arrives while
        Servicios is still leaving instead of after a long empty stretch —

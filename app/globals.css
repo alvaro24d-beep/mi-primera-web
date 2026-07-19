@@ -1211,8 +1211,10 @@ p.nxr-hero-mastery-line {
     display: flex;
   }
 
-  #nxr-nav a[href="/nosotros"],
-  #nxr-nav a[href="/casos"] {
+  /* Restringido a la FILA (V16.8): un selector a nivel de #nxr-nav
+     ocultaba también el tile móvil de Nosotros (mismo href). */
+  #nxr-nav-row a[href="/nosotros"],
+  #nxr-nav-row a[href="/casos"] {
     display: none;
   }
 
@@ -4510,12 +4512,13 @@ input[type="range"].nxr-ms-range::-moz-range-thumb {
   #nxr-zoom-parallax {
     /* 190vh (V16.5): mismo recorte moderado ~20% que desktop. */
     height: 190vh;
-    /* SIN remonte (-160px eliminado, V16.6): el solape bajo la cola del
-       reel era la raíz de "la card vacía tapando media pantalla" — la card
-       central gigante asomaba su mitad sin texto. Sin solape, la sección
-       aparece COMO EN ORDENADOR: llega, y la card está ahí entera (la
-       rampa de opacidad de V16.4 también se eliminó al sobrar). */
-    margin-top: 0;
+    /* -80px (V16.8, "reduce el espacio entre Servicios y ZoomParallax"):
+       remonte MODERADO. El límite seguro es ~-100px — la card central
+       arranca a +120px del top de la sección, así que durante el pin del
+       reel (top ≥ stickyH − margen = 844−80 = 764 > 844−120 = 724) no
+       puede asomar nada, a diferencia del -160 original que causó "la
+       card vacía tapando media pantalla" (V16.4-16.6). No bajar de -100. */
+    margin-top: -80px;
   }
   /* Nudges the whole stuck layer stack up a bit — a plain transform rather
      than re-deriving each card's individual `top: calc(50% - Xvh)` math,
@@ -7632,5 +7635,147 @@ input[type="range"].nxr-ms-range::-moz-range-thumb {
 @media (prefers-reduced-motion: reduce) {
   .nxr-route-enter {
     animation: none;
+  }
+}
+
+/* ===== Nav inferior — tiles móviles (Precios / Nosotros / Contacto) ===== */
+/* Rectángulos con cuerpo sobre la fila de la nav: degradados de marca,
+   bordes redondeados y brillo interior. Solo móvil. */
+#nxr-nav-tiles {
+  display: none;
+}
+@media (max-width: 768px) {
+  #nxr-nav-tiles {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+    padding: 10px 10px 0;
+  }
+  .nxr-nav-tile {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    height: 56px;
+    border-radius: 14px;
+    text-decoration: none;
+    color: var(--c-white);
+    overflow: hidden;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.35), 0 6px 18px rgba(0, 0, 0, 0.35);
+  }
+  .nxr-nav-tile svg {
+    width: 17px;
+    height: 17px;
+    stroke: currentColor;
+    fill: none;
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+  .nxr-nav-tile span {
+    font-family: var(--font-rajdhani), system-ui, sans-serif;
+    font-weight: 600;
+    font-size: 12px;
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
+    line-height: 1;
+  }
+  /* Reflejo suave superior — el "cuerpo" del botón. */
+  .nxr-nav-tile::after {
+    content: "";
+    position: absolute;
+    inset: 0 0 55% 0;
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.28), rgba(255, 255, 255, 0));
+    pointer-events: none;
+  }
+  .nxr-tile-precios {
+    background: linear-gradient(135deg, #ef3d0d 0%, #a3270a 55%, #6d1a05 100%);
+  }
+  .nxr-tile-nosotros {
+    background: linear-gradient(135deg, #a8f04a 0%, #5f9a22 60%, #3f6a14 100%);
+    color: #0f1a09;
+  }
+  .nxr-tile-nosotros::after {
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.4), rgba(255, 255, 255, 0));
+  }
+  .nxr-tile-contacto {
+    background: linear-gradient(135deg, #ff9d7d 0%, #d45a32 55%, #8f3416 100%);
+  }
+  .nxr-nav-tile:active {
+    filter: brightness(1.12);
+  }
+}
+
+/* ===== Página Precios (FAQ de presupuesto) ===== */
+#nxr-precios {
+  position: relative;
+  padding: 140px var(--pad-x) var(--section-pad);
+}
+.nxr-precios-inner {
+  max-width: var(--max-w);
+  margin: 0 auto;
+}
+.nxr-precios-intro {
+  max-width: 560px;
+  font-size: 15px;
+  line-height: 1.7;
+  color: var(--c-salmon);
+  margin: 18px 0 44px;
+}
+.nxr-precios-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 22px;
+  max-width: 980px;
+}
+/* Ancla de cristal: el mesh del canvas global es el cuerpo; aquí solo un
+   scrim mínimo por si el mesh tarda un frame. */
+.nxr-precios-card {
+  position: relative;
+  border-radius: var(--radius-lg);
+  background: rgba(10, 14, 20, 0.25);
+}
+.nxr-precios-card-inner {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 26px 26px 24px;
+}
+.nxr-precios-num {
+  font-family: var(--font-space-mono), monospace;
+  font-size: 13px;
+  font-weight: 700;
+}
+.nxr-precios-q {
+  font-size: 20px;
+  line-height: 1.25;
+  color: var(--c-white);
+  margin: 0;
+}
+.nxr-precios-a {
+  font-size: 14px;
+  line-height: 1.7;
+  color: rgba(255, 255, 255, 0.72);
+  margin: 0;
+}
+@media (max-width: 900px) {
+  #nxr-precios {
+    padding-top: 110px;
+  }
+  .nxr-precios-grid {
+    grid-template-columns: 1fr;
+    gap: 14px;
+  }
+  .nxr-precios-card-inner {
+    padding: 20px 18px;
+  }
+  .nxr-precios-q {
+    font-size: 18px;
+  }
+  .nxr-precios-intro {
+    margin: 14px 0 30px;
   }
 }

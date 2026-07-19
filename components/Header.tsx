@@ -205,6 +205,18 @@ export default function Header() {
   const openDD = () => setSrvOpen(true);
   const closeDD = () => setSrvOpen(false);
 
+  // Tile Contacto: scroll suave a la sección de contacto embebida en la
+  // página actual (todas las páginas construidas la llevan al pie) — vía
+  // Lenis, nunca scroll nativo.
+  const goContacto = (e: React.MouseEvent) => {
+    const el = document.getElementById("nxr-contacto");
+    if (!el) return; // sin sección en esta página: deja navegar el href
+    e.preventDefault();
+    const lenis = (window as unknown as { __nxrLenis?: { scrollTo: (t: HTMLElement, o?: object) => void } }).__nxrLenis;
+    if (lenis) lenis.scrollTo(el, { offset: -10 });
+    else el.scrollIntoView({ behavior: "smooth" });
+  };
+
   return (
     <>
       <div id="nxr-bg-blur" className={srvOpen ? "nxr-open" : ""} />
@@ -283,6 +295,29 @@ export default function Header() {
           if (isDesktopRef.current) closeDD();
         }}
       >
+        {/* Tiles móviles (display:none en desktop): accesos con cuerpo —
+            rectángulos redondeados con degradados de marca. */}
+        <div id="nxr-nav-tiles">
+          <Link href="/precios" className="nxr-nav-tile nxr-tile-precios">
+            <svg viewBox="0 0 24 24">
+              <path d="M12 1v22M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6" />
+            </svg>
+            <span>Precios</span>
+          </Link>
+          <Link href="/nosotros" className="nxr-nav-tile nxr-tile-nosotros">
+            <svg viewBox="0 0 24 24">
+              <circle cx="12" cy="8" r="4" />
+              <path d="M4 20c0-4 3.6-7 8-7s8 3 8 7" />
+            </svg>
+            <span>Nosotros</span>
+          </Link>
+          <a href="/contacto" className="nxr-nav-tile nxr-tile-contacto" onClick={goContacto}>
+            <svg viewBox="0 0 24 24">
+              <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" />
+            </svg>
+            <span>Contacto</span>
+          </a>
+        </div>
         <div id="nxr-nav-row">
           <Link
             href="/"

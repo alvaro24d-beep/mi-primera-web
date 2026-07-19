@@ -4504,21 +4504,20 @@ input[type="range"].nxr-ms-range::-moz-range-thumb {
 /* ===== Zoom parallax ===== */
 #nxr-zoom-parallax {
   position: relative;
-  /* 300 → 255 → 210vh ("que las frases duren menos scroll", pedido dos
-     veces): el recorrido entero se comprime un 30% respecto al original —
-     las curvas de easing de ZoomParallax.tsx normalizan sobre el progreso,
-     así que el pacing relativo (cola progresivamente más lenta incluida)
-     se conserva. Retune BOTH together con esas curvas si se vuelve a
-     tocar. */
-  height: 210vh;
+  /* 300 → 255 → 210 → 170vh ("recorta más", tercera petición): -43%
+     respecto al original — las curvas de easing de ZoomParallax.tsx
+     normalizan sobre el progreso, así que el pacing relativo (cola
+     progresivamente más lenta incluida) se conserva. Retune BOTH together
+     con esas curvas si se vuelve a tocar. */
+  height: 170vh;
   z-index: 1;
 }
 
 @media (max-width: 768px) {
   #nxr-zoom-parallax {
-    /* 240 → 215 → 180vh: misma segunda compresión que desktop, algo más
-       conservadora (móvil ya castigó reducciones agresivas de runways). */
-    height: 180vh;
+    /* 240 → 215 → 180 → 150vh: tercera compresión, siempre algo más
+       conservadora que desktop (móvil ya castigó recortes agresivos). */
+    height: 150vh;
     /* Pulls the section up under Servicios' departing tail (same pattern as
        #nxr-proceso's -180px below ZP) so the first ZP card arrives while
        Servicios is still leaving instead of after a long empty stretch —

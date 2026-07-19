@@ -6434,239 +6434,258 @@ input[type="range"].nxr-ms-range::-moz-range-thumb {
   }
 }
 
-/* ===== Agentes IA (service page) — Hero: agente atendiendo en directo ===== */
-/* Pinned scroll story (AgentesIaHero.tsx): a customer writes, the AI core in
-   the WebGL canvas (components/aia/AgentScene.tsx) wakes, reaches out to tool
-   chips over light beams and replies in the chat. Chat panel, tool chips and
-   CTA are volumetric-glass ANCHORS (useGlassPanels — scrim only, no CSS
-   glass); the facets panel keeps CSS glass like its dwh sibling. */
+/* ===== Agentes IA (service page) — Hero: agente atendiendo en directo (v2) ===== */
+/* RECONSTRUIDO (V16.0): un solo grid "pipeline" posee la composición entera —
+   chat (cliente) | núcleo (agente) | herramientas (acciones), con el CTA
+   cerrando la historia bajo el chat. Cada distancia es un gap/área del grid y
+   las proporciones viven en minmax()/clamp(): el solape es imposible por
+   construcción, y el panel de chat mide EXACTAMENTE su contenido resuelto
+   (nada de cajas medio vacías). Móvil: la misma tubería en columna única.
+   El cristal de chat/herramientas/CTA lo pone el canvas global
+   (useGlassPanels); el núcleo y los haces los pinta components/aia/AgentScene
+   sobre las anclas medidas (.nxr-aia-core-spot y bordes de los paneles). */
 
-#nxr-aia-hero {
+.nxr-aia-hero {
   position: relative;
-  z-index: 1;
 }
-
-/* GSAP's ScrollTrigger pin manages height/spacers — same as .nxr-dwh-stage. */
 .nxr-aia-stage {
   position: relative;
   height: 100lvh;
   overflow: hidden;
 }
-
 .nxr-aia-canvas-wrap {
   position: absolute;
   inset: 0;
+  z-index: 1;
+  pointer-events: none;
 }
-
 .nxr-aia-canvas-wrap canvas {
   display: block;
+  width: 100%;
+  height: 100%;
 }
 
-/* Actors layer (chat + tools + core spot). Hidden until the layout effect has
-   applied every hidden start state (sitewide first-paint-flash guard). */
+/* Suelo pre-GSAP (receta de Bug-Log-Pin-Nace-Con-Scroll-Viejo): la escena
+   espera oculta y cada actor en su pose de espera vía CSS — ninguna carrera
+   de hidratación/navegación puede pintar la gestión resuelta. Los estilos
+   inline de GSAP toman el relevo en cuanto existen. */
+.nxr-aia-hero:not(.nxr-aia-static) .nxr-aia-scene,
+.nxr-aia-hero:not(.nxr-aia-static) .nxr-aia-facets-panel {
+  visibility: hidden;
+}
+.nxr-aia-hero:not(.nxr-aia-static) .nxr-aia-chat,
+.nxr-aia-hero:not(.nxr-aia-static) .nxr-aia-tool,
+.nxr-aia-hero:not(.nxr-aia-static) .nxr-aia-cta,
+.nxr-aia-hero:not(.nxr-aia-static) .nxr-aia-msg,
+.nxr-aia-hero:not(.nxr-aia-static) .nxr-aia-badge {
+  opacity: 0;
+}
+
+/* --- escena + pipeline --- */
 .nxr-aia-scene {
   position: absolute;
   inset: 0;
   z-index: 2;
-  pointer-events: none;
-  visibility: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  /* Aire para el titular (sale hacia arriba) y las facetas (abajo-izq). */
+  padding: 96px var(--pad-x) 170px;
 }
-
-/* 0×0 ghost that CSS positions and JS measures — moves the WebGL core per
-   breakpoint without touching the scene code. */
+.nxr-aia-flow {
+  display: grid;
+  grid-template-areas:
+    "chat core tools"
+    "cta  core tools";
+  /* La columna del núcleo ES el espacio entre chat y herramientas: los
+     haces del canvas cruzan por aquí. */
+  grid-template-columns: minmax(300px, 400px) clamp(150px, 17vw, 240px) minmax(250px, 320px);
+  grid-template-rows: auto auto;
+  align-items: center;
+  width: min(1080px, 100%);
+}
+.nxr-aia-chat {
+  grid-area: chat;
+}
+.nxr-aia-core-slot {
+  grid-area: core;
+  position: relative;
+  align-self: stretch;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+/* Div fantasma 0×0: la escena WebGL centra el chip donde el layout ponga
+   esta caja — mover el núcleo por breakpoint es puro CSS. */
 .nxr-aia-core-spot {
-  position: absolute;
-  left: 45%;
-  top: 48%;
   width: 0;
   height: 0;
 }
-
-/* Full-height flex columns centre the actors with pure LAYOUT (no transform
-   centering): beam anchors are measured via offsetLeft/Top chains, which
-   ignore transforms. */
-.nxr-aia-chat-col {
-  position: absolute;
-  left: 56%;
-  top: 0;
-  bottom: 0;
-  width: min(400px, 36vw);
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
+.nxr-aia-tools {
+  grid-area: tools;
+}
+.nxr-aia-cta {
+  grid-area: cta;
+  justify-self: start;
+  margin-top: 18px;
 }
 
+/* --- panel de chat (ancla de cristal: scrim mínimo, el mesh es el cuerpo) --- */
 .nxr-aia-chat {
-  background: rgba(8, 10, 14, 0.34);
+  position: relative;
   border-radius: var(--radius-lg);
-  will-change: transform, opacity;
+  background: rgba(10, 14, 20, 0.25);
 }
-
 .nxr-aia-chat-inner {
   position: relative;
-  z-index: 2;
   display: flex;
   flex-direction: column;
-  gap: 10px;
-  padding: 18px;
+  gap: 12px;
+  padding: 18px 18px 16px;
 }
-
 .nxr-aia-chat-head {
   display: flex;
   align-items: center;
-  gap: 11px;
-  padding-bottom: 12px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-  margin-bottom: 2px;
+  gap: 10px;
+  padding-bottom: 2px;
 }
-
 .nxr-aia-chat-avatar {
   width: 34px;
   height: 34px;
   border-radius: 50%;
-  background: rgba(168, 240, 74, 0.14);
-  color: var(--c-lime);
-  display: flex;
+  flex-shrink: 0;
+  display: inline-flex;
   align-items: center;
   justify-content: center;
-  flex-shrink: 0;
+  background: rgba(168, 240, 74, 0.14);
 }
-
 .nxr-aia-chat-avatar svg {
   width: 18px;
   height: 18px;
-  stroke: currentColor;
+  stroke: var(--c-lime);
   fill: none;
   stroke-width: 1.8;
   stroke-linecap: round;
 }
-
 .nxr-aia-chat-id {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 3px;
+  min-width: 0;
 }
-
 .nxr-aia-chat-name {
-  font-size: 14px;
-  font-weight: 700;
+  font-family: var(--font-rajdhani), system-ui, sans-serif;
+  font-weight: 600;
+  font-size: 15px;
+  line-height: 1;
   color: var(--c-white);
 }
-
 .nxr-aia-chat-online {
-  display: flex;
+  display: inline-flex;
   align-items: center;
-  gap: 6px;
-  font-size: 11.5px;
-  color: rgba(255, 255, 255, 0.5);
+  gap: 5px;
+  font-family: var(--font-space-mono), monospace;
+  font-size: 10px;
+  color: rgba(255, 255, 255, 0.55);
 }
-
 .nxr-aia-chat-online i {
-  width: 7px;
-  height: 7px;
+  width: 6px;
+  height: 6px;
   border-radius: 50%;
   background: var(--c-lime);
-  box-shadow: 0 0 6px rgba(168, 240, 74, 0.8);
+  box-shadow: 0 0 6px var(--c-lime);
 }
-
 .nxr-aia-msg {
   position: relative;
-  max-width: 86%;
-  padding: 11px 13px;
-  border-radius: 14px;
+  max-width: 88%;
   font-size: 13.5px;
-  line-height: 1.45;
+  line-height: 1.5;
+  padding: 10px 12px 18px;
+  border-radius: 12px;
   color: rgba(255, 255, 255, 0.92);
 }
-
 .nxr-aia-msg-in {
   align-self: flex-start;
-  background: rgba(255, 255, 255, 0.07);
+  background: rgba(255, 255, 255, 0.09);
   border-top-left-radius: 4px;
 }
-
 .nxr-aia-msg-out {
-  align-self: flex-end;
-  background: rgba(168, 240, 74, 0.13);
-  border-top-right-radius: 4px;
+  background: rgba(168, 240, 74, 0.14);
+  border-bottom-right-radius: 4px;
 }
-
 .nxr-aia-msg-meta {
-  display: block;
-  margin-top: 4px;
-  font-size: 10px;
-  text-align: right;
+  position: absolute;
+  right: 10px;
+  bottom: 5px;
+  font-family: var(--font-space-mono), monospace;
+  font-size: 9px;
   color: rgba(255, 255, 255, 0.45);
 }
-
+/* El typing SE SUPERPONE al hueco de la respuesta (crossfade sin cambio de
+   layout): la altura del panel no varía durante el scrub y el mesh de
+   cristal nunca la persigue. El hueco lo dimensiona la propia respuesta
+   (está en flujo) — el panel mide su contenido final exacto. */
 .nxr-aia-reply-slot {
   position: relative;
   display: flex;
-  justify-content: flex-end;
 }
-
-/* The agent's typing bubble overlays the reply's top-right corner — the
-   timeline crossfades typing→reply with zero layout shift (panel height is
-   settled from first paint, so the glass mesh never has to chase it). */
+.nxr-aia-reply-slot .nxr-aia-msg-out {
+  margin-left: auto;
+}
 .nxr-aia-typing {
   position: absolute;
-  top: 0;
-  right: 0;
-  display: flex;
-  gap: 5px;
-  padding: 13px 14px;
-  border-radius: 14px;
-  border-top-right-radius: 4px;
-  background: rgba(168, 240, 74, 0.13);
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  display: inline-flex;
+  gap: 4px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  border-top-left-radius: 4px;
+  background: rgba(255, 255, 255, 0.09);
 }
-
 .nxr-aia-typing span {
   width: 6px;
   height: 6px;
   border-radius: 50%;
-  background: rgba(255, 255, 255, 0.75);
-  animation: nxr-aia-dot 1.2s ease-in-out infinite;
+  background: rgba(255, 255, 255, 0.6);
+  animation: nxr-aia-typing 1.1s ease-in-out infinite;
 }
-
 .nxr-aia-typing span:nth-child(2) {
-  animation-delay: 0.15s;
+  animation-delay: 0.18s;
 }
-
 .nxr-aia-typing span:nth-child(3) {
-  animation-delay: 0.3s;
+  animation-delay: 0.36s;
 }
-
-@keyframes nxr-aia-dot {
+@keyframes nxr-aia-typing {
   0%,
   60%,
   100% {
     transform: translateY(0);
-    opacity: 0.5;
+    opacity: 0.55;
   }
   30% {
-    transform: translateY(-3px);
+    transform: translateY(-4px);
     opacity: 1;
   }
 }
-
 .nxr-aia-badge {
   align-self: center;
   display: inline-flex;
   align-items: center;
-  gap: 8px;
-  margin-top: 10px;
-  padding: 8px 14px;
-  border-radius: 100px;
-  font-size: 12px;
-  font-weight: 600;
+  gap: 7px;
+  font-family: var(--font-space-mono), monospace;
+  font-size: 10.5px;
+  letter-spacing: 0.04em;
   color: var(--c-lime);
   background: rgba(168, 240, 74, 0.1);
-  border: 1px solid rgba(168, 240, 74, 0.25);
+  border: 1px solid rgba(168, 240, 74, 0.35);
+  border-radius: 99px;
+  padding: 6px 12px;
 }
-
 .nxr-aia-badge svg {
-  width: 13px;
-  height: 13px;
+  width: 12px;
+  height: 12px;
   stroke: currentColor;
   fill: none;
   stroke-width: 2.4;
@@ -6674,48 +6693,32 @@ input[type="range"].nxr-ms-range::-moz-range-thumb {
   stroke-linejoin: round;
 }
 
-/* Tool chips (markup lives INSIDE .nxr-aia-chat-col so mobile can keep them
-   in flow). Desktop lifts them out to a side rail left of the core — offsets
-   stay measurable (offsetLeft is negative, offset chains handle that). */
+/* --- herramientas (anclas de cristal) --- */
 .nxr-aia-tools {
-  position: absolute;
-  right: calc(100% + 15vw);
-  top: 0;
-  bottom: 0;
-  width: min(252px, 24vw);
   display: flex;
   flex-direction: column;
-  justify-content: center;
-  gap: 18px;
-  padding-bottom: 10vh;
+  gap: clamp(14px, 2.4vh, 22px);
 }
-
 .nxr-aia-tool {
   position: relative;
-  background: rgba(8, 10, 14, 0.34);
   border-radius: var(--radius-md);
-  will-change: transform, opacity;
+  background: rgba(10, 14, 20, 0.25);
 }
-
 .nxr-aia-tool-inner {
-  position: relative;
-  z-index: 2;
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 13px 15px;
+  padding: 12px 14px;
 }
-
 .nxr-aia-tool-icon {
-  width: 40px;
-  height: 40px;
-  border-radius: 12px;
-  display: flex;
+  width: 38px;
+  height: 38px;
+  border-radius: 10px;
+  flex-shrink: 0;
+  display: inline-flex;
   align-items: center;
   justify-content: center;
-  flex-shrink: 0;
 }
-
 .nxr-aia-tool-icon svg {
   width: 19px;
   height: 19px;
@@ -6725,99 +6728,68 @@ input[type="range"].nxr-ms-range::-moz-range-thumb {
   stroke-linecap: round;
   stroke-linejoin: round;
 }
-
 .nxr-aia-tool-txt {
   display: flex;
   flex-direction: column;
   gap: 2px;
   min-width: 0;
+  flex: 1;
 }
-
 .nxr-aia-tool-title {
-  font-size: 13.5px;
-  font-weight: 700;
+  font-family: var(--font-rajdhani), system-ui, sans-serif;
+  font-weight: 600;
+  font-size: 15px;
+  line-height: 1.1;
   color: var(--c-white);
 }
-
 .nxr-aia-tool-status {
-  font-size: 11.5px;
+  font-family: var(--font-space-mono), monospace;
+  font-size: 10.5px;
   color: rgba(255, 255, 255, 0.55);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
-
 .nxr-aia-tool-check {
-  margin-left: auto;
-  width: 22px;
-  height: 22px;
+  width: 20px;
+  height: 20px;
   border-radius: 50%;
-  background: rgba(168, 240, 74, 0.16);
-  color: var(--c-lime);
-  display: flex;
+  flex-shrink: 0;
+  display: inline-flex;
   align-items: center;
   justify-content: center;
-  flex-shrink: 0;
+  background: var(--c-lime);
+  color: #10151f;
 }
-
 .nxr-aia-tool-check svg {
-  width: 12px;
-  height: 12px;
+  width: 11px;
+  height: 11px;
   stroke: currentColor;
   fill: none;
-  stroke-width: 2.6;
+  stroke-width: 3;
   stroke-linecap: round;
   stroke-linejoin: round;
 }
 
-/* Headline + facets overlay (same chrome family as /desarrollo-web). */
-.nxr-aia-overlay {
-  position: absolute;
-  inset: 0;
-  z-index: 3;
-  pointer-events: none;
-}
-
-.nxr-aia-head {
-  position: relative;
-  max-width: 640px;
-}
-
-.nxr-aia-overlay .nxr-aia-head {
-  position: absolute;
-  top: 44px;
-  left: var(--pad-x);
-  max-width: 520px;
-}
-
-.nxr-aia-h1 {
-  font-size: clamp(32px, 5vw, 60px);
-  font-weight: 700;
-  letter-spacing: -0.03em;
-  line-height: 1.15;
-  color: var(--c-white);
-}
-
-/* CTA — volumetric-glass anchor (scrim only). */
+/* --- CTA (cierre de la historia; ancla de cristal) --- */
 .nxr-aia-cta {
-  display: inline-flex;
-  margin-top: 26px;
-  border-radius: 100px;
-  background: rgba(8, 10, 14, 0.3);
-  pointer-events: auto;
+  display: inline-block;
+  border-radius: 99px;
+  background: rgba(20, 16, 24, 0.3);
   text-decoration: none;
-  will-change: transform, opacity;
 }
-
 .nxr-aia-cta-inner {
-  position: relative;
-  z-index: 2;
   display: inline-flex;
   align-items: center;
-  gap: 10px;
-  padding: 13px 24px;
-  font-size: 15px;
+  gap: 9px;
+  font-family: var(--font-rajdhani), system-ui, sans-serif;
   font-weight: 600;
+  font-size: 16px;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
   color: var(--c-white);
+  padding: 13px 26px;
 }
-
 .nxr-aia-cta-inner svg {
   width: 16px;
   height: 16px;
@@ -6826,302 +6798,229 @@ input[type="range"].nxr-ms-range::-moz-range-thumb {
   stroke-width: 2;
   stroke-linecap: round;
   stroke-linejoin: round;
-  transition: transform 0.25s ease;
+  transition: transform 0.25s;
 }
-
 .nxr-aia-cta:hover .nxr-aia-cta-inner svg {
-  transform: translateX(4px);
+  transform: translateX(3px);
 }
 
+/* --- overlay: titular + facetas --- */
+.nxr-aia-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  pointer-events: none;
+}
+.nxr-aia-head {
+  position: absolute;
+  top: 44px;
+  left: var(--pad-x);
+  right: var(--pad-x);
+}
+.nxr-aia-h1 {
+  font-size: clamp(30px, 4.6vw, 62px);
+  line-height: 1.06;
+  letter-spacing: 0.01em;
+  color: var(--c-white);
+  margin: 0;
+}
 .nxr-aia-facets-panel {
   position: absolute;
   left: var(--pad-x);
-  bottom: 96px;
-  width: min(380px, 40vw);
-  background: var(--glass-bg);
-  backdrop-filter: var(--glass-blur);
-  border-radius: var(--radius-lg);
-  box-shadow: var(--glass-shine);
-  pointer-events: auto;
-  visibility: hidden;
+  bottom: 104px;
+  width: min(360px, 30vw);
+  border-radius: var(--radius-md);
 }
-
 .nxr-aia-facets-inner {
   position: relative;
-  padding: 22px 24px;
-  min-height: 116px;
-}
-
-.nxr-aia-facet-label {
-  position: absolute;
-  inset: 22px 24px;
-  display: flex;
-  gap: 16px;
-  align-items: flex-start;
-  opacity: 0;
-}
-
-.nxr-aia-facet-num {
-  font-size: 28px;
-  font-weight: 700;
-  letter-spacing: -0.02em;
-  flex-shrink: 0;
-}
-
-.nxr-aia-facet-title {
-  font-size: 17px;
-  font-weight: 700;
-  color: var(--c-white);
-  margin-bottom: 6px;
-}
-
-.nxr-aia-facet-desc {
-  font-size: 14px;
-  line-height: 1.5;
-  color: rgba(255, 255, 255, 0.6);
-}
-
-/* prefers-reduced-motion fallback: the resolved conversation, tools with
-   their checks, and a static facet grid — no pin, no WebGL, CSS glass. */
-.nxr-aia-static {
-  padding: 160px var(--pad-x) var(--section-pad);
-}
-
-.nxr-aia-st-scene {
-  margin-top: 48px;
   display: grid;
-  grid-template-columns: minmax(0, 420px) minmax(0, 1fr);
-  gap: 28px;
   align-items: start;
+  min-height: 92px;
+  padding: 16px 18px;
 }
-
-.nxr-aia-st-chat {
-  background: var(--glass-bg);
-  backdrop-filter: var(--glass-blur);
-  border-radius: var(--radius-lg);
-  box-shadow: var(--glass-shine);
-}
-
-.nxr-aia-st-tools {
+.nxr-aia-facet-label {
+  grid-area: 1 / 1;
   display: flex;
-  flex-direction: column;
-  gap: 14px;
+  align-items: flex-start;
+  gap: 12px;
+}
+.nxr-aia-facet-num {
+  font-family: var(--font-space-mono), monospace;
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1.5;
+}
+.nxr-aia-facet-title {
+  font-family: var(--font-rajdhani), system-ui, sans-serif;
+  font-weight: 600;
+  font-size: 17px;
+  line-height: 1.2;
+  color: var(--c-white);
+}
+.nxr-aia-facet-desc {
+  font-family: var(--font-space-mono), monospace;
+  font-size: 11.5px;
+  line-height: 1.55;
+  color: rgba(255, 255, 255, 0.6);
+  margin-top: 3px;
 }
 
-.nxr-aia-st-tool {
-  position: relative;
-  background: var(--glass-bg);
-  backdrop-filter: var(--glass-blur);
-  border-radius: var(--radius-md);
-  box-shadow: var(--glass-shine);
-}
-
-.nxr-aia-st-facets {
-  margin-top: 40px;
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 20px;
-}
-
-.nxr-aia-st-facet {
-  padding: 24px;
-  background: var(--glass-bg);
-  backdrop-filter: var(--glass-blur);
-  border-radius: var(--radius-lg);
-  box-shadow: var(--glass-shine);
-}
-
-.nxr-aia-st-facet .nxr-glass-edge-content {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-@media (max-width: 768px) {
-  /* Same 70px trim + Safari/Chrome 100lvh fix as .nxr-dwh-stage (the JS sets
-     --aia-vh from one real innerHeight measurement). */
+/* ------- móvil: la misma tubería, en columna única ------- */
+@media (max-width: 767px) {
   .nxr-aia-stage {
-    height: calc(var(--aia-vh, 100lvh) - 70px);
+    /* Medida JS real (--aia-vh): Safari y Chrome discrepan sobre 100lvh. */
+    height: var(--aia-vh, 100lvh);
   }
-  .nxr-aia-overlay .nxr-aia-head {
-    top: 36px;
-    left: 20px;
-    max-width: 300px;
+  .nxr-aia-scene {
+    padding: 24px 20px 164px;
   }
-  .nxr-aia-h1 {
-    font-size: clamp(30px, 8.4vw, 44px);
+  .nxr-aia-flow {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+    width: 100%;
+    max-width: 430px;
+    margin: 0 auto;
   }
-  .nxr-aia-cta {
-    margin-top: 18px;
-  }
-  .nxr-aia-cta-inner {
-    padding: 11px 20px;
-    font-size: 14px;
-  }
-  /* Phones: the chips leave the rail and flow as a compact row UNDER the
-     chat panel (same flex column) — structurally impossible to overlap it,
-     whatever the viewport height. Labels collapse to icon + check. */
-  .nxr-aia-tools {
-    position: static;
-    flex-direction: row;
-    justify-content: center;
-    width: auto;
-    gap: 10px;
-    margin-top: 14px;
-    padding: 0;
-  }
-  .nxr-aia-tool-inner {
-    padding: 7px;
-  }
-  .nxr-aia-tool-txt {
-    display: none;
-  }
-  .nxr-aia-tool-check {
-    position: absolute;
-    right: -5px;
-    top: -5px;
-    width: 18px;
-    height: 18px;
-    margin-left: 0;
-  }
-  .nxr-aia-tool-check svg {
-    width: 10px;
-    height: 10px;
-  }
-  /* The core sits BEHIND the chat panel on phones (its glow reads through
-     the frosted glass) — there's no free band for it between the stacked
-     actors, and floating it higher overlapped the CTA (caught on the first
-     Playwright pass). Anchored to the measured headline bottom, like the
-     chat column, so it tracks every phone size. */
-  .nxr-aia-core-spot {
-    left: 46%;
-    top: calc(var(--aia-head-b, 200px) + 150px);
-  }
-  /* Stacks right below the REAL headline+CTA bottom (--aia-head-b, measured
-     in JS) — the old fixed padding overlapped on short/narrow phones. */
-  .nxr-aia-chat-col {
-    left: 16px;
-    right: 16px;
-    width: auto;
-    justify-content: flex-start;
-    padding-top: calc(var(--aia-head-b, 200px) + 20px);
+  .nxr-aia-core-slot {
+    align-self: auto;
+    height: clamp(84px, 12vh, 116px);
   }
   .nxr-aia-chat-inner {
-    padding: 12px;
-    gap: 7px;
-  }
-  .nxr-aia-chat-head {
-    gap: 9px;
-    padding-bottom: 9px;
-  }
-  .nxr-aia-chat-avatar {
-    width: 30px;
-    height: 30px;
-  }
-  .nxr-aia-chat-avatar svg {
-    width: 16px;
-    height: 16px;
-  }
-  .nxr-aia-chat-name {
-    font-size: 13px;
-  }
-  .nxr-aia-chat-online {
-    font-size: 10.5px;
+    padding: 14px 14px 12px;
+    gap: 10px;
   }
   .nxr-aia-msg {
     font-size: 12.5px;
-    padding: 9px 11px;
   }
-  .nxr-aia-msg-meta {
-    font-size: 9.5px;
+  .nxr-aia-tools {
+    gap: 9px;
   }
-  .nxr-aia-typing {
-    padding: 11px 12px;
+  .nxr-aia-tool-inner {
+    padding: 9px 12px;
   }
-  .nxr-aia-badge {
-    margin-top: 8px;
-    padding: 6px 12px;
-    font-size: 11px;
+  .nxr-aia-tool-icon {
+    width: 32px;
+    height: 32px;
   }
-  /* One-line facet strip on phones (num + title only): the full description
-     panel ate ~150px of a very tight stage — the story is already told by
-     the chat + chips above. */
+  .nxr-aia-cta {
+    align-self: center;
+    margin-top: 2px;
+  }
+  .nxr-aia-cta-inner {
+    font-size: 14px;
+    padding: 11px 22px;
+  }
+  .nxr-aia-head {
+    top: 36px;
+    left: 20px;
+    right: 20px;
+  }
+  .nxr-aia-h1 {
+    font-size: clamp(26px, 7.4vw, 34px);
+  }
+  /* Facetas = franja compacta de una línea sobre la bottom nav. */
   .nxr-aia-facets-panel {
-    left: 12px;
-    right: 12px;
+    left: 20px;
+    right: 20px;
     width: auto;
-    bottom: calc(16px + env(safe-area-inset-bottom));
+    bottom: 96px;
   }
   .nxr-aia-facets-inner {
-    padding: 13px 16px;
-    min-height: 44px;
+    min-height: 0;
+    padding: 10px 14px;
   }
   .nxr-aia-facet-label {
-    inset: 13px 16px;
-    gap: 10px;
     align-items: center;
-  }
-  .nxr-aia-facet-num {
-    font-size: 17px;
-  }
-  .nxr-aia-facet-title {
-    font-size: 14px;
-    margin-bottom: 0;
   }
   .nxr-aia-facet-desc {
     display: none;
   }
-  .nxr-aia-static {
-    padding: 130px 20px var(--section-pad);
-  }
-  .nxr-aia-st-scene {
-    grid-template-columns: 1fr;
-  }
-  .nxr-aia-st-facets {
-    grid-template-columns: 1fr;
-  }
 }
-
-/* Short phones (≤720px of viewport height): even the compact stack overflows
-   the trimmed stage (caught at 360×640 — chat + chips ran past the facet
-   strip). The facet strip goes (the chat + chips already tell the story) and
-   headline/chat compress another notch. */
-@media (max-width: 768px) and (max-height: 720px) {
-  .nxr-aia-h1 {
-    font-size: clamp(25px, 7vw, 34px);
-  }
-  .nxr-aia-cta {
-    margin-top: 14px;
-  }
-  .nxr-aia-cta-inner {
-    padding: 9px 18px;
-    font-size: 13px;
-  }
-  .nxr-aia-chat-col {
-    padding-top: calc(var(--aia-head-b, 180px) + 14px);
-  }
-  .nxr-aia-chat-inner {
-    padding: 10px;
-    gap: 6px;
-  }
-  .nxr-aia-msg {
-    font-size: 11.5px;
-    padding: 8px 10px;
-  }
-  .nxr-aia-typing {
-    padding: 10px 11px;
-  }
-  .nxr-aia-badge {
-    margin-top: 5px;
-    padding: 5px 10px;
-    font-size: 10.5px;
-  }
-  .nxr-aia-tools {
-    margin-top: 10px;
-  }
+/* Teléfonos bajos (ej. 360×640): fuera facetas, todo compacta fuerte —
+   presupuesto vertical verificado con aserciones a 360×640. */
+@media (max-width: 767px) and (max-height: 720px) {
   .nxr-aia-facets-panel {
     display: none;
   }
+  .nxr-aia-scene {
+    padding: 16px 20px 84px;
+  }
+  .nxr-aia-flow {
+    gap: 8px;
+  }
+  .nxr-aia-core-slot {
+    height: 52px;
+  }
+  .nxr-aia-chat-inner {
+    padding: 12px 12px 10px;
+    gap: 8px;
+  }
+  .nxr-aia-msg {
+    font-size: 12px;
+  }
+  .nxr-aia-tools {
+    gap: 7px;
+  }
+  .nxr-aia-tool-inner {
+    padding: 8px 10px;
+  }
+  .nxr-aia-tool-icon {
+    width: 28px;
+    height: 28px;
+  }
+  .nxr-aia-cta-inner {
+    font-size: 13px;
+    padding: 10px 20px;
+  }
+}
+
+/* ------- rama estática (prefers-reduced-motion): gestión resuelta ------- */
+.nxr-aia-static {
+  padding: 120px var(--pad-x) 80px;
+  display: flex;
+  flex-direction: column;
+  gap: 40px;
+}
+.nxr-aia-static .nxr-aia-head {
+  position: static;
+}
+.nxr-aia-static .nxr-aia-flow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 24px;
+}
+.nxr-aia-static .nxr-aia-chat {
+  width: min(400px, 100%);
+  background: rgba(16, 20, 28, 0.85);
+  border: 1px solid var(--glass-border);
+}
+.nxr-aia-static .nxr-aia-tools {
+  width: min(300px, 100%);
+}
+.nxr-aia-static .nxr-aia-tool {
+  background: rgba(18, 22, 28, 0.85);
+  border: 1px solid var(--glass-border);
+}
+.nxr-aia-static .nxr-aia-cta {
+  background: var(--c-red);
+  align-self: flex-start;
+}
+.nxr-aia-st-facets {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 16px;
+}
+.nxr-aia-st-facet {
+  border-radius: var(--radius-md);
+}
+.nxr-aia-st-facet .nxr-glass-edge-content {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 18px;
 }
 
 /* ===== Agentes IA (service page) — Casos de uso ===== */

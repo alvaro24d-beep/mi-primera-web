@@ -15,13 +15,19 @@ gsap.registerPlugin(ScrollTrigger);
 // as DesarrolloWebHero's HeroScene).
 const AgentScene = dynamic(() => import("./aia/AgentScene"), { ssr: false });
 
-// /agentes-ia hero: a pinned, scroll-scrubbed re-enactment of an AI agent
-// resolving a real customer request end to end (golden rule: the animation
-// SHOWS the service). The GSAP timeline lives here in the DOM tree (per
-// AGENTS.md — inside <Canvas> it pins nothing) and drives two things:
-//   1. DOM: the chat conversation, the tool chips, the facet labels.
-//   2. WebGL (components/aia/AgentScene): the core chip, beams and pulses,
-//      via the plain-object `driveRef` read by useFrame every frame.
+// /agentes-ia hero, RECONSTRUIDO (V16.0): a pinned, scroll-scrubbed
+// re-enactment of an AI agent resolving a real request end to end (golden
+// rule: the animation SHOWS the service). The layout is now a PIPELINE the
+// eye reads in order — customer chat → agent core → tools — laid out by ONE
+// CSS grid (desktop: three columns with the core column as the space between;
+// mobile: one flex column), so every gap is a grid gap and nothing is
+// absolutely positioned against anything else: overlap is impossible by
+// construction and proportions are owned by minmax()/clamp() in the CSS.
+//
+// The GSAP timeline lives here in the DOM tree (per AGENTS.md) and drives:
+//   1. DOM: conversation, tool chips, facet labels, closing CTA.
+//   2. WebGL (components/aia/AgentScene): core chip, beams, pulses — via the
+//      plain-object `driveRef` read by useFrame (contract unchanged).
 // Chat panel, tool chips and CTA are volumetric-glass anchors rendered by the
 // GLOBAL SceneCanvas (useGlassPanels) — `nxr-aia-hero` is in its alwaysIds.
 
@@ -83,7 +89,7 @@ const AgentAvatar = (
 
 function ChatPanel({ static: isStatic }: { static?: boolean }) {
   return (
-    <div className={isStatic ? "nxr-aia-st-chat" : "nxr-aia-chat"}>
+    <div className="nxr-aia-chat">
       <div className="nxr-aia-chat-inner">
         <div className="nxr-aia-chat-head">
           <span className="nxr-aia-chat-avatar">{AgentAvatar}</span>
@@ -99,6 +105,11 @@ function ChatPanel({ static: isStatic }: { static?: boolean }) {
           {MSG_IN}
           <span className="nxr-aia-msg-meta">21:47</span>
         </div>
+        {/* The typing indicator OVERLAYS the reply's slot (absolute inside
+            it): they crossfade with zero layout shift, so the panel height
+            never changes mid-scrub and the glass mesh never chases it. The
+            slot is sized BY the reply message itself (it's in flow) — the
+            panel is exactly as tall as its resolved content, no dead space. */}
         <div className="nxr-aia-reply-slot">
           {!isStatic && (
             <div className="nxr-aia-typing" aria-hidden="true">
@@ -123,11 +134,11 @@ function ChatPanel({ static: isStatic }: { static?: boolean }) {
   );
 }
 
-function ToolChips({ static: isStatic }: { static?: boolean }) {
+function Tools() {
   return (
-    <div className={isStatic ? "nxr-aia-st-tools" : "nxr-aia-tools"}>
+    <div className="nxr-aia-tools">
       {TOOLS.map((t) => (
-        <div key={t.title} className={isStatic ? "nxr-aia-st-tool" : "nxr-aia-tool"}>
+        <div key={t.title} className="nxr-aia-tool">
           <span className="nxr-aia-tool-inner">
             <span className="nxr-aia-tool-icon" style={{ color: t.color, background: t.bg }}>
               {t.icon}
@@ -148,23 +159,16 @@ function ToolChips({ static: isStatic }: { static?: boolean }) {
   );
 }
 
-function Headline({ onCta }: { onCta?: (e: React.MouseEvent) => void }) {
+function Cta({ onCta }: { onCta?: (e: React.MouseEvent) => void }) {
   return (
-    <div className="nxr-aia-head">
-      <h1 className="nxr-aia-h1">
-        Agentes que trabajan por ti,
-        <br />
-        <span className="nxr-gradient-text-lime">a todas horas.</span>
-      </h1>
-      <a className="nxr-aia-cta" href="#nxr-contacto" onClick={onCta}>
-        <span className="nxr-aia-cta-inner">
-          Quiero mi agente
-          <svg viewBox="0 0 24 24">
-            <path d="M5 12h14M13 6l6 6-6 6" />
-          </svg>
-        </span>
-      </a>
-    </div>
+    <a className="nxr-aia-cta" href="#nxr-contacto" onClick={onCta}>
+      <span className="nxr-aia-cta-inner">
+        Quiero mi agente
+        <svg viewBox="0 0 24 24">
+          <path d="M5 12h14M13 6l6 6-6 6" />
+        </svg>
+      </span>
+    </a>
   );
 }
 
@@ -207,6 +211,7 @@ export default function AgentesIaHero() {
       const typing = q(".nxr-aia-typing")[0] as HTMLElement | undefined;
       const msgOut = q(".nxr-aia-msg-out")[0] as HTMLElement | undefined;
       const badge = q(".nxr-aia-badge")[0] as HTMLElement | undefined;
+      const cta = q(".nxr-aia-cta")[0] as HTMLElement | undefined;
       const facetsPanel = q(".nxr-aia-facets-panel")[0] as HTMLElement | undefined;
       const labels = q(".nxr-aia-facet-label");
       const coreSpot = q(".nxr-aia-core-spot")[0] as HTMLElement | undefined;
@@ -215,13 +220,6 @@ export default function AgentesIaHero() {
       // Same Safari/Chrome `100lvh` disagreement fix as DesarrolloWebHero:
       // one real innerHeight measurement drives the mobile stage height.
       if (mobile) section.style.setProperty("--aia-vh", `${window.innerHeight}px`);
-      // Mobile actors stack below the REAL headline+CTA bottom edge (its
-      // height varies with the clamp()'d font size per phone width — a fixed
-      // padding overlapped on short/narrow screens).
-      if (mobile && head) {
-        const headBottom = (parseFloat(getComputedStyle(head).top) || 36) + head.offsetHeight;
-        section.style.setProperty("--aia-head-b", `${Math.round(headBottom)}px`);
-      }
 
       // ---- Measure beam anchor points for the WebGL scene. offsetLeft/Top
       // chains ignore transforms, so this reads REST positions even when
@@ -243,19 +241,20 @@ export default function AgentesIaHero() {
         const chatC = centerOf(chat);
         const l = layoutRef.current;
         l.core = centerOf(coreSpot);
-        // Beams should land on the panel EDGE facing the core, not under its
-        // centre. Desktop: chat right of core, tools rail left of core.
-        // Mobile: the core hides BEHIND the chat and the tool chips sit in a
-        // row right below it — beams drop from the chat's bottom edge onto
-        // each chip's top edge.
+        // Beams land on the EDGE facing the core. Desktop pipeline is
+        // horizontal (chat | core | tools): chat's right edge, each tool's
+        // left edge. Mobile pipeline is vertical (chat / core / tools):
+        // chat's bottom edge, and each tool's top edge AT ITS ICON (x =
+        // left + 30) so the three beams land staggered instead of piling
+        // onto the same centre line.
         l.chat = isMobileNow
-          ? { x: chatC.x, y: chatC.y + chat.offsetHeight / 2 - 6 }
-          : { x: chatC.x - chat.offsetWidth / 2 - 4, y: chatC.y };
+          ? { x: chatC.x, y: chatC.y + chat.offsetHeight / 2 - 4 }
+          : { x: chatC.x + chat.offsetWidth / 2 + 4, y: chatC.y };
         l.tools = tools.map((el) => {
           const c = centerOf(el);
           return isMobileNow
-            ? { x: c.x, y: c.y - el.offsetHeight / 2 - 4 }
-            : { x: c.x + el.offsetWidth / 2 + 4, y: c.y };
+            ? { x: c.x - el.offsetWidth / 2 + 30, y: c.y - el.offsetHeight / 2 - 4 }
+            : { x: c.x - el.offsetWidth / 2 - 4, y: c.y };
         });
         l.ready = true;
         window.dispatchEvent(new Event("nxr-aia-layout"));
@@ -264,24 +263,27 @@ export default function AgentesIaHero() {
       document.fonts?.ready.then(measure).catch(() => {});
       window.addEventListener("resize", measure, { passive: true });
 
-      // ---- Title intro geometry (house gesture shared with /desarrollo-web):
-      // starts big at mid-height, settles top-left.
-      const S = mobile ? 1.25 : 1.7;
+      // ---- Title intro: big at mid-height, then exits STRAIGHT UP while
+      // the pipeline rises in (same family gesture as /desarrollo-web V15.88).
+      const S = mobile ? 1.2 : 1.6;
       const vh = window.innerHeight;
       const restTop = head ? parseFloat(getComputedStyle(head).top) || 44 : 44;
       const hh = head ? head.offsetHeight : 120;
       const y0 = vh / 2 - restTop - (hh * S) / 2;
       if (head) gsap.set(head, { transformOrigin: "left top", scale: S, y: y0 });
 
-      // ---- Hidden start states (SSR paints the finished scene otherwise).
+      // ---- Hidden start states. The same waiting poses also exist as a CSS
+      // floor (see globals.css) so no init race can ever paint the resolved
+      // scene — these inline sets simply take over from it.
       gsap.set(canvasWrap ?? [], { opacity: 0 });
       gsap.set(chat ?? [], { opacity: 0, y: 36 });
       gsap.set(msgIn ?? [], { opacity: 0, y: 14, filter: "blur(8px)" });
       gsap.set(typing ?? [], { opacity: 0 });
       gsap.set(msgOut ?? [], { opacity: 0, y: 14, filter: "blur(8px)" });
       gsap.set(badge ?? [], { opacity: 0, scale: 0.85, y: 8 });
-      gsap.set(tools, { opacity: 0, y: 26, scale: 0.9 });
+      gsap.set(tools, { opacity: 0, y: mobile ? 18 : 0, x: mobile ? 0 : 26, scale: 0.92 });
       gsap.set(checks, { opacity: 0, scale: 0.5 });
+      gsap.set(cta ?? [], { opacity: 0, y: 16 });
       gsap.set(facetsPanel ?? [], { opacity: 0, y: 24 });
       gsap.set(labels, { opacity: 0, filter: "blur(10px)" });
       gsap.set(q(".nxr-aia-scene"), { visibility: "visible" });
@@ -302,44 +304,61 @@ export default function AgentesIaHero() {
         },
       });
 
-      // ===== PHASE A — title intro =====
-      tl.to(head ?? {}, { scale: 1, y: 0, duration: 1.4, ease: "power2.inOut" }, 0);
-      tl.to(canvasWrap ?? {}, { opacity: 1, duration: 0.6 }, 0.9);
-      tl.to(chat ?? {}, { opacity: 1, y: 0, duration: 0.6, ease: "power3.out" }, 1.05);
-      tl.to(facetsPanel ?? {}, { opacity: 1, y: 0, duration: 0.5 }, 1.3);
-      if (labels[0]) tl.to(labels[0], { opacity: 1, filter: "blur(0px)", duration: 0.4 }, 1.4);
+      // ===== PHASE A — the title hands the stage to the pipeline =====
+      tl.to(head ?? {}, { y: -(restTop + hh * S + vh * 0.08), duration: 1.15, ease: "power2.in" }, 0);
+      tl.to(canvasWrap ?? {}, { opacity: 1, duration: 0.6 }, 0.6);
+      tl.to(chat ?? {}, { opacity: 1, y: 0, duration: 0.6, ease: "power3.out" }, 0.85);
+      tl.to(facetsPanel ?? {}, { opacity: 1, y: 0, duration: 0.5 }, 1.15);
+      if (labels[0]) tl.to(labels[0], { opacity: 1, filter: "blur(0px)", duration: 0.4 }, 1.25);
 
       // ===== PHASE B — the customer writes =====
-      tl.to(msgIn ?? {}, { opacity: 1, y: 0, filter: "blur(0px)", duration: 0.5, ease: "power2.out" }, 1.55);
+      tl.to(msgIn ?? {}, { opacity: 1, y: 0, filter: "blur(0px)", duration: 0.5, ease: "power2.out" }, 1.5);
 
       // ===== PHASE C — the agent reads & thinks =====
-      tl.to(typing ?? {}, { opacity: 1, duration: 0.35 }, 2.15);
-      tl.to(d, { core: 1, duration: 0.8, ease: "power2.inOut" }, 2.2);
-      tl.to(d, { read: 1, duration: 1.0, ease: "none" }, 2.35);
-      crossfadeFacet(tl, labels, 0, 1, 2.4);
+      tl.to(typing ?? {}, { opacity: 1, duration: 0.35 }, 2.05);
+      tl.to(d, { core: 1, duration: 0.8, ease: "power2.inOut" }, 2.1);
+      tl.to(d, { read: 1, duration: 1.0, ease: "none" }, 2.25);
+      crossfadeFacet(tl, labels, 0, 1, 2.3);
 
       // ===== PHASE D — tools fan out, one beat each =====
       const toolKeys = ["t0", "t1", "t2"] as const;
       tools.forEach((tool, i) => {
-        const at = 3.15 + i * 0.55;
-        tl.to(tool, { opacity: 1, y: 0, scale: 1, duration: 0.5, ease: "back.out(1.5)" }, at);
+        const at = 3.05 + i * 0.55;
+        tl.to(tool, { opacity: 1, x: 0, y: 0, scale: 1, duration: 0.5, ease: "back.out(1.5)" }, at);
         tl.to(d, { [toolKeys[i]]: 1, duration: 0.6, ease: "none" }, at + 0.12);
         if (checks[i]) tl.to(checks[i], { opacity: 1, scale: 1, duration: 0.35, ease: "back.out(2)" }, at + 0.5);
       });
-      crossfadeFacet(tl, labels, 1, 2, 3.25);
+      crossfadeFacet(tl, labels, 1, 2, 3.15);
 
       // ===== PHASE E — the reply closes the loop =====
-      crossfadeFacet(tl, labels, 2, 3, 4.75);
-      tl.to(typing ?? {}, { opacity: 0, duration: 0.3 }, 4.8);
-      tl.to(d, { reply: 1, duration: 0.8, ease: "power1.inOut" }, 4.8);
-      tl.to(msgOut ?? {}, { opacity: 1, y: 0, filter: "blur(0px)", duration: 0.55, ease: "power2.out" }, 4.9);
-      tl.to(badge ?? {}, { opacity: 1, scale: 1, y: 0, duration: 0.5, ease: "back.out(1.7)" }, 5.45);
+      crossfadeFacet(tl, labels, 2, 3, 4.6);
+      tl.to(typing ?? {}, { opacity: 0, duration: 0.3 }, 4.65);
+      tl.to(d, { reply: 1, duration: 0.8, ease: "power1.inOut" }, 4.65);
+      tl.to(msgOut ?? {}, { opacity: 1, y: 0, filter: "blur(0px)", duration: 0.55, ease: "power2.out" }, 4.75);
+      tl.to(badge ?? {}, { opacity: 1, scale: 1, y: 0, duration: 0.5, ease: "back.out(1.7)" }, 5.3);
 
-      // Hold — the resolved conversation is what's on screen at pin end.
-      tl.to({}, { duration: 0.5 }, 5.95);
+      // ===== PHASE F — the CTA is the story's closing beat =====
+      tl.to(cta ?? {}, { opacity: 1, y: 0, duration: 0.5, ease: "back.out(1.4)" }, 5.6);
 
-      // Idle breathing for the chat panel (independent of scroll).
-      gsap.to(chat ?? [], { yPercent: -1.6, duration: 3.6, ease: "sine.inOut", yoyo: true, repeat: -1 });
+      // Hold — the resolved gestión is what's on screen at pin end.
+      tl.to({}, { duration: 0.5 }, 6.1);
+
+      // Idle breathing for the chat panel (independent of scroll; offset
+      // chains ignore it, so beam anchors stay put).
+      gsap.to(chat ?? [], { yPercent: -1.2, duration: 3.6, ease: "sine.inOut", yoyo: true, repeat: -1 });
+
+      // Client-nav race (Bug-Log-Pin-Nace-Con-Scroll-Viejo): this effect runs
+      // BEFORE the template's scroll reset, so the ScrollTrigger can be born
+      // at the OLD page's scroll (progress ≈ 1 → resolved scene) and the
+      // scrub would visibly chase back to 0. One frame later — scroll already
+      // reset — complete the scrub's internal tween instantly.
+      requestAnimationFrame(() => {
+        const st = tl.scrollTrigger;
+        if (!st) return;
+        st.update();
+        const scrubTween = typeof st.getTween === "function" ? st.getTween() : null;
+        if (scrubTween) scrubTween.progress(1);
+      });
 
       return () => window.removeEventListener("resize", measure);
     },
@@ -349,10 +368,17 @@ export default function AgentesIaHero() {
   if (reducedMotion) {
     return (
       <section key="static" id="nxr-aia-hero" className="nxr-aia-hero nxr-aia-static">
-        <Headline onCta={goContacto} />
-        <div className="nxr-aia-st-scene">
+        <div className="nxr-aia-head">
+          <h1 className="nxr-aia-h1">
+            Agentes que trabajan por ti,
+            <br />
+            <span className="nxr-gradient-text-lime">a todas horas.</span>
+          </h1>
+        </div>
+        <div className="nxr-aia-flow">
           <ChatPanel static />
-          <ToolChips static />
+          <Tools />
+          <Cta onCta={goContacto} />
         </div>
         <div className="nxr-aia-st-facets">
           {FACETS.map((f, i) => (
@@ -378,20 +404,28 @@ export default function AgentesIaHero() {
           <AgentScene drive={driveRef} layout={layoutRef} />
         </div>
         <div className="nxr-aia-scene">
-          <div className="nxr-aia-core-spot" aria-hidden="true" />
-          {/* Full-height flex column centres the panel with pure layout —
-              beam anchors are measured via offset chains (transform-blind).
-              The tool chips live INSIDE the column: desktop CSS lifts them
-              out to a side rail via position:absolute, mobile keeps them in
-              flow as a row under the chat — so on phones they can never
-              overlap the panel regardless of viewport height. */}
-          <div className="nxr-aia-chat-col">
+          {/* THE pipeline: one grid owns every actor. Desktop areas
+                chat | core | tools   (CTA in a second row under the chat)
+              Mobile: single flex column chat → core → tools → cta. The
+              core slot is a real in-flow box the ghost core-spot centres
+              in — the WebGL chip renders exactly there on every viewport. */}
+          <div className="nxr-aia-flow">
             <ChatPanel />
-            <ToolChips />
+            <div className="nxr-aia-core-slot" aria-hidden="true">
+              <div className="nxr-aia-core-spot" />
+            </div>
+            <Tools />
+            <Cta onCta={goContacto} />
           </div>
         </div>
         <div className="nxr-aia-overlay">
-          <Headline onCta={goContacto} />
+          <div className="nxr-aia-head">
+            <h1 className="nxr-aia-h1">
+              Agentes que trabajan por ti,
+              <br />
+              <span className="nxr-gradient-text-lime">a todas horas.</span>
+            </h1>
+          </div>
           <div className="nxr-aia-facets-panel nxr-glass-edge">
             <div className="nxr-glass-edge-content nxr-aia-facets-inner">
               {FACETS.map((f, i) => (

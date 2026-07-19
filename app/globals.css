@@ -131,6 +131,70 @@ p.nxr-hero-mastery-line {
   font-weight: 500;
 }
 
+/* ===== Títulos holograma ===== */
+/* "Que parezcan hologramas": los títulos display (h1/h2) emiten luz — fringe
+   cromático de proyección (rojo a un lado, lima al otro, desalineación de
+   canales típica de una proyección volumétrica) + doble halo de emisión.
+   IMPLEMENTADO SOLO con text-shadow: hereda a los spans de SplitText y de
+   los reveals, y no toca background-clip:text (vetado en este proyecto —
+   fantasmeaba glifos bajo transforms persistentes) ni ninguna propiedad que
+   GSAP escriba (opacity/filter/transform). El parpadeo anima únicamente
+   text-shadow — nada más lo escribe, imposible pelearse con un tween. */
+h1,
+h2 {
+  text-shadow:
+    0.03em 0 0 rgba(239, 61, 13, 0.32),
+    -0.03em 0 0 rgba(168, 240, 74, 0.3),
+    0 0 16px rgba(168, 240, 74, 0.2),
+    0 0 46px rgba(168, 240, 74, 0.11);
+  animation: nxr-holo-flicker 7s linear infinite;
+}
+/* Parada larga estable + dos micro-eventos (un bajón con los canales más
+   separados y un pulso brillante) — los tramos idénticos no cambian nada en
+   pantalla; solo los ~70ms de cada salto repintan. */
+@keyframes nxr-holo-flicker {
+  0%,
+  90%,
+  94%,
+  96%,
+  100% {
+    text-shadow:
+      0.03em 0 0 rgba(239, 61, 13, 0.32),
+      -0.03em 0 0 rgba(168, 240, 74, 0.3),
+      0 0 16px rgba(168, 240, 74, 0.2),
+      0 0 46px rgba(168, 240, 74, 0.11);
+  }
+  91%,
+  92.2% {
+    text-shadow:
+      0.055em 0 0 rgba(239, 61, 13, 0.42),
+      -0.055em 0 0 rgba(168, 240, 74, 0.38),
+      0 0 10px rgba(168, 240, 74, 0.12),
+      0 0 30px rgba(168, 240, 74, 0.06);
+  }
+  95% {
+    text-shadow:
+      0.03em 0 0 rgba(239, 61, 13, 0.4),
+      -0.03em 0 0 rgba(168, 240, 74, 0.4),
+      0 0 22px rgba(168, 240, 74, 0.32),
+      0 0 60px rgba(168, 240, 74, 0.18);
+  }
+}
+/* La frase serif de Servicios queda fuera ("menos la frase de todo lo que
+   tu negocio necesita" — misma exención que la tipografía): Cormorant
+   elegante, sin proyección. */
+.nxr-servicios-head .nxr-section-h2,
+.nxr-servicios-static .nxr-section-h2 {
+  text-shadow: none;
+  animation: none;
+}
+@media (prefers-reduced-motion: reduce) {
+  h1,
+  h2 {
+    animation: none;
+  }
+}
+
 /* Word spans created by useTextScramble's own splitter (only where a
    paragraph has no .nxr-cw-word spans to reuse): inline-block so the
    per-word width-lock during the scramble actually applies. */

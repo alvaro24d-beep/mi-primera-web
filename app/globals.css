@@ -4504,20 +4504,21 @@ input[type="range"].nxr-ms-range::-moz-range-thumb {
 /* ===== Zoom parallax ===== */
 #nxr-zoom-parallax {
   position: relative;
-  /* 300 → 255 → 210 → 170vh ("recorta más", tercera petición): -43%
-     respecto al original — las curvas de easing de ZoomParallax.tsx
-     normalizan sobre el progreso, así que el pacing relativo (cola
-     progresivamente más lenta incluida) se conserva. Retune BOTH together
-     con esas curvas si se vuelve a tocar. */
-  height: 170vh;
+  /* 300vh — RESTAURADO (V15.96): la tanda de recortes 300→255→210→170
+     ("menos scroll para las frases") acabó haciendo que toda la sección
+     "se desplace mucho más rápido" — menos recorrido = más movimiento por
+     píxel de scroll — y Álvaro pidió volver a como estaba. Esta altura y
+     las curvas de ZoomParallax.tsx están afinadas JUNTAS (la cola lenta
+     consume los últimos 60vh); no recortarla sin su visto bueno explícito
+     tras probarlo. */
+  height: 300vh;
   z-index: 1;
 }
 
 @media (max-width: 768px) {
   #nxr-zoom-parallax {
-    /* 240 → 215 → 180 → 150vh: tercera compresión, siempre algo más
-       conservadora que desktop (móvil ya castigó recortes agresivos). */
-    height: 150vh;
+    /* 240vh — RESTAURADO (V15.96), ver el comentario desktop de arriba. */
+    height: 240vh;
     /* Pulls the section up under Servicios' departing tail (same pattern as
        #nxr-proceso's -180px below ZP) so the first ZP card arrives while
        Servicios is still leaving instead of after a long empty stretch —

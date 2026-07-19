@@ -4897,6 +4897,14 @@ input[type="range"].nxr-ms-range::-moz-range-thumb {
   line-height: 1.7;
 }
 
+/* Solo ordenador ("reduce el tamaño de letra del texto de Intro"): baja del
+   tope de 16px del clamp a 14px — móvil ya estaba en 14px y no cambia. */
+@media (min-width: 901px) {
+  .nxr-intro-text {
+    font-size: 14px;
+  }
+}
+
 .nxr-intro-text strong {
   color: var(--c-white);
   font-weight: 600;

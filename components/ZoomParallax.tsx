@@ -135,6 +135,10 @@ export default function ZoomParallax() {
     const frac = (n: number) => n - Math.floor(n);
     const hash = (n: number) => frac(Math.sin(n * 127.1) * 43758.5453);
 
+    // Último valor de la rampa de entrada móvil — permite una escritura
+    // final de limpieza al llegar a 1 y cero churn en reposo.
+    let lastEntry = 1;
+
     function onScroll() {
       const vh = window.innerHeight;
       const isMobile = window.innerWidth <= 768;
@@ -144,6 +148,17 @@ export default function ZoomParallax() {
       const scrolled = -rect.top;
 
       const raw = Math.max(0, Math.min(1, scrolled / total));
+
+      // RAMPA DE ENTRADA (solo móvil): la sección se remonta -160px bajo la
+      // cola del reel de Servicios ("no perder continuidad") y la card
+      // central se maqueta GIGANTE (2.2×) — su mitad superior VACÍA asomaba
+      // sobre las últimas cards del reel como "una card bugeada tapando
+      // media pantalla". Las cards (ancla DOM + su mesh de cristal, que
+      // espejea la opacidad inline) solo se materializan cuando la sección
+      // TOMA la pantalla: opacidad completa al cruzar top ≤ 0, insinuación
+      // en los últimos 0.18·vh (~150px) — durante el pin del reel (top
+      // ≥ 150px hasta la última card) no asoma nada.
+      const entry = !isMobile ? 1 : Math.min(1, Math.max(0, (vh * 0.18 - rect.top) / (vh * 0.18)));
       let progress: number;
       if (isMobile) {
         // Ease-out (was cubic over 80% of the scroll). The higher exponent
@@ -206,9 +221,10 @@ export default function ZoomParallax() {
           const glitching = !rmMql.matches && t > 0 && t < 1;
           if (!glitching) {
             // Reduced motion keeps the plain smoothstep fade; outside the
-            // band this also serves as the reset/cleanup path.
+            // band this also serves as the reset/cleanup path. Multiplied
+            // by la rampa de entrada (ver arriba).
             const fade = 1 - t * t * (3 - 2 * t);
-            img.style.opacity = fade.toFixed(3);
+            img.style.opacity = (fade * entry).toFixed(3);
             img.style.setProperty("--zpg", "0");
             if (img.classList.contains("nxr-zp-glitching")) {
               img.classList.remove("nxr-zp-glitching");
@@ -233,7 +249,7 @@ export default function ZoomParallax() {
             const die = 1 - u * u * (3 - 2 * u);
             const st = hash(seed * 3 + 11);
             const strobe = st > 0.68 ? 0.3 + 0.45 * hash(seed + 5) : 1;
-            img.style.opacity = (die * strobe).toFixed(3);
+            img.style.opacity = (die * strobe * entry).toFixed(3);
             if (heroBase) heroBase.style.opacity = Math.max(0, 1 - t * 3.2).toFixed(3);
             img.style.setProperty("--zpg", ((hash(seed) - 0.5) * 2 * g).toFixed(3));
             const K = heroSlices.length || 1;
@@ -251,6 +267,11 @@ export default function ZoomParallax() {
               sl.style.opacity = h1 > 0.22 ? "1" : "0";
             });
           }
+        } else if (isMobile && (entry < 1 || lastEntry < 1)) {
+          // Cards laterales: misma rampa de entrada (sus meshes también
+          // asomarían). "" limpia el inline al completarse (mesh lo lee
+          // como 1) y corta las escrituras por frame en reposo.
+          img.style.opacity = entry >= 1 ? "" : entry.toFixed(3);
         }
         // Real on-screen height AFTER the transform above — comparable
         // across cards despite their different base CSS sizes/max values,
@@ -274,6 +295,7 @@ export default function ZoomParallax() {
       imgs.forEach((img, i) => {
         if (img) img.style.zIndex = i === dominantIdx ? "1" : "2";
       });
+      lastEntry = entry;
     }
 
     window.addEventListener("scroll", onScroll, { passive: true });

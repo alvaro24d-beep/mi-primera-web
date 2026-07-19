@@ -147,10 +147,6 @@ export default function ZoomParallax() {
       // (La rampa de entrada móvil de V16.4 se eliminó en V16.6: su causa —
       // el remonte -160px bajo el reel — ya no existe (margin-top: 0 en
       // globals.css), así que la sección aparece COMO EN ORDENADOR.)
-      // Driver de salida de la card central (ver su uso abajo): distancia
-      // scrolleada desde que la sección asoma por el borde inferior,
-      // normalizada para completarse a vh + 15% del recorrido interno.
-      const pDrive = Math.max(0, Math.min(1, (vh - rect.top) / (vh + total * 0.15)));
       let progress: number;
       if (isMobile) {
         // Ease-out (was cubic over 80% of the scroll). The higher exponent
@@ -194,16 +190,16 @@ export default function ZoomParallax() {
         // ordenador. Las demás cards conservan el pacing global (curva S
         // con cola lenta) intacto: la sección no se acelera (lección de
         // V15.95-96).
-        // La salida de la frase arranca EN CUANTO la sección ASOMA por
-        // abajo (V16.13, "que nada más aparezcan ya empiece la animación
-        // de salida"): raw vale 0 durante toda la aproximación (una
-        // pantalla entera con la frase quieta — eso era el "mucho scroll
-        // para pasarlas"), así que su driver es s = vh − rect.top, que
-        // crece desde que la sección asoma y se completa poco después del
-        // pin (vh + 15% del recorrido interno). Pasarla cuesta el scroll
-        // de aproximación que ya hacías de todos modos. Las demás cards
-        // siguen con el progress normal.
-        const p = i === 0 ? 1 - Math.pow(1 - pDrive, 1.5) : progress;
+        // La frase NUNCA está estática (V16.14, "que salga despacio y se
+        // oculte despacio pero que no se quede sticky"): llega ENTERA
+        // durante la aproximación natural (el V16.13 la sacaba ya durante
+        // la subida y aparecía a medias — revertido), y en el INSTANTE en
+        // que la sección pinnea su salida ya está en marcha — lineal sobre
+        // raw (movimiento desde el primer píxel de scroll interno, sin
+        // curva de arranque lento) completándose al 60% de la sección:
+        // suave, continuo, jamás quieta. Las demás cards siguen con el
+        // progress normal (curva S con cola lenta).
+        const p = i === 0 ? Math.min(1, raw / 0.6) : progress;
         const scale = max - (max - 1) * p;
         img.style.transform = `scale(${scale / max})`;
         // Mobile only: the CENTRE card (index 0, the one that fills the

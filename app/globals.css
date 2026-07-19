@@ -1735,9 +1735,10 @@ p.nxr-hero-mastery-line {
   .nxr-servicios-captions {
     right: var(--pad-x);
     max-width: none;
-    /* 18vh → 14.5vh ("baja un poco más el resto del texto de cada
-       servicio"): el bloque de texto baja ~3.5vh. */
-    bottom: 14.5vh;
+    /* Higher than the base 12vh (desktop-only request: "sube los textos").
+       La bajada de V16.2 se revirtió: el movimiento de texto/botón era
+       SOLO para móvil. */
+    bottom: 18vh;
   }
   .nxr-servicios-captions .nxr-srv-caption {
     position: relative;
@@ -1750,10 +1751,9 @@ p.nxr-hero-mastery-line {
   .nxr-servicios-captions .nxr-srv-cta-wrap {
     position: absolute;
     right: 0;
-    /* -28 → -14: el botón baja MENOS que el texto (la caption entera bajó
-       3.5vh; con -14 el botón queda ~17px más abajo en absoluto y el texto
-       ~31px — "baja un poco el botón y un poco más el resto"). */
-    bottom: -14px;
+    /* Un poco por debajo del borde de la caption (estado pre-V16.2,
+       restaurado: los movimientos eran solo para móvil). */
+    bottom: -28px;
     margin: 0;
   }
 }
@@ -1884,17 +1884,14 @@ p.nxr-hero-mastery-line {
   letter-spacing: 0.04em;
   text-transform: uppercase;
   color: var(--c-white);
-  /* Sin fondo rojo ("quita el fondo rojo al CTA"): píldora de cristal como
-     las pills de la caption, texto blanco intacto. */
-  background: rgba(255, 255, 255, 0.07);
-  border: 1px solid rgba(255, 255, 255, 0.22);
-  backdrop-filter: blur(8px);
-  border-radius: 100px;
-  padding: 9px 18px;
+  /* Solo texto + flecha ("nada de fondo ni bordes", móvil y ordenador):
+     sin píldora — el padding vertical queda como zona de toque. */
+  background: none;
+  border: none;
+  padding: 9px 0;
   text-decoration: none;
-  transition: background 0.25s, transform 0.25s, box-shadow 0.25s;
+  transition: transform 0.25s, opacity 0.25s;
   white-space: nowrap;
-  box-shadow: var(--glass-shine);
 }
 
 .nxr-srv-cta svg {
@@ -1910,8 +1907,6 @@ p.nxr-hero-mastery-line {
 }
 
 .nxr-srv-cta:hover {
-  background: rgba(255, 255, 255, 0.14);
-  box-shadow: var(--glass-shine-hover);
   transform: translateX(3px);
 }
 
@@ -1932,7 +1927,7 @@ p.nxr-hero-mastery-line {
 @media (max-width: 900px) {
   .nxr-srv-cta {
     font-size: 11px;
-    padding: 8px 16px;
+    padding: 8px 0;
   }
 }
 
@@ -1954,7 +1949,7 @@ p.nxr-hero-mastery-line {
   }
   .nxr-srv-cta {
     font-size: 13px;
-    padding: 10px 20px;
+    padding: 10px 0;
   }
   .nxr-srv-cta svg {
     width: 14px;

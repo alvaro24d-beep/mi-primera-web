@@ -1096,7 +1096,7 @@ export default function Servicios() {
         // umbrales de momentos solapados comparten constante). Cualquier
         // reposo con la frase ya desvaneciéndose desliza la card 0 desde el
         // lado mientras la frase termina de disolverse.
-        if (progress * total < snapPro * 0.32) return;
+        if (progress * total < snapPro * 0.5) return;
         // First settle on mobile: force card 0 (unless the flick genuinely
         // sailed past card 1) and use the page-style ease-in-out glide —
         // see `presentedFirst` above.
@@ -1180,16 +1180,18 @@ export default function Servicios() {
           // (un reposo ahí muestra contenido, no pantalla vacía), y desde
           // 0.32 cualquier reposo trae la card 0 mientras la frase
           // termina.
-          // Duración 1.15·pro (V16.18, "que la frase dure durante más
-          // scroll"): la disolución es más LENTA — arranca igual a
-          // 0.05·pro (nunca quieta) pero acompaña hasta 1.2·pro, ya con la
-          // primera card entrando (el handoff clásico "al desaparecer
-          // justo entre la primera card"). A mitad del prólogo aún se lee
-          // al ~60%. El clamp del ticker va en lockstep (1.3·snapPro).
+          // HOLD + fundido (V16.19, "tiene que verse durante un poco de
+          // scroll desplegada para que se pueda leer"): la frase aguanta a
+          // brillo COMPLETO hasta 0.5·pro (~67vh móvil / ~32vh desktop de
+          // scroll legible) y solo entonces se disuelve, acompañando hasta
+          // 1.2·pro con la primera card ya entrando (el handoff clásico).
+          // 0.5 es la MISMA constante que las guardas de trySnap/touchend
+          // (umbrales de momentos solapados comparten constante) y el
+          // clamp del ticker (1.3·snapPro) cubre el final del fade.
           t.to(
             headTitle,
-            { opacity: 0, filter: "blur(18px)", ease: "none", duration: pro * 1.15 },
-            pro * 0.05
+            { opacity: 0, filter: "blur(18px)", ease: "none", duration: pro * 0.7 },
+            pro * 0.5
           );
         }
         t.fromTo(track, { x: startX() }, { x: endX(), ease: "none", duration: moveAmount() }, pro);
@@ -1356,7 +1358,7 @@ export default function Servicios() {
           // leave the scroll natural. 0.5 = el inicio del fade-out (misma
           // constante que buildTl/trySnap) — soltar con la frase ya
           // desvaneciéndose pagina la card 0.
-          if (p * snapAmount < snapPro * 0.32) return;
+          if (p * snapAmount < snapPro * 0.5) return;
           const eps = 0.02;
           let targetIdx: number | null = null;
           if (dy > 25) {

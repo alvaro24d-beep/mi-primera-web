@@ -1180,13 +1180,15 @@ export default function Servicios() {
           // (un reposo ahí muestra contenido, no pantalla vacía), y desde
           // 0.32 cualquier reposo trae la card 0 mientras la frase
           // termina.
-          // Duración 0.8·pro (V16.16, "hay mucho vacío entre la frase y la
-          // primera card"): la disolución ACOMPAÑA hasta 0.85·pro — sigue
-          // sin haber ni un píxel de scroll con la frase quieta (se funde
-          // desde 0.05·pro), pero ya no deja medio prólogo en blanco.
+          // Duración 1.15·pro (V16.18, "que la frase dure durante más
+          // scroll"): la disolución es más LENTA — arranca igual a
+          // 0.05·pro (nunca quieta) pero acompaña hasta 1.2·pro, ya con la
+          // primera card entrando (el handoff clásico "al desaparecer
+          // justo entre la primera card"). A mitad del prólogo aún se lee
+          // al ~60%. El clamp del ticker va en lockstep (1.3·snapPro).
           t.to(
             headTitle,
-            { opacity: 0, filter: "blur(18px)", ease: "none", duration: pro * 0.8 },
+            { opacity: 0, filter: "blur(18px)", ease: "none", duration: pro * 1.15 },
             pro * 0.05
           );
         }
@@ -1306,11 +1308,11 @@ export default function Servicios() {
           if (!st) return;
           const y = window.scrollY;
           // Fuera del rango completo del momento-frase, O ya pasado el
-          // final de su fade-out DENTRO del pin (V16.16: el fade termina a
-          // 0.85·pro — más allá la frase debe estar apagada SIEMPRE; una
+          // final de su fade-out DENTRO del pin (V16.18: el fade termina a
+          // 1.2·pro — más allá la frase debe estar apagada SIEMPRE; una
           // carrera de catch-ups tras un salto la dejaba pintada sobre las
           // cards del reel: "no se oculta y se queda sobre la sección").
-          const outside = y < st.start - window.innerHeight || y > st.end || y > st.start + snapPro * 0.95;
+          const outside = y < st.start - window.innerHeight || y > st.end || y > st.start + snapPro * 1.3;
           if (outside && headTitle.style.opacity !== "0") {
             gsap.set(headTitle, { opacity: 0 });
           }

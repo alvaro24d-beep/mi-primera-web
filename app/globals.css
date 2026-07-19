@@ -3110,21 +3110,20 @@ p.nxr-hero-mastery-line {
        CTA above the nav in the worst (bar visible) state; when the bar
        hides it simply rides a little higher. Plain fallback first for
        engines without svh/lvh. */
-    /* Bajada adicional V16.2 ("baja un poco más el resto del texto"):
-       114 → 104px sobre el fondo visible. */
-    bottom: 172px;
-    bottom: calc(100lvh - 100svh + 104px);
+    /* Bajada adicional V16.7 ("baja un poco más el bloque de texto, solo
+       en móvil"): 104 → 94px sobre el fondo visible. El translate del CTA
+       baja a 0 en compensación — el botón se queda donde estaba y solo
+       baja el texto. */
+    bottom: 162px;
+    bottom: calc(100lvh - 100svh + 94px);
   }
   .nxr-srv-cta-wrap {
     /* Extra air between the feature pills and the CTA row. */
     margin-top: 12px;
-    /* Baja el botón SIN tocar el layout: la caption está anclada por su
-       borde INFERIOR (bottom: calc(...) arriba), así que más margin-top
-       solo empujaría el texto hacia arriba dejando el CTA donde está. El
-       translate lo desplaza de verdad. 12 → 10 (V16.2): la caption entera
-       bajó 10px, así el botón baja 8 en absoluto y el texto 10 — "un poco
-       el botón, un poco más el texto" — con holgura sobre la bottom nav. */
-    transform: translateY(10px);
+    /* 10 → 0 (V16.7): la caption bajó otros 10px pero SOLO debía bajar el
+       texto — el translate a 0 deja el botón en su posición absoluta
+       previa, conservando la holgura sobre la bottom nav. */
+    transform: translateY(0);
   }
   /* Compact heading while pinned: every px the head gives up is a px the
      card gets — on a phone the natural card content barely fits the

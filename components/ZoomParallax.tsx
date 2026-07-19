@@ -199,7 +199,12 @@ export default function ZoomParallax() {
         // curva de arranque lento) completándose al 60% de la sección:
         // suave, continuo, jamás quieta. Las demás cards siguen con el
         // progress normal (curva S con cola lenta).
-        const p = i === 0 ? Math.min(1, raw / 0.6) : progress;
+        // Span 0.45 + ease-out ^1.6 (V16.15): la lineal /0.6 arrancaba casi
+        // imperceptible (0.94 de escala tras un 5% de scroll — "se queda
+        // quieta"); con esto a raw 5% ya va por 0.88 y el movimiento se ve
+        // desde el primer gesto.
+        const t0 = Math.min(1, raw / 0.45);
+        const p = i === 0 ? 1 - Math.pow(1 - t0, 1.6) : progress;
         const scale = max - (max - 1) * p;
         img.style.transform = `scale(${scale / max})`;
         // Mobile only: the CENTRE card (index 0, the one that fills the

@@ -433,12 +433,12 @@ export default function VolumetricCard({
           distortion={1.35}
           distortionScale={0.006}
           temporalDistortion={0.55}
-          clearcoat={0.15}
+          clearcoat={0.05}
           clearcoatRoughness={0.3}
           ior={1.5}
-          reflectivity={0.55}
+          reflectivity={0.2}
           metalness={0.04}
-          envMapIntensity={0.15}
+          envMapIntensity={0.05}
         />
       ) : isGlass ? (
         // ---- Opaque dark glass (mobile fallback — transmission off) ----
@@ -453,12 +453,12 @@ export default function VolumetricCard({
           attenuationColor={color}
           attenuationDistance={1}
           roughness={0.16 + roughnessJitter}
-          clearcoat={0.15}
+          clearcoat={0.05}
           clearcoatRoughness={0.3}
           ior={1.5}
-          reflectivity={0.55}
+          reflectivity={0.2}
           metalness={0.04}
-          envMapIntensity={0.15}
+          envMapIntensity={0.05}
         />
       ) : (
         <meshPhysicalMaterial
@@ -468,7 +468,7 @@ export default function VolumetricCard({
           clearcoat={0.5}
           clearcoatRoughness={0.25}
           metalness={0.85}
-          envMapIntensity={0.15}
+          envMapIntensity={0.05}
         />
       )}
     </mesh>

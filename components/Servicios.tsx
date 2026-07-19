@@ -1166,16 +1166,19 @@ export default function Servicios() {
           // stretch of track motion: the first card is already
           // materializing out of the helix while the phrase dissolves
           // ("que al desaparecer justo entre la primera card").
-          // Fade-out a 0.32·pro (0.85 → 0.5 → 0.32, V16.12 "reduce más el
-          // sticky"): el hold a brillo completo queda en ~29vh desktop /
-          // ~43vh móvil y la frase está disuelta hacia 0.6·pro. Los guards
-          // de snap/paginación se alinean a la MISMA constante 0.32
-          // (regla: umbrales de momentos solapados comparten constante —
-          // Bug-Log-Zona-Muerta).
+          // Fade-out desde CASI el pin (0.05·pro, V16.15 "no quiero scroll
+          // con las frases quietas"): la frase llega entera por el
+          // approach y en cuanto la sección pinnea ya se está disolviendo
+          // — despacio (duración 0.45·pro, gone hacia 0.5·pro), nunca
+          // estática mientras scrolleas. Los guards de snap/paginación
+          // siguen en 0.32: por debajo la frase aún es legible en su fade
+          // (un reposo ahí muestra contenido, no pantalla vacía), y desde
+          // 0.32 cualquier reposo trae la card 0 mientras la frase
+          // termina.
           t.to(
             headTitle,
-            { opacity: 0, filter: "blur(18px)", ease: "none", duration: pro * 0.28 },
-            pro * 0.32
+            { opacity: 0, filter: "blur(18px)", ease: "none", duration: pro * 0.45 },
+            pro * 0.05
           );
         }
         t.fromTo(track, { x: startX() }, { x: endX(), ease: "none", duration: moveAmount() }, pro);

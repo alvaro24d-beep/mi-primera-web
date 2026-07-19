@@ -154,15 +154,14 @@ export default function ZoomParallax() {
         const t = Math.min(1, raw / 0.94);
         progress = 1 - Math.pow(1 - t, 3.4);
       } else {
-        // The sine-smoothed S-curve is composed with a tail-stretcher:
-        // 1-(1-s)^1.4 re-maps the remaining distance so the LAST stretch of
-        // the animation consumes the section's added height (240→300vh, see
-        // globals.css — retune both together). Early pacing is unchanged in
-        // screen terms (the ^1.4 speed-up cancels against the 1.43x longer
-        // scroll), the approach into the final grid gets progressively
-        // slower, and the derivative still reaches 0 at rest (no snap).
-        const s = raw - Math.sin(raw * Math.PI * 2) / (2 * Math.PI);
-        progress = 1 - Math.pow(1 - s, 1.4);
+        // Fast-START ease-out (was a sine S-curve whose derivative is 0 at
+        // raw=0: la frase central quedaba "sticky" sin moverse durante el
+        // primer tramo POR LA CURVA, daba igual cuánto se recortara la
+        // altura de la sección — tres recortes no lo arreglaron). k=2.2:
+        // la card de la frase encoge desde el primer píxel de scroll
+        // ("menos scroll para pasar la parte sticky"), y la llegada al
+        // grid final mantiene derivada 0 en el reposo (sin snap).
+        progress = 1 - Math.pow(1 - raw, 2.2);
       }
 
       // Each card's layout (width/height/position/font-size/etc.) is static

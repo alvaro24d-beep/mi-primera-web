@@ -3597,6 +3597,12 @@ p.nxr-hero-mastery-line {
 .nxr-tech-inner {
   max-width: var(--max-w);
   margin: 0 auto;
+  /* width 100% (V16.35): como hija de la columna flex .nxr-tech-drift, el
+     margin auto anulaba el stretch y la encogía a su contenido (932px
+     centrados) — el header entero "movido al centro". A ancho completo el
+     título y el párrafo vuelven a los bordes, como en el resto de
+     secciones. */
+  width: 100%;
   padding: 0 var(--pad-x);
   margin-bottom: 48px;
 }

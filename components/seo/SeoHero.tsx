@@ -1,24 +1,19 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
-import dynamic from "next/dynamic";
+import { useEffect, useRef } from "react";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { useGSAP } from "@gsap/react";
 import { useReducedMotion } from "@/hooks/useReducedMotion";
-import type { SeoDrive } from "./SerpScene";
 
 gsap.registerPlugin(ScrollTrigger);
 
-// La escena WebGL queda fuera del critical path igual que en las demás
-// páginas: dynamic + ssr:false (ver CLAUDE.md, "Never statically import").
-const SerpSceneLazy = dynamic(() => import("./SerpScene"), { ssr: false });
-
 // REGLA DE ORO (AGENTS.md): la animación REPRESENTA el servicio. Aquí la
 // historia es literal — una página de resultados de Google donde TU
-// resultado escala posiciones hasta el #1 mientras las métricas suben; el
-// terreno de barras 3D del fondo (SerpScene) asciende contigo. Un visitante
-// entiende "esto es SEO" sin leer nada.
+// resultado escala posiciones hasta el #1 mientras las métricas suben. Un
+// visitante entiende "esto es SEO" sin leer nada. (V16.26: la escena 3D de
+// barras del fondo se eliminó a petición — "no tiene ningún sentido" — y el
+// hero respira sobre el muro de vídeo global, como el resto del sitio.)
 
 const COMPETIDORES = [
   { dominio: "inmobiliaria-lopez.com", titulo: "Reformas y obras en Madrid — Presupuestos" },
@@ -76,12 +71,6 @@ export default function SeoHero() {
   const sectionRef = useRef<HTMLElement>(null);
   const stageRef = useRef<HTMLDivElement>(null);
   const reducedMotion = useReducedMotion();
-  // Puente scroll→escena (patrón del ref de AGENTS.md): GSAP escribe el
-  // progreso en este objeto plano estable; SerpScene lo lee en su useFrame
-  // para el dolly/altura. useState-initializer y no useRef para poder
-  // pasarlo como prop sin leer .current durante el render (regla
-  // react-hooks/refs).
-  const [drive] = useState<SeoDrive>(() => ({ p: 0 }));
 
   // Igual que --dwh-vh en DesarrolloWebHero: Safari y Chrome discrepan sobre
   // 100lvh en móvil, así que la altura del stage se ancla a esta variable
@@ -103,7 +92,6 @@ export default function SeoHero() {
 
       const q = gsap.utils.selector(section);
       const head = q(".nxr-seo-head")[0] as HTMLElement | undefined;
-      const canvasWrap = q(".nxr-seo-canvas-wrap")[0] as HTMLElement | undefined;
       const serpWrap = q(".nxr-seo-serp-wrap")[0] as HTMLElement | undefined;
       const rows = q(".nxr-seo-row") as HTMLElement[];
       const tuyo = rows.find((r) => r.classList.contains("is-tuyo"));
@@ -136,7 +124,6 @@ export default function SeoHero() {
       // permanece oculta por CSS hasta que este efecto fija su estado
       // inicial — sin flash del estado final en navegaciones cliente.
       gsap.set(serpWrap ?? {}, { visibility: "visible", autoAlpha: 0 });
-      gsap.set(canvasWrap ?? {}, { opacity: 0 });
 
       const vh = () => window.innerHeight;
       // Altura de fila + gap, medida (function-based + invalidateOnRefresh:
@@ -154,15 +141,10 @@ export default function SeoHero() {
           invalidateOnRefresh: true,
         },
       });
-      tl.eventCallback("onUpdate", () => {
-        drive.p = tl.progress();
-      });
-
       // ===== A — el titular sale recto hacia arriba (autoAlpha incluido:
       // el scrollhint vive en el mismo contenedor y sin fade se quedaba
       // pegado al borde superior durante todo el pin) =====
       tl.to(head ?? {}, { y: () => -vh() * 0.9, autoAlpha: 0, duration: 1.1, ease: "power2.in" }, 0);
-      tl.to(canvasWrap ?? {}, { opacity: 1, duration: 0.7 }, 0.45);
 
       // ===== B — la SERP entra con perspectiva y se asienta =====
       tl.fromTo(
@@ -336,10 +318,6 @@ export default function SeoHero() {
   return (
     <section key="animated" id="nxr-seo-hero" ref={sectionRef}>
       <div className="nxr-seo-stage" ref={stageRef}>
-        <div className="nxr-seo-canvas-wrap" aria-hidden="true">
-          <SerpSceneLazy drive={drive} />
-        </div>
-
         <div className="nxr-seo-head">
           <h1 className="nxr-seo-h1">
             Que te encuentren

@@ -153,6 +153,8 @@ export default function SceneCanvas() {
       "nxr-aia-noche",
       "nxr-aia-pasos",
       "nxr-precios",
+      "nxr-seo-pasos",
+      "nxr-seo-resultados",
     ];
     // The hero hosts one mostly-static panel (the CTA button): it needs its
     // section tracked in `nearSections` so its PanelSlot does work when

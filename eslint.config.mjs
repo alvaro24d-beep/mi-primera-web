@@ -18,7 +18,7 @@ const eslintConfig = defineConfig([
   // same reasoning as `components/dwh/**`. `components/aia/**` is the
   // /agentes-ia hero scene.
   {
-    files: ["components/dwh/**/*.tsx", "components/scene/**/*.tsx", "components/aia/**/*.tsx"],
+    files: ["components/dwh/**/*.tsx", "components/scene/**/*.tsx", "components/aia/**/*.tsx", "components/seo/**/*.tsx"],
     rules: {
       "react-hooks/purity": "off",
       "react-hooks/immutability": "off",

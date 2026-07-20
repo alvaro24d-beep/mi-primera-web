@@ -7747,3 +7747,747 @@ input[type="range"].nxr-ms-range::-moz-range-thumb {
     margin: 14px 0 30px;
   }
 }
+
+/* ===== SEO (service page) ===== */
+
+/* --- Hero: la SERP que escala al #1 --- */
+
+#nxr-seo-hero {
+  position: relative;
+}
+
+.nxr-seo-stage {
+  position: relative;
+  height: 100lvh;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.nxr-seo-canvas-wrap {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  opacity: 0;
+  /* Viñeta CSS barata (el composer no corre en móvil — ver SerpScene). */
+  background: radial-gradient(ellipse at center, transparent 55%, rgba(3, 5, 9, 0.55) 100%);
+}
+
+.nxr-seo-canvas-wrap canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.nxr-seo-head {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  gap: 18px;
+  padding: 0 var(--pad-x);
+  pointer-events: none;
+}
+
+.nxr-seo-h1 {
+  font-size: clamp(38px, 6vw, 84px);
+  line-height: 1.04;
+  letter-spacing: 0.01em;
+  text-transform: uppercase;
+  color: var(--c-white);
+  max-width: 900px;
+}
+
+.nxr-seo-sub {
+  font-size: clamp(14px, 1.6vw, 18px);
+  color: var(--c-salmon);
+  max-width: 520px;
+  line-height: 1.7;
+}
+
+.nxr-seo-scrollhint {
+  position: absolute;
+  bottom: 26px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 12px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.45);
+}
+
+/* Contenedor con perspectiva: la SERP entra tumbada (rotateX 24°) y se
+   asienta casi plana — la sensación 3D de la entrada vive aquí. Oculta por
+   CSS hasta que el efecto fija su estado inicial (receta anti pin-viejo). */
+.nxr-seo-serp-wrap {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  perspective: 1100px;
+  visibility: hidden;
+  padding: 0 var(--pad-x);
+}
+
+.nxr-seo-float {
+  width: min(680px, 94vw);
+}
+
+.nxr-seo-serp {
+  position: relative;
+  border-radius: var(--radius-lg);
+  background: var(--glass-bg);
+  backdrop-filter: var(--glass-blur);
+  box-shadow: var(--glass-shine), 0 30px 80px rgba(0, 0, 0, 0.45);
+}
+
+.nxr-seo-serp-inner {
+  padding: 18px 20px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.nxr-seo-serp-top {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.nxr-seo-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.18);
+  flex-shrink: 0;
+}
+
+.nxr-seo-searchbar {
+  flex: 1;
+  margin-left: 8px;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  background: rgba(255, 255, 255, 0.07);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 999px;
+  padding: 8px 14px;
+  min-height: 36px;
+}
+
+.nxr-seo-searchbar svg {
+  width: 15px;
+  height: 15px;
+  stroke: var(--c-salmon);
+  stroke-width: 2;
+  fill: none;
+  stroke-linecap: round;
+  flex-shrink: 0;
+}
+
+.nxr-seo-query {
+  font-family: var(--font-space-mono), ui-monospace, monospace;
+  font-size: 13px;
+  color: var(--c-white);
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+.nxr-seo-serp-body {
+  display: flex;
+  gap: 12px;
+}
+
+.nxr-seo-ranks {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
+.nxr-seo-rank {
+  height: var(--seo-row-h, 64px);
+  width: 26px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-rajdhani), system-ui, sans-serif;
+  font-weight: 600;
+  font-size: 17px;
+  color: rgba(255, 255, 255, 0.35);
+}
+
+.nxr-seo-rows {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+/* Las filas se INTERCAMBIAN por transform (GSAP mide offsetHeight + 10 de
+   gap): altura fija obligatoria. */
+.nxr-seo-row {
+  position: relative;
+  height: var(--seo-row-h, 64px);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 0 14px;
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  border-radius: var(--radius-md);
+  background: rgba(255, 255, 255, 0.03);
+  overflow: hidden;
+}
+
+.nxr-seo-row.is-tuyo {
+  border-color: rgba(168, 240, 74, 0.35);
+  background: rgba(168, 240, 74, 0.045);
+  z-index: 2;
+}
+
+.nxr-seo-row-fav {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.12);
+  flex-shrink: 0;
+}
+
+.nxr-seo-row.is-tuyo .nxr-seo-row-fav {
+  background: var(--c-lime);
+}
+
+.nxr-seo-row-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.nxr-seo-row-url {
+  font-family: var(--font-space-mono), ui-monospace, monospace;
+  font-size: 10px;
+  color: rgba(255, 255, 255, 0.4);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.nxr-seo-row.is-tuyo .nxr-seo-row-url {
+  color: rgba(168, 240, 74, 0.8);
+}
+
+.nxr-seo-row-title {
+  font-family: var(--font-rajdhani), system-ui, sans-serif;
+  font-weight: 600;
+  font-size: 15px;
+  color: var(--c-white);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.nxr-seo-row-desc {
+  display: flex;
+  gap: 6px;
+}
+
+.nxr-seo-row-desc i {
+  height: 5px;
+  border-radius: 3px;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.nxr-seo-row-desc i:first-child {
+  width: 46%;
+}
+
+.nxr-seo-row-desc i:last-child {
+  width: 26%;
+}
+
+.nxr-seo-row-badge {
+  flex-shrink: 0;
+  font-family: var(--font-rajdhani), system-ui, sans-serif;
+  font-weight: 700;
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  color: #0c1206;
+  background: var(--c-lime);
+  border-radius: 6px;
+  padding: 3px 8px;
+}
+
+.nxr-seo-stats {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  padding: 10px 14px 4px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.nxr-seo-stat {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.nxr-seo-stat-label {
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.4);
+}
+
+.nxr-seo-stat-val {
+  font-family: var(--font-rajdhani), system-ui, sans-serif;
+  font-weight: 600;
+  font-size: 22px;
+  color: var(--c-white);
+  font-variant-numeric: tabular-nums;
+}
+
+.nxr-seo-stat:nth-child(2) .nxr-seo-stat-val {
+  color: var(--c-lime);
+}
+
+.nxr-seo-spark {
+  margin-left: auto;
+  width: 120px;
+  height: 36px;
+  flex-shrink: 0;
+}
+
+.nxr-seo-spark-line {
+  stroke: var(--c-lime);
+  stroke-width: 2.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.nxr-seo-stamp {
+  position: absolute;
+  top: -16px;
+  right: -10px;
+  z-index: 3;
+  font-family: var(--font-rajdhani), system-ui, sans-serif;
+  font-weight: 700;
+  font-size: 15px;
+  letter-spacing: 0.1em;
+  color: var(--c-lime);
+  border: 2px solid var(--c-lime);
+  border-radius: 8px;
+  padding: 6px 12px;
+  background: rgba(6, 10, 4, 0.82);
+  box-shadow: 0 0 26px rgba(168, 240, 74, 0.25);
+  opacity: 0;
+  visibility: hidden;
+}
+
+/* Rama estática (reduced motion): el estado final, sin pin ni canvas. */
+.nxr-seo-static {
+  min-height: 100lvh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 44px;
+  padding: 140px var(--pad-x) 80px;
+}
+
+.nxr-seo-static .nxr-seo-head {
+  position: static;
+  pointer-events: auto;
+}
+
+.nxr-seo-serp-wrap.is-static {
+  position: static;
+  visibility: visible;
+  perspective: none;
+  width: min(680px, 94vw);
+  padding: 0;
+}
+
+.nxr-seo-serp-wrap.is-static .nxr-seo-stamp {
+  opacity: 1;
+  visibility: visible;
+  transform: rotate(-8deg);
+}
+
+/* --- Pasos: badge de posición + relevos --- */
+
+#nxr-seo-pasos {
+  position: relative;
+}
+
+.nxr-seo-pasos-stage {
+  height: 100lvh;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 44px;
+  padding: 0 var(--pad-x);
+  overflow: hidden;
+}
+
+.nxr-seo-pasos-header {
+  max-width: 1100px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+.nxr-seo-pasos-header .nxr-section-h2 {
+  margin-bottom: 0;
+}
+
+.nxr-seo-pasos-grid {
+  max-width: 1100px;
+  margin: 0 auto;
+  width: 100%;
+  display: grid;
+  grid-template-columns: 340px 1fr;
+  gap: 28px;
+  align-items: stretch;
+}
+
+/* Anclas de cristal volumétrico (la escena global pinta el cuerpo): solo
+   layout, nada de glass CSS — mismo contrato que .nxr-intro-card. */
+.nxr-seo-pos {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 34px 24px;
+  border-radius: var(--radius-lg);
+  min-height: 340px;
+}
+
+.nxr-seo-pos-label {
+  font-size: 11px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.45);
+}
+
+.nxr-seo-ring {
+  position: absolute;
+  inset: 0;
+  margin: auto;
+  width: min(260px, 80%);
+  height: min(260px, 80%);
+  transform: rotate(-90deg);
+}
+
+.nxr-seo-ring-track,
+.nxr-seo-ring-fill {
+  fill: none;
+  stroke-width: 6;
+  stroke-linecap: round;
+}
+
+.nxr-seo-ring-track {
+  stroke: rgba(255, 255, 255, 0.08);
+}
+
+.nxr-seo-ring-fill {
+  stroke: var(--c-lime);
+}
+
+.nxr-seo-pos-num {
+  font-family: var(--font-rajdhani), system-ui, sans-serif;
+  font-weight: 700;
+  font-size: clamp(56px, 6vw, 84px);
+  color: var(--c-white);
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+
+.nxr-seo-paso-card {
+  position: relative;
+  border-radius: var(--radius-lg);
+  min-height: 340px;
+}
+
+.nxr-seo-paso {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 14px;
+  padding: 40px 44px;
+}
+
+.nxr-seo-paso-num {
+  font-family: var(--font-rajdhani), system-ui, sans-serif;
+  font-weight: 700;
+  font-size: 13px;
+  letter-spacing: 0.16em;
+  color: var(--c-red);
+}
+
+.nxr-seo-paso-titulo {
+  font-size: clamp(24px, 2.6vw, 36px);
+  color: var(--c-white);
+  line-height: 1.15;
+}
+
+.nxr-seo-paso-desc {
+  font-size: 14px;
+  line-height: 1.75;
+  color: var(--c-salmon);
+  max-width: 460px;
+}
+
+.nxr-seo-pasos-static {
+  padding: var(--section-pad) var(--pad-x);
+}
+
+.nxr-seo-pasos-static-list {
+  max-width: 1100px;
+  margin: 40px auto 0;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 20px;
+}
+
+.nxr-seo-paso-static {
+  border-radius: var(--radius-lg);
+  padding: 30px 26px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.nxr-seo-paso-pos {
+  font-family: var(--font-rajdhani), system-ui, sans-serif;
+  font-weight: 700;
+  font-size: 40px;
+  color: var(--c-lime);
+}
+
+/* --- Resultados: la gráfica que se dibuja --- */
+
+#nxr-seo-resultados {
+  padding: var(--section-pad) var(--pad-x);
+}
+
+.nxr-seo-res-inner {
+  max-width: 1100px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 36px;
+}
+
+.nxr-seo-res-header {
+  max-width: 760px;
+}
+
+.nxr-seo-res-intro {
+  font-size: 15px;
+  line-height: 1.75;
+  color: var(--c-salmon);
+  max-width: 560px;
+}
+
+.nxr-seo-res-panel {
+  border-radius: var(--radius-lg);
+  padding: 26px 28px 18px;
+}
+
+.nxr-seo-gsc-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 18px;
+}
+
+.nxr-seo-gsc-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+}
+
+.nxr-seo-gsc-leg {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.6);
+  margin-right: 12px;
+}
+
+.nxr-seo-gsc-rango {
+  margin-left: auto;
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.35);
+}
+
+.nxr-seo-gsc {
+  width: 100%;
+  height: clamp(160px, 24vw, 240px);
+}
+
+.nxr-seo-gsc-grid line {
+  stroke: rgba(255, 255, 255, 0.06);
+  stroke-width: 1;
+}
+
+.nxr-seo-gsc-line {
+  stroke-width: 2.5;
+  stroke-linecap: round;
+}
+
+.nxr-seo-gsc-line.is-clics {
+  stroke: var(--c-lime);
+}
+
+.nxr-seo-gsc-line.is-impr {
+  stroke: var(--c-salmon);
+}
+
+.nxr-seo-gsc-area.is-clics {
+  fill: rgba(168, 240, 74, 0.1);
+}
+
+.nxr-seo-gsc-area.is-impr {
+  fill: rgba(255, 157, 125, 0.07);
+}
+
+.nxr-seo-chips {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 20px;
+}
+
+.nxr-seo-chip {
+  border-radius: var(--radius-lg);
+  padding: 24px 26px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.nxr-seo-chip-val {
+  font-family: var(--font-rajdhani), system-ui, sans-serif;
+  font-weight: 700;
+  font-size: clamp(34px, 3.6vw, 48px);
+  color: var(--c-lime);
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+
+.nxr-seo-chip:nth-child(2) .nxr-seo-chip-val {
+  color: var(--c-salmon);
+}
+
+.nxr-seo-chip-label {
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+/* --- Responsive --- */
+
+@media (max-width: 900px) {
+  .nxr-seo-pasos-grid {
+    grid-template-columns: 1fr;
+    gap: 18px;
+  }
+  .nxr-seo-pos {
+    min-height: 250px;
+    padding: 22px;
+  }
+  .nxr-seo-ring {
+    width: min(200px, 70%);
+    height: min(200px, 70%);
+  }
+  .nxr-seo-paso-card {
+    min-height: 300px;
+  }
+  .nxr-seo-paso {
+    padding: 28px 24px;
+    justify-content: flex-start;
+  }
+  .nxr-seo-pasos-static-list {
+    grid-template-columns: 1fr;
+  }
+  .nxr-seo-chips {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 768px) {
+  .nxr-seo-stage {
+    height: calc(var(--seo-vh, 100lvh));
+  }
+  .nxr-seo-h1 {
+    font-size: clamp(36px, 10.5vw, 54px);
+  }
+  .nxr-seo-serp-wrap {
+    /* Despeja el nav flotante inferior (~63px + 20px de borde): la SERP
+       centrada sube un poco para que el sello y las stats no queden
+       debajo. */
+    padding-bottom: 96px;
+  }
+  .nxr-seo-float {
+    width: min(560px, 100%);
+  }
+  .nxr-seo-serp-inner {
+    padding: 14px 14px 12px;
+    gap: 11px;
+  }
+  :root {
+    --seo-row-h: 56px;
+  }
+  .nxr-seo-row {
+    padding: 0 11px;
+    gap: 9px;
+  }
+  .nxr-seo-row-title {
+    font-size: 13px;
+  }
+  .nxr-seo-rank {
+    width: 20px;
+    font-size: 14px;
+  }
+  .nxr-seo-spark {
+    display: none;
+  }
+  .nxr-seo-stats {
+    gap: 14px;
+    justify-content: space-between;
+  }
+  .nxr-seo-stat-val {
+    font-size: 18px;
+  }
+  .nxr-seo-stamp {
+    top: -14px;
+    right: 2px;
+    font-size: 13px;
+  }
+  .nxr-seo-scrollhint {
+    bottom: calc(96px + env(safe-area-inset-bottom));
+  }
+  .nxr-seo-pasos-stage {
+    gap: 24px;
+    justify-content: flex-start;
+    padding-top: 110px;
+  }
+  .nxr-seo-paso-titulo {
+    font-size: 22px;
+  }
+  .nxr-seo-res-panel {
+    padding: 18px 16px 12px;
+  }
+}

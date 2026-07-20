@@ -8479,15 +8479,69 @@ input[type="range"].nxr-ms-range::-moz-range-thumb {
   .nxr-seo-scrollhint {
     bottom: calc(96px + env(safe-area-inset-bottom));
   }
+  /* Pasos móvil (V16.25, "las cards se tapan por el menú inferior"): el
+     stage reserva el hueco del nav flotante (~83px + safe-area) con
+     padding-bottom, y badge+card se compactan para caber SIEMPRE — la
+     suma se verifica en el harness también a 700px de alto. */
   .nxr-seo-pasos-stage {
-    gap: 24px;
+    gap: 16px;
     justify-content: flex-start;
-    padding-top: 110px;
+    padding-top: 92px;
+    padding-bottom: calc(100px + env(safe-area-inset-bottom));
+  }
+  .nxr-seo-pasos-header .nxr-section-h2 {
+    margin-bottom: 0;
+  }
+  .nxr-seo-pos {
+    min-height: 185px;
+    padding: 16px;
+  }
+  .nxr-seo-ring {
+    width: min(160px, 62%);
+    height: min(160px, 62%);
+  }
+  .nxr-seo-pos-num {
+    font-size: 46px;
+  }
+  .nxr-seo-paso-card {
+    min-height: 235px;
+  }
+  .nxr-seo-paso {
+    padding: 20px 18px;
   }
   .nxr-seo-paso-titulo {
-    font-size: 22px;
+    font-size: 20px;
+  }
+  .nxr-seo-paso-desc {
+    font-size: 13px;
+    line-height: 1.65;
   }
   .nxr-seo-res-panel {
     padding: 18px 16px 12px;
+  }
+}
+
+/* Teléfonos bajos (toolbar visible / pantallas pequeñas): compactar un
+   punto más para que badge+card sigan por encima del nav. */
+@media (max-width: 768px) and (max-height: 740px) {
+  .nxr-seo-pasos-stage {
+    padding-top: 78px;
+    gap: 12px;
+  }
+  .nxr-seo-pasos-header .nxr-section-h2 {
+    font-size: 24px;
+  }
+  .nxr-seo-pos {
+    min-height: 150px;
+  }
+  .nxr-seo-ring {
+    width: min(130px, 56%);
+    height: min(130px, 56%);
+  }
+  .nxr-seo-pos-num {
+    font-size: 38px;
+  }
+  .nxr-seo-paso-card {
+    min-height: 205px;
   }
 }

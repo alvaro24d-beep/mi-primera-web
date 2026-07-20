@@ -46,7 +46,6 @@ export default function PreciosFaq() {
   return (
     <section id="nxr-precios" ref={sectionRef}>
       <div className="nxr-precios-inner">
-        <span className="nxr-section-label nxr-reveal">Precios</span>
         <h1 className="nxr-section-h2 nxr-reveal">Claridad antes de empezar.</h1>
         <p className="nxr-precios-intro nxr-reveal">
           Sin tarifas genéricas: cada sistema se presupuesta a medida. Esto es lo que siempre puedes esperar de

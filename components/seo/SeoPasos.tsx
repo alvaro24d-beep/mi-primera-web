@@ -126,7 +126,6 @@ export default function SeoPasos() {
     return (
       <section key="static" id="nxr-seo-pasos" ref={sectionRef} className="nxr-seo-pasos-static">
         <div className="nxr-seo-pasos-header">
-          <span className="nxr-section-label">Cómo lo hacemos</span>
           <h2 className="nxr-section-h2" ref={titleRef}>
             De invisible <span className="nxr-gradient-text-lime">al primer puesto.</span>
           </h2>
@@ -149,7 +148,6 @@ export default function SeoPasos() {
     <section key="animated" id="nxr-seo-pasos" ref={sectionRef}>
       <div className="nxr-seo-pasos-stage" ref={stageRef}>
         <div className="nxr-seo-pasos-header">
-          <span className="nxr-section-label">Cómo lo hacemos</span>
           <h2 className="nxr-section-h2" ref={titleRef}>
             De invisible <span className="nxr-gradient-text-lime">al primer puesto.</span>
           </h2>

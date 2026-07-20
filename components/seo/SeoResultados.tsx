@@ -29,7 +29,11 @@ export default function SeoResultados() {
   const reducedMotion = useReducedMotion();
 
   useGlassPanels(sectionRef, ".nxr-seo-res-glass", "#12141c", [reducedMotion]);
-  useCurvedWords(sectionRef, ".nxr-seo-res-intro", "right");
+  // "left": el bloque va alineado a la izquierda — con "right" se veía "al
+  // revés" (la parte derecha distorsionada). tiltDesktop 7 como el bloque
+  // de Contacto (la misma anchura de párrafo): con el 12° por defecto la
+  // proyección se escapaba del contenedor hasta el borde del viewport.
+  useCurvedWords(sectionRef, ".nxr-seo-res-intro", "left", [], { tiltDesktop: 7 });
 
   useGSAP(
     () => {
@@ -95,7 +99,6 @@ export default function SeoResultados() {
     <section id="nxr-seo-resultados" ref={sectionRef}>
       <div className="nxr-seo-res-inner">
         <div className="nxr-seo-res-header">
-          <span className="nxr-section-label">Resultados</span>
           <h2 className="nxr-section-h2" ref={titleRef}>
             Visibilidad que se <span className="nxr-gradient-text-salmon">mide en clientes.</span>
           </h2>

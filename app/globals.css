@@ -4502,20 +4502,17 @@ input[type="range"].nxr-ms-range::-moz-range-thumb {
   #nxr-zoom-parallax {
     /* 160vh (V16.11): tercer recorte, en proporción con desktop. */
     height: 190vh;
-    /* -750px (V16.20, "que en móvil empiece antes la sección, hay mucho
-       espacio vacío"): medido en el harness, del reposo de la última card
-       del reel al pin de ZP había 1918px muertos (~1190 de cola congelada
-       del pin del reel — geometría del reel, NO tocable — más ~730 de
-       transición). Este margen consume la transición entera: ZP pina
-       ~130px después del des-pin del reel. Es seguro porque en móvil el
-       box de ZP está VACÍO en p=0 — mesh de la card central apagado
-       (ZoomParallaxCardsLayer), texto sin teclear (el typewriter dispara a
-       rect.top ≤ 0.12·vh, ya con el reel des-pinado), y el contenido DOM
-       de las 6 vecinas medido fuera del box ([-736,-631] la más cercana,
-       el resto fuera en horizontal). El antiguo límite de -100 (V16.4-6,
-       "card vacía tapando media pantalla") aplicaba a la card visible que
-       ya no existe. */
-    margin-top: -750px;
+    /* -150px (V16.23, tras dos intentos con -750): el margen agresivo era
+       px FIJOS contra una cola/transición del reel proporcional al vh —
+       en el teléfono real (vh menor que el harness) se comía la
+       transición entera y el texto de ZP "seguía saliendo muy pronto,
+       tapando la última card". Con -150 el pin de ZP llega ~1 transición
+       completa (~726px a 844, proporcional en otros vh) después del
+       des-pin del reel en CUALQUIER dispositivo; el fade del sticky keyed
+       al rect de ZP (0.95→0.35·vh, ver ZoomParallax.tsx) y el cinturón
+       del typewriter hacen el resto. NO volver a bajar de aquí con px
+       fijos. */
+    margin-top: -150px;
   }
   /* Nudges the whole stuck layer stack up a bit — a plain transform rather
      than re-deriving each card's individual `top: calc(50% - Xvh)` math,
@@ -4638,9 +4635,13 @@ input[type="range"].nxr-ms-range::-moz-range-thumb {
 .nxr-zp-hero-text {
   /* Sized in vw (clamped) rather than a flat px value so each phrase stays on
      one line and keeps making good use of the available width across the
-     whole desktop/tablet-landscape range, not just at one reference size. */
+     whole desktop/tablet-landscape range, not just at one reference size.
+     V16.23 "la tipografía de la card central que sea la misma que la de los
+     títulos": Rajdhani 500, como el resto de títulos del sitio (regla h1-h6
+     y card-titles). */
+  font-family: var(--font-rajdhani), system-ui, sans-serif;
   font-size: clamp(calc(11px * var(--zp-max, 1)), calc(1.55vw * var(--zp-max, 1)), calc(34px * var(--zp-max, 1)));
-  font-weight: 700;
+  font-weight: 500;
   color: var(--c-white);
   letter-spacing: -0.03em;
   line-height: 1.3;

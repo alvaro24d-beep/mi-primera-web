@@ -11,12 +11,16 @@ const CARDS: { scale: number; mobileScale?: number; content: React.ReactNode }[]
     // than desktop achieves that while still filling most of the screen at
     // the start of the scroll.
     mobileScale: 2.2,
+    // V16.23: texto propio ("cambia el texto para no confundirlo") — el
+    // "Construido con maestría / Entregado con precisión" es la frase del
+    // HERO y estaba duplicada aquí. Esta habla de las stats que hacen zoom
+    // alrededor (+40 proyectos, 98%, 3x ROI).
     content: (
       <div className="nxr-zp-card" style={{ gap: "calc(4px * var(--zp-max, 1))" }}>
         <div className="nxr-zp-hero-text">
-          Construido con maestría.
+          Los números
           <br />
-          <span className="nxr-gradient-text-lime">Entregado con precisión.</span>
+          <span className="nxr-gradient-text-lime">hablan por nosotros.</span>
         </div>
       </div>
     ),

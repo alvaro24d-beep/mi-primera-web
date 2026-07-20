@@ -99,9 +99,42 @@ export default function Hero() {
       const mastery = q(".nxr-hero-mastery")[0] as HTMLElement | undefined;
       const lines = q(".nxr-hero-mastery-line");
 
-      // Lines start pushed one full line-height below their box; the wrapper's
-      // `overflow: hidden` acts as the mask, so they're invisible at rest.
-      gsap.set(lines, { yPercent: 100 });
+      // V16.23 — ENTRADA POR ESCRITURA A MÁQUINA ("quiero que sea de
+      // animación de escritura", en vez del rise enmascarado que subía
+      // desde abajo). Las líneas se quedan en su sitio (yPercent 0) y lo
+      // que entra son los CARACTERES, revelados en orden por un tween
+      // scrubbed en la fase 2: se escriben al bajar y se des-escriben al
+      // subir, deterministas como el resto del pin. El wrap con overflow
+      // hidden se conserva porque la SALIDA (fase 3, yPercent -100) sigue
+      // siendo el barrido hacia arriba de siempre ("la de salida se queda
+      // igual"). Los spans reutilizan las clases .nxr-zp-tw del typewriter
+      // de ZoomParallax (mismo mecanismo: visibility por carácter sobre
+      // layout pre-renderizado, cero reflow).
+      gsap.set(lines, { yPercent: 0 });
+      const twChars: HTMLElement[] = [];
+      (lines as HTMLElement[]).forEach((line) => {
+        Array.from(line.childNodes).forEach((node) => {
+          if (node.nodeType !== Node.TEXT_NODE) return;
+          const text = node.textContent ?? "";
+          if (!text.trim()) return;
+          const frag = document.createDocumentFragment();
+          for (const ch of text) {
+            if (ch === " ") {
+              frag.appendChild(document.createTextNode(" "));
+            } else {
+              const s = document.createElement("span");
+              s.className = "nxr-zp-tw";
+              s.textContent = ch;
+              frag.appendChild(s);
+              twChars.push(s);
+            }
+          }
+          (node as ChildNode).replaceWith(frag);
+        });
+      });
+      const caret = document.createElement("span");
+      caret.className = "nxr-zp-twcaret";
+      caret.setAttribute("aria-hidden", "true");
       // CSS keeps `.nxr-hero-mastery` `visibility: hidden` until here — without
       // this, the text (which has no CSS-level hiding, only the JS-driven
       // yPercent above) flashes fully visible for a frame on first paint,
@@ -147,9 +180,31 @@ export default function Hero() {
         0
       );
 
-      // ===== Phase 2 — "Construido con maestría." / "Entregado con precisión."
-      // rise up from below their own line, revealed by the mask. =====
-      tl.to(lines, { yPercent: 0, duration: 1, ease: "power2.out" }, 1.1);
+      // ===== Phase 2 — "Construido con maestría." / "Entregado con
+      // precisión." se ESCRIBEN carácter a carácter, atadas al scrub
+      // (reversibles), con el caret persiguiendo al último carácter. =====
+      const twProxy = { n: 0 };
+      let twShown = -1;
+      tl.to(
+        twProxy,
+        {
+          n: twChars.length,
+          duration: 1,
+          ease: "none",
+          onUpdate: () => {
+            const k = Math.round(twProxy.n);
+            if (k === twShown) return;
+            twShown = k;
+            twChars.forEach((c, i) => c.classList.toggle("nxr-zp-tw-on", i < k));
+            if (k > 0 && k < twChars.length) {
+              twChars[k - 1].insertAdjacentElement("afterend", caret);
+            } else {
+              caret.remove();
+            }
+          },
+        },
+        1.1
+      );
 
       // Hold so it's readable.
       tl.to({}, { duration: 0.6 }, 2.1);

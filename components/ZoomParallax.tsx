@@ -216,6 +216,11 @@ export default function ZoomParallax() {
       twChars.forEach((c) => c.classList.remove("nxr-zp-tw-on"));
     };
 
+    // Sticky del reel de Servicios (fade de handoff, ver onScroll):
+    // undefined = aún no buscado; null = no existe en esta página.
+    let reelSticky: HTMLElement | null | undefined;
+    let lastReelFade = "__";
+
     function onScroll() {
       const vh = window.innerHeight;
       const isMobile = window.innerWidth <= 768;
@@ -224,16 +229,44 @@ export default function ZoomParallax() {
       const total = section!.offsetHeight - vh;
       const scrolled = -rect.top;
 
+      // ===== Handoff reel→ZP en móvil (V16.21, "que vaya justo después
+      // de la última card pero no encima"): el sticky del reel se funde en
+      // función del rect REAL de esta sección — geometría visual, inmune a
+      // los desalineamientos de la toolbar (st.end congelado por
+      // ignoreMobileResize vs --vh-100 vivo, que en teléfono real dejaban
+      // la última caption visible bajo la frase). Mapeo: zpTop 0.95·vh →
+      // opacity 1, zpTop 0.35·vh → 0; todo ese tramo cae dentro de la cola
+      // congelada del pin del reel (no se pierde nada en movimiento), y el
+      // typewriter dispara DESPUÉS (0.30·vh), siempre sobre fondo limpio.
+      // Activo también con reduced motion: no es "motion", es gestión de
+      // oclusión — sin él el texto plano se pintaría sobre el reel.
+      if (isMobile) {
+        if (reelSticky === undefined) {
+          reelSticky = document.querySelector<HTMLElement>("#nxr-servicios .nxr-servicios-sticky");
+        }
+        if (reelSticky) {
+          const f = (rect.top / vh - 0.35) / 0.6;
+          const v = f >= 1 ? "" : Math.max(0, Math.min(1, f)).toFixed(3);
+          if (v !== lastReelFade) {
+            lastReelFade = v;
+            reelSticky.style.opacity = v;
+          }
+        }
+      } else if (reelSticky && lastReelFade !== "" && lastReelFade !== "__") {
+        // Rotación/resize a desktop con un fade escrito: restáuralo.
+        lastReelFade = "";
+        reelSticky.style.opacity = "";
+      }
+
       // Disparo del typewriter. Desktop: teclea con la sección a media
       // pantalla, así termina de escribirse justo al quedar centrada.
-      // Móvil: a 0.12·vh — con el margin-top de -750px el reel des-pina a
-      // rect.top ≈ 130, y el texto NO puede aparecer mientras el reel siga
-      // congelado en pantalla (sería el viejo bug del solape); 0.12·vh
-      // (~101px) queda justo después. Si la página CARGA ya dentro/pasada
-      // la sección (deep-link, teleport grande), se muestra completa al
-      // instante — teclear sobre estados avanzados (p. ej. el glitch)
-      // quedaría roto.
-      const twGate = vh * (isMobile ? 0.12 : 0.5);
+      // Móvil: a 0.30·vh — el fade del reel de arriba termina a 0.35·vh,
+      // así que la frase se escribe justo cuando la última card acaba de
+      // fundirse, nunca encima, y con ~250px de tecleo visible subiendo a
+      // su centro. Si la página CARGA ya dentro/pasada la sección
+      // (deep-link, teleport grande), se muestra completa al instante —
+      // teclear sobre estados avanzados (p. ej. el glitch) quedaría roto.
+      const twGate = vh * (isMobile ? 0.3 : 0.5);
       if (twChars.length) {
         if (!twInit) {
           twInit = true;
@@ -431,6 +464,7 @@ export default function ZoomParallax() {
       window.removeEventListener("resize", onScroll);
       window.clearInterval(twTimer);
       caret.remove();
+      if (reelSticky) reelSticky.style.opacity = "";
     };
   }, []);
 

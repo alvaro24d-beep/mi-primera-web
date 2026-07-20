@@ -1352,30 +1352,12 @@ export default function Servicios() {
         cleanups.push(() => gsap.ticker.remove(clampTitle));
       }
 
-      // V16.20 (solo móvil): FADE DE SALIDA del sticky del reel en los
-      // últimos 250px de la cola congelada del pin (ahí no se mueve nada,
-      // es puro runway). Con ZP remontado -750px (globals.css), ZP pina
-      // ~130px tras el des-pin del reel, pero el sticky — captions
-      // ancladas abajo incluidas — seguía EN PANTALLA otros ~844px y la
-      // frase de ZP se tecleaba encima de la última caption (visto en el
-      // harness). Determinista por scroll y reversible; en desktop ZP no
-      // está remontado y el reel sale de pantalla por flujo normal.
-      const stickyEl = stickyRef.current;
-      if (window.innerWidth <= 900 && stickyEl) {
-        let lastFade = "__";
-        const exitFade = () => {
-          const st = tl.scrollTrigger;
-          if (!st) return;
-          const f = (window.scrollY - (st.end - 250)) / 250;
-          const v = f <= 0 ? "" : Math.max(0, Math.min(1, 1 - f)).toFixed(3);
-          if (v !== lastFade) {
-            lastFade = v;
-            stickyEl.style.opacity = v;
-          }
-        };
-        gsap.ticker.add(exitFade);
-        cleanups.push(() => gsap.ticker.remove(exitFade));
-      }
+      // (V16.21) El fade de salida del sticky del reel vive ahora en
+      // ZoomParallax.tsx, anclado al rect REAL de la sección ZP y no a
+      // st.end: los números de scroll congelados (ignoreMobileResize) se
+      // desalineaban con la toolbar del teléfono y la frase de ZP se
+      // tecleaba sobre la última caption aún visible ("salen las palabras
+      // por encima de la última card").
 
       // ---- Mobile pagination: ONE card per swipe. A flick's inertia would
       // otherwise fly past several cards; instead, on touchend we glide to

@@ -5,6 +5,7 @@ import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { useGSAP } from "@gsap/react";
 import { useTitleReveal } from "@/hooks/useTitleReveal";
+import { scrambleElement } from "@/hooks/useTextScramble";
 import { useReducedMotion } from "@/hooks/useReducedMotion";
 import { useGlassPanels } from "@/hooks/useGlassPanels";
 import { useCurvedWords } from "@/hooks/useCurvedWords";
@@ -139,7 +140,16 @@ export default function Intro() {
       const scramble = () => {
         cancelScramble?.();
         const words = Array.from(texts.querySelectorAll<HTMLElement>(".nxr-cw-word"));
-        if (!words.length) return;
+        // V16.21: en móvil NO hay .nxr-cw-word — useCurvedWords hace early
+        // return <901px desde "quita la perspectiva de los textos en
+        // móvil", así que este scramble llevaba MUDO en teléfono desde
+        // entonces ("no has cambiado la del párrafo de la intro"). Ahí se
+        // usa el MISMO scrambleElement de las captions del reel, que crea
+        // sus propios spans por palabra.
+        if (!words.length) {
+          texts.querySelectorAll<HTMLElement>(".nxr-intro-text").forEach((p) => scrambleElement(p));
+          return;
+        }
         const originals = words.map((w) => w.textContent ?? "");
         const total = originals.reduce((n, t) => n + t.length, 0);
         words.forEach((w) => (w.style.width = `${w.offsetWidth}px`));
@@ -193,15 +203,18 @@ export default function Intro() {
       ScrollTrigger.create({
         trigger: texts.parentElement ?? texts,
         start: isDesktop ? "top 55%" : "top 82%",
+        // V16.21: la entrada es REAL-TIME también en móvil — la receta de
+        // las captions del reel (opacity 0→1 + blur 5→0 rápidos + scramble)
+        // en el momento de cruzar, no un fundido lento atado al scrub que
+        // resultaba imperceptible ("no has cambiado la del párrafo de la
+        // intro"). El scrub conserva solo el hold y el fade de SALIDA.
         onEnter: () => {
-          if (isDesktop)
-            gsap.to(texts, { opacity: 1, filter: "blur(0px)", duration: 0.45, ease: "power1.out", overwrite: "auto" });
+          gsap.to(texts, { opacity: 1, filter: "blur(0px)", duration: 0.45, ease: "power1.out", overwrite: "auto" });
           scramble();
         },
         onLeaveBack: () => {
           cancelScramble?.();
-          if (isDesktop)
-            gsap.to(texts, { opacity: 0, filter: "blur(5px)", duration: 0.2, ease: "power1.in", overwrite: "auto" });
+          gsap.to(texts, { opacity: 0, filter: "blur(5px)", duration: 0.2, ease: "power1.in", overwrite: "auto" });
         },
       });
 
@@ -237,15 +250,22 @@ export default function Intro() {
         // the px-per-unit scrub mapping) now that the cards have no tween.
         tl.to({}, { duration: 0.2 }, 2.8);
       } else {
-        // Phase 1 — the text fades IN, riding the page at NORMAL scroll speed
-        // (no y offset — see the gsap.set note above). El blur 5→0 replica
-        // la entrada de las captions del reel.
-        tl.to(texts, { opacity: 1, filter: "blur(0px)", duration: 1, ease: "power2.out" }, 0);
-        // Hold — V16.20 "que dure más antes de desaparecer": 0.7 → 1.2
-        // unidades de lectura a brillo completo (~375px al px/unit actual).
+        // V16.21: la ENTRADA ya no vive en el scrub (es el trigger
+        // real-time de arriba, como en desktop) — el scrub conserva el
+        // presupuesto (spacer donde iba el fade-in) para no alterar el
+        // px/unit, el hold alargado (V16.20, "que dure más") y el fade de
+        // SALIDA, que sigue scrubbed (la salida no cambia). fromTo con
+        // immediateRender:false: sin él, un fromTo a mitad de timeline
+        // pinta opacity 1 en el refresh y desvela el bloque antes de
+        // tiempo (misma lección que el fromTo del desktop).
+        tl.to({}, { duration: 1 }, 0);
         tl.to({}, { duration: 1.2 }, 1);
-        // Phase 2 — fade back OUT, still at page speed (no upward drift).
-        tl.to(texts, { opacity: 0, duration: 1, ease: "power2.in" }, 2.2);
+        tl.fromTo(
+          texts,
+          { opacity: 1 },
+          { opacity: 0, duration: 1, ease: "power2.in", immediateRender: false },
+          2.2
+        );
         // Spacer keeps the previous scrub pacing now that the cards (which
         // used to close the timeline at ~2.4) are plain flow content.
         tl.to({}, { duration: 0.7 }, 2.2);

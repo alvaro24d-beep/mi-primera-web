@@ -8,7 +8,6 @@ import { useTitleReveal } from "@/hooks/useTitleReveal";
 import { scrambleElement } from "@/hooks/useTextScramble";
 import { useReducedMotion } from "@/hooks/useReducedMotion";
 import { useGlassPanels } from "@/hooks/useGlassPanels";
-import { useCurvedWords } from "@/hooks/useCurvedWords";
 import { useDampedSticky } from "@/hooks/useDampedSticky";
 import { useScrollBrake } from "@/hooks/useScrollBrake";
 
@@ -70,14 +69,12 @@ export default function Intro() {
   // see the .nxr-intro-card CSS, which no longer paints its own glass.
   useGlassPanels(sectionRef, ".nxr-intro-card", "#12141c", [reducedMotion]);
 
-  // ONE block wrapping both paragraphs (see the JSX comment) so they share a
-  // single deformation surface. "right": this column sits on the RIGHT half
-  // of the screen, where the concave backdrop wraps its right side toward
-  // the viewer — and matches the requested mobile direction too.
-  useCurvedWords(sectionRef, ".nxr-intro-textblock", "right");
-
-  // Dynamic per-line bow on the (gradient) headline too — see Proceso.tsx.
-  useCurvedWords(sectionRef, ".nxr-intro-headline", "left", [], { bowOnly: true, useExistingWords: true });
+  // (V16.29) Los dos efectos de perspectiva de la sección — la curvatura
+  // del bloque de párrafos (useCurvedWords "right") y el arqueado por línea
+  // del titular (bowOnly) — se ELIMINARON a petición: "quita el efecto
+  // perspectiva de la sección intro, que se vea normal". El scramble de
+  // entrada no los necesita: sin .nxr-cw-word cae al fallback de
+  // scrambleElement (mismo efecto que las captions del reel).
 
   // Both sticky elements (headline + paragraph block) decelerate smoothly
   // into their stuck position and ease back out instead of freezing dead the

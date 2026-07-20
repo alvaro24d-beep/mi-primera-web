@@ -437,7 +437,8 @@ p.nxr-hero-mastery-line {
   /* The curved paragraphs must not span the full width — extra air on the
      RIGHT ("que dejen un espacio mayor a la derecha"), which also gives the
      left-side distortion room to breathe away from the frame. */
-  .nxr-intro-textblock,
+  /* (.nxr-intro-textblock ya no está aquí: Intro perdió su tilt en V16.29
+     y no necesita el aire lateral del plano curvado.) */
   .nxr-tech-header,
   .nxr-proceso-textblock,
   .nxr-contacto-textblock,

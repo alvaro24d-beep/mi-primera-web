@@ -3588,7 +3588,9 @@ p.nxr-hero-mastery-line {
 #nxr-tech {
   position: relative;
   z-index: 1;
-  padding: var(--section-pad) 0;
+  /* Solo padding inferior (V16.33): el stage pineado de la esfera mide
+     100lvh y trae su propio aire superior. */
+  padding: 0 0 var(--section-pad);
   overflow: hidden;
 }
 
@@ -3621,72 +3623,51 @@ p.nxr-hero-mastery-line {
   flex-shrink: 0;
 }
 
-.nxr-marquee-wrap {
-  position: relative;
-  width: 100%;
-  overflow: hidden;
-  padding: 8px 0;
-}
-
-/* The marquees run only while the section is near the viewport (IO in
-   Tech.tsx toggles .nxr-anims-live) — an infinite transform animation kept
-   ticking the compositor for the whole session otherwise. */
-#nxr-tech:not(.nxr-anims-live) .nxr-marquee-track {
-  animation-play-state: paused;
-}
-
-.nxr-marquee-wrap::before,
-.nxr-marquee-wrap::after {
-  content: "";
-  position: absolute;
-  top: 0;
-  bottom: 0;
-  width: 200px;
-  z-index: 2;
-  pointer-events: none;
-}
-
-.nxr-marquee-wrap::before {
-  left: 0;
-  background: linear-gradient(to right, var(--c-bg), transparent);
-}
-
-.nxr-marquee-wrap::after {
-  right: 0;
-  background: linear-gradient(to left, var(--c-bg), transparent);
-}
-
-.nxr-marquee-track {
+/* V16.33 — La ESFERA DE HERRAMIENTAS sustituye a los dos marquees
+   infinitos: el stage se pina y los chips, distribuidos en fibonacci sobre
+   una esfera que gira lenta, se despliegan y APLANAN a una retícula
+   conforme avanza el scroll (motor en Tech.tsx: p del scrub + rot del
+   ticker; billboard 2D — translate/scale/opacity por profundidad — para
+   que el texto sea legible en todo momento). */
+.nxr-tech-stage {
+  height: 100lvh;
   display: flex;
-  gap: 16px;
-  width: max-content;
-  animation: nxr-marquee 30s linear infinite;
+  flex-direction: column;
+  padding-top: 90px;
 }
 
-.nxr-marquee-track:hover {
-  animation-play-state: paused;
+.nxr-tech-sphere-wrap {
+  position: relative;
+  flex: 1;
+  min-height: 0;
 }
 
-@keyframes nxr-marquee {
-  0% {
-    transform: translateX(0);
-  }
-  100% {
-    transform: translateX(-50%);
-  }
+.nxr-tech-sphere-wrap .nxr-tech-card {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  will-change: transform, opacity;
 }
 
-.nxr-marquee-track-rev {
-  animation-direction: reverse;
-  animation-duration: 35s;
+/* Reduced motion: sin pin ni motor — retícula plana normal. */
+.nxr-tech-sphere-wrap.is-static {
+  display: flex;
+  flex-wrap: wrap;
+  align-content: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 24px var(--pad-x);
 }
 
-/* Tech chips stay CSS glass (80 of them live in the marquee DOM including
-   loop duplicates — one WebGL transmissive mesh each would be 80 draw calls
-   of the most expensive material in the scene, for chips ~150px wide), but
-   restyled to match the volumetric fluid-glass identity: clearer body,
-   stronger blur of the video wall behind, brighter top rim. At this size the
-   read is near-identical to the real thing. */
+.nxr-tech-sphere-wrap.is-static .nxr-tech-card {
+  position: static;
+}
+
+/* Tech chips stay CSS glass (20 in the sphere — one WebGL transmissive mesh
+   each would be 20 draw calls of the most expensive material in the scene,
+   for chips ~150px wide), but styled to match the volumetric fluid-glass
+   identity: clearer body, stronger blur of the video wall behind, brighter
+   top rim. At this size the read is near-identical to the real thing. */
 .nxr-tech-card {
   display: flex;
   align-items: center;
@@ -3746,10 +3727,6 @@ p.nxr-hero-mastery-line {
   font-size: 11px;
   color: var(--c-salmon);
   font-weight: 400;
-}
-
-.nxr-marquee-spacer {
-  height: 12px;
 }
 
 .nxr-tech-strip {
@@ -3819,15 +3796,26 @@ p.nxr-hero-mastery-line {
   .nxr-tech-header-right {
     max-width: 100%;
   }
+  /* Chips compactos para la esfera en teléfono: solo el nombre (la
+     categoría no cabe en una retícula de 3 columnas a 390px). */
+  .nxr-tech-stage {
+    padding-top: 76px;
+  }
+  .nxr-tech-sphere-wrap .nxr-tech-card {
+    padding: 8px 12px;
+    gap: 8px;
+  }
+  .nxr-tech-sphere-wrap .nxr-tech-card-name {
+    font-size: 11px;
+  }
+  .nxr-tech-sphere-wrap .nxr-tech-card-cat {
+    display: none;
+  }
 }
 
 @media (max-width: 540px) {
   .nxr-tech-strip {
     grid-template-columns: 1fr 1fr;
-  }
-  .nxr-marquee-wrap::before,
-  .nxr-marquee-wrap::after {
-    width: 60px;
   }
 }
 

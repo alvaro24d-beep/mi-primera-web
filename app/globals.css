@@ -4871,11 +4871,14 @@ input[type="range"].nxr-ms-range::-moz-range-thumb {
   align-self: start;
 }
 
+/* V16.28 "que se vea con el mismo tamaño que 'Un proceso claro, sin
+   sorpresas'": mismos valores que .nxr-section-h2 (el título de Proceso) —
+   antes 36-60px/1.06. */
 .nxr-intro-headline {
-  font-size: clamp(36px, 4.5vw, 60px);
+  font-size: clamp(32px, 4.5vw, 56px);
   font-weight: 700;
   letter-spacing: -0.03em;
-  line-height: 1.06;
+  line-height: 1.08;
   color: var(--c-white);
 }
 
@@ -4920,18 +4923,13 @@ input[type="range"].nxr-ms-range::-moz-range-thumb {
   }
 }
 
+/* V16.28: 15px como el párrafo de la cabecera de Proceso
+   (.nxr-proceso-header-right) — supersede el override de 14px de V16.10; en
+   móvil ambos comparten ya los 13px de la regla común de arriba. */
 .nxr-intro-text {
-  font-size: clamp(14px, 1.2vw, 16px);
+  font-size: 15px;
   color: var(--c-salmon);
   line-height: 1.7;
-}
-
-/* Solo ordenador ("reduce el tamaño de letra del texto de Intro"): baja del
-   tope de 16px del clamp a 14px — móvil ya estaba en 14px y no cambia. */
-@media (min-width: 901px) {
-  .nxr-intro-text {
-    font-size: 14px;
-  }
 }
 
 .nxr-intro-text strong {
@@ -5258,7 +5256,8 @@ input[type="range"].nxr-ms-range::-moz-range-thumb {
     transform: none;
   }
   .nxr-intro-headline {
-    font-size: clamp(30px, 8vw, 40px);
+    /* Igual que el .nxr-section-h2 móvil (V16.28). */
+    font-size: clamp(30px, 8vw, 42px);
   }
   .nxr-intro-anim {
     height: 72px;

@@ -458,12 +458,7 @@ p.nxr-hero-mastery-line {
     font-size: 13px;
   }
 
-  /* Room for the dynamic bow: a below-centre last line dips up to ~40px at
-     its outer edge, which grazed the first (always-visible) card. */
-  #nxr-intro-card-1 {
-    margin-top: 48px;
   }
-}
 
 /* Layout for the Servicios caption text block (the tilt target above — NOT
    the full-bleed caption container, whose projection would leave the
@@ -4838,7 +4833,11 @@ input[type="range"].nxr-ms-range::-moz-range-thumb {
 #nxr-intro {
   position: relative;
   z-index: 1;
-  padding: calc(var(--section-pad) + 24px) 0;
+  /* Bottom 60vh (V16.30): sin las cards, esta es la pista que necesita el
+     párrafo — que ya NO es sticky y viaja siempre a velocidad de página —
+     para completar su disolución (ventana +=100% en Intro.tsx) antes de
+     que Servicios asome. */
+  padding: calc(var(--section-pad) + 24px) 0 60vh;
 }
 
 .nxr-intro-inner {
@@ -4893,19 +4892,9 @@ input[type="range"].nxr-ms-range::-moz-range-thumb {
   visibility: hidden;
 }
 
-/* Desktop: the paragraph block is pinned at HALF viewport height while it
-   reads (same sticky-centering pattern as .nxr-intro-left) — it scrambles in
-   and dissolves in place instead of riding up from below. GSAP only ever
-   animates `opacity` on this element on desktop (see Intro.tsx), so this
-   transform is never overwritten; the y-drift tweens are mobile-only. */
-@media (min-width: 901px) {
-  .nxr-intro-texts {
-    position: sticky;
-    /* +70px = half of useDampedSticky's STICKY_EASE (see .nxr-intro-left). */
-    top: calc(50% + 70px);
-    transform: translateY(-50%);
-  }
-}
+/* (V16.30) El bloque de párrafos ya NO es sticky en desktop — viaja a
+   velocidad de página y se disuelve en movimiento ("que no se llegue a
+   parar"). */
 
 /* Single wrapper for BOTH intro paragraphs: useCurvedWords tilts/curves THIS
    element, so the pair deforms as one surface (and GSAP keeps sole ownership
@@ -4945,299 +4934,8 @@ input[type="range"].nxr-ms-range::-moz-range-thumb {
   gap: 24px;
 }
 
-/* Desktop: breathing room between the sticky-centred paragraph block and the
-   first card. The cards are visible as soon as they poke in from the fold,
-   so without this gap the first one would collide with the centred text
-   ~24px of scroll after it sticks. V16.20: 380px → 750px en lockstep con
-   el presupuesto extendido de Intro.tsx (end +=1400, "que dure más antes
-   de desaparecer"): la disolución ahora termina ~1307px tras el arranque
-   del scrub (antes ~933px), así que la card necesita ~374px más de margen
-   para seguir entrando cuando el texto ya se ha fundido. */
-@media (min-width: 901px) {
-  /* By id, not :first-of-type — .nxr-intro-texts is a sibling div, so no
-     card can ever match div:first-of-type here. */
-  #nxr-intro-card-1 {
-    margin-top: 750px;
-  }
-}
-
-/* Plain vertical glass card (no more 3D windmill blade). NOT hidden/revealed
-   anymore: cards are visible from the moment they enter the viewport bottom
-   and simply scroll in as normal flow content ("que salgan de abajo pero que
-   se vean desde el principio") — the old fade-at-mid-screen meant the first
-   card was practically past you by the time it appeared. */
-/* Anchor for a real volumetric fluid-glass mesh (see useGlassPanels in
-   Intro.tsx + components/scene/GlassPanelsLayer.tsx): the element paints NO
-   glass of its own anymore — background/border/blur/shine all come from the
-   WebGL card behind it. Only layout/content styling remains. */
-.nxr-intro-card {
-  position: relative;
-  border-radius: var(--radius-lg);
-  padding: 24px;
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-  overflow: hidden;
-  /* Legibility scrim, not glass: the fully-clear mesh over BRIGHT video
-     regions washed white text out entirely (worst on mobile, where the
-     clip's white face fills the frame). A translucent dark body reads as
-     tinted glass and keeps the content readable over any backdrop. */
-  background: rgba(8, 10, 14, 0.34);
-}
-
-.nxr-intro-card-text {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-/* ---- per-card looping service graphics ---- */
-.nxr-intro-anim {
-  position: relative;
-  height: 84px;
-  border-radius: 12px;
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid rgba(255, 255, 255, 0.06);
-  overflow: hidden;
-  flex-shrink: 0;
-}
-
-/* 01 — Construimos: a website building itself */
-.nxr-ianim-web {
-  display: flex;
-  flex-direction: column;
-  gap: 7px;
-  padding: 11px 14px;
-}
-.nxr-ianim-web-bar {
-  display: flex;
-  gap: 5px;
-}
-.nxr-ianim-web-bar i {
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
-}
-.nxr-ianim-web-bar i:nth-child(1) {
-  background: var(--c-red);
-}
-.nxr-ianim-web-bar i:nth-child(2) {
-  background: var(--c-lime);
-}
-.nxr-ianim-web-bar i:nth-child(3) {
-  background: var(--c-salmon);
-}
-.nxr-ianim-web-body {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  margin-top: 2px;
-}
-.nxr-ianim-web-line {
-  height: 7px;
-  border-radius: 4px;
-  background: linear-gradient(90deg, var(--c-red), rgba(255, 255, 255, 0.16));
-  transform-origin: left center;
-  animation: nxr-ianim-webline 2.6s ease-in-out infinite;
-}
-.nxr-ianim-web-line:nth-child(1) {
-  width: 85%;
-  animation-delay: 0s;
-}
-.nxr-ianim-web-line:nth-child(2) {
-  width: 60%;
-  animation-delay: 0.25s;
-}
-.nxr-ianim-web-line:nth-child(3) {
-  width: 72%;
-  animation-delay: 0.5s;
-}
-@keyframes nxr-ianim-webline {
-  0% {
-    transform: scaleX(0);
-  }
-  35%,
-  85% {
-    transform: scaleX(1);
-  }
-  100% {
-    transform: scaleX(0);
-  }
-}
-
-/* 02 — Automatizamos: nodes with a pulse travelling the flow */
-.nxr-ianim-auto-track {
-  position: absolute;
-  left: 22px;
-  right: 22px;
-  top: 50%;
-  height: 2px;
-  background: rgba(168, 240, 74, 0.25);
-}
-.nxr-ianim-auto-node {
-  position: absolute;
-  top: 50%;
-  width: 14px;
-  height: 14px;
-  margin-top: -7px;
-  border-radius: 50%;
-  background: rgba(8, 12, 20, 1);
-  border: 2px solid var(--c-lime);
-}
-.nxr-ianim-auto-node.n1 {
-  left: 16px;
-}
-.nxr-ianim-auto-node.n2 {
-  left: calc(50% - 7px);
-}
-.nxr-ianim-auto-node.n3 {
-  right: 16px;
-}
-.nxr-ianim-auto-pulse {
-  position: absolute;
-  top: 50%;
-  width: 8px;
-  height: 8px;
-  margin-top: -4px;
-  border-radius: 50%;
-  background: var(--c-lime);
-  box-shadow: 0 0 10px 2px rgba(168, 240, 74, 0.8);
-  animation: nxr-ianim-autopulse 2.4s ease-in-out infinite;
-}
-@keyframes nxr-ianim-autopulse {
-  0% {
-    left: 8%;
-    opacity: 0;
-  }
-  12% {
-    opacity: 1;
-  }
-  50% {
-    left: calc(50% - 4px);
-  }
-  88% {
-    opacity: 1;
-  }
-  100% {
-    left: 90%;
-    opacity: 0;
-  }
-}
-
-/* 03 — Hacemos crecer: growth bars trending up */
-.nxr-ianim-grow {
-  display: flex;
-  align-items: flex-end;
-  justify-content: center;
-  gap: 8px;
-  padding: 14px 16px 12px;
-}
-.nxr-ianim-grow-bar {
-  width: 13px;
-  border-radius: 3px 3px 0 0;
-  background: linear-gradient(to top, var(--c-red), var(--c-salmon));
-  transform-origin: bottom center;
-  animation: nxr-ianim-growbar 2.4s ease-in-out infinite;
-}
-.nxr-ianim-grow-bar:nth-child(1) {
-  height: 26px;
-  animation-delay: 0s;
-}
-.nxr-ianim-grow-bar:nth-child(2) {
-  height: 38px;
-  animation-delay: 0.18s;
-}
-.nxr-ianim-grow-bar:nth-child(3) {
-  height: 48px;
-  animation-delay: 0.36s;
-}
-.nxr-ianim-grow-bar:nth-child(4) {
-  height: 58px;
-  animation-delay: 0.54s;
-}
-@keyframes nxr-ianim-growbar {
-  0% {
-    transform: scaleY(0.15);
-  }
-  45%,
-  80% {
-    transform: scaleY(1);
-  }
-  100% {
-    transform: scaleY(0.15);
-  }
-}
-.nxr-ianim-grow-arrow {
-  position: absolute;
-  top: 12px;
-  right: 12px;
-  width: 18px;
-  height: 18px;
-  fill: none;
-  stroke: var(--c-lime);
-  stroke-width: 2;
-  stroke-linecap: round;
-  stroke-linejoin: round;
-  opacity: 0.85;
-}
-
-.nxr-intro-card::before {
-  content: "";
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 2px;
-  border-radius: 2px 2px 0 0;
-  z-index: 1;
-}
-
-#nxr-intro-card-1::before {
-  background: var(--c-red);
-}
-#nxr-intro-card-2::before {
-  background: var(--c-lime);
-}
-#nxr-intro-card-3::before {
-  background: var(--c-salmon);
-}
-
-.nxr-intro-col-num {
-  font-size: 12px;
-  font-weight: 700;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-}
-
-#nxr-intro-card-1 .nxr-intro-col-num {
-  color: var(--c-red);
-}
-#nxr-intro-card-2 .nxr-intro-col-num {
-  color: var(--c-lime);
-}
-#nxr-intro-card-3 .nxr-intro-col-num {
-  color: var(--c-salmon);
-}
-
-.nxr-intro-col-title {
-  font-size: 20px;
-  font-weight: 700;
-  color: var(--c-white);
-  letter-spacing: -0.02em;
-  line-height: 1.2;
-}
-
-.nxr-intro-col-desc {
-  font-size: 14px;
-  color: var(--c-salmon);
-  line-height: 1.55;
-}
-
-@media (min-width: 901px) {
-  .nxr-intro-col-title {
-    font-size: 22px;
-  }
-}
+/* (V16.30) Las tres cards de Intro y sus mini-animaciones (.nxr-intro-card,
+   .nxr-ianim-*) se ELIMINARON — la sección queda en titular + párrafos. */
 
 @media (max-width: 900px) {
   /* Single column on phones: headline + copy on top (not sticky — a sticky
@@ -5259,15 +4957,6 @@ input[type="range"].nxr-ms-range::-moz-range-thumb {
   .nxr-intro-headline {
     /* Igual que el .nxr-section-h2 móvil (V16.28). */
     font-size: clamp(30px, 8vw, 42px);
-  }
-  .nxr-intro-anim {
-    height: 72px;
-  }
-  .nxr-intro-col-title {
-    font-size: 18px;
-  }
-  .nxr-intro-col-desc {
-    font-size: 13px;
   }
 }
 

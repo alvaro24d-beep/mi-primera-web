@@ -200,9 +200,14 @@ export default function Intro() {
       // sticky. Mobile: fires as the block scrolls into view; opacity
       // there stays with the scrubbed timeline below, the scramble just
       // plays over its fade-in.
+      // V16.22 móvil: "top 82%" disparaba con el texto aún pegado al borde
+      // inferior — la animación se reproducía antes de que se pudiera
+      // mirar ("cuando llego a ver el texto ya se ha reproducido"). A 62%
+      // el bloque ya está a media pantalla: se VE el scramble y se puede
+      // leer inmediatamente después.
       ScrollTrigger.create({
         trigger: texts.parentElement ?? texts,
-        start: isDesktop ? "top 55%" : "top 82%",
+        start: isDesktop ? "top 55%" : "top 62%",
         // V16.21: la entrada es REAL-TIME también en móvil — la receta de
         // las captions del reel (opacity 0→1 + blur 5→0 rápidos + scramble)
         // en el momento de cruzar, no un fundido lento atado al scrub que

@@ -208,7 +208,7 @@ export default function ZoomParallax() {
         c.classList.add("nxr-zp-tw-on");
         c.insertAdjacentElement("afterend", caret);
         k++;
-      }, 26);
+      }, 30);
     };
     const resetTyping = () => {
       window.clearInterval(twTimer);
@@ -275,9 +275,26 @@ export default function ZoomParallax() {
             revealAll();
           }
         } else if (!twStarted && rect.top <= twGate) {
-          twStarted = true;
-          if (rect.top < -vh * 0.15) revealAll();
-          else startTyping();
+          // Cinturón anti-solape (V16.22): en móvil NO se empieza a
+          // escribir mientras el sticky del reel siga pintado (fade > 0.05
+          // y su caja aún en pantalla) — si algo desincronizara el fade en
+          // un dispositivo raro, el tecleo se RETRASA en vez de escribirse
+          // encima de la última card.
+          const reelPainted =
+            isMobile &&
+            reelSticky &&
+            lastReelFade !== "" &&
+            parseFloat(lastReelFade) > 0.05 &&
+            reelSticky.getBoundingClientRect().bottom > 0;
+          if (!reelPainted) {
+            twStarted = true;
+            // Solo un aterrizaje MUY profundo (media pantalla pasada la
+            // sección) revela al instante; un flick fuerte que cruza el
+            // umbral de golpe TECLEA igualmente — "quiero que sea
+            // animación de escritura", nunca el pop suave de antes.
+            if (rect.top < -vh * 0.6) revealAll();
+            else startTyping();
+          }
         } else if (twStarted && rect.top > vh * 0.9) {
           twStarted = false;
           resetTyping();

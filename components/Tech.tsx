@@ -46,6 +46,7 @@ export default function Tech() {
   const titleRef = useTitleReveal<HTMLHeadingElement>();
   const sectionRef = useRef<HTMLElement>(null);
   const stageRef = useRef<HTMLDivElement>(null);
+  const driftRef = useRef<HTMLDivElement>(null);
   const sphereRef = useRef<HTMLDivElement>(null);
   const reducedMotion = useReducedMotion();
 
@@ -63,7 +64,8 @@ export default function Tech() {
       const section = sectionRef.current;
       const stage = stageRef.current;
       const wrap = sphereRef.current;
-      if (!section || !stage || !wrap) return;
+      const drift = driftRef.current;
+      if (!section || !stage || !wrap || !drift) return;
       const cards = Array.from(wrap.querySelectorAll<HTMLElement>(".nxr-tech-card"));
       if (!cards.length) return;
       const N = cards.length;
@@ -75,6 +77,10 @@ export default function Tech() {
       let gridGeo: Array<{ x: number; y: number }> = [];
       let R = 200;
       let measured = false;
+      // Deriva total del pin (V16.34): lo que hay que subir para que el
+      // CENTRO del área de la esfera acabe en el centro del viewport — la
+      // retícula final queda perfectamente centrada.
+      let driftD = 0;
 
       // Toda la geometría se recalcula en cada refresh de ScrollTrigger
       // (resize incluido) — nunca por frame: el render solo compone
@@ -108,6 +114,11 @@ export default function Tech() {
           const inRow = Math.min(cols, N - r * cols);
           return { x: (c - (inRow - 1) / 2) * cellW, y: (r - (rows - 1) / 2) * cellH };
         });
+        // Con el stage pineado a top 0, el centro del wrap cae en
+        // padTop + offsetTop + H/2; la deriva lo lleva al centro del
+        // viewport (offsetTop es relativo a .nxr-tech-drift, positioned).
+        const padTop = parseFloat(getComputedStyle(stage).paddingTop) || 0;
+        driftD = Math.max(0, padTop + wrap.offsetTop + H / 2 - window.innerHeight / 2);
         measured = true;
       };
 
@@ -153,7 +164,12 @@ export default function Tech() {
           },
         },
       });
-      tl.to(state, { p: 1, duration: 1, ease: "none", onUpdate: render });
+      tl.to(state, { p: 1, duration: 1, ease: "none", onUpdate: render }, 0);
+      // La DERIVA anti-sticky: el contenido sigue subiendo a velocidad
+      // constante y reducida durante todo el pin (~driftD px sobre 120-150vh
+      // de scroll, una fracción de la velocidad de página) — el pin no se
+      // percibe y la retícula final aterriza centrada.
+      tl.to(drift, { y: () => -driftD, duration: 1, ease: "none" }, 0);
 
       // Giro idle de la esfera: solo con la sección cerca del viewport (IO)
       // y con influencia (1-p) — plana, deja de girar y el ticker no pinta.
@@ -197,32 +213,34 @@ export default function Tech() {
   return (
     <section id="nxr-tech" ref={sectionRef}>
       <div className="nxr-tech-stage" ref={stageRef}>
-        <div className="nxr-tech-inner nxr-reveal">
-          <div className="nxr-tech-header">
-            <div>
-              <h2 className="nxr-section-h2" ref={titleRef}>
-                Las herramientas
-                <br />
-                que <span className="nxr-gradient-text-salmon">hacen la magia.</span>
-              </h2>
-            </div>
-            <p className="nxr-tech-header-right">
-              Trabajamos con el stack más avanzado del mercado. No usamos tecnología por moda — cada herramienta está
-              aquí porque resuelve un problema real mejor que cualquier alternativa.
-            </p>
-          </div>
-        </div>
-
-        <div className={`nxr-tech-sphere-wrap${reducedMotion ? " is-static" : ""}`} ref={sphereRef}>
-          {TOOLS.map((t) => (
-            <div className="nxr-tech-card" key={t.name}>
-              <div className="nxr-tech-card-dot" style={{ background: t.color }}></div>
+        <div className="nxr-tech-drift" ref={driftRef}>
+          <div className="nxr-tech-inner nxr-reveal">
+            <div className="nxr-tech-header">
               <div>
-                <div className="nxr-tech-card-name">{t.name}</div>
-                <div className="nxr-tech-card-cat">{t.cat}</div>
+                <h2 className="nxr-section-h2" ref={titleRef}>
+                  Las herramientas
+                  <br />
+                  que <span className="nxr-gradient-text-salmon">hacen la magia.</span>
+                </h2>
               </div>
+              <p className="nxr-tech-header-right">
+                Trabajamos con el stack más avanzado del mercado. No usamos tecnología por moda — cada herramienta
+                está aquí porque resuelve un problema real mejor que cualquier alternativa.
+              </p>
             </div>
-          ))}
+          </div>
+
+          <div className={`nxr-tech-sphere-wrap${reducedMotion ? " is-static" : ""}`} ref={sphereRef}>
+            {TOOLS.map((t) => (
+              <div className="nxr-tech-card" key={t.name}>
+                <div className="nxr-tech-card-dot" style={{ background: t.color }}></div>
+                <div>
+                  <div className="nxr-tech-card-name">{t.name}</div>
+                  <div className="nxr-tech-card-cat">{t.cat}</div>
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
       </div>
 

@@ -1160,11 +1160,11 @@ export default function Servicios() {
         if (!total || !snapStep) return;
         const progress = progressNow(st);
         // Never idle-snap while the phrase still HOLDS at full brightness
-        // (< 0.5·pro — its fade-out starts exactly there, see buildTl; los
+        // (< 0.65·pro — its fade-out starts exactly there, see buildTl; los
         // umbrales de momentos solapados comparten constante). Cualquier
         // reposo con la frase ya desvaneciéndose desliza la card 0 desde el
         // lado mientras la frase termina de disolverse.
-        if (progress * total < snapPro * 0.5) return;
+        if (progress * total < snapPro * 0.65) return;
         // First settle on mobile: force card 0 (unless the flick genuinely
         // sailed past card 1) and use the page-style ease-in-out glide —
         // see `presentedFirst` above.
@@ -1248,18 +1248,18 @@ export default function Servicios() {
           // (un reposo ahí muestra contenido, no pantalla vacía), y desde
           // 0.32 cualquier reposo trae la card 0 mientras la frase
           // termina.
-          // HOLD + fundido (V16.19, "tiene que verse durante un poco de
-          // scroll desplegada para que se pueda leer"): la frase aguanta a
-          // brillo COMPLETO hasta 0.5·pro (~67vh móvil / ~32vh desktop de
-          // scroll legible) y solo entonces se disuelve, acompañando hasta
-          // 1.2·pro con la primera card ya entrando (el handoff clásico).
-          // 0.5 es la MISMA constante que las guardas de trySnap/touchend
-          // (umbrales de momentos solapados comparten constante) y el
-          // clamp del ticker (1.3·snapPro) cubre el final del fade.
+          // HOLD + fundido (V16.32, "tiene que durar un poco más nítida"):
+          // la frase aguanta a brillo/nitidez COMPLETOS hasta 0.65·pro
+          // (~88vh móvil / ~42vh desktop de scroll legible; antes 0.5) y
+          // solo entonces se disuelve, acompañando hasta 1.2·pro con la
+          // primera card ya entrando (el handoff clásico). 0.65 es la MISMA
+          // constante que las guardas de trySnap/touchend (umbrales de
+          // momentos solapados comparten constante) y el clamp del ticker
+          // (1.3·snapPro) cubre el final del fade.
           t.to(
             headTitle,
-            { opacity: 0, filter: "blur(18px)", ease: "none", duration: pro * 0.7 },
-            pro * 0.5
+            { opacity: 0, filter: "blur(18px)", ease: "none", duration: pro * 0.55 },
+            pro * 0.65
           );
         }
         t.fromTo(track, { x: startX() }, { x: endX(), ease: "none", duration: moveAmount() }, pro);
@@ -1430,10 +1430,10 @@ export default function Servicios() {
           const dy = touchY - (e.changedTouches[0]?.clientY ?? touchY);
           const p = progressNow(st);
           // Released while the phrase still holds at full brightness:
-          // leave the scroll natural. 0.5 = el inicio del fade-out (misma
+          // leave the scroll natural. 0.65 = el inicio del fade-out (misma
           // constante que buildTl/trySnap) — soltar con la frase ya
           // desvaneciéndose pagina la card 0.
-          if (p * snapAmount < snapPro * 0.5) return;
+          if (p * snapAmount < snapPro * 0.65) return;
           const eps = 0.02;
           let targetIdx: number | null = null;
           if (dy > 25) {

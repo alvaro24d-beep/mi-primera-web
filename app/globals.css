@@ -4833,11 +4833,9 @@ input[type="range"].nxr-ms-range::-moz-range-thumb {
 #nxr-intro {
   position: relative;
   z-index: 1;
-  /* Bottom 60vh (V16.30): sin las cards, esta es la pista que necesita el
-     párrafo — que ya NO es sticky y viaja siempre a velocidad de página —
-     para completar su disolución (ventana +=100% en Intro.tsx) antes de
-     que Servicios asome. */
-  padding: calc(var(--section-pad) + 24px) 0 60vh;
+  /* (V16.31) Espaciado simétrico normal otra vez: sin fundido de salida no
+     hace falta la pista de 60vh de V16.30. */
+  padding: calc(var(--section-pad) + 24px) 0;
 }
 
 .nxr-intro-inner {
@@ -4851,23 +4849,12 @@ input[type="range"].nxr-ms-range::-moz-range-thumb {
   align-items: start;
 }
 
-/* The headline stays pinned (position: sticky) while the vertical column of
-   cards scrolls normally past it — `top: 50%` + `translateY(-50%)` is the
-   standard way to keep a sticky element vertically centred in the viewport
-   (rather than anchored to a fixed offset from the top) while it's stuck. */
+/* (V16.31) Columna normal: sin sticky, sin amortiguación y SIN el plano de
+   perspectiva (el rotateY 12° + translateX 32% que quedaba aquí era "el
+   efecto perspectiva del título" — vivía en CSS, no en los hooks retirados
+   en V16.29). Titular y párrafo arrancan alineados arriba, a la misma
+   altura, y todo viaja a la velocidad predeterminada del scroll. */
 .nxr-intro-left {
-  position: sticky;
-  /* +70px = half of useDampedSticky's STICKY_EASE: the eased sticky settles
-     that far ABOVE the hard sticky line, so this bump lands the damped rest
-     position exactly at the visual centre. */
-  top: calc(50% + 70px);
-  /* Sticky centering + the perspective text plane (see the block near the
-     top of this file) composed in one declaration — the headline itself
-     carries .nxr-reveal, which owns its own transform. Desktop inner-edge
-     pivot profile (origin 100% = the screen-centre side stays flat at z=0);
-     12° because this is one of the widest tilted blocks (~620px lever). */
-  transform: translateY(-50%) translateX(32%) perspective(460px) rotateY(12deg);
-  transform-origin: 100% center;
   align-self: start;
 }
 
@@ -4946,13 +4933,6 @@ input[type="range"].nxr-ms-range::-moz-range-thumb {
   .nxr-intro-inner {
     grid-template-columns: 1fr;
     gap: 14px;
-  }
-  .nxr-intro-left {
-    position: static;
-    top: auto;
-    /* Drops the desktop sticky-centering translateY(-50%). Sin plano de
-       perspectiva en móvil (V16.1) — el bloque queda plano. */
-    transform: none;
   }
   .nxr-intro-headline {
     /* Igual que el .nxr-section-h2 móvil (V16.28). */

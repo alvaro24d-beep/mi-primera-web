@@ -7,23 +7,21 @@ import { useGSAP } from "@gsap/react";
 import { useTitleReveal } from "@/hooks/useTitleReveal";
 import { scrambleElement } from "@/hooks/useTextScramble";
 import { useReducedMotion } from "@/hooks/useReducedMotion";
-import { useDampedSticky } from "@/hooks/useDampedSticky";
 
-// (V16.30) Las tres cards de la sección (Construimos/Automatizamos/Hacemos
-// crecer, con sus mini-animaciones y su cristal volumétrico) se ELIMINARON a
-// petición — la sección queda en titular + párrafos. (V16.29: también fuera
-// los dos efectos de perspectiva; el scramble usa el fallback de
-// scrambleElement.)
+// (V16.31) Sección REHECHA en plano y simple tras varias iteraciones que la
+// dejaron "muy mal": dos columnas alineadas arriba (titular izquierda,
+// párrafos derecha), SIN sticky, SIN amortiguación, SIN perspectiva (el
+// rotateY del titular vivía en el CSS de .nxr-intro-left, no en los hooks
+// quitados en V16.29) y SIN fundidos scrubbed — el contenido viaja a la
+// velocidad predeterminada de la página, como cualquier sección normal.
+// Única animación: el reveal estándar del titular (useTitleReveal, el mismo
+// de toda la web) y la entrada del párrafo con fade+scramble al aparecer.
 
 export default function Intro() {
   const titleRef = useTitleReveal<HTMLHeadingElement>();
   const sectionRef = useRef<HTMLElement>(null);
   const textsRef = useRef<HTMLDivElement>(null);
   const reducedMotion = useReducedMotion();
-
-  // Solo el TITULAR queda sticky amortiguado; el bloque de párrafos ya no es
-  // sticky ("que no se llegue a parar"): viaja siempre a velocidad de página.
-  useDampedSticky(sectionRef, ".nxr-intro-left");
 
   useGSAP(
     () => {
@@ -40,13 +38,10 @@ export default function Intro() {
         return;
       }
 
-      // V16.30 "que el párrafo no se llegue a parar": el bloque ya NO es
-      // sticky en ningún viewport — viaja siempre a velocidad de página
-      // (entra, se lee en movimiento y se disuelve mientras sigue subiendo);
-      // no existe ni un px de scroll con la sección quieta. Sin y-drift ni
-      // transform (solo opacity/filter), como siempre.
       // blur(5px) de arranque: misma receta de entrada que las captions del
-      // reel (opacity 0→1 + blur 5→0 + scramble del texto).
+      // reel (opacity 0→1 + blur 5→0 + scramble del texto). Es una animación
+      // de ENTRADA puntual — después el bloque es contenido estático normal
+      // que viaja a la velocidad predeterminada de la página.
       gsap.set(texts, { opacity: 0, filter: "blur(5px)" });
       // CSS keeps `texts` `visibility: hidden` until here (see globals.css) —
       // without this, it'd flash fully visible for a frame on first paint,
@@ -112,15 +107,12 @@ export default function Intro() {
         };
       };
 
-      // Entrada REAL-TIME (receta de las captions del reel: opacity + blur
-      // rápidos + scramble) cuando el bloque llega a media pantalla — sigue
-      // subiendo mientras se escribe, nunca parado. Trigger sobre el
-      // contenedor no-sticky (lección de Bug-Log-Trigger-Sobre-Elemento-
-      // Sticky, aunque ya no hay sticky aquí: el contenedor es igual de
-      // robusto).
+      // Entrada al aparecer (como el resto de reveals del sitio) — y nada
+      // más: sin fundido de salida, sin scrub, sin pin. El bloque se va con
+      // el scroll como cualquier contenido.
       ScrollTrigger.create({
-        trigger: texts.parentElement ?? texts,
-        start: "top 62%",
+        trigger: texts,
+        start: "top 80%",
         onEnter: () => {
           gsap.to(texts, { opacity: 1, filter: "blur(0px)", duration: 0.45, ease: "power1.out", overwrite: "auto" });
           scramble();
@@ -130,29 +122,6 @@ export default function Intro() {
           gsap.to(texts, { opacity: 0, filter: "blur(5px)", duration: 0.2, ease: "power1.in", overwrite: "auto" });
         },
       });
-
-      // SALIDA scrubbed, unificada para todos los viewports: sobre una
-      // ventana de una pantalla (+=100%), el bloque — que nunca deja de
-      // subir a velocidad de página — se disuelve entre el 55% y el 90%
-      // (de media pantalla hacia arriba), terminando antes de salir por el
-      // borde superior. immediateRender:false: un fromTo a mitad de
-      // timeline pintaría opacity 1 en el refresh y desvelaría el bloque
-      // antes de su entrada.
-      const tl = gsap.timeline({
-        scrollTrigger: {
-          trigger: texts,
-          start: "top bottom",
-          end: "+=100%",
-          scrub: 0.6,
-        },
-      });
-      tl.fromTo(
-        texts,
-        { opacity: 1 },
-        { opacity: 0, duration: 0.33, ease: "none", immediateRender: false },
-        0.62
-      );
-      tl.to({}, { duration: 0.05 }, 0.95);
 
       return () => {
         cancelScramble?.();

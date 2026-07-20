@@ -75,6 +75,17 @@ function ChatAnim() {
         <div className="anim-chat-avatar">🙋</div>
         <div className="anim-chat-bubble">¿Cuándo vence mi suscripción?</div>
       </div>
+      {/* Indicadores "escribiendo…" (V16.21): uno delante de cada respuesta
+          del bot; el loop los muestra un instante y los sustituye por el
+          mensaje real. display:none en reposo (no ocupan hueco). */}
+      <div className="anim-chat-msg right anim-chat-pending" aria-hidden="true">
+        <div className="anim-chat-avatar">🤖</div>
+        <div className="anim-chat-typing">
+          <span />
+          <span />
+          <span />
+        </div>
+      </div>
       <div className="anim-chat-msg right">
         <div className="anim-chat-avatar">🤖</div>
         <div className="anim-chat-bubble system">
@@ -84,6 +95,14 @@ function ChatAnim() {
             <path d="M3 12c0 1.66 4.03 3 9 3s9-1.34 9-3" />
           </svg>
           Consultando base de datos…
+        </div>
+      </div>
+      <div className="anim-chat-msg right anim-chat-pending" aria-hidden="true">
+        <div className="anim-chat-avatar">🤖</div>
+        <div className="anim-chat-typing">
+          <span />
+          <span />
+          <span />
         </div>
       </div>
       <div className="anim-chat-msg right">
@@ -437,6 +456,13 @@ export default function Servicios() {
   const trackRef = useRef<HTMLDivElement>(null);
   const titleRef = useTitleReveal<HTMLHeadingElement>();
   const reducedMotion = useReducedMotion();
+  // V16.21 "que se reproduzcan": reinicio-al-centrar de las demos. El
+  // efecto de los loops registra aquí un callback por card; updateSpiral lo
+  // dispara en el MISMO cruce de visibilidad que el scramble del párrafo,
+  // así la demo arranca de cero justo cuando su card toma el centro (antes
+  // corría con timers fijos desde el mount y solías pillarla a mitad de
+  // ciclo o ya terminada).
+  const demoRestartRef = useRef<Array<(() => void) | null>>([]);
 
   // Mobile only: the per-service caption text curves like every other text
   // block. The WHOLE tilt block is one geometry sheet — targeting
@@ -908,6 +934,9 @@ export default function Servicios() {
             if (vis >= 0.55 && lastCapVis[i] < 0.55) {
               const d = capDescs[i];
               if (d) scrambleElement(d);
+              // La demo ilustrativa de la card se reinicia desde cero en el
+              // mismo instante (V16.21, "que se reproduzcan").
+              demoRestartRef.current[i]?.();
             }
             lastCapVis[i] = vis;
             // Quantized to 2% steps and only written on change: the blur()
@@ -1323,6 +1352,31 @@ export default function Servicios() {
         cleanups.push(() => gsap.ticker.remove(clampTitle));
       }
 
+      // V16.20 (solo móvil): FADE DE SALIDA del sticky del reel en los
+      // últimos 250px de la cola congelada del pin (ahí no se mueve nada,
+      // es puro runway). Con ZP remontado -750px (globals.css), ZP pina
+      // ~130px tras el des-pin del reel, pero el sticky — captions
+      // ancladas abajo incluidas — seguía EN PANTALLA otros ~844px y la
+      // frase de ZP se tecleaba encima de la última caption (visto en el
+      // harness). Determinista por scroll y reversible; en desktop ZP no
+      // está remontado y el reel sale de pantalla por flujo normal.
+      const stickyEl = stickyRef.current;
+      if (window.innerWidth <= 900 && stickyEl) {
+        let lastFade = "__";
+        const exitFade = () => {
+          const st = tl.scrollTrigger;
+          if (!st) return;
+          const f = (window.scrollY - (st.end - 250)) / 250;
+          const v = f <= 0 ? "" : Math.max(0, Math.min(1, 1 - f)).toFixed(3);
+          if (v !== lastFade) {
+            lastFade = v;
+            stickyEl.style.opacity = v;
+          }
+        };
+        gsap.ticker.add(exitFade);
+        cleanups.push(() => gsap.ticker.remove(exitFade));
+      }
+
       // ---- Mobile pagination: ONE card per swipe. A flick's inertia would
       // otherwise fly past several cards; instead, on touchend we glide to
       // exactly one step from the card that was current at touchstart (or
@@ -1491,38 +1545,70 @@ export default function Servicios() {
       frame();
     }
 
-    const timers: ReturnType<typeof setTimeout>[] = [];
+    // Un saco de timers POR CARD (V16.21): reiniciar una demo = vaciar su
+    // saco y relanzar su loop, sin tocar las demás. El saco global de antes
+    // hacía imposible cortar un ciclo a medias sin matarlo todo.
+    const perCard: ReturnType<typeof setTimeout>[][] = cards.map(() => []);
+    const clearCard = (i: number) => {
+      perCard[i].forEach((t) => clearTimeout(t));
+      perCard[i].length = 0;
+    };
 
     const card2 = cards[1];
     if (card2) {
+      // Coreografía de chat real (V16.21, "dinámicas y elaboradas"): antes
+      // de cada respuesta del bot aparece su indicador "escribiendo…" (los
+      // .anim-chat-pending del JSX, con el CSS de puntos que existía sin
+      // usarse) y el mensaje lo sustituye — en vez del stagger plano i·700.
       function loopChatAuto(card: HTMLElement) {
         if (!visRef.current) {
-          timers.push(setTimeout(() => loopChatAuto(card), 1500));
+          perCard[1].push(setTimeout(() => loopChatAuto(card), 1500));
           return;
         }
-        const msgs = Array.from(card.querySelectorAll<HTMLElement>(".anim-chat-msg"));
+        const msgs = Array.from(card.querySelectorAll<HTMLElement>(".anim-chat-msg:not(.anim-chat-pending)"));
+        const pendings = Array.from(card.querySelectorAll<HTMLElement>(".anim-chat-pending"));
         if (!msgs.length) return;
         msgs.forEach((m) => {
           m.style.transition = "none";
           m.style.opacity = "0";
           m.style.transform = "translateY(6px)";
         });
-        timers.push(
-          setTimeout(() => {
-            msgs.forEach((m, i) => {
-              timers.push(
-                setTimeout(() => {
-                  m.style.transition = "opacity .4s, transform .4s";
-                  m.style.opacity = "1";
-                  m.style.transform = "translateY(0)";
-                }, i * 700)
-              );
-            });
-            timers.push(setTimeout(() => loopChatAuto(card), msgs.length * 700 + 1800));
-          }, 50)
-        );
+        pendings.forEach((p) => {
+          p.style.display = "none";
+          p.style.opacity = "1";
+          p.style.transform = "none";
+        });
+        const T = perCard[1];
+        const show = (m: HTMLElement | undefined, at: number) => {
+          if (!m) return;
+          T.push(
+            setTimeout(() => {
+              m.style.transition = "opacity .4s, transform .4s";
+              m.style.opacity = "1";
+              m.style.transform = "translateY(0)";
+            }, at)
+          );
+        };
+        const typing = (p: HTMLElement | undefined, from: number, to: number) => {
+          if (!p) return;
+          T.push(setTimeout(() => (p.style.display = "flex"), from));
+          T.push(setTimeout(() => (p.style.display = "none"), to));
+        };
+        // [0] usuario pregunta · [1] bot consulta BD · [2] bot responde ·
+        // [3] usuario confirma — con "escribiendo…" delante de cada bot.
+        show(msgs[0], 300);
+        typing(pendings[0], 1000, 1800);
+        show(msgs[1], 1800);
+        typing(pendings[1], 2700, 3600);
+        show(msgs[2], 3600);
+        show(msgs[3], 4600);
+        T.push(setTimeout(() => loopChatAuto(card), 7000));
       }
-      timers.push(setTimeout(() => loopChatAuto(card2), 300));
+      demoRestartRef.current[1] = () => {
+        clearCard(1);
+        loopChatAuto(card2);
+      };
+      perCard[1].push(setTimeout(() => loopChatAuto(card2), 300));
     }
 
     // The anims are the glass card's ONLY content now (no hover text-swap),
@@ -1544,7 +1630,7 @@ export default function Servicios() {
 
       function loopFlow(card: HTMLElement) {
         if (!visRef.current) {
-          timers.push(setTimeout(() => loopFlow(card), 1500));
+          perCard[2].push(setTimeout(() => loopFlow(card), 1500));
           return;
         }
         const nodesL = Array.from(card.querySelectorAll<HTMLElement>(".anim-flow-node-l"));
@@ -1576,37 +1662,38 @@ export default function Servicios() {
 
         card.querySelector(".anim-flow-svg")?.getBoundingClientRect();
 
-        timers.push(
+        const T = perCard[2];
+        T.push(
           setTimeout(() => {
             nodesL.forEach((n) => {
               n.style.transition = "";
               n.classList.add("vis");
             });
-            timers.push(
+            T.push(
               setTimeout(() => {
                 connsL.forEach((c) => {
                   c.style.transition = "";
                   c.classList.add("vis");
                 });
-                timers.push(
+                T.push(
                   setTimeout(() => {
                     if (nodeC) {
                       nodeC.style.transition = "";
                       nodeC.classList.add("vis");
                     }
-                    timers.push(
+                    T.push(
                       setTimeout(() => {
                         connsR.forEach((c) => {
                           c.style.transition = "";
                           c.classList.add("vis");
                         });
-                        timers.push(
+                        T.push(
                           setTimeout(() => {
                             nodesR.forEach((n) => {
                               n.style.transition = "";
                               n.classList.add("vis");
                             });
-                            timers.push(setTimeout(() => loopFlow(card), 2500));
+                            T.push(setTimeout(() => loopFlow(card), 2500));
                           }, 500)
                         );
                       }, 400)
@@ -1621,7 +1708,7 @@ export default function Servicios() {
 
       function loopSeo(card: HTMLElement) {
         if (!visRef.current) {
-          timers.push(setTimeout(() => loopSeo(card), 1500));
+          perCard[3].push(setTimeout(() => loopSeo(card), 1500));
           return;
         }
         const lines = Array.from(card.querySelectorAll<HTMLElement>(".anim-gsc-line-clicks, .anim-gsc-line-impr"));
@@ -1655,12 +1742,12 @@ export default function Servicios() {
           cursor.style.opacity = "1";
         }
 
-        timers.push(setTimeout(() => loopSeo(card), 4200));
+        perCard[3].push(setTimeout(() => loopSeo(card), 4200));
       }
 
       function loopApp(card: HTMLElement) {
         if (!visRef.current) {
-          timers.push(setTimeout(() => loopApp(card), 1500));
+          perCard[4].push(setTimeout(() => loopApp(card), 1500));
           return;
         }
         const rows = Array.from(card.querySelectorAll<HTMLElement>(".anim-app-row"));
@@ -1678,21 +1765,39 @@ export default function Servicios() {
         });
         bars.forEach((b) => (b.style.transform = "scaleX(1)"));
         if (sv) animCount(sv, 2840, "", 2000);
-        timers.push(setTimeout(() => loopApp(card), 4500));
+        perCard[4].push(setTimeout(() => loopApp(card), 4500));
       }
 
-      timers.push(
-        setTimeout(() => {
-          if (cards[2]) loopFlow(cards[2]);
-          if (cards[3]) loopSeo(cards[3]);
-          if (cards[4]) loopApp(cards[4]);
-        }, 300)
-      );
+      if (cards[2]) {
+        const c = cards[2];
+        demoRestartRef.current[2] = () => {
+          clearCard(2);
+          loopFlow(c);
+        };
+        perCard[2].push(setTimeout(() => loopFlow(c), 300));
+      }
+      if (cards[3]) {
+        const c = cards[3];
+        demoRestartRef.current[3] = () => {
+          clearCard(3);
+          loopSeo(c);
+        };
+        perCard[3].push(setTimeout(() => loopSeo(c), 300));
+      }
+      if (cards[4]) {
+        const c = cards[4];
+        demoRestartRef.current[4] = () => {
+          clearCard(4);
+          loopApp(c);
+        };
+        perCard[4].push(setTimeout(() => loopApp(c), 300));
+      }
     }
 
     return () => {
       io.disconnect();
-      timers.forEach((t) => clearTimeout(t));
+      perCard.forEach((_, i) => clearCard(i));
+      demoRestartRef.current = [];
     };
   }, []);
 

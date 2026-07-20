@@ -168,6 +168,14 @@ export default function ZoomParallaxCardsLayer({ isMobile }: { isMobile: boolean
     for (let i = 0; i < ZP_MAX_CARDS; i++) {
       const group = groupRefs.current[i];
       if (!group) continue;
+      // V16.20 móvil: la card central es SOLO texto ("quítale la card en
+      // sí, deja solo el texto de encima") — su cuerpo de cristal no se
+      // dibuja nunca en móvil. El anchor sigue registrado y el resto del
+      // pipeline (glitch por opacity inline, ranking de dominancia) intacto.
+      if (i === 0 && isMobile) {
+        group.visible = false;
+        continue;
+      }
       const rect = rects[i];
       if (!rect) {
         group.visible = false;

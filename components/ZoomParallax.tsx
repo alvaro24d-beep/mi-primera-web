@@ -135,6 +135,87 @@ export default function ZoomParallax() {
     const frac = (n: number) => n - Math.floor(n);
     const hash = (n: number) => frac(Math.sin(n * 127.1) * 43758.5453);
 
+    // ===== Typewriter de entrada (V16.20, "animación de entrada de las
+    // frases de construido con maestría de tipo escritura a máquina"). El
+    // texto se trocea UNA vez en spans por carácter (los espacios quedan
+    // como nodos de texto para no alterar el word-wrap móvil); todos los
+    // caracteres existen desde el primer render, así que teclear = conmutar
+    // visibility, cero reflow. La escritura es temporal (no scrub) y se
+    // rebobina si vuelves a subir; la SALIDA (encogimiento + glitch móvil)
+    // no se toca. Reduced motion: no se trocea nada, el texto queda plano.
+    const heroText = heroBase?.querySelector<HTMLElement>(".nxr-zp-hero-text") ?? null;
+    const twChars: HTMLElement[] = [];
+    const sliceCharLists: HTMLElement[][] = [];
+    const splitChars = (root: HTMLElement, out: HTMLElement[]) => {
+      const walk = (node: Node) => {
+        if (node.nodeType === Node.TEXT_NODE) {
+          const text = node.textContent ?? "";
+          if (!text.trim()) return;
+          const fragment = document.createDocumentFragment();
+          for (const ch of text) {
+            if (ch === " ") {
+              fragment.appendChild(document.createTextNode(" "));
+            } else {
+              const s = document.createElement("span");
+              s.className = "nxr-zp-tw";
+              s.textContent = ch;
+              fragment.appendChild(s);
+              out.push(s);
+            }
+          }
+          (node as ChildNode).replaceWith(fragment);
+        } else if (node.nodeType === Node.ELEMENT_NODE && (node as HTMLElement).tagName !== "BR") {
+          Array.from(node.childNodes).forEach(walk);
+        }
+      };
+      Array.from(root.childNodes).forEach(walk);
+    };
+    if (heroText && !rmMql.matches) {
+      splitChars(heroText, twChars);
+      // Los clones de los slices se trocean también para que el glitch
+      // pueda corromper caracteres de forma coherente con la base, pero
+      // nacen ya visibles: solo asoman dentro de la banda de glitch, mucho
+      // después de que el tecleo haya terminado.
+      heroSlices.forEach((sl) => {
+        const st = sl.querySelector<HTMLElement>(".nxr-zp-hero-text");
+        const list: HTMLElement[] = [];
+        if (st) splitChars(st, list);
+        list.forEach((c) => c.classList.add("nxr-zp-tw-on"));
+        sliceCharLists.push(list);
+      });
+    }
+    const caret = document.createElement("span");
+    caret.className = "nxr-zp-twcaret";
+    caret.setAttribute("aria-hidden", "true");
+    let twTimer = 0;
+    let twStarted = false;
+    let twInit = false;
+    const revealAll = () => {
+      window.clearInterval(twTimer);
+      twChars.forEach((c) => c.classList.add("nxr-zp-tw-on"));
+      caret.remove();
+    };
+    const startTyping = () => {
+      window.clearInterval(twTimer);
+      let k = 0;
+      twTimer = window.setInterval(() => {
+        const c = twChars[k];
+        if (!c) {
+          window.clearInterval(twTimer);
+          window.setTimeout(() => caret.remove(), 700);
+          return;
+        }
+        c.classList.add("nxr-zp-tw-on");
+        c.insertAdjacentElement("afterend", caret);
+        k++;
+      }, 26);
+    };
+    const resetTyping = () => {
+      window.clearInterval(twTimer);
+      caret.remove();
+      twChars.forEach((c) => c.classList.remove("nxr-zp-tw-on"));
+    };
+
     function onScroll() {
       const vh = window.innerHeight;
       const isMobile = window.innerWidth <= 768;
@@ -142,6 +223,33 @@ export default function ZoomParallax() {
       const rect = section!.getBoundingClientRect();
       const total = section!.offsetHeight - vh;
       const scrolled = -rect.top;
+
+      // Disparo del typewriter. Desktop: teclea con la sección a media
+      // pantalla, así termina de escribirse justo al quedar centrada.
+      // Móvil: a 0.12·vh — con el margin-top de -750px el reel des-pina a
+      // rect.top ≈ 130, y el texto NO puede aparecer mientras el reel siga
+      // congelado en pantalla (sería el viejo bug del solape); 0.12·vh
+      // (~101px) queda justo después. Si la página CARGA ya dentro/pasada
+      // la sección (deep-link, teleport grande), se muestra completa al
+      // instante — teclear sobre estados avanzados (p. ej. el glitch)
+      // quedaría roto.
+      const twGate = vh * (isMobile ? 0.12 : 0.5);
+      if (twChars.length) {
+        if (!twInit) {
+          twInit = true;
+          if (rect.top <= twGate) {
+            twStarted = true;
+            revealAll();
+          }
+        } else if (!twStarted && rect.top <= twGate) {
+          twStarted = true;
+          if (rect.top < -vh * 0.15) revealAll();
+          else startTyping();
+        } else if (twStarted && rect.top > vh * 0.9) {
+          twStarted = false;
+          resetTyping();
+        }
+      }
 
       const raw = Math.max(0, Math.min(1, scrolled / total));
       // (La rampa de entrada móvil de V16.4 se eliminó en V16.6: su causa —
@@ -226,6 +334,15 @@ export default function ZoomParallax() {
                 sl.style.transform = "";
                 sl.style.clipPath = "";
               }
+              // Restaura cualquier carácter corrompido por el glitch.
+              for (const list of [twChars, ...sliceCharLists]) {
+                for (const c of list) {
+                  if (c.dataset.o !== undefined) {
+                    c.textContent = c.dataset.o;
+                    delete c.dataset.o;
+                  }
+                }
+              }
             }
           } else {
             // Slice-glitch death (After-Effects style): the intact text is
@@ -258,6 +375,27 @@ export default function ZoomParallax() {
               sl.style.transform = `translateX(${x.toFixed(1)}px)`;
               sl.style.opacity = h1 > 0.22 ? "1" : "0";
             });
+            // Corrupción de caracteres (V16.20 "mejora la animación falla
+            // del texto"): en cada paso discreto unos pocos glifos se
+            // sustituyen por basura — determinista por seed (rebobinable
+            // con el scrub) y coherente entre la base y los clones de los
+            // slices, que comparten índice de carácter.
+            const CORR = "▓▒█<>/\\|#*+=";
+            const corrupt = (list: HTMLElement[]) => {
+              for (let k = 0; k < list.length; k++) {
+                const c = list[k];
+                const hc = hash(seed * 31 + k * 7.3);
+                if (hc > 0.9) {
+                  if (c.dataset.o === undefined) c.dataset.o = c.textContent ?? "";
+                  c.textContent = CORR[Math.floor(hc * 997) % CORR.length];
+                } else if (c.dataset.o !== undefined) {
+                  c.textContent = c.dataset.o;
+                  delete c.dataset.o;
+                }
+              }
+            };
+            corrupt(twChars);
+            sliceCharLists.forEach(corrupt);
           }
         }
         // Real on-screen height AFTER the transform above — comparable
@@ -291,6 +429,8 @@ export default function ZoomParallax() {
     return () => {
       window.removeEventListener("scroll", onScroll);
       window.removeEventListener("resize", onScroll);
+      window.clearInterval(twTimer);
+      caret.remove();
     };
   }, []);
 

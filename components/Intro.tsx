@@ -112,7 +112,12 @@ export default function Intro() {
       // sudden acceleration. Desktop additionally must never touch transform
       // at all — the sticky centering (translateY(-50%)) lives there.
       const isDesktop = window.innerWidth >= 901;
-      gsap.set(texts, { opacity: 0 });
+      // blur(5px) de arranque: misma receta de entrada que las captions de
+      // cada servicio del reel (opacity 0→1 + blur 5→0 + scramble del texto;
+      // ver updateSpiral en Servicios.tsx). Sin y-drift aquí: el transform
+      // de .nxr-intro-texts es del sticky centering en desktop y el del
+      // textblock es de useCurvedWords.
+      gsap.set(texts, { opacity: 0, filter: "blur(5px)" });
       // CSS keeps `texts` `visibility: hidden` until here (see globals.css) —
       // without this, it'd flash fully visible for a frame on first paint,
       // before this layout effect has a chance to run. The CARDS are plain
@@ -173,22 +178,30 @@ export default function Intro() {
       };
 
       // The scramble entrance fires on EVERY viewport ("tiene que salir").
-      // Desktop: a real-time trigger right as the sticky block reaches its
-      // centred resting spot ("top 45%" fires a hair before the stick
-      // engages — the trigger rect includes the -50% centering transform),
-      // which also owns the opacity fade-in/out. Mobile: fires as the block
-      // scrolls into view; opacity there stays with the scrubbed timeline
-      // below, the scramble just plays over its fade-in.
+      // Desktop: a real-time trigger as the block settles into its sticky
+      // spot, which also owns the opacity fade-in/out. V16.20: el trigger
+      // va sobre el CONTENEDOR (.nxr-intro-cards, primera hija = texts) y
+      // no sobre el propio bloque sticky — el rect del sticky se CLAVA en
+      // top:calc(50%+70px) menos la mitad de su altura, y con el texto de
+      // 14px (V16.10) esa cota quedaba por DEBAJO de la línea "top 45%" en
+      // viewports 900px: el onEnter no disparaba nunca y el párrafo se
+      // quedaba invisible. El contenedor no es sticky, así que su top
+      // siempre cruza; "top 55%" dispara ~25px después de engancharse el
+      // sticky. Mobile: fires as the block scrolls into view; opacity
+      // there stays with the scrubbed timeline below, the scramble just
+      // plays over its fade-in.
       ScrollTrigger.create({
-        trigger: texts,
-        start: isDesktop ? "top 45%" : "top 82%",
+        trigger: texts.parentElement ?? texts,
+        start: isDesktop ? "top 55%" : "top 82%",
         onEnter: () => {
-          if (isDesktop) gsap.to(texts, { opacity: 1, duration: 0.45, ease: "power1.out", overwrite: "auto" });
+          if (isDesktop)
+            gsap.to(texts, { opacity: 1, filter: "blur(0px)", duration: 0.45, ease: "power1.out", overwrite: "auto" });
           scramble();
         },
         onLeaveBack: () => {
           cancelScramble?.();
-          if (isDesktop) gsap.to(texts, { opacity: 0, duration: 0.2, ease: "power1.in", overwrite: "auto" });
+          if (isDesktop)
+            gsap.to(texts, { opacity: 0, filter: "blur(5px)", duration: 0.2, ease: "power1.in", overwrite: "auto" });
         },
       });
 
@@ -197,11 +210,15 @@ export default function Intro() {
           trigger: texts,
           start: "top bottom",
           // Mobile keeps its fade-in/fade-out phases and generous runway.
-          // Desktop's 1000px budgets: ~550px of ride while the (invisible)
-          // block travels to its sticky centre + real-time scramble-in there,
-          // ~190px of centred full-brightness reading, then a ~180px linear
-          // dissolve and the cards' gradual entrance below.
-          end: () => (window.innerWidth < 768 ? "+=840" : "+=1000"),
+          // V16.20 "que dure más antes de desaparecer": desktop pasa de
+          // 1000px a 1400px de presupuesto — la llegada al sticky sigue
+          // siendo ~550px (eso lo fija el layout, no la timeline), así que
+          // todo lo ganado va a la ventana de lectura (~190px → ~480px)
+          // antes de la disolución (que ahora corre 1027→1307px, con el
+          // margen de #nxr-intro-card-1 subido en lockstep para que la
+          // card no invada el texto). Móvil: 840→1000px con el hold
+          // alargado en unidades (mismo px/unit ≈ 311, solo dura más).
+          end: () => (window.innerWidth < 768 ? "+=1000" : "+=1400"),
           scrub: 0.6,
         },
       });
@@ -221,16 +238,17 @@ export default function Intro() {
         tl.to({}, { duration: 0.2 }, 2.8);
       } else {
         // Phase 1 — the text fades IN, riding the page at NORMAL scroll speed
-        // (no y offset — see the gsap.set note above).
-        tl.to(texts, { opacity: 1, duration: 1, ease: "power2.out" }, 0);
-        // Hold — readable, but short (see git history for the full tuning
-        // saga of these positions).
-        tl.to({}, { duration: 0.7 }, 1);
+        // (no y offset — see the gsap.set note above). El blur 5→0 replica
+        // la entrada de las captions del reel.
+        tl.to(texts, { opacity: 1, filter: "blur(0px)", duration: 1, ease: "power2.out" }, 0);
+        // Hold — V16.20 "que dure más antes de desaparecer": 0.7 → 1.2
+        // unidades de lectura a brillo completo (~375px al px/unit actual).
+        tl.to({}, { duration: 1.2 }, 1);
         // Phase 2 — fade back OUT, still at page speed (no upward drift).
-        tl.to(texts, { opacity: 0, duration: 1, ease: "power2.in" }, 1.7);
+        tl.to(texts, { opacity: 0, duration: 1, ease: "power2.in" }, 2.2);
         // Spacer keeps the previous scrub pacing now that the cards (which
         // used to close the timeline at ~2.4) are plain flow content.
-        tl.to({}, { duration: 0.7 }, 1.7);
+        tl.to({}, { duration: 0.7 }, 2.2);
       }
 
       return () => {

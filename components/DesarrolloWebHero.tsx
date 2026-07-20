@@ -126,7 +126,11 @@ export default function DesarrolloWebHero() {
         scrollTrigger: {
           trigger: section,
           start: "top top",
-          end: () => (window.innerWidth < 768 ? "+=460%" : "+=540%"),
+          // V16.20 "que la animación se pase con menos scroll": ~30% menos
+          // pin en ambos dispositivos. scrub normaliza la timeline completa
+          // sobre esta distancia, así que comprime proporcionalmente sin
+          // tocar los offsets.
+          end: () => (window.innerWidth < 768 ? "+=320%" : "+=380%"),
           scrub: 0.6,
           pin: stage,
           anticipatePin: 1,
@@ -277,8 +281,8 @@ export default function DesarrolloWebHero() {
               </span>
             </h1>
           </div>
-          <div className="nxr-dwh-layers-panel nxr-glass-edge">
-            <div className="nxr-glass-edge-content nxr-dwh-layers-inner">
+          <div className="nxr-dwh-layers-panel">
+            <div className="nxr-dwh-layers-inner">
               {FACETS.map((f, i) => (
                 <div key={f.title} className="nxr-dwh-layer-label">
                   <span className="nxr-dwh-layer-num" style={{ color: f.color }}>

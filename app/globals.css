@@ -1995,30 +1995,12 @@ p.nxr-hero-mastery-line {
   z-index: 2;
 }
 
-@media (max-width: 900px) {
-
-  .anim-flow-node,
-  .anim-app-row {
-    opacity: 1 !important;
-    transform: none !important;
-  }
-
-  .anim-gsc-area-clicks,
-  .anim-gsc-area-impr,
-  .anim-gsc-dot,
-  .anim-gsc-cursor {
-    opacity: 1 !important;
-  }
-
-  .anim-gsc-line-clicks,
-  .anim-gsc-line-impr {
-    stroke-dashoffset: 0 !important;
-  }
-
-  .anim-app-stat-bar-fill {
-    transform: scaleX(1) !important;
-  }
-}
+/* (V16.21) El bloque móvil que congelaba flow/SEO/app en su estado final
+   con !important se ELIMINÓ — venía del diseño antiguo por hover (sin hover
+   en táctil se dejaban "terminadas"), pero desde que los loops JS son
+   automáticos dejaba 3 de las 5 demos estáticas en teléfono ("arreglar…
+   que se reproduzcan"). Los loops ya duermen con la sección fuera de
+   pantalla vía .nxr-anims-live, en todos los dispositivos. */
 
 /* Animación 1 — Desarrollo web (3D) */
 .anim-web3d {
@@ -2382,6 +2364,13 @@ p.nxr-hero-mastery-line {
   stroke-width: 1.5;
   stroke-linecap: round;
   stroke-linejoin: round;
+}
+
+/* El "escribiendo…" vive en filas .anim-chat-pending propias que el loop
+   muestra un instante antes de cada respuesta del bot (V16.21) — ocultas
+   por display para no dejar hueco en la columna mientras no toca. */
+.anim-chat-pending {
+  display: none;
 }
 
 .anim-chat-typing {
@@ -4513,13 +4502,20 @@ input[type="range"].nxr-ms-range::-moz-range-thumb {
   #nxr-zoom-parallax {
     /* 160vh (V16.11): tercer recorte, en proporción con desktop. */
     height: 190vh;
-    /* -80px (V16.8, "reduce el espacio entre Servicios y ZoomParallax"):
-       remonte MODERADO. El límite seguro es ~-100px — la card central
-       arranca a +120px del top de la sección, así que durante el pin del
-       reel (top ≥ stickyH − margen = 844−80 = 764 > 844−120 = 724) no
-       puede asomar nada, a diferencia del -160 original que causó "la
-       card vacía tapando media pantalla" (V16.4-16.6). No bajar de -100. */
-    margin-top: -80px;
+    /* -750px (V16.20, "que en móvil empiece antes la sección, hay mucho
+       espacio vacío"): medido en el harness, del reposo de la última card
+       del reel al pin de ZP había 1918px muertos (~1190 de cola congelada
+       del pin del reel — geometría del reel, NO tocable — más ~730 de
+       transición). Este margen consume la transición entera: ZP pina
+       ~130px después del des-pin del reel. Es seguro porque en móvil el
+       box de ZP está VACÍO en p=0 — mesh de la card central apagado
+       (ZoomParallaxCardsLayer), texto sin teclear (el typewriter dispara a
+       rect.top ≤ 0.12·vh, ya con el reel des-pinado), y el contenido DOM
+       de las 6 vecinas medido fuera del box ([-736,-631] la más cercana,
+       el resto fuera en horizontal). El antiguo límite de -100 (V16.4-6,
+       "card vacía tapando media pantalla") aplicaba a la card visible que
+       ya no existe. */
+    margin-top: -750px;
   }
   /* Nudges the whole stuck layer stack up a bit — a plain transform rather
      than re-deriving each card's individual `top: calc(50% - Xvh)` math,
@@ -4574,6 +4570,40 @@ input[type="range"].nxr-ms-range::-moz-range-thumb {
    .nxr-zp-glitching — see the mobile rules in this file's ZP media block. */
 .nxr-zp-glslice {
   display: none;
+}
+
+/* Typewriter de la frase central (V16.20, "entrada tipo escritura a
+   máquina"): todos los caracteres existen en el layout desde el primer
+   render (teclear = conmutar visibility, cero reflow ni salto de líneas).
+   Los spans solo existen si el JS troceó el texto — sin JS o con reduced
+   motion no hay .nxr-zp-tw y el texto queda plano y visible. */
+.nxr-zp-tw {
+  visibility: hidden;
+}
+.nxr-zp-tw.nxr-zp-tw-on {
+  visibility: visible;
+}
+/* Caret de bloque que persigue al último carácter tecleado. Dentro del span
+   degradado hereda el text-fill transparente, pero su background propio es
+   ajeno al background-clip del padre, así que se ve sólido. */
+.nxr-zp-twcaret {
+  display: inline-block;
+  width: 0.09em;
+  height: 0.82em;
+  margin-left: 0.04em;
+  vertical-align: -0.06em;
+  background: var(--c-lime);
+  animation: nxr-zp-caret 0.85s steps(1) infinite;
+}
+@keyframes nxr-zp-caret {
+  0%,
+  55% {
+    opacity: 1;
+  }
+  56%,
+  100% {
+    opacity: 0;
+  }
 }
 
 .nxr-zp-card svg {
@@ -4719,11 +4749,12 @@ input[type="range"].nxr-ms-range::-moz-range-thumb {
     pointer-events: none;
     will-change: transform, opacity, clip-path;
   }
-  /* Each bar carries a piece of CARD BODY (not just floating text): a solid
-     dark panel echoing the glass tint, so the card itself reads as chopped
-     into bars while the real mesh strobes underneath. */
+  /* V16.20: en móvil la card central es SOLO texto (el mesh de cristal está
+     apagado en ZoomParallaxCardsLayer), así que las bandas del glitch ya no
+     llevan panel oscuro de "cuerpo de card" — son bandas de TEXTO puro
+     desplazadas, más los fantasmas cromáticos de abajo. */
   .nxr-zp-glslice .nxr-zp-card {
-    background: rgba(15, 12, 19, 0.92);
+    background: transparent;
   }
   /* Chromatic slices, like the reference frames: two of the five bands are
      colour-shifted ghosts (anchor children: 1 = base card, 2-6 = slices). */
@@ -4733,9 +4764,13 @@ input[type="range"].nxr-ms-range::-moz-range-thumb {
   .nxr-zp-glslice:nth-child(5) {
     filter: saturate(2.6) hue-rotate(120deg) brightness(1.2);
   }
-  /* Base (intact) content only — the clones get their own per-frame motion. */
+  /* Base (intact) content only — the clones get their own per-frame motion.
+     V16.20 "mejora la animación falla del texto": al translateX se suman un
+     empujón vertical y un cizallado leves, ambos del mismo driver --zpg
+     (deterministas y rebobinables como todo el glitch). */
   .nxr-zp-layer:nth-child(1) .nxr-zp-img > .nxr-zp-card {
-    transform: translateX(calc(var(--zpg, 0) * 12px));
+    transform: translateX(calc(var(--zpg, 0) * 12px)) translateY(calc(var(--zpg, 0) * -5px))
+      skewX(calc(var(--zpg, 0) * 2.5deg));
   }
   .nxr-zp-layer:nth-child(1) .nxr-zp-hero-text {
     text-shadow: calc(var(--zpg, 0) * -10px) 0 rgba(239, 61, 13, 0.9),
@@ -4915,14 +4950,16 @@ input[type="range"].nxr-ms-range::-moz-range-thumb {
 /* Desktop: breathing room between the sticky-centred paragraph block and the
    first card. The cards are visible as soon as they poke in from the fold,
    so without this gap the first one would collide with the centred text
-   ~24px of scroll after it sticks; 380px lets the text be read (and then
-   dissolve, see Intro.tsx's timeline) while the card climbs in plain sight
-   from the bottom. */
+   ~24px of scroll after it sticks. V16.20: 380px → 750px en lockstep con
+   el presupuesto extendido de Intro.tsx (end +=1400, "que dure más antes
+   de desaparecer"): la disolución ahora termina ~1307px tras el arranque
+   del scrub (antes ~933px), así que la card necesita ~374px más de margen
+   para seguir entrando cuando el texto ya se ha fundido. */
 @media (min-width: 901px) {
   /* By id, not :first-of-type — .nxr-intro-texts is a sibling div, so no
      card can ever match div:first-of-type here. */
   #nxr-intro-card-1 {
-    margin-top: 380px;
+    margin-top: 750px;
   }
 }
 
@@ -5291,15 +5328,14 @@ input[type="range"].nxr-ms-range::-moz-range-thumb {
   color: var(--c-white);
 }
 
+/* V16.20 "cards de esa hero sin fondo ni bordes": el panel de facetas es
+   texto flotante — sin glass (background/blur/shine fuera, y el TSX ya no
+   lleva .nxr-glass-edge, así que tampoco hay borde degradado). */
 .nxr-dwh-layers-panel {
   position: absolute;
   left: var(--pad-x);
   bottom: 116px;
   width: min(380px, 40vw);
-  background: var(--glass-bg);
-  backdrop-filter: var(--glass-blur);
-  border-radius: var(--radius-lg);
-  box-shadow: var(--glass-shine);
   pointer-events: auto;
 }
 
@@ -5423,13 +5459,13 @@ input[type="range"].nxr-ms-range::-moz-range-thumb {
   .nxr-dwh-layers-panel {
     left: 20px;
     right: 20px;
-    /* Sits just above the floating bottom nav, not centred in the leftover
-       space below it. `#nxr-nav` floats with its own bottom edge 20px above
-       the true viewport bottom and is ~63px tall, while this stage is 70px
-       shorter than the viewport — netting out to a ~14px gap above the nav's
-       top edge (27 - 70 + 20 + 63 ≈ 14 with a fixed nav height; if the nav's
-       height/CSS changes, re-measure via scratchpad/measure-dwh-nav-gap.mjs). */
-    bottom: calc(27px + env(safe-area-inset-bottom));
+    /* V16.20 "en móvil un poco más arriba que se tapa con el menú
+       inferior": el margen teórico sobre `#nxr-nav` era ~14px (27 - 70 +
+       20 + 63), pero con la toolbar del navegador visible el nav se comía
+       el panel en teléfono real. +37px de holgura (~51px de gap teórico);
+       si cambia la altura del nav, re-medir vía
+       scratchpad/measure-dwh-nav-gap.mjs. */
+    bottom: calc(64px + env(safe-area-inset-bottom));
     width: auto;
   }
   .nxr-dwh-static {

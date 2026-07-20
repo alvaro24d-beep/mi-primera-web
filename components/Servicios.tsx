@@ -13,56 +13,61 @@ import { useServiciosCardsRegistry } from "@/store/useServiciosCardsRegistry";
 
 gsap.registerPlugin(ScrollTrigger);
 
+// V16.27 — Las 5 demos renovadas como PANTALLAS: cada una llena la card
+// entera (position absolute inset 0, layouts fluidos en % — cero tamaños
+// fijos de stage) como si el cristal fuese un display reproduciendo una UI
+// real. La coreografía vive en los loops JS de abajo (perCard timers +
+// reinicio-al-centrar); los detalles idle (shimmer, pulsos, caret) son
+// keyframes CSS pausados por .nxr-anims-live fuera de pantalla.
 function Web3DAnim() {
   return (
-    <div className="anim-web3d">
-      <div className="anim-web3d-stage">
-        <div className="anim-web3d-glow"></div>
-        <div className="anim-web3d-browser">
-          <div className="anim-web3d-topbar">
-            <div className="anim-web3d-dot"></div>
-            <div className="anim-web3d-dot"></div>
-            <div className="anim-web3d-dot"></div>
-          </div>
-          <div className="anim-web3d-body">
-            <div className="anim-web3d-scroll">
-              <div className="anim-web3d-line accent"></div>
-              <div className="anim-web3d-line w80"></div>
-              <div className="anim-web3d-line w60"></div>
-              <div className="anim-web3d-cards">
-                <div className="anim-web3d-cardmini"></div>
-                <div className="anim-web3d-cardmini"></div>
-                <div className="anim-web3d-cardmini"></div>
-              </div>
-              <div className="anim-web3d-line w40"></div>
-              <div className="anim-web3d-line w80"></div>
-              <div className="anim-web3d-line w60"></div>
-              <div className="anim-web3d-cards">
-                <div className="anim-web3d-cardmini"></div>
-                <div className="anim-web3d-cardmini"></div>
-                <div className="anim-web3d-cardmini"></div>
-              </div>
-              <div className="anim-web3d-line w40"></div>
-            </div>
-          </div>
-        </div>
-        <div className="anim-web3d-layer -code">
+    <div className="anim-wb" aria-hidden="true">
+      <div className="anim-wb-bar">
+        <span className="anim-wb-dot" />
+        <span className="anim-wb-dot" />
+        <span className="anim-wb-dot" />
+        <div className="anim-wb-url">
           <svg viewBox="0 0 24 24">
-            <polyline points="16 18 22 12 16 6" />
-            <polyline points="8 6 2 12 8 18" />
+            <rect x="5" y="11" width="14" height="9" rx="2" />
+            <path d="M8 11V8a4 4 0 0 1 8 0v3" />
           </svg>
+          <span>tunegocio.es</span>
+          <i className="anim-wb-progress" />
         </div>
-        <div className="anim-web3d-layer -perf">
-          <div>
-            <div className="anim-web3d-perf-num">98</div>
-            <div className="anim-web3d-perf-label">Performance</div>
+      </div>
+      <div className="anim-wb-page">
+        <div className="anim-wb-hero">
+          <span className="anim-wb-line -title" />
+          <span className="anim-wb-line -sub" />
+          <span className="anim-wb-btn">
+            <i />
+          </span>
+        </div>
+        <div className="anim-wb-grid">
+          <div className="anim-wb-tile">
+            <i className="anim-wb-img" />
+            <i className="anim-wb-line -t1" />
+            <i className="anim-wb-line -t2" />
+          </div>
+          <div className="anim-wb-tile">
+            <i className="anim-wb-img" />
+            <i className="anim-wb-line -t1" />
+            <i className="anim-wb-line -t2" />
+          </div>
+          <div className="anim-wb-tile">
+            <i className="anim-wb-img" />
+            <i className="anim-wb-line -t1" />
+            <i className="anim-wb-line -t2" />
           </div>
         </div>
-        <div className="anim-web3d-cursor">
-          <svg viewBox="0 0 24 24">
-            <path d="M4,2 L4,20 L9,15.5 L12,22 L15,20.5 L12,14 L18,14 Z" />
-          </svg>
-        </div>
+      </div>
+      <span className="anim-wb-badge">
+        <b>98</b> Performance
+      </span>
+      <div className="anim-wb-cursor">
+        <svg viewBox="0 0 24 24">
+          <path d="M4,2 L4,20 L9,15.5 L12,22 L15,20.5 L12,14 L18,14 Z" />
+        </svg>
       </div>
     </div>
   );
@@ -70,128 +75,132 @@ function Web3DAnim() {
 
 function ChatAnim() {
   return (
-    <div className="anim-chat">
-      <div className="anim-chat-msg left">
-        <div className="anim-chat-avatar">🙋</div>
-        <div className="anim-chat-bubble">¿Cuándo vence mi suscripción?</div>
+    <div className="anim-ia" aria-hidden="true">
+      <div className="anim-ia-head">
+        <span className="anim-ia-ava">
+          🤖<i />
+        </span>
+        <span className="anim-ia-who">
+          <b>Agente Nexora</b>
+          <span>en línea</span>
+        </span>
       </div>
-      {/* Indicadores "escribiendo…" (V16.21): uno delante de cada respuesta
-          del bot; el loop los muestra un instante y los sustituye por el
-          mensaje real. display:none en reposo (no ocupan hueco). */}
-      <div className="anim-chat-msg right anim-chat-pending" aria-hidden="true">
-        <div className="anim-chat-avatar">🤖</div>
-        <div className="anim-chat-typing">
+      <div className="anim-ia-msgs">
+        <div className="anim-ia-msg -user">¿Tenéis cita para el jueves?</div>
+        <div className="anim-ia-msg -bot -typing">
           <span />
           <span />
           <span />
         </div>
-      </div>
-      <div className="anim-chat-msg right">
-        <div className="anim-chat-avatar">🤖</div>
-        <div className="anim-chat-bubble system">
-          <svg className="anim-chat-db-icon" viewBox="0 0 24 24">
-            <ellipse cx="12" cy="5" rx="9" ry="3" />
-            <path d="M3 5v14c0 1.66 4.03 3 9 3s9-1.34 9-3V5" />
-            <path d="M3 12c0 1.66 4.03 3 9 3s9-1.34 9-3" />
+        <div className="anim-ia-msg -bot">Déjame comprobar la agenda…</div>
+        <div className="anim-ia-msg -bot -card">
+          <svg viewBox="0 0 24 24">
+            <rect x="3" y="5" width="18" height="16" rx="3" />
+            <path d="M3 10h18M8 3v4M16 3v4" />
+            <path className="anim-ia-check" d="M8.5 15l2.5 2.5 4.5-5" />
           </svg>
-          Consultando base de datos…
+          <span>
+            <b>Cita confirmada</b>
+            <span>Jueves · 10:30</span>
+          </span>
         </div>
+        <div className="anim-ia-msg -user">¡Perfecto, gracias!</div>
       </div>
-      <div className="anim-chat-msg right anim-chat-pending" aria-hidden="true">
-        <div className="anim-chat-avatar">🤖</div>
-        <div className="anim-chat-typing">
-          <span />
-          <span />
-          <span />
-        </div>
-      </div>
-      <div className="anim-chat-msg right">
-        <div className="anim-chat-avatar">🤖</div>
-        <div className="anim-chat-bubble">
-          Tu plan Pro vence el 15 de enero. ¿Quieres renovarlo ahora con un 20% de descuento?
-        </div>
-      </div>
-      <div className="anim-chat-msg left">
-        <div className="anim-chat-avatar">🙋</div>
-        <div className="anim-chat-bubble">Sí, renuévalo. ¡Gracias!</div>
+      <div className="anim-ia-input">
+        <span className="anim-ia-intext" />
+        <i className="anim-ia-caret" />
+        <span className="anim-ia-send">
+          <svg viewBox="0 0 24 24">
+            <path d="M4 12l16-7-6 16-2.5-6.5L4 12z" />
+          </svg>
+        </span>
       </div>
     </div>
   );
 }
 
 function FlowAnim() {
+  // Los extremos de cada conexión son los MISMOS puntos fraccionales del
+  // viewBox (300×150, preserveAspectRatio none) en los que se centran los
+  // nodos DOM (left/top en % + translate(-50%,-50%)): las líneas llegan al
+  // centro de cada nodo en cualquier aspect-ratio de la card.
   return (
-    <div className="anim-auto3d">
-      <div className="anim-auto3d-stage">
-        <div className="anim-auto3d-glow"></div>
-        <div className="anim-auto3d-panel">
-          <svg className="anim-flow-svg" viewBox="0 0 240 100" preserveAspectRatio="xMidYMid meet">
-            <g className="anim-flow-node-l">
-              <rect x="4" y="8" width="58" height="38" rx="8" fill="rgba(255,157,125,.04)" stroke="rgba(255,157,125,.15)" strokeWidth="1" />
-              <text x="33" y="24" textAnchor="middle" fill="rgba(255,157,125,.25)" fontSize="13" fontWeight="700" fontFamily="sans-serif">Gmail</text>
-              <text x="33" y="38" textAnchor="middle" fill="rgba(255,255,255,.12)" fontSize="10" fontFamily="sans-serif">Trigger</text>
-            </g>
-            <g className="anim-flow-node-l">
-              <rect x="4" y="58" width="58" height="38" rx="8" fill="rgba(255,157,125,.04)" stroke="rgba(255,157,125,.15)" strokeWidth="1" />
-              <text x="33" y="74" textAnchor="middle" fill="rgba(255,157,125,.25)" fontSize="13" fontWeight="700" fontFamily="sans-serif">CRM</text>
-              <text x="33" y="88" textAnchor="middle" fill="rgba(255,255,255,.12)" fontSize="10" fontFamily="sans-serif">Lead</text>
-            </g>
-
-            <path className="anim-flow-conn-l" d="M62,27 C88,27 88,50 94,50" />
-            <path className="anim-flow-conn-l" d="M62,77 C88,77 88,50 94,50" />
-
-            <g className="anim-flow-node-c">
-              <rect x="94" y="14" width="52" height="72" rx="10" fill="rgba(255,157,125,.06)" stroke="rgba(255,157,125,.2)" strokeWidth="1.5" />
-              <rect x="107" y="28" width="26" height="22" rx="4" fill="none" stroke="var(--c-salmon)" strokeWidth="1.4" />
-              <circle cx="114" cy="38" r="3" fill="var(--c-salmon)" opacity="0.85" />
-              <circle cx="126" cy="38" r="3" fill="var(--c-salmon)" opacity="0.85" />
-              <rect x="111" y="44" width="18" height="3" rx="1.5" fill="var(--c-salmon)" opacity="0.6" />
-              <line x1="120" y1="28" x2="120" y2="24" stroke="var(--c-salmon)" strokeWidth="1.4" strokeLinecap="round" />
-              <circle cx="120" cy="23" r="2" fill="var(--c-salmon)" />
-              <text x="120" y="76" textAnchor="middle" fill="rgba(255,255,255,.55)" fontSize="10" fontFamily="sans-serif">Agente IA</text>
-            </g>
-
-            <path className="anim-flow-conn-r" d="M146,50 C152,50 152,27 178,27" />
-            <path className="anim-flow-conn-r" d="M146,50 C152,50 152,77 178,77" />
-
-            <g className="anim-flow-node-r">
-              <rect x="178" y="8" width="58" height="38" rx="8" fill="rgba(255,157,125,.04)" stroke="rgba(255,157,125,.15)" strokeWidth="1" />
-              <text x="207" y="24" textAnchor="middle" fill="rgba(255,157,125,.25)" fontSize="13" fontWeight="700" fontFamily="sans-serif">Factura</text>
-              <text x="207" y="38" textAnchor="middle" fill="rgba(255,255,255,.12)" fontSize="10" fontFamily="sans-serif">Auto</text>
-            </g>
-            <g className="anim-flow-node-r">
-              <rect x="178" y="58" width="58" height="38" rx="8" fill="rgba(255,157,125,.04)" stroke="rgba(255,157,125,.15)" strokeWidth="1" />
-              <text x="207" y="74" textAnchor="middle" fill="rgba(255,157,125,.25)" fontSize="13" fontWeight="700" fontFamily="sans-serif">Slack</text>
-              <text x="207" y="88" textAnchor="middle" fill="rgba(255,255,255,.12)" fontSize="10" fontFamily="sans-serif">Notificar</text>
-            </g>
-
-            <circle className="anim-flow-particle" r="3.5">
-              <animate attributeName="opacity" values="0;1;1;0" keyTimes="0;0.05;0.92;1" dur="2s" repeatCount="indefinite" begin="1.2s" />
-              <animateMotion dur="2s" repeatCount="indefinite" begin="1.2s" path="M62,27 C88,27 88,50 94,50 C152,50 152,27 178,27" />
-            </circle>
-            <circle className="anim-flow-particle" r="3">
-              <animate attributeName="opacity" values="0;1;1;0" keyTimes="0;0.05;0.92;1" dur="2.2s" repeatCount="indefinite" begin="2.1s" />
-              <animateMotion dur="2.2s" repeatCount="indefinite" begin="2.1s" path="M62,77 C88,77 88,50 94,50 C152,50 152,77 178,77" />
-            </circle>
-          </svg>
-        </div>
-        <div className="anim-auto3d-chip -mail">
+    <div className="anim-fl" aria-hidden="true">
+      <div className="anim-fl-head">
+        <span className="anim-fl-file">automatización · n8n</span>
+        <span className="anim-fl-live">
+          <i />
+          ACTIVO
+        </span>
+      </div>
+      <div className="anim-fl-canvas">
+        <svg className="anim-fl-svg" viewBox="0 0 300 150" preserveAspectRatio="none">
+          <path className="anim-fl-conn" d="M36,30 C90,30 96,69 150,69" />
+          <path className="anim-fl-conn" d="M36,108 C90,108 96,69 150,69" />
+          <path className="anim-fl-conn" d="M150,69 C204,69 210,30 264,30" />
+          <path className="anim-fl-conn" d="M150,69 C204,69 210,108 264,108" />
+          <circle className="anim-fl-pulse" r="3.2">
+            <animate attributeName="opacity" values="0;1;1;0" keyTimes="0;0.06;0.92;1" dur="2.4s" repeatCount="indefinite" />
+            <animateMotion dur="2.4s" repeatCount="indefinite" path="M36,30 C90,30 96,69 150,69 C204,69 210,30 264,30" />
+          </circle>
+          <circle className="anim-fl-pulse" r="2.8">
+            <animate attributeName="opacity" values="0;1;1;0" keyTimes="0;0.06;0.92;1" dur="2.8s" repeatCount="indefinite" begin="1.1s" />
+            <animateMotion dur="2.8s" repeatCount="indefinite" begin="1.1s" path="M36,108 C90,108 96,69 150,69 C204,69 210,108 264,108" />
+          </circle>
+          <circle className="anim-fl-pulse -lime" r="2.8">
+            <animate attributeName="opacity" values="0;1;1;0" keyTimes="0;0.06;0.92;1" dur="2.6s" repeatCount="indefinite" begin="0.6s" />
+            <animateMotion dur="2.6s" repeatCount="indefinite" begin="0.6s" path="M36,30 C90,30 96,69 150,69 C204,69 210,108 264,108" />
+          </circle>
+        </svg>
+        <div className="anim-fl-node" style={{ left: "12%", top: "20%" }}>
           <svg viewBox="0 0 24 24">
             <rect x="3" y="5" width="18" height="14" rx="2" />
             <path d="M3 7l9 6 9-6" />
           </svg>
+          <b>Gmail</b>
+          <span>Trigger</span>
         </div>
-        <div className="anim-auto3d-chip -bolt">
+        <div className="anim-fl-node" style={{ left: "12%", top: "72%" }}>
           <svg viewBox="0 0 24 24">
-            <path d="M13 2L4 14h7l-1 8 10-12h-7l0-8z" />
+            <rect x="4" y="3" width="16" height="18" rx="2" />
+            <path d="M8 8h8M8 12h8M8 16h5" />
           </svg>
+          <b>Formulario</b>
+          <span>Lead</span>
         </div>
-        <div className="anim-auto3d-chip -check">
+        <div className="anim-fl-node -core" style={{ left: "50%", top: "46%" }}>
           <svg viewBox="0 0 24 24">
-            <circle cx="12" cy="12" r="9" />
-            <path d="M8 12l3 3 5-6" />
+            <rect x="5" y="7" width="14" height="12" rx="3" />
+            <circle cx="9.5" cy="12" r="1.6" />
+            <circle cx="14.5" cy="12" r="1.6" />
+            <path d="M12 7V4M9 16h6" />
           </svg>
+          <b>Agente IA</b>
+          <span>Procesa</span>
         </div>
+        <div className="anim-fl-node" style={{ left: "88%", top: "20%" }}>
+          <svg viewBox="0 0 24 24">
+            <ellipse cx="12" cy="6" rx="8" ry="3" />
+            <path d="M4 6v12c0 1.7 3.6 3 8 3s8-1.3 8-3V6" />
+            <path d="M4 12c0 1.7 3.6 3 8 3s8-1.3 8-3" />
+          </svg>
+          <b>CRM</b>
+          <span>Guarda</span>
+        </div>
+        <div className="anim-fl-node" style={{ left: "88%", top: "72%" }}>
+          <svg viewBox="0 0 24 24">
+            <path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9" />
+            <path d="M10.3 21a2 2 0 0 0 3.4 0" />
+          </svg>
+          <b>Slack</b>
+          <span>Avisa</span>
+        </div>
+      </div>
+      <div className="anim-fl-foot">
+        <span className="anim-fl-count">
+          Ejecuciones hoy: <b>247</b>
+        </span>
+        <span className="anim-fl-ok">✓ sin errores</span>
       </div>
     </div>
   );
@@ -199,68 +208,64 @@ function FlowAnim() {
 
 function SeoAnim() {
   return (
-    <div className="anim-gsc">
-      <div className="anim-gsc-metrics">
-        <div className="anim-gsc-metric -active">
-          <span className="anim-gsc-metric-dot" style={{ background: "var(--c-lime)" }}></span>
-          <span className="anim-gsc-metric-val">3.482</span>
-          <span className="anim-gsc-metric-label">Clics totales</span>
+    <div className="anim-sc" aria-hidden="true">
+      <div className="anim-sc-head">
+        <b>Rendimiento de búsqueda</b>
+        <span>Últimos 3 meses</span>
+      </div>
+      <div className="anim-sc-chips">
+        <div className="anim-sc-chip -lime">
+          <b className="anim-sc-chip-val" data-t="3482" data-fmt="int">
+            0
+          </b>
+          <span>Clics</span>
         </div>
-        <div className="anim-gsc-metric">
-          <span className="anim-gsc-metric-dot" style={{ background: "var(--c-salmon)" }}></span>
-          <span className="anim-gsc-metric-val">86,4K</span>
-          <span className="anim-gsc-metric-label">Impresiones</span>
+        <div className="anim-sc-chip -salmon">
+          <b className="anim-sc-chip-val" data-t="86400" data-fmt="k">
+            0
+          </b>
+          <span>Impresiones</span>
         </div>
-        <div className="anim-gsc-metric">
-          <span className="anim-gsc-metric-dot" style={{ background: "rgba(255,255,255,0.25)" }}></span>
-          <span className="anim-gsc-metric-val">4,0%</span>
-          <span className="anim-gsc-metric-label">CTR medio</span>
-        </div>
-        <div className="anim-gsc-metric">
-          <span className="anim-gsc-metric-dot" style={{ background: "rgba(255,255,255,0.25)" }}></span>
-          <span className="anim-gsc-metric-val">2,8</span>
-          <span className="anim-gsc-metric-label">Posición</span>
+        <div className="anim-sc-chip">
+          <b className="anim-sc-chip-val" data-t="4" data-fmt="pct">
+            0%
+          </b>
+          <span>CTR medio</span>
         </div>
       </div>
-      <div className="anim-gsc-chart">
+      <div className="anim-sc-chart">
         <svg viewBox="0 0 260 90" preserveAspectRatio="none">
-          <defs>
-            <linearGradient id="nxr-gsc-grad-lime" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="var(--c-lime)" stopOpacity="0.28" />
-              <stop offset="100%" stopColor="var(--c-lime)" stopOpacity="0" />
-            </linearGradient>
-            <linearGradient id="nxr-gsc-grad-salmon" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="var(--c-salmon)" stopOpacity="0.16" />
-              <stop offset="100%" stopColor="var(--c-salmon)" stopOpacity="0" />
-            </linearGradient>
-          </defs>
-          <g className="anim-gsc-grid">
-            <line x1="0" y1="8" x2="260" y2="8" />
-            <line x1="0" y1="28" x2="260" y2="28" />
-            <line x1="0" y1="48" x2="260" y2="48" />
-            <line x1="0" y1="68" x2="260" y2="68" />
+          <g className="anim-sc-grid">
+            <line x1="0" y1="10" x2="260" y2="10" />
+            <line x1="0" y1="33" x2="260" y2="33" />
+            <line x1="0" y1="56" x2="260" y2="56" />
+            <line x1="0" y1="79" x2="260" y2="79" />
           </g>
-          <path className="anim-gsc-area-impr" d="M0,55 L26,50 L52,52 L78,40 L104,44 L130,32 L156,36 L182,24 L208,28 L234,18 L260,20 L260,80 L0,80 Z" />
-          <path className="anim-gsc-area-clicks" d="M0,68 L26,64 L52,66 L78,56 L104,58 L130,46 L156,50 L182,38 L208,34 L234,24 L260,16 L260,80 L0,80 Z" />
-          <line className="anim-gsc-cursor" x1="234" y1="10" x2="234" y2="80" />
-          <path className="anim-gsc-line-impr" d="M0,55 L26,50 L52,52 L78,40 L104,44 L130,32 L156,36 L182,24 L208,28 L234,18 L260,20" />
-          <path className="anim-gsc-line-clicks" d="M0,68 L26,64 L52,66 L78,56 L104,58 L130,46 L156,50 L182,38 L208,34 L234,24 L260,16" />
-          <circle className="anim-gsc-dot" cx="234" cy="24" r="3.5" />
-          <g className="anim-gsc-axis">
-            <text x="2" y="88">1 jun</text>
-            <text x="112" y="88">15 jun</text>
-            <text x="228" y="88">30 jun</text>
-          </g>
+          <path
+            className="anim-sc-area -impr"
+            d="M0,55 L26,50 L52,52 L78,40 L104,44 L130,32 L156,36 L182,24 L208,28 L234,18 L260,20 L260,90 L0,90 Z"
+          />
+          <path
+            className="anim-sc-area -clics"
+            d="M0,68 L26,64 L52,66 L78,56 L104,58 L130,46 L156,50 L182,38 L208,34 L234,24 L260,16 L260,90 L0,90 Z"
+          />
+          <path
+            className="anim-sc-line -impr"
+            d="M0,55 L26,50 L52,52 L78,40 L104,44 L130,32 L156,36 L182,24 L208,28 L234,18 L260,20"
+          />
+          <path
+            className="anim-sc-line -clics"
+            d="M0,68 L26,64 L52,66 L78,56 L104,58 L130,46 L156,50 L182,38 L208,34 L234,24 L260,16"
+          />
         </svg>
-      </div>
-      <div className="anim-gsc-legend">
-        <div className="anim-gsc-legend-item">
-          <span className="anim-gsc-legend-dot" style={{ background: "var(--c-lime)" }}></span>
-          Clics
-        </div>
-        <div className="anim-gsc-legend-item">
-          <span className="anim-gsc-legend-dot" style={{ background: "var(--c-salmon)" }}></span>
-          Impresiones
+        {/* Runner: cursor vertical + punto + tooltip que recorren la curva
+            de clics en bucle (lo mueve el loop JS punto a punto). */}
+        <div className="anim-sc-run">
+          <i className="anim-sc-run-line" />
+          <i className="anim-sc-run-dot" />
+          <span className="anim-sc-tip">
+            <b>0</b> clics
+          </span>
         </div>
       </div>
     </div>
@@ -269,33 +274,67 @@ function SeoAnim() {
 
 function AppAnim() {
   return (
-    <div className="anim-app">
-      <div className="anim-app-phone">
-        <div className="anim-app-phone-bar">
-          <div className="anim-app-phone-notch"></div>
-        </div>
-        <div className="anim-app-phone-body">
-          <div className="anim-app-row accent"></div>
-          <div className="anim-app-row" style={{ width: "80%" }}></div>
-          <div className="anim-app-row" style={{ width: "60%" }}></div>
-          <div className="anim-app-row" style={{ width: "90%" }}></div>
-          <div className="anim-app-row" style={{ width: "70%" }}></div>
+    <div className="anim-ap" aria-hidden="true">
+      <div className="anim-ap-phone">
+        <i className="anim-ap-notch" />
+        <div className="anim-ap-screen">
+          <span className="anim-ap-hi">Hola, Marta 👋</span>
+          <div className="anim-ap-balance">
+            <span>Ventas hoy</span>
+            <b className="anim-ap-count" data-t="2840">
+              0
+            </b>
+          </div>
+          <div className="anim-ap-bars">
+            <i style={{ "--h": "38%" } as React.CSSProperties} />
+            <i style={{ "--h": "62%" } as React.CSSProperties} />
+            <i style={{ "--h": "48%" } as React.CSSProperties} />
+            <i style={{ "--h": "78%" } as React.CSSProperties} />
+            <i style={{ "--h": "96%" } as React.CSSProperties} />
+          </div>
+          <div className="anim-ap-tab">
+            <svg viewBox="0 0 24 24">
+              <path d="M4 11l8-7 8 7v9h-5v-6h-6v6H4z" />
+            </svg>
+            <svg viewBox="0 0 24 24">
+              <path d="M4 20V10M10 20V4M16 20v-8M22 20H2" />
+            </svg>
+            <svg viewBox="0 0 24 24">
+              <circle cx="12" cy="8" r="4" />
+              <path d="M4 21c1.5-4 5-6 8-6s6.5 2 8 6" />
+            </svg>
+          </div>
         </div>
       </div>
-      <div className="anim-app-stats">
-        <div className="anim-app-stat">
-          <span className="anim-app-stat-label">Usuarios activos</span>
-          <span className="anim-app-stat-val" data-target="2840">0</span>
-          <div className="anim-app-stat-bar-wrap">
-            <div className="anim-app-stat-bar-fill" style={{ width: "78%" }}></div>
-          </div>
+      <div className="anim-ap-side">
+        <div className="anim-ap-notif">
+          <svg viewBox="0 0 24 24">
+            <circle cx="12" cy="12" r="9" />
+            <path d="M8 12l3 3 5-6" />
+          </svg>
+          <span>
+            <b>Pedido #1042</b>
+            <span>Pagado · 49 €</span>
+          </span>
         </div>
-        <div className="anim-app-stat">
-          <span className="anim-app-stat-label">Uptime</span>
-          <span className="anim-app-stat-val">99.9%</span>
-          <div className="anim-app-stat-bar-wrap">
-            <div className="anim-app-stat-bar-fill" style={{ width: "99%", background: "var(--c-lime)" }}></div>
-          </div>
+        <div className="anim-ap-notif">
+          <svg viewBox="0 0 24 24">
+            <path d="M12 3l2.7 5.6 6.1.8-4.5 4.2 1.1 6L12 16.8 6.6 19.6l1.1-6L3.2 9.4l6.1-.8z" />
+          </svg>
+          <span>
+            <b>Nueva reseña</b>
+            <span>★★★★★ · «Impecable»</span>
+          </span>
+        </div>
+        <div className="anim-ap-ring">
+          <svg viewBox="0 0 64 64">
+            <circle className="anim-ap-ring-track" cx="32" cy="32" r="26" />
+            <circle className="anim-ap-ring-fill" cx="32" cy="32" r="26" />
+          </svg>
+          <span>
+            <b>99,9%</b>
+            <span>uptime</span>
+          </span>
         </div>
       </div>
     </div>
@@ -1514,18 +1553,44 @@ export default function Servicios() {
     );
     io.observe(section);
 
-    function animCount(el: Element | null, target: number, suffix = "", duration = 1800) {
-      if (!el) return;
-      const start = Date.now();
-      function frame() {
-        const p = Math.min((Date.now() - start) / duration, 1);
-        const ease = 1 - Math.pow(1 - p, 3);
-        const val = Math.round(target * ease);
-        (el as HTMLElement).textContent = val + suffix;
-        if (p < 1) requestAnimationFrame(frame);
+    // Utilidades de coreografía (V16.27): estados instantáneos, tecleo por
+    // caracteres y contadores por pasos (timers, no rAF: se limpian con el
+    // saco perCard de abajo y duermen con visRef como todo lo demás).
+    const instant = (els: HTMLElement[], styles: Partial<CSSStyleDeclaration>) => {
+      els.forEach((el) => {
+        el.style.transition = "none";
+        Object.assign(el.style, styles);
+      });
+    };
+    const fmtNum = (v: number, fmt: string | null) => {
+      if (fmt === "k") return (v / 1000).toFixed(1).replace(".", ",") + "K";
+      if (fmt === "pct") return v.toFixed(1).replace(".", ",") + "%";
+      return Math.round(v).toLocaleString("es-ES");
+    };
+    const countTo = (
+      T: ReturnType<typeof setTimeout>[],
+      el: HTMLElement,
+      target: number,
+      from: number,
+      dur: number,
+      fmt: string | null
+    ) => {
+      const steps = 24;
+      for (let k = 1; k <= steps; k++) {
+        T.push(
+          setTimeout(() => {
+            const e = 1 - Math.pow(1 - k / steps, 3);
+            el.textContent = fmtNum(target * e, fmt);
+          }, from + (dur / steps) * k)
+        );
       }
-      frame();
-    }
+    };
+    const typeInto = (T: ReturnType<typeof setTimeout>[], el: HTMLElement, text: string, from: number, cps = 34) => {
+      for (let k = 0; k <= text.length; k++) {
+        T.push(setTimeout(() => (el.textContent = text.slice(0, k)), from + k * cps));
+      }
+      return from + text.length * cps;
+    };
 
     // Un saco de timers POR CARD (V16.21): reiniciar una demo = vaciar su
     // saco y relanzar su loop, sin tocar las demás. El saco global de antes
@@ -1536,30 +1601,124 @@ export default function Servicios() {
       perCard[i].length = 0;
     };
 
-    const card2 = cards[1];
-    if (card2) {
-      // Coreografía de chat real (V16.21, "dinámicas y elaboradas"): antes
-      // de cada respuesta del bot aparece su indicador "escribiendo…" (los
-      // .anim-chat-pending del JSX, con el CSS de puntos que existía sin
-      // usarse) y el mensaje lo sustituye — en vez del stagger plano i·700.
-      function loopChatAuto(card: HTMLElement) {
+    // ===== Pantalla 1 — navegador construyendo la web =====
+    if (cards[0]) {
+      const card0 = cards[0];
+      function loopWeb(card: HTMLElement) {
         if (!visRef.current) {
-          perCard[1].push(setTimeout(() => loopChatAuto(card), 1500));
+          perCard[0].push(setTimeout(() => loopWeb(card), 1500));
           return;
         }
-        const msgs = Array.from(card.querySelectorAll<HTMLElement>(".anim-chat-msg:not(.anim-chat-pending)"));
-        const pendings = Array.from(card.querySelectorAll<HTMLElement>(".anim-chat-pending"));
+        const progress = card.querySelector<HTMLElement>(".anim-wb-progress");
+        const hero = Array.from(card.querySelectorAll<HTMLElement>(".anim-wb-hero > *"));
+        const tiles = Array.from(card.querySelectorAll<HTMLElement>(".anim-wb-tile"));
+        const btn = card.querySelector<HTMLElement>(".anim-wb-btn");
+        const badge = card.querySelector<HTMLElement>(".anim-wb-badge");
+        const cursor = card.querySelector<HTMLElement>(".anim-wb-cursor");
+        instant([...hero, ...tiles], { opacity: "0", transform: "translateY(10px)" });
+        if (progress) {
+          progress.style.transition = "none";
+          progress.style.transform = "scaleX(0)";
+        }
+        if (badge) {
+          badge.style.transition = "none";
+          badge.style.opacity = "0";
+          badge.style.transform = "scale(0.6)";
+        }
+        if (cursor) {
+          cursor.style.transition = "none";
+          cursor.style.opacity = "0";
+          cursor.style.left = "78%";
+          cursor.style.top = "84%";
+        }
+        btn?.classList.remove("-clicked");
+        card.querySelector(".anim-wb-page")?.getBoundingClientRect();
+        const T = perCard[0];
+        const show = (el: HTMLElement, at: number) =>
+          T.push(
+            setTimeout(() => {
+              el.style.transition = "opacity .45s, transform .45s";
+              el.style.opacity = "1";
+              el.style.transform = "translateY(0)";
+            }, at)
+          );
+        T.push(
+          setTimeout(() => {
+            if (progress) {
+              progress.style.transition = "transform .7s ease";
+              progress.style.transform = "scaleX(1)";
+            }
+          }, 200)
+        );
+        hero.forEach((el, i) => show(el, 900 + i * 180));
+        tiles.forEach((el, i) => show(el, 1500 + i * 160));
+        // El cursor aparece, viaja hasta el CTA (posición medida en % para
+        // sobrevivir al scale del cover-flow) y hace click: el botón pulsa
+        // y el badge de performance corona la build.
+        T.push(
+          setTimeout(() => {
+            if (cursor) {
+              cursor.style.transition =
+                "opacity .3s, left 1.1s cubic-bezier(.4,0,.2,1), top 1.1s cubic-bezier(.4,0,.2,1)";
+              cursor.style.opacity = "1";
+            }
+          }, 2300)
+        );
+        T.push(
+          setTimeout(() => {
+            if (cursor && btn) {
+              const c = card.getBoundingClientRect();
+              const b = btn.getBoundingClientRect();
+              if (c.width > 0) {
+                cursor.style.left = `${((b.left + b.width * 0.6 - c.left) / c.width) * 100}%`;
+                cursor.style.top = `${((b.top + b.height * 0.7 - c.top) / c.height) * 100}%`;
+              }
+            }
+          }, 2500)
+        );
+        T.push(setTimeout(() => btn?.classList.add("-clicked"), 3650));
+        T.push(
+          setTimeout(() => {
+            if (badge) {
+              badge.style.transition = "opacity .35s, transform .35s cubic-bezier(.34,1.56,.64,1)";
+              badge.style.opacity = "1";
+              badge.style.transform = "scale(1)";
+            }
+          }, 3950)
+        );
+        T.push(
+          setTimeout(() => {
+            if (cursor) cursor.style.opacity = "0";
+          }, 4400)
+        );
+        T.push(setTimeout(() => loopWeb(card), 7400));
+      }
+      demoRestartRef.current[0] = () => {
+        clearCard(0);
+        loopWeb(card0);
+      };
+      perCard[0].push(setTimeout(() => loopWeb(card0), 300));
+    }
+
+    // ===== Pantalla 2 — chat del agente (el usuario TECLEA en el input,
+    // envía, el bot responde con typing y una card de confirmación) =====
+    if (cards[1]) {
+      const card1 = cards[1];
+      function loopChat(card: HTMLElement) {
+        if (!visRef.current) {
+          perCard[1].push(setTimeout(() => loopChat(card), 1500));
+          return;
+        }
+        const msgs = Array.from(card.querySelectorAll<HTMLElement>(".anim-ia-msg:not(.-typing)"));
+        const typingEl = card.querySelector<HTMLElement>(".anim-ia-msg.-typing");
+        const intext = card.querySelector<HTMLElement>(".anim-ia-intext");
+        const send = card.querySelector<HTMLElement>(".anim-ia-send");
         if (!msgs.length) return;
-        msgs.forEach((m) => {
-          m.style.transition = "none";
-          m.style.opacity = "0";
-          m.style.transform = "translateY(6px)";
-        });
-        pendings.forEach((p) => {
-          p.style.display = "none";
-          p.style.opacity = "1";
-          p.style.transform = "none";
-        });
+        instant(msgs, { opacity: "0", transform: "translateY(8px)" });
+        if (typingEl) typingEl.style.display = "none";
+        if (intext) intext.textContent = "";
+        send?.classList.remove("-hot");
+        card.querySelector(".anim-ia-msgs")?.getBoundingClientRect();
         const T = perCard[1];
         const show = (m: HTMLElement | undefined, at: number) => {
           if (!m) return;
@@ -1571,209 +1730,290 @@ export default function Servicios() {
             }, at)
           );
         };
-        const typing = (p: HTMLElement | undefined, from: number, to: number) => {
-          if (!p) return;
-          T.push(setTimeout(() => (p.style.display = "flex"), from));
-          T.push(setTimeout(() => (p.style.display = "none"), to));
+        // La burbuja "escribiendo…" se recoloca delante del mensaje al que
+        // precede (una sola burbuja, insertBefore barato).
+        const typing = (before: HTMLElement | undefined, from: number, to: number) => {
+          if (!typingEl) return;
+          T.push(
+            setTimeout(() => {
+              if (before && before.parentElement) before.parentElement.insertBefore(typingEl, before);
+              typingEl.style.display = "flex";
+            }, from)
+          );
+          T.push(setTimeout(() => (typingEl.style.display = "none"), to));
         };
-        // [0] usuario pregunta · [1] bot consulta BD · [2] bot responde ·
-        // [3] usuario confirma — con "escribiendo…" delante de cada bot.
-        show(msgs[0], 300);
-        typing(pendings[0], 1000, 1800);
-        show(msgs[1], 1800);
-        typing(pendings[1], 2700, 3600);
-        show(msgs[2], 3600);
-        show(msgs[3], 4600);
-        T.push(setTimeout(() => loopChatAuto(card), 7000));
+        const sendPulse = (at: number) => {
+          T.push(setTimeout(() => send?.classList.add("-hot"), at));
+          T.push(
+            setTimeout(() => {
+              if (intext) intext.textContent = "";
+              send?.classList.remove("-hot");
+            }, at + 380)
+          );
+        };
+        let t = 300;
+        if (intext) t = typeInto(T, intext, "¿Tenéis cita para el jueves?", 300);
+        sendPulse(t + 120);
+        show(msgs[0], t + 500);
+        typing(msgs[1], t + 1000, t + 1900);
+        show(msgs[1], t + 1900);
+        typing(msgs[2], t + 2500, t + 3400);
+        show(msgs[2], t + 3400);
+        let t2 = t + 4100;
+        if (intext) t2 = typeInto(T, intext, "¡Perfecto, gracias!", t + 4100);
+        sendPulse(t2 + 120);
+        show(msgs[3], t2 + 500);
+        T.push(setTimeout(() => loopChat(card), t2 + 3300));
       }
       demoRestartRef.current[1] = () => {
         clearCard(1);
-        loopChatAuto(card2);
+        loopChat(card1);
       };
-      perCard[1].push(setTimeout(() => loopChatAuto(card2), 300));
+      perCard[1].push(setTimeout(() => loopChat(card1), 300));
     }
 
-    // The anims are the glass card's ONLY content now (no hover text-swap),
-    // so every demo self-loops on all devices — the hover-triggered variants
-    // (flow build on mouseenter, app count-up on hover) are gone with the
-    // layout that motivated them.
-    {
-      const instant = (els: HTMLElement[], styles: Partial<CSSStyleDeclaration>) => {
-        els.forEach((el) => {
-          el.style.transition = "none";
-          Object.assign(el.style, styles);
-        });
-      };
-      const restore = (els: HTMLElement[]) => {
-        els.forEach((el) => {
-          el.style.transition = "";
-        });
-      };
-
+    // ===== Pantalla 3 — canvas de automatización (nodos que se montan,
+    // conexiones que se dibujan, pulsos SMIL continuos y contador vivo) =====
+    if (cards[2]) {
+      const card2 = cards[2];
       function loopFlow(card: HTMLElement) {
         if (!visRef.current) {
           perCard[2].push(setTimeout(() => loopFlow(card), 1500));
           return;
         }
-        const nodesL = Array.from(card.querySelectorAll<HTMLElement>(".anim-flow-node-l"));
-        const connsL = Array.from(card.querySelectorAll<HTMLElement>(".anim-flow-conn-l"));
-        const nodeC = card.querySelector<HTMLElement>(".anim-flow-node-c");
-        const connsR = Array.from(card.querySelectorAll<HTMLElement>(".anim-flow-conn-r"));
-        const nodesR = Array.from(card.querySelectorAll<HTMLElement>(".anim-flow-node-r"));
-
-        nodesL.forEach((n) => {
-          n.style.transition = "none";
-          n.classList.remove("vis");
+        const nodes = Array.from(card.querySelectorAll<HTMLElement>(".anim-fl-node"));
+        const conns = Array.from(card.querySelectorAll(".anim-fl-conn")) as unknown as SVGPathElement[];
+        const countEl = card.querySelector<HTMLElement>(".anim-fl-count b");
+        instant(nodes, { opacity: "0", transform: "translate(-50%, -50%) scale(0.6)" });
+        conns.forEach((c) => {
+          const el = c as unknown as HTMLElement;
+          el.style.transition = "none";
+          const len = c.getTotalLength();
+          el.style.strokeDasharray = String(len);
+          el.style.strokeDashoffset = String(len);
         });
-        connsL.forEach((c) => {
-          c.style.transition = "none";
-          c.classList.remove("vis");
-        });
-        if (nodeC) {
-          nodeC.style.transition = "none";
-          nodeC.classList.remove("vis");
-        }
-        connsR.forEach((c) => {
-          c.style.transition = "none";
-          c.classList.remove("vis");
-        });
-        nodesR.forEach((n) => {
-          n.style.transition = "none";
-          n.classList.remove("vis");
-        });
-
-        card.querySelector(".anim-flow-svg")?.getBoundingClientRect();
-
+        card.querySelector(".anim-fl-svg")?.getBoundingClientRect();
         const T = perCard[2];
-        T.push(
-          setTimeout(() => {
-            nodesL.forEach((n) => {
-              n.style.transition = "";
-              n.classList.add("vis");
-            });
+        const popNode = (i: number, at: number) =>
+          T.push(
+            setTimeout(() => {
+              const n = nodes[i];
+              if (!n) return;
+              n.style.transition = "opacity .4s, transform .45s cubic-bezier(.34,1.56,.64,1)";
+              n.style.opacity = "1";
+              n.style.transform = "translate(-50%, -50%) scale(1)";
+            }, at)
+          );
+        const drawConn = (i: number, at: number) =>
+          T.push(
+            setTimeout(() => {
+              const el = conns[i] as unknown as HTMLElement | undefined;
+              if (!el) return;
+              el.style.transition = "stroke-dashoffset .6s ease";
+              el.style.strokeDashoffset = "0";
+            }, at)
+          );
+        // Triggers → conexiones de entrada → agente → salidas.
+        popNode(0, 250);
+        popNode(1, 470);
+        drawConn(0, 800);
+        drawConn(1, 950);
+        popNode(2, 1350);
+        drawConn(2, 1800);
+        drawConn(3, 1950);
+        popNode(3, 2350);
+        popNode(4, 2550);
+        // El contador de ejecuciones late con los pulsos.
+        if (countEl) {
+          for (let k = 0; k < 4; k++) {
             T.push(
               setTimeout(() => {
-                connsL.forEach((c) => {
-                  c.style.transition = "";
-                  c.classList.add("vis");
-                });
+                countEl.textContent = String(247 + k + 1);
+                countEl.style.transition = "none";
+                countEl.style.transform = "scale(1.25)";
                 T.push(
                   setTimeout(() => {
-                    if (nodeC) {
-                      nodeC.style.transition = "";
-                      nodeC.classList.add("vis");
-                    }
-                    T.push(
-                      setTimeout(() => {
-                        connsR.forEach((c) => {
-                          c.style.transition = "";
-                          c.classList.add("vis");
-                        });
-                        T.push(
-                          setTimeout(() => {
-                            nodesR.forEach((n) => {
-                              n.style.transition = "";
-                              n.classList.add("vis");
-                            });
-                            T.push(setTimeout(() => loopFlow(card), 2500));
-                          }, 500)
-                        );
-                      }, 400)
-                    );
-                  }, 600)
+                    countEl.style.transition = "transform .3s";
+                    countEl.style.transform = "scale(1)";
+                  }, 30)
                 );
-              }, 450)
+              }, 3100 + k * 1350)
             );
-          }, 50)
-        );
+          }
+        }
+        T.push(setTimeout(() => loopFlow(card), 9200));
       }
+      demoRestartRef.current[2] = () => {
+        clearCard(2);
+        loopFlow(card2);
+      };
+      perCard[2].push(setTimeout(() => loopFlow(card2), 300));
+    }
 
+    // ===== Pantalla 4 — Search Console (líneas que se dibujan, contadores
+    // y un cursor con tooltip que recorre la curva de clics) =====
+    if (cards[3]) {
+      const card3 = cards[3];
+      // Puntos de la polilínea de clics (viewBox 260×90) — el runner los
+      // pisa uno a uno con transiciones lineales entre medias.
+      const PTS: Array<[number, number]> = [
+        [0, 68],
+        [26, 64],
+        [52, 66],
+        [78, 56],
+        [104, 58],
+        [130, 46],
+        [156, 50],
+        [182, 38],
+        [208, 34],
+        [234, 24],
+      ];
       function loopSeo(card: HTMLElement) {
         if (!visRef.current) {
           perCard[3].push(setTimeout(() => loopSeo(card), 1500));
           return;
         }
-        const lines = Array.from(card.querySelectorAll<HTMLElement>(".anim-gsc-line-clicks, .anim-gsc-line-impr"));
-        const areas = Array.from(card.querySelectorAll<HTMLElement>(".anim-gsc-area-clicks, .anim-gsc-area-impr"));
-        const dot = card.querySelector<HTMLElement>(".anim-gsc-dot");
-        const cursor = card.querySelector<HTMLElement>(".anim-gsc-cursor");
-
-        instant(lines, { strokeDashoffset: "340" } as Partial<CSSStyleDeclaration>);
+        const lines = Array.from(card.querySelectorAll(".anim-sc-line")) as unknown as SVGPathElement[];
+        const areas = Array.from(card.querySelectorAll<HTMLElement>(".anim-sc-area"));
+        const chips = Array.from(card.querySelectorAll<HTMLElement>(".anim-sc-chip-val"));
+        const run = card.querySelector<HTMLElement>(".anim-sc-run");
+        const tipB = card.querySelector<HTMLElement>(".anim-sc-tip b");
+        lines.forEach((l) => {
+          const el = l as unknown as HTMLElement;
+          el.style.transition = "none";
+          const len = l.getTotalLength();
+          el.style.strokeDasharray = String(len);
+          el.style.strokeDashoffset = String(len);
+        });
         instant(areas, { opacity: "0" });
-        if (dot) {
-          dot.style.transition = "none";
-          dot.style.opacity = "0";
+        if (run) {
+          run.style.transition = "none";
+          run.style.opacity = "0";
+          run.style.left = "0%";
         }
-        if (cursor) {
-          cursor.style.transition = "none";
-          cursor.style.opacity = "0";
+        chips.forEach((c) => (c.textContent = fmtNum(0, c.dataset.fmt ?? null)));
+        card.querySelector(".anim-sc-chart")?.getBoundingClientRect();
+        const T = perCard[3];
+        lines.forEach((l, i) =>
+          T.push(
+            setTimeout(() => {
+              const el = l as unknown as HTMLElement;
+              el.style.transition = "stroke-dashoffset 1.4s cubic-bezier(.22,1,.36,1)";
+              el.style.strokeDashoffset = "0";
+            }, 150 + i * 200)
+          )
+        );
+        T.push(
+          setTimeout(
+            () =>
+              areas.forEach((a) => {
+                a.style.transition = "opacity .6s";
+                a.style.opacity = "1";
+              }),
+            1100
+          )
+        );
+        chips.forEach((c, i) => countTo(T, c, Number(c.dataset.t ?? 0), 300 + i * 150, 1500, c.dataset.fmt ?? null));
+        T.push(
+          setTimeout(() => {
+            if (run) {
+              run.style.transition = "opacity .3s, left .24s linear";
+              run.style.opacity = "1";
+            }
+          }, 1900)
+        );
+        const runStart = 2050;
+        const stepMs = 240;
+        for (let s = 0; s < 2; s++) {
+          for (let k = 0; k < PTS.length; k++) {
+            T.push(
+              setTimeout(() => {
+                if (!run) return;
+                const [x, y] = PTS[s % 2 === 0 ? k : PTS.length - 1 - k];
+                run.style.left = `${(x / 260) * 100}%`;
+                run.style.setProperty("--dy", `${(y / 90) * 100}%`);
+                if (tipB) tipB.textContent = Math.round((84 - y) * 21).toLocaleString("es-ES");
+              }, runStart + s * PTS.length * stepMs + k * stepMs)
+            );
+          }
         }
-
-        card.querySelector(".anim-gsc-chart")?.getBoundingClientRect();
-
-        restore(lines);
-        restore(areas);
-        lines.forEach((l) => (l.style.strokeDashoffset = "0"));
-        areas.forEach((a) => (a.style.opacity = "1"));
-        if (dot) {
-          dot.style.transition = "";
-          dot.style.opacity = "1";
-        }
-        if (cursor) {
-          cursor.style.transition = "";
-          cursor.style.opacity = "1";
-        }
-
-        perCard[3].push(setTimeout(() => loopSeo(card), 4200));
+        T.push(setTimeout(() => loopSeo(card), runStart + 2 * PTS.length * stepMs + 700));
       }
+      demoRestartRef.current[3] = () => {
+        clearCard(3);
+        loopSeo(card3);
+      };
+      perCard[3].push(setTimeout(() => loopSeo(card3), 300));
+    }
 
+    // ===== Pantalla 5 — app en marcha (barras, ventas contando,
+    // notificaciones entrando y anillo de uptime) =====
+    if (cards[4]) {
+      const card4 = cards[4];
+      const RING_LEN = 2 * Math.PI * 26;
       function loopApp(card: HTMLElement) {
         if (!visRef.current) {
           perCard[4].push(setTimeout(() => loopApp(card), 1500));
           return;
         }
-        const rows = Array.from(card.querySelectorAll<HTMLElement>(".anim-app-row"));
-        const bars = Array.from(card.querySelectorAll<HTMLElement>(".anim-app-stat-bar-fill"));
-        const sv = card.querySelector<HTMLElement>(".anim-app-stat-val[data-target]");
-        instant(rows, { opacity: "0", transform: "translateX(-4px)" });
-        instant(bars, { transform: "scaleX(0)" });
-        if (sv) sv.textContent = "0";
-        card.querySelector(".anim-app-phone-body")?.getBoundingClientRect();
-        restore(rows);
-        restore(bars);
-        rows.forEach((r) => {
-          r.style.opacity = "1";
-          r.style.transform = "translateX(0)";
-        });
-        bars.forEach((b) => (b.style.transform = "scaleX(1)"));
-        if (sv) animCount(sv, 2840, "", 2000);
-        perCard[4].push(setTimeout(() => loopApp(card), 4500));
+        const bars = Array.from(card.querySelectorAll<HTMLElement>(".anim-ap-bars i"));
+        const count = card.querySelector<HTMLElement>(".anim-ap-count");
+        const notifs = Array.from(card.querySelectorAll<HTMLElement>(".anim-ap-notif"));
+        const ringWrap = card.querySelector<HTMLElement>(".anim-ap-ring");
+        const ring = card.querySelector(".anim-ap-ring-fill") as unknown as SVGCircleElement | null;
+        instant(bars, { transform: "scaleY(0)" });
+        instant(notifs, { opacity: "0", transform: "translateX(24px)" });
+        if (count) count.textContent = "0";
+        if (ringWrap) {
+          ringWrap.style.transition = "none";
+          ringWrap.style.opacity = "0";
+        }
+        if (ring) {
+          const el = ring as unknown as HTMLElement;
+          el.style.transition = "none";
+          el.style.strokeDasharray = String(RING_LEN);
+          el.style.strokeDashoffset = String(RING_LEN);
+        }
+        card.querySelector(".anim-ap-screen")?.getBoundingClientRect();
+        const T = perCard[4];
+        bars.forEach((b, i) =>
+          T.push(
+            setTimeout(() => {
+              b.style.transition = "transform .5s cubic-bezier(.22,1,.36,1)";
+              b.style.transform = "scaleY(1)";
+            }, 300 + i * 120)
+          )
+        );
+        if (count) countTo(T, count, 2840, 400, 1600, "int");
+        notifs.forEach((n, i) =>
+          T.push(
+            setTimeout(() => {
+              n.style.transition = "opacity .45s, transform .5s cubic-bezier(.34,1.56,.64,1)";
+              n.style.opacity = "1";
+              n.style.transform = "translateX(0)";
+            }, 1500 + i * 550)
+          )
+        );
+        T.push(
+          setTimeout(() => {
+            if (ringWrap) {
+              ringWrap.style.transition = "opacity .4s";
+              ringWrap.style.opacity = "1";
+            }
+            if (ring) {
+              const el = ring as unknown as HTMLElement;
+              el.style.transition = "stroke-dashoffset 1.1s cubic-bezier(.22,1,.36,1)";
+              el.style.strokeDashoffset = String(RING_LEN * 0.001);
+            }
+          }, 2700)
+        );
+        T.push(setTimeout(() => loopApp(card), 8800));
       }
-
-      if (cards[2]) {
-        const c = cards[2];
-        demoRestartRef.current[2] = () => {
-          clearCard(2);
-          loopFlow(c);
-        };
-        perCard[2].push(setTimeout(() => loopFlow(c), 300));
-      }
-      if (cards[3]) {
-        const c = cards[3];
-        demoRestartRef.current[3] = () => {
-          clearCard(3);
-          loopSeo(c);
-        };
-        perCard[3].push(setTimeout(() => loopSeo(c), 300));
-      }
-      if (cards[4]) {
-        const c = cards[4];
-        demoRestartRef.current[4] = () => {
-          clearCard(4);
-          loopApp(c);
-        };
-        perCard[4].push(setTimeout(() => loopApp(c), 300));
-      }
+      demoRestartRef.current[4] = () => {
+        clearCard(4);
+        loopApp(card4);
+      };
+      perCard[4].push(setTimeout(() => loopApp(card4), 300));
     }
 
     return () => {

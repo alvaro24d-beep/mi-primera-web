@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef } from "react";
+import Image from "next/image";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { useGSAP } from "@gsap/react";
@@ -11,11 +12,12 @@ import { useCurvedWords } from "@/hooks/useCurvedWords";
 
 gsap.registerPlugin(ScrollTrigger);
 
-// Cierre de la historia: la gráfica estilo Search Console (la misma
-// iconografía que la card de SEO del reel de la home) se DIBUJA al entrar en
-// pantalla, con los contadores subiendo en tiempo real. Se rebobina al salir
-// por arriba para poder reproducirse otra vez. El panel es cristal
-// volumétrico de la escena global (id nxr-seo-resultados en alwaysIds).
+// Cierre de la historia (V16.38): capturas REALES de Search Console (las
+// tres gráficas de /public) en vez de la gráfica dibujada. Se integran en el
+// cristal con invert+hue-rotate+blend screen: el fondo blanco desaparece y
+// quedan las líneas brillando sobre el liquid glass. Los contadores de los
+// chips siguen subiendo al entrar. El panel es cristal volumétrico de la
+// escena global (id nxr-seo-resultados en alwaysIds).
 
 const CHIPS = [
   { val: 180, sufijo: "%", prefijo: "+", label: "más clics desde Google" },
@@ -41,20 +43,15 @@ export default function SeoResultados() {
       const section = sectionRef.current;
       if (!section) return;
       const q = gsap.utils.selector(section);
-      const lines = q(".nxr-seo-gsc-line") as unknown as SVGPathElement[];
-      const areas = q(".nxr-seo-gsc-area") as unknown as SVGPathElement[];
       const chipVals = q(".nxr-seo-chip-val") as HTMLElement[];
+      const shots = q(".nxr-seo-shot") as HTMLElement[];
 
       const draw = () => {
-        lines.forEach((l, i) => {
-          const len = l.getTotalLength();
-          gsap.fromTo(
-            l,
-            { strokeDasharray: len, strokeDashoffset: len },
-            { strokeDashoffset: 0, duration: 1.5, delay: i * 0.15, ease: "power2.out", overwrite: "auto" }
-          );
-        });
-        gsap.fromTo(areas, { opacity: 0 }, { opacity: 1, duration: 0.6, delay: 1.0, ease: "none", overwrite: "auto" });
+        gsap.fromTo(
+          shots,
+          { autoAlpha: 0, y: 18 },
+          { autoAlpha: 1, y: 0, duration: 0.7, stagger: 0.18, ease: "power2.out", overwrite: "auto" }
+        );
         chipVals.forEach((el, i) => {
           const chip = CHIPS[i];
           if (!chip) return;
@@ -72,12 +69,8 @@ export default function SeoResultados() {
         });
       };
       const reset = () => {
-        gsap.killTweensOf([...lines, ...areas]);
-        lines.forEach((l) => {
-          const len = l.getTotalLength();
-          gsap.set(l, { strokeDasharray: len, strokeDashoffset: len });
-        });
-        gsap.set(areas, { opacity: 0 });
+        gsap.killTweensOf(shots);
+        gsap.set(shots, { autoAlpha: 0, y: 18 });
         chipVals.forEach((el, i) => {
           const chip = CHIPS[i];
           if (chip) el.textContent = `${chip.prefijo}0${chip.sufijo}`;
@@ -109,38 +102,29 @@ export default function SeoResultados() {
         </div>
 
         <div className="nxr-seo-res-panel nxr-seo-res-glass nxr-reveal">
-          <div className="nxr-seo-gsc-head">
-            <span className="nxr-seo-gsc-dot" style={{ background: "var(--c-lime)" }} />
-            <span className="nxr-seo-gsc-leg">Clics</span>
-            <span className="nxr-seo-gsc-dot" style={{ background: "var(--c-salmon)" }} />
-            <span className="nxr-seo-gsc-leg">Impresiones</span>
-            <span className="nxr-seo-gsc-rango">Últimos 12 meses</span>
+          <div className="nxr-seo-shots">
+            <Image
+              className="nxr-seo-shot -big"
+              src="/gsc-1.png"
+              alt="Gráfica real de Search Console: clics e impresiones creciendo mes a mes"
+              width={1229}
+              height={405}
+            />
+            <Image
+              className="nxr-seo-shot"
+              src="/gsc-2.png"
+              alt="Gráfica real de Search Console de un segundo proyecto"
+              width={1227}
+              height={412}
+            />
+            <Image
+              className="nxr-seo-shot"
+              src="/gsc-3.png"
+              alt="Gráfica real de Search Console de un tercer proyecto"
+              width={1225}
+              height={410}
+            />
           </div>
-          <svg className="nxr-seo-gsc" viewBox="0 0 640 220" preserveAspectRatio="none" aria-hidden="true">
-            <g className="nxr-seo-gsc-grid">
-              <line x1="0" y1="55" x2="640" y2="55" />
-              <line x1="0" y1="110" x2="640" y2="110" />
-              <line x1="0" y1="165" x2="640" y2="165" />
-            </g>
-            <path
-              className="nxr-seo-gsc-area is-impr"
-              d="M0,196 C90,188 150,172 220,150 C300,124 360,104 430,84 C500,66 570,44 640,30 L640,220 L0,220 Z"
-            />
-            <path
-              className="nxr-seo-gsc-area is-clics"
-              d="M0,208 C90,204 160,196 230,180 C310,162 380,138 460,112 C530,90 590,72 640,58 L640,220 L0,220 Z"
-            />
-            <path
-              className="nxr-seo-gsc-line is-impr"
-              d="M0,196 C90,188 150,172 220,150 C300,124 360,104 430,84 C500,66 570,44 640,30"
-              fill="none"
-            />
-            <path
-              className="nxr-seo-gsc-line is-clics"
-              d="M0,208 C90,204 160,196 230,180 C310,162 380,138 460,112 C530,90 590,72 640,58"
-              fill="none"
-            />
-          </svg>
         </div>
 
         <div className="nxr-seo-chips">

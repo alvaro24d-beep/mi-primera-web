@@ -8018,62 +8018,27 @@ input[type="range"].nxr-ms-range::-moz-range-thumb {
   padding: 26px 28px 18px;
 }
 
-.nxr-seo-gsc-head {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-bottom: 18px;
+/* Capturas REALES de Search Console (V16.38): invert + hue-rotate devuelve
+   los tonos originales sobre fondo NEGRO, y el blend screen funde ese negro
+   con lo que haya detrás — las líneas quedan flotando sobre el liquid
+   glass, como pidió Álvaro ("que se vean un poco transparentes"). */
+.nxr-seo-shots {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px 18px;
 }
 
-.nxr-seo-gsc-dot {
-  width: 9px;
-  height: 9px;
-  border-radius: 50%;
-}
-
-.nxr-seo-gsc-leg {
-  font-size: 12px;
-  color: rgba(255, 255, 255, 0.6);
-  margin-right: 12px;
-}
-
-.nxr-seo-gsc-rango {
-  margin-left: auto;
-  font-size: 11px;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  color: rgba(255, 255, 255, 0.35);
-}
-
-.nxr-seo-gsc {
+.nxr-seo-shot {
   width: 100%;
-  height: clamp(160px, 24vw, 240px);
+  height: auto;
+  display: block;
+  filter: invert(1) hue-rotate(180deg) saturate(1.4) brightness(1.08);
+  mix-blend-mode: screen;
+  opacity: 0.95;
 }
 
-.nxr-seo-gsc-grid line {
-  stroke: rgba(255, 255, 255, 0.06);
-  stroke-width: 1;
-}
-
-.nxr-seo-gsc-line {
-  stroke-width: 2.5;
-  stroke-linecap: round;
-}
-
-.nxr-seo-gsc-line.is-clics {
-  stroke: var(--c-lime);
-}
-
-.nxr-seo-gsc-line.is-impr {
-  stroke: var(--c-salmon);
-}
-
-.nxr-seo-gsc-area.is-clics {
-  fill: rgba(168, 240, 74, 0.1);
-}
-
-.nxr-seo-gsc-area.is-impr {
-  fill: rgba(255, 157, 125, 0.07);
+.nxr-seo-shot.-big {
+  grid-column: 1 / -1;
 }
 
 .nxr-seo-chips {
@@ -8229,6 +8194,10 @@ input[type="range"].nxr-ms-range::-moz-range-thumb {
   }
   .nxr-seo-res-panel {
     padding: 18px 16px 12px;
+  }
+  .nxr-seo-shots {
+    grid-template-columns: 1fr;
+    gap: 4px;
   }
 }
 

@@ -8107,7 +8107,11 @@ input[type="range"].nxr-ms-range::-moz-range-thumb {
 
 @media (max-width: 768px) {
   .nxr-seo-stage {
-    height: calc(var(--seo-vh, 100lvh));
+    /* -180px (V16.40, "debajo de la hero hay mucho espacio vacío"): el
+       stage pineado más corto sube la SERP (gana holgura sobre el nav) y
+       recorta la cola vacía que desfilaba tras el des-pin; la franja bajo
+       el elemento pineado muestra el muro de vídeo, como antes. */
+    height: calc(var(--seo-vh, 100lvh) - 180px);
   }
   .nxr-seo-h1 {
     font-size: clamp(36px, 10.5vw, 54px);
@@ -8164,7 +8168,9 @@ input[type="range"].nxr-ms-range::-moz-range-thumb {
   .nxr-seo-pasos-stage {
     gap: 16px;
     justify-content: flex-start;
-    padding-top: 92px;
+    /* 92 → 40px (V16.40): menos banda muerta antes de "De invisible al
+       primer puesto" — sin nav superior en móvil, 40px de aire bastan. */
+    padding-top: 40px;
     padding-bottom: calc(100px + env(safe-area-inset-bottom));
   }
   .nxr-seo-pasos-header .nxr-section-h2 {

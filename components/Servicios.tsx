@@ -1373,18 +1373,40 @@ export default function Servicios() {
       // enforced every ticker frame (cost: two property reads + a string
       // compare; the gsap.set only fires while a stray catch-up is writing).
       if (headTitle) {
+        // V16.40 ("a veces desaparece de golpe"): el clamp ya no corta con
+        // un set seco — en un flick rápido el scroll real cruza 1.3·pro
+        // mientras el scrub (lag 0.5s) aún pinta la frase a media
+        // disolución, y el set instantáneo se veía como un POP. Ahora
+        // fuerza el apagado con un fundido corto (0.25s, blur incluido):
+        // misma autoridad anti-carrera, sin corte visible.
+        let clamping = false;
         const clampTitle = () => {
           const st = tl.scrollTrigger;
           if (!st) return;
           const y = window.scrollY;
           // Fuera del rango completo del momento-frase, O ya pasado el
-          // final de su fade-out DENTRO del pin (V16.18: el fade termina a
+          // final de su fade-out DENTRO del pin (el fade termina a
           // 1.2·pro — más allá la frase debe estar apagada SIEMPRE; una
           // carrera de catch-ups tras un salto la dejaba pintada sobre las
           // cards del reel: "no se oculta y se queda sobre la sección").
           const outside = y < st.start - window.innerHeight || y > st.end || y > st.start + snapPro * 1.3;
-          if (outside && headTitle.style.opacity !== "0") {
-            gsap.set(headTitle, { opacity: 0 });
+          if (!outside) {
+            clamping = false;
+            return;
+          }
+          const op = parseFloat(headTitle.style.opacity || "1");
+          if (op > 0.01 && !clamping) {
+            clamping = true;
+            gsap.to(headTitle, {
+              opacity: 0,
+              filter: "blur(18px)",
+              duration: 0.25,
+              ease: "power1.in",
+              overwrite: "auto",
+              onComplete: () => {
+                clamping = false;
+              },
+            });
           }
         };
         gsap.ticker.add(clampTitle);

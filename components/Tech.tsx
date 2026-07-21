@@ -126,6 +126,14 @@ export default function Tech() {
       const render = () => {
         if (!measured) return;
         const e = ease(state.p);
+        // Deriva aplicada A LOS CHIPS (no a un ancestro): un transform en
+        // el contenedor creaba un backdrop root y el blur de los chips no
+        // podía muestrear el muro de vídeo ("en móvil no se ve el fondo
+        // blur"). El sesgo 0.55→1.0·driftD también CENTRA la esfera desde
+        // el arranque ("que empiece un poco más arriba") y sigue creciendo
+        // con p — el conjunto nunca deja de subir y la retícula final queda
+        // centrada.
+        const dyChip = -driftD * (0.55 + 0.45 * state.p);
         for (let i = 0; i < N; i++) {
           const s = sphereGeo[i];
           const lon = s.lon + state.rot;
@@ -139,7 +147,7 @@ export default function Tech() {
           const so = 0.28 + 0.72 * d;
           const g = gridGeo[i];
           const x = x3 + (g.x - x3) * e;
-          const y = y3 + (g.y - y3) * e;
+          const y = y3 + (g.y - y3) * e + dyChip;
           const sc = ss + (1 - ss) * e;
           const op = so + (1 - so) * e;
           const card = cards[i];
@@ -165,11 +173,12 @@ export default function Tech() {
         },
       });
       tl.to(state, { p: 1, duration: 1, ease: "none", onUpdate: render }, 0);
-      // La DERIVA anti-sticky: el contenido sigue subiendo a velocidad
-      // constante y reducida durante todo el pin (~driftD px sobre 120-150vh
-      // de scroll, una fracción de la velocidad de página) — el pin no se
-      // percibe y la retícula final aterriza centrada.
-      tl.to(drift, { y: () => -driftD, duration: 1, ease: "none" }, 0);
+      // La DERIVA anti-sticky del HEADER: sube a velocidad constante y
+      // reducida durante el pin. Se anima el bloque del header (sin glass
+      // dentro) y NUNCA un ancestro de los chips — ver el comentario del
+      // backdrop root en render().
+      const inner = section.querySelector<HTMLElement>(".nxr-tech-inner");
+      if (inner) tl.to(inner, { y: () => -driftD, duration: 1, ease: "none" }, 0);
 
       // Giro idle de la esfera: solo con la sección cerca del viewport (IO)
       // y con influencia (1-p) — plana, deja de girar y el ticker no pinta.

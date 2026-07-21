@@ -3043,9 +3043,50 @@ p.nxr-hero-mastery-line {
   .anim-wb-grid {
     gap: 6px;
   }
+  /* Chat compacto (V16.37, "se cortan algunas cosas"): la conversación
+     completa (cabecera + 4 mensajes + card + input) debe caber en la card
+     4/3 del teléfono — antes el primer mensaje asomaba cortado por arriba. */
+  .anim-ia {
+    gap: 5px;
+  }
+  .anim-ia-head {
+    padding: 4px 8px;
+    gap: 6px;
+  }
+  .anim-ia-ava {
+    width: 20px;
+    height: 20px;
+    font-size: 10px;
+  }
+  .anim-ia-who b {
+    font-size: 11px;
+  }
+  .anim-ia-who span {
+    font-size: 8px;
+  }
+  .anim-ia-msgs {
+    gap: 4px;
+  }
   .anim-ia-msg {
     font-size: 10px;
     max-width: 84%;
+    padding: 4px 9px;
+    border-radius: 10px;
+  }
+  .anim-ia-msg.-card > svg {
+    width: 17px;
+    height: 17px;
+  }
+  .anim-ia-msg.-card b {
+    font-size: 10px;
+  }
+  .anim-ia-input {
+    min-height: 24px;
+    padding: 4px 9px;
+  }
+  .anim-ia-send {
+    width: 17px;
+    height: 17px;
   }
   .anim-fl-node {
     padding: 4px 7px;
@@ -3810,6 +3851,15 @@ p.nxr-hero-mastery-line {
 @media (max-width: 900px) {
   .nxr-tech-strip {
     grid-template-columns: repeat(2, 1fr);
+    /* V16.37 "debajo de la sección herramientas hay un espacio enorme":
+       con la retícula centrada en el viewport, la mitad inferior del stage
+       de 100lvh quedaba vacía (331px medidos hasta el strip a 844 de
+       alto). El margen negativo ESCALA con el viewport (hueco natural =
+       vh/2 − 139 medido en dos alturas) y deja siempre ~55px entre la
+       retícula y las stats; durante el tramo final del pin asoman por
+       abajo sobre la zona vacía. */
+    margin-top: calc(-50vh + 194px);
+    margin-top: calc(-50lvh + 194px);
   }
   .nxr-tech-header {
     flex-direction: column;

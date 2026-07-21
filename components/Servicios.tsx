@@ -1889,7 +1889,7 @@ export default function Servicios() {
         if (run) {
           run.style.transition = "none";
           run.style.opacity = "0";
-          run.style.left = "0%";
+          run.style.left = "7.5%";
         }
         chips.forEach((c) => (c.textContent = fmtNum(0, c.dataset.fmt ?? null)));
         card.querySelector(".anim-sc-chart")?.getBoundingClientRect();
@@ -1930,7 +1930,10 @@ export default function Servicios() {
               setTimeout(() => {
                 if (!run) return;
                 const [x, y] = PTS[s % 2 === 0 ? k : PTS.length - 1 - k];
-                run.style.left = `${(x / 260) * 100}%`;
+                // Clamp 7.5%–92.5% (V16.37): en x=0 el tooltip (centrado
+                // con translateX(-50%)) se cortaba por el borde izquierdo.
+                const fx = Math.max(0.075, Math.min(0.925, x / 260));
+                run.style.left = `${fx * 100}%`;
                 run.style.setProperty("--dy", `${(y / 90) * 100}%`);
                 if (tipB) tipB.textContent = Math.round((84 - y) * 21).toLocaleString("es-ES");
               }, runStart + s * PTS.length * stepMs + k * stepMs)

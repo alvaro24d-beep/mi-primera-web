@@ -81,6 +81,10 @@ export default function Tech() {
       // CENTRO del área de la esfera acabe en el centro del viewport — la
       // retícula final queda perfectamente centrada.
       let driftD = 0;
+      // Sesgo inicial (V16.37): cuánto puede subir la esfera EN EL ARRANQUE
+      // sin que su chip más alto invada el párrafo del header — el 0.55·D
+      // deseado, recortado por el hueco real disponible (con 24px de aire).
+      let bias0 = 0;
 
       // Toda la geometría se recalcula en cada refresh de ScrollTrigger
       // (resize incluido) — nunca por frame: el render solo compone
@@ -119,7 +123,28 @@ export default function Tech() {
         // viewport (offsetTop es relativo a .nxr-tech-drift, positioned).
         const padTop = parseFloat(getComputedStyle(stage).paddingTop) || 0;
         driftD = Math.max(0, padTop + wrap.offsetTop + H / 2 - window.innerHeight / 2);
+        bias0 = driftD * 0.55;
         measured = true;
+      };
+
+      // Techo EMPÍRICO del sesgo (V16.37, "las cards tapan el párrafo"): la
+      // geometría teórica se quedaba corta (escala por profundidad, yf
+      // reales), así que tras cada measure+render se mide el déficit REAL
+      // entre el chip más alto y el final del header (rects de pantalla,
+      // mismas coordenadas) y se recorta bias0 justo lo necesario para
+      // dejar 16px de aire. Un solo pase por refresh.
+      const settleBias = () => {
+        if (!measured) return;
+        const innerEl = section!.querySelector<HTMLElement>(".nxr-tech-inner");
+        if (!innerEl) return;
+        const headerBottom = innerEl.getBoundingClientRect().bottom;
+        let minTop = Infinity;
+        cards.forEach((c) => (minTop = Math.min(minTop, c.getBoundingClientRect().top)));
+        const deficit = headerBottom + 16 - minTop;
+        if (deficit > 0) {
+          bias0 = Math.max(0, bias0 - deficit);
+          render();
+        }
       };
 
       const ease = gsap.parseEase("power2.inOut");
@@ -133,7 +158,7 @@ export default function Tech() {
         // el arranque ("que empiece un poco más arriba") y sigue creciendo
         // con p — el conjunto nunca deja de subir y la retícula final queda
         // centrada.
-        const dyChip = -driftD * (0.55 + 0.45 * state.p);
+        const dyChip = -(bias0 + (driftD - bias0) * state.p);
         for (let i = 0; i < N; i++) {
           const s = sphereGeo[i];
           const lon = s.lon + state.rot;
@@ -169,6 +194,7 @@ export default function Tech() {
           onRefresh: () => {
             measure();
             render();
+            settleBias();
           },
         },
       });
@@ -194,6 +220,7 @@ export default function Tech() {
 
       measure();
       render();
+      settleBias();
 
       return () => {
         gsap.ticker.remove(spin);

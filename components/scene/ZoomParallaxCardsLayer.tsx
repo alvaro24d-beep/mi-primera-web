@@ -69,6 +69,7 @@ export default function ZoomParallaxCardsLayer({ isMobile }: { isMobile: boolean
   const { size } = useThree();
   const groupRefs = useRef<(THREE.Group | null)[]>(Array.from({ length: ZP_MAX_CARDS }, () => null));
   const sectionElRef = useRef<HTMLElement | null>(null);
+  const stickyElRef = useRef<HTMLElement | null>(null);
   const aspectsRef = useRef<number[]>(Array.from({ length: ZP_MAX_CARDS }, () => 1.5));
   const [aspects, setAspects] = useState<number[]>(() => Array.from({ length: ZP_MAX_CARDS }, () => 1.5));
   const mouseTarget = useRef({ nx: 0, ny: 0 });
@@ -134,6 +135,18 @@ export default function ZoomParallaxCardsLayer({ isMobile }: { isMobile: boolean
     const rects: (DOMRect | null)[] = new Array(ZP_MAX_CARDS).fill(null);
     let aspectsChanged = false;
 
+    // CLIP-GUARD (V16.39, "a veces sale en grande la card de +40 sobre la
+    // última card de Servicios"): el DOM de las cards se recorta por el
+    // overflow:hidden de #nxr-zoom-sticky, pero los meshes nunca lo
+    // respetaron — una card que sobresale del box por ARRIBA (la card 1
+    // arranca en top:-28vh) puede pintarse sobre la sección anterior en los
+    // frames de transición. Un mesh no se puede recortar, así que se OCULTA
+    // mientras la parte que sobresale por arriba supere el 35% de su altura.
+    if (!stickyElRef.current) {
+      stickyElRef.current = document.getElementById("nxr-zoom-sticky");
+    }
+    const stickyTop = stickyElRef.current ? stickyElRef.current.getBoundingClientRect().top : -Infinity;
+
     for (let i = 0; i < ZP_MAX_CARDS; i++) {
       if (i !== 0 && notYetPinned) continue;
       const anchor = useZoomParallaxCardsRegistry.getState().anchors[i];
@@ -187,6 +200,16 @@ export default function ZoomParallaxCardsLayer({ isMobile }: { isMobile: boolean
       const opStr = anchor?.style.opacity ?? "";
       const opacity = opStr === "" ? 1 : parseFloat(opStr) || 0;
       if (opacity <= 0.02) {
+        group.visible = false;
+        continue;
+      }
+      // Clip-guard: si el BORDE SUPERIOR del box del sticky está en
+      // pantalla (sección aún no pineada / saliendo) y el mesh lo
+      // sobrepasa por arriba, se oculta — el DOM equivalente lo recorta el
+      // overflow:hidden, y el mesh no debe pintarse jamás sobre la sección
+      // anterior. Con el box pineado (top ≈ 0) el guard no actúa: lo que
+      // sobresale queda fuera del viewport por sí solo.
+      if (stickyTop > 4 && stickyTop - rect.top > 8) {
         group.visible = false;
         continue;
       }

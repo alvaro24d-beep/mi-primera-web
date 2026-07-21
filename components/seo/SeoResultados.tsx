@@ -8,7 +8,6 @@ import { useGSAP } from "@gsap/react";
 import { useReducedMotion } from "@/hooks/useReducedMotion";
 import { useGlassPanels } from "@/hooks/useGlassPanels";
 import { useTitleReveal } from "@/hooks/useTitleReveal";
-import { useCurvedWords } from "@/hooks/useCurvedWords";
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -31,11 +30,11 @@ export default function SeoResultados() {
   const reducedMotion = useReducedMotion();
 
   useGlassPanels(sectionRef, ".nxr-seo-res-glass", "#12141c", [reducedMotion]);
-  // "left": el bloque va alineado a la izquierda — con "right" se veía "al
-  // revés" (la parte derecha distorsionada). tiltDesktop 7 como el bloque
-  // de Contacto (la misma anchura de párrafo): con el 12° por defecto la
-  // proyección se escapaba del contenedor hasta el borde del viewport.
-  useCurvedWords(sectionRef, ".nxr-seo-res-intro", "left", [], { tiltDesktop: 7 });
+  // (V16.39) El párrafo intro ya NO se curva: incluso con tiltDesktop 7 la
+  // proyección del plano lo sacaba del contenedor hasta quedar "pegado a la
+  // izquierda sin márgenes". Plano y alineado con el resto del contenido.
+  // REGLA APUNTADA en memoria: no curvar párrafos dentro de contenedores
+  // centrados con max-width — la proyección los expulsa del margen.
 
   useGSAP(
     () => {

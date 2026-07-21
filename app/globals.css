@@ -8032,9 +8032,11 @@ input[type="range"].nxr-ms-range::-moz-range-thumb {
   width: 100%;
   height: auto;
   display: block;
+  /* Esquinas redondeadas + transparencia (V16.39, a petición). */
+  border-radius: 14px;
   filter: invert(1) hue-rotate(180deg) saturate(1.4) brightness(1.08);
   mix-blend-mode: screen;
-  opacity: 0.95;
+  opacity: 0.82;
 }
 
 .nxr-seo-shot.-big {

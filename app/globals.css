@@ -370,14 +370,13 @@ p.nxr-hero-mastery-line {
      selectors change width. */
   /* Desktop-only: on phones these h2s live inside their section's unified
      mobile textblock plane instead (no own transform there). */
+  /* UN SOLO tier (V16.42, "todos los títulos con el mismo formato que 'Un
+     proceso claro, sin sorpresas'"): los MISMOS valores de Proceso para
+     todos los títulos con perspectiva de todas las páginas — el antiguo
+     tier wide (translateX 48%) desplazaba y magnificaba distinto y los
+     títulos "se veían unos grandes y otros pequeños". */
   #nxr-proceso .nxr-section-h2,
-  #nxr-tech .nxr-section-h2 {
-    transform: translateX(20%) perspective(460px) rotateY(16deg);
-    transform-origin: 100% center;
-  }
-  /* The /desarrollo-web titles keep the h2's full 600px layout box (no
-     narrow grid column shrinking them like the home's), so their projected
-     left edge juts much further — they need the wide-block tier. */
+  #nxr-tech .nxr-section-h2,
   #nxr-dwh-capacidades .nxr-section-h2,
   #nxr-dwh-tech .nxr-section-h2,
   #nxr-aia-casos .nxr-section-h2,
@@ -385,8 +384,27 @@ p.nxr-hero-mastery-line {
   #nxr-seo-pasos .nxr-section-h2,
   #nxr-seo-resultados .nxr-section-h2,
   #nxr-precios .nxr-section-h2 {
-    transform: translateX(48%) perspective(460px) rotateY(16deg);
+    transform: translateX(20%) perspective(460px) rotateY(16deg);
     transform-origin: 100% center;
+    /* Misma CAJA que los títulos de la home (Proceso 436px / Tech 546px):
+       fit-content encoge al texto y el cap de 540px hace que los títulos
+       largos partan línea como los de la home — sin él, sus líneas
+       llenaban los 600px del max-width base y la proyección sacaba el
+       borde izquierdo del marco (-117px medidos). */
+    width: fit-content;
+    max-width: 540px;
+  }
+  /* Compensación de POSICIÓN (no de formato): estas secciones van a sangre
+     completa (contenedor en pad-x 64) y la proyección del tier sacaba las
+     primeras letras del marco (-55px medidos); el margen las deja
+     arrancando como Proceso (~56px). Las de /seo (contenedor centrado de
+     1100px) ya caen en 51px sin ayuda. */
+  #nxr-dwh-capacidades .nxr-section-h2,
+  #nxr-dwh-tech .nxr-section-h2,
+  #nxr-aia-casos .nxr-section-h2,
+  #nxr-aia-pasos .nxr-section-h2,
+  #nxr-precios .nxr-section-h2 {
+    margin-left: 110px;
   }
   .nxr-srv-caption-tilt {
     /* Vertical origin at the TOP (not center): rows lean DOWN toward the
@@ -3942,14 +3960,11 @@ p.nxr-hero-mastery-line {
   max-width: 440px;
 }
 
-/* Desktop-only size trim for this section's TITLE ("está demasiado grande"
-   — the hook plane's near-edge magnification makes the global h2 clamp read
-   oversized here). The old 14.5px desc trim here is gone: the paragraph now
-   uses the standard 15px at every width. */
+/* (V16.42) El recorte de tamaño del título de Contacto (44px, "está
+   demasiado grande" por la magnificación del plano) se eliminó: la orden
+   vigente es "todos los títulos de sección con el mismo formato" — clamp
+   base de 56px como el resto. */
 @media (min-width: 901px) {
-  #nxr-contacto .nxr-section-h2 {
-    font-size: clamp(28px, 3.2vw, 44px);
-  }
   .nxr-contacto-desc {
     max-width: 400px;
   }

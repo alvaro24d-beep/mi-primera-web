@@ -96,8 +96,8 @@ function PanelSlot({ panel, isMobile }: { panel: GlassPanel; isMobile: boolean }
         curveX={0.05}
         curveY={0.05}
         transmission={1}
-        // Perf pass: 4/3 (was 6/4) — see ServiciosCardsLayer.
-        samples={isMobile ? 3 : 4}
+        // Perf pass: 2 (was 6, then 4/3) — see ServiciosCardsLayer.
+        samples={2}
         color={panel.style.color}
         material="glass"
       />

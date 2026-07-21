@@ -165,10 +165,11 @@ function CardSlot({ id, isMobile }: { id: number; isMobile: boolean }) {
         curveY={style.curveY}
         bend={SRV_BEND}
         transmission={SRV_TRANSMISSION}
-        // Perf pass: 4/3 (was 6/4) — with anisotropicBlur + the downscaled
-        // shared transmission capture already softening the refraction, the
-        // extra samples were indistinguishable; per-pixel MTM cost drops ~33%.
-        samples={isMobile ? 3 : 4}
+        // Perf pass: 2 (was 6, then 4/3) — with anisotropicBlur + the
+        // downscaled shared transmission capture already softening the
+        // refraction, extra samples were indistinguishable (verified by
+        // screenshot A/B); per-pixel MTM cost halves again.
+        samples={2}
         color={style.color}
         material={style.material}
       />

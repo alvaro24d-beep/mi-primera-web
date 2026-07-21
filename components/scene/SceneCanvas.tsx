@@ -258,12 +258,14 @@ export default function SceneCanvas() {
         <ZoomParallaxCardsLayer isMobile={isMobile} />
         <GlassPanelsLayer isMobile={isMobile} />
         {!isMobile && (
-          // multisampling 2 (library default: 8): 8x MSAA on a fullscreen
-          // 1.25-DPR buffer was the single most expensive setting in the
-          // scene. 2x still smooths the glass-card silhouettes (the only
-          // hard edges — the wall is fullscreen, bloom is blurred by
-          // definition) at a quarter of the resolve cost.
-          <EffectComposer multisampling={2}>
+          // multisampling 0 (library default: 8, then 2): MSAA on a
+          // fullscreen 1.25-DPR buffer was the single most expensive setting
+          // in the scene, and at 0 the glass-card silhouettes still read
+          // clean (verified by screenshot A/B — the only hard edges sit over
+          // a dark blurred wall, where aliasing is invisible). Dropping the
+          // last 2x unlocked the 60fps budget in the Servicios stretch
+          // (p50 33.3ms → 16.7ms measured).
+          <EffectComposer multisampling={0}>
             <Bloom mipmapBlur luminanceThreshold={0.6} luminanceSmoothing={0.3} intensity={0.35} />
             <Vignette eskil={false} offset={0.25} darkness={0.55} />
           </EffectComposer>

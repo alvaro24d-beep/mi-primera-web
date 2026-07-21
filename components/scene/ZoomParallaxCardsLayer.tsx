@@ -290,8 +290,8 @@ export default function ZoomParallaxCardsLayer({ isMobile }: { isMobile: boolean
               curveX={style.curveX}
               curveY={style.curveY}
               transmission={ZP_TRANSMISSION}
-              // Perf pass: 4/3 (was 6/4) — see ServiciosCardsLayer.
-              samples={isMobile ? 3 : 4}
+              // Perf pass: 2 (was 6, then 4/3) — see ServiciosCardsLayer.
+              samples={2}
               color={style.color}
               material="glass"
             />

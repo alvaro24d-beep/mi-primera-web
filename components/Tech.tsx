@@ -208,8 +208,16 @@ export default function Tech() {
 
       // Giro idle de la esfera: solo con la sección cerca del viewport (IO)
       // y con influencia (1-p) — plana, deja de girar y el ticker no pinta.
+      // El mismo IO alimenta .nxr-tech-far: a >120px del viewport los 20
+      // chips siguen dentro del interest rect del compositor y cada
+      // backdrop-filter paga su render pass por frame — apagados hasta que
+      // la sección se acerca (globals.css), con 120px de colchón para que
+      // el cambio nunca sea visible.
       let near = false;
-      const io = new IntersectionObserver(([entry]) => (near = entry.isIntersecting), { rootMargin: "120px" });
+      const io = new IntersectionObserver(([entry]) => {
+        near = entry.isIntersecting;
+        stage.classList.toggle("nxr-tech-far", !entry.isIntersecting);
+      }, { rootMargin: "120px" });
       io.observe(stage);
       const spin = () => {
         if (!near || state.p > 0.995) return;

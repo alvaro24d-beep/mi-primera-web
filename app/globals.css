@@ -381,7 +381,10 @@ p.nxr-hero-mastery-line {
   #nxr-dwh-capacidades .nxr-section-h2,
   #nxr-dwh-tech .nxr-section-h2,
   #nxr-aia-casos .nxr-section-h2,
-  #nxr-aia-pasos .nxr-section-h2 {
+  #nxr-aia-pasos .nxr-section-h2,
+  #nxr-seo-pasos .nxr-section-h2,
+  #nxr-seo-resultados .nxr-section-h2,
+  #nxr-precios .nxr-section-h2 {
     transform: translateX(48%) perspective(460px) rotateY(16deg);
     transform-origin: 100% center;
   }
@@ -7845,7 +7848,9 @@ input[type="range"].nxr-ms-range::-moz-range-thumb {
   display: flex;
   flex-direction: column;
   justify-content: center;
-  gap: 44px;
+  /* gap 0 (V16.41): el hueco título→contenido lo pone el margin-bottom
+     de 48px del .nxr-section-h2 base, como en todas las páginas. */
+  gap: 0;
   padding: 0 var(--pad-x);
   overflow: hidden;
 }
@@ -7854,10 +7859,6 @@ input[type="range"].nxr-ms-range::-moz-range-thumb {
   max-width: 1100px;
   margin: 0 auto;
   width: 100%;
-}
-
-.nxr-seo-pasos-header .nxr-section-h2 {
-  margin-bottom: 0;
 }
 
 .nxr-seo-pasos-grid {
@@ -8166,15 +8167,12 @@ input[type="range"].nxr-ms-range::-moz-range-thumb {
      padding-bottom, y badge+card se compactan para caber SIEMPRE — la
      suma se verifica en el harness también a 700px de alto. */
   .nxr-seo-pasos-stage {
-    gap: 16px;
+    gap: 0;
     justify-content: flex-start;
     /* 92 → 40px (V16.40): menos banda muerta antes de "De invisible al
        primer puesto" — sin nav superior en móvil, 40px de aire bastan. */
     padding-top: 40px;
     padding-bottom: calc(100px + env(safe-area-inset-bottom));
-  }
-  .nxr-seo-pasos-header .nxr-section-h2 {
-    margin-bottom: 0;
   }
   .nxr-seo-pos {
     min-height: 185px;

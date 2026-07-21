@@ -145,7 +145,7 @@ export default function ZoomParallaxCardsLayer({ isMobile }: { isMobile: boolean
     if (!stickyElRef.current) {
       stickyElRef.current = document.getElementById("nxr-zoom-sticky");
     }
-    const stickyTop = stickyElRef.current ? stickyElRef.current.getBoundingClientRect().top : -Infinity;
+    const stickyRect = stickyElRef.current ? stickyElRef.current.getBoundingClientRect() : null;
 
     for (let i = 0; i < ZP_MAX_CARDS; i++) {
       if (i !== 0 && notYetPinned) continue;
@@ -203,15 +203,25 @@ export default function ZoomParallaxCardsLayer({ isMobile }: { isMobile: boolean
         group.visible = false;
         continue;
       }
-      // Clip-guard: si el BORDE SUPERIOR del box del sticky está en
-      // pantalla (sección aún no pineada / saliendo) y el mesh lo
-      // sobrepasa por arriba, se oculta — el DOM equivalente lo recorta el
-      // overflow:hidden, y el mesh no debe pintarse jamás sobre la sección
-      // anterior. Con el box pineado (top ≈ 0) el guard no actúa: lo que
-      // sobresale queda fuera del viewport por sí solo.
-      if (stickyTop > 4 && stickyTop - rect.top > 8) {
-        group.visible = false;
-        continue;
+      // Clip-guard (V16.41, endurecido tras reaparecer el bug de "+40"):
+      // emula el overflow:hidden del box de verdad — si la porción del
+      // anchor VISIBLE EN VIEWPORT que queda FUERA del box del sticky
+      // (por arriba o por abajo) supera 24px, el mesh se oculta. En el
+      // estado pineado legítimo lo que sobresale del box cae también
+      // fuera del viewport (fuera-visible = 0) y no se oculta nada; en
+      // cualquier frame espurio (refresh, rects raros) el mesh jamás se
+      // pinta sobre otra sección.
+      if (stickyRect) {
+        const visTop = Math.max(rect.top, 0);
+        const visBottom = Math.min(rect.bottom, size.height);
+        if (visBottom > visTop) {
+          const fueraArriba = Math.max(0, Math.min(visBottom, stickyRect.top) - visTop);
+          const fueraAbajo = Math.max(0, visBottom - Math.max(stickyRect.bottom, visTop));
+          if (fueraArriba + fueraAbajo > 24) {
+            group.visible = false;
+            continue;
+          }
+        }
       }
       if (Math.abs(opacity - lastOpacity.current[i]) > 0.002) {
         lastOpacity.current[i] = opacity;

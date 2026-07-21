@@ -8,6 +8,7 @@ import { useGSAP } from "@gsap/react";
 import { useReducedMotion } from "@/hooks/useReducedMotion";
 import { useGlassPanels } from "@/hooks/useGlassPanels";
 import { useTitleReveal } from "@/hooks/useTitleReveal";
+import { useCurvedWords } from "@/hooks/useCurvedWords";
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -35,6 +36,13 @@ export default function SeoResultados() {
   // izquierda sin márgenes". Plano y alineado con el resto del contenido.
   // REGLA APUNTADA en memoria: no curvar párrafos dentro de contenedores
   // centrados con max-width — la proyección los expulsa del margen.
+  // Título unificado con la home (V16.41): bow dinámico + tilt del tier
+  // wide-block (el TÍTULO sí se curva — su proyección con origin 100% no
+  // sufre el problema del párrafo).
+  useCurvedWords(sectionRef, ".nxr-section-h2", "left", [reducedMotion], {
+    bowOnly: true,
+    useExistingWords: true,
+  });
 
   useGSAP(
     () => {

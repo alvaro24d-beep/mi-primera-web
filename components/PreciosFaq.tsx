@@ -10,6 +10,8 @@
 import { useRef } from "react";
 import { useGlassPanels } from "@/hooks/useGlassPanels";
 import { useReducedMotion } from "@/hooks/useReducedMotion";
+import { useTitleReveal } from "@/hooks/useTitleReveal";
+import { useCurvedWords } from "@/hooks/useCurvedWords";
 
 const FAQS = [
   {
@@ -36,7 +38,17 @@ const FAQS = [
 
 export default function PreciosFaq() {
   const sectionRef = useRef<HTMLElement>(null);
+  const titleRef = useTitleReveal<HTMLHeadingElement>();
   const reducedMotion = useReducedMotion();
+
+  // Título UNIFICADO con la home (V16.41, "los títulos tienen que estar
+  // unificados"): mismo reveal por palabras (useTitleReveal), mismo bow
+  // dinámico y mismo tilt (el tier wide-block de globals.css) — solo
+  // cambian las letras.
+  useCurvedWords(sectionRef, ".nxr-section-h2", "left", [reducedMotion], {
+    bowOnly: true,
+    useExistingWords: true,
+  });
 
   // Cristal volumétrico del canvas global sobre cada card (las anclas DOM
   // son cáscaras transparentes; "nxr-precios" está en alwaysIds de
@@ -46,7 +58,9 @@ export default function PreciosFaq() {
   return (
     <section id="nxr-precios" ref={sectionRef}>
       <div className="nxr-precios-inner">
-        <h1 className="nxr-section-h2 nxr-reveal">Claridad antes de empezar.</h1>
+        <h1 className="nxr-section-h2" ref={titleRef}>
+          Claridad antes de empezar.
+        </h1>
         <p className="nxr-precios-intro nxr-reveal">
           Sin tarifas genéricas: cada sistema se presupuesta a medida. Esto es lo que siempre puedes esperar de
           trabajar con nosotros.

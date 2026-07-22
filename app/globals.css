@@ -6285,7 +6285,12 @@ input[type="range"].nxr-ms-range::-moz-range-thumb {
     #b072ff,
     #ff4fb0
   );
-  filter: blur(16px) saturate(1.8) brightness(1.55);
+  /* Blur BAJO a propósito: un blur alto promediaba tonos adyacentes en las
+     transiciones y, con el brillo, los lavaba hacia el blanco en las esquinas
+     ("se quedan sin color"). Con poco blur las bandas de color se mantienen
+     nítidas y saturadas todo el giro; el borde suave del marco lo da la
+     máscara SVG, no este blur. */
+  filter: blur(7px) saturate(2) brightness(1.3);
   mix-blend-mode: screen;
   /* Giro MUY rápido (2s por vuelta) para que los colores recorran el marco a
      gran velocidad. `rotate` es una propiedad de transform que se compone con
@@ -6304,7 +6309,7 @@ input[type="range"].nxr-ms-range::-moz-range-thumb {
    AgentesIaGlow.tsx); aquí solo un blur algo menor acorde a la banda. */
 @media (max-width: 767px) {
   .nxr-aia-siri-layer {
-    filter: blur(11px) saturate(1.8) brightness(1.55);
+    filter: blur(6px) saturate(2) brightness(1.3);
   }
 }
 @media (prefers-reduced-motion: reduce) {

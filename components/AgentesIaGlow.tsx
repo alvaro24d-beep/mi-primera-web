@@ -28,48 +28,56 @@ export default function AgentesIaGlow() {
       const el = ref.current;
       if (!el) return;
       const setVar = (name: string, v: number) => el.style.setProperty(name, String(v));
-      setVar("--siri-in", 0);
-      setVar("--siri-out", 1);
+      setVar("--siri-op", 0);
+
+      // Máscara elíptica INLINE (no en globals.css) a propósito: el minificador
+      // de CSS del build de producción colapsa la posición del stop a `0px`
+      // en máscaras radiales de tamaño ≥100% (deja de recortar el centro y el
+      // color lava toda la pantalla) — un estilo inline nunca pasa por el
+      // minificador. Radio alto + centro transparente amplio ⇒ el color queda
+      // CONFINADO al borde. Móvil (vertical) usa una elipse más cerrada.
+      const applyMask = () => {
+        const m =
+          window.innerWidth < 768
+            ? "radial-gradient(62% 74% at 50% 50%, rgba(0,0,0,0) 78%, #000 100%)"
+            : "radial-gradient(122% 122% at 50% 50%, rgba(0,0,0,0) 68%, #000 100%)";
+        el.style.webkitMask = m;
+        el.style.mask = m;
+      };
+      applyMask();
+      window.addEventListener("resize", applyMask, { passive: true });
 
       const triggers: ScrollTrigger[] = [];
-      // DIFERIDO un frame a propósito: este componente se monta ANTES que el
-      // hero, así que su efecto corre primero — si creáramos los triggers
-      // aquí, sus start/end se calcularían contra un documento SIN el
-      // pin-spacer del hero (que añade ~540% de alto), dejando a Noche y
-      // Contacto en posiciones obsoletas (el fade-out saltaría durante el
-      // propio hero). En el siguiente frame el pin-spacer ya existe y las
-      // posiciones salen correctas; GSAP mantiene el resto sincronizado en
-      // cada refresh.
+      // DIFERIDO un frame: este componente monta ANTES que el hero, así que su
+      // efecto corre primero; en el siguiente frame el pin del hero ya existe
+      // y cualquier refresh cae con las posiciones buenas.
       const raf = requestAnimationFrame(() => {
-        const noche = document.getElementById("nxr-aia-noche");
-        const contacto = document.getElementById("nxr-contacto");
-        // Aparición: la sección posterior al hero subiendo desde abajo ES la
-        // animación de entrada saliendo (el hero está pineado, así que Noche
-        // solo asoma cuando el pin se completa).
-        if (noche) {
-          triggers.push(
-            ScrollTrigger.create({
-              trigger: noche,
-              start: "top 92%",
-              end: "top 45%",
-              onUpdate: (self) => setVar("--siri-in", self.progress),
-            })
-          );
-        }
-        // Retirada suave al final del recorrido de Agentes IA.
-        if (contacto) {
-          triggers.push(
-            ScrollTrigger.create({
-              trigger: contacto,
-              start: "top 55%",
-              end: "top top",
-              onUpdate: (self) => setVar("--siri-out", 1 - self.progress),
-            })
-          );
-        }
+        const hero = document.getElementById("nxr-aia-hero");
+        if (!hero) return;
+        // El halo vive SOLO durante la animación de entrada del hero y se
+        // quita al terminar. Se engancha al MISMO rango de scroll que el pin
+        // del hero (mismo start/end que su ScrollTrigger, ver AgentesIaHero),
+        // así el progreso coincide con el de la animación: aparece rápido al
+        // empezar a scrollear y se desvanece cuando la gestión ya está
+        // resuelta (~90% del pin), antes de que el hero despinee.
+        triggers.push(
+          ScrollTrigger.create({
+            trigger: hero,
+            start: "top top",
+            end: () => (window.innerWidth < 768 ? "+=460%" : "+=540%"),
+            invalidateOnRefresh: true,
+            onUpdate: (self) => {
+              const p = self.progress;
+              const appear = Math.min(1, p / 0.04); // entra en el primer 4%
+              const leave = Math.min(1, Math.max(0, (0.9 - p) / 0.12)); // sale 78%→90%
+              setVar("--siri-op", Math.min(appear, leave));
+            },
+          })
+        );
       });
       return () => {
         cancelAnimationFrame(raf);
+        window.removeEventListener("resize", applyMask);
         triggers.forEach((t) => t.kill());
       };
     },
@@ -80,10 +88,13 @@ export default function AgentesIaGlow() {
   // monta (sin overlay fijo que animar, sin coste).
   if (reducedMotion) return null;
 
+  // Una sola capa a propósito: el halo se solapa con la parte MÁS pesada de la
+  // página (el hero scrubbeado). Una segunda capa difuminada duplicaba el
+  // blend fullscreen por frame y costaba ~4 fps ahí; una capa con giro +
+  // respiración ya hace fluir el color por el borde. Ver globals.css.
   return (
     <div className="nxr-aia-siri" aria-hidden="true" ref={ref}>
       <span className="nxr-aia-siri-layer" />
-      <span className="nxr-aia-siri-layer nxr-aia-siri-layer-b" />
     </div>
   );
 }

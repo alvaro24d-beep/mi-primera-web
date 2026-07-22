@@ -28,22 +28,29 @@ export default function SmoothScroll() {
     // rock-steady while the toolbar animates (pros do this on any pinned site).
     ScrollTrigger.config({ ignoreMobileResize: true });
 
-    // EXPERIMENTO V16.17 ("prueba a volver a los ajustes predeterminados
-    // de Lenis"): SOLO quedan los dos ajustes ESTRUCTURALES — autoRaf
-    // false (el rAF lo llevamos nosotros junto a ScrollTrigger.update) y
-    // syncTouch true (sin él, el scroll táctil es nativo/asíncrono y las
-    // cards de cristal WebGL, posicionadas por frame desde rects DOM, van
-    // un frame por detrás del contenido en móvil — no es tuning, es
-    // requisito de la arquitectura). Todo lo demás, de serie: lerp 0.1,
-    // syncTouchLerp 0.075, touchInertiaExponent 1.7, touchMultiplier 1.
-    // También se retiró el TOPE de alcance por flick (1.35 pantallas, el
-    // listener capFlickReach) — sin él, un flick fuerte puede volar varias
-    // secciones (|v|^1.7 sin límite; fue el motivo original del tope).
-    // Afinado anterior por si se revierte: lerp 0.1, syncTouchLerp 0.04,
+    // Base V16.17 (defaults de Lenis) + AJUSTE DE INERCIA TÁCTIL (V16.52,
+    // petición: "que en móvil el scroll tarde más en detenerse al deslizar").
+    // Estos dos parámetros SOLO afectan al scroll TÁCTIL (móvil); el desktop
+    // usa rueda y no cambia:
+    //   - syncTouchLerp 0.05 (default 0.075, más bajo): el deslizamiento
+    //     decelera MÁS DESPACIO y tarda más en pararse (la cola de inercia es
+    //     más larga).
+    //   - touchInertiaExponent 1.9 (default 1.7): un poco más de inercia tras
+    //     soltar el dedo, para que el flick avance algo más.
+    // (autoRaf false y syncTouch true son ESTRUCTURALES — ver V16.17: el rAF
+    // lo llevamos nosotros junto a ScrollTrigger.update, y sin syncTouch las
+    // cards de cristal WebGL, posicionadas por frame desde rects DOM, irían un
+    // frame por detrás del contenido en móvil.)
+    // El reel de Servicios y ZP no dependen de esto: paginan por su cuenta en
+    // touchend (glideTo con escrituras immediate que anulan la inercia de
+    // Lenis) y su muro de primera llegada clampa cualquier flick fuerte.
+    // Afinado anterior por si se revierte: syncTouchLerp 0.04,
     // touchInertiaExponent 1.85, touchMultiplier 0.8, cap 1.35·vh.
     const lenis = new Lenis({
       autoRaf: false,
       syncTouch: true,
+      syncTouchLerp: 0.05,
+      touchInertiaExponent: 1.9,
     });
     window.__nxrLenis = lenis;
 

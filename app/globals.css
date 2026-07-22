@@ -6235,6 +6235,102 @@ input[type="range"].nxr-ms-range::-moz-range-thumb {
   }
 }
 
+/* ===== Agentes IA (service page) — Siri ambient edge glow ===== */
+/* Halo multicolor difuminado que abraza el borde del viewport (estilo la
+   activación de Siri de Apple). Overlay FIJO, pointer-events:none, montado
+   solo en /agentes-ia (components/AgentesIaGlow.tsx). Se hace visible cuando
+   la animación de entrada del hero sale: dos ScrollTriggers escriben
+   --siri-in (aparición al entrar #nxr-aia-noche) y --siri-out (retirada al
+   llegar a Contacto); la opacidad final es su producto. El color/movimiento
+   es CSS puro: una capa de gradiente cónico full-spectrum, difuminada una
+   sola vez, que gira/respira por transform (barato para el compositor — la
+   textura difuminada se cachea y solo se recompone la transform; no invalida
+   el canvas WebGL global). El centro se recorta con una máscara elíptica
+   proporcional al viewport, así solo brilla el borde y el contenido central
+   queda intacto en cualquier orientación.
+   z-index 1050: por encima del contenido de las secciones, por debajo de las
+   bandas GradualBlur (~1100) y del header/nav (9997+), que nunca se tiñen. */
+.nxr-aia-siri {
+  position: fixed;
+  inset: 0;
+  z-index: 1050;
+  pointer-events: none;
+  overflow: hidden;
+  opacity: calc(var(--siri-in, 0) * var(--siri-out, 1));
+  /* Máscara elíptica proporcional al viewport: centro transparente (sin
+     halo, contenido intacto) → borde opaco (halo visible). transparent 53%
+     deja un centro oscuro amplio y una banda de borde ancha que se suaviza
+     hacia dentro (empíricamente afinado: 46% lavaba el centro, 64% quedaba
+     demasiado tímido). */
+  -webkit-mask: radial-gradient(122% 122% at 50% 50%, transparent 53%, #000 92%);
+  mask: radial-gradient(122% 122% at 50% 50%, transparent 53%, #000 92%);
+}
+.nxr-aia-siri-layer {
+  position: absolute;
+  inset: -55%;
+  background: conic-gradient(
+    from 0deg at 50% 50%,
+    #ff2fa0,
+    #ff5c38,
+    #ff9d4d,
+    #a8f04a,
+    #35e0c8,
+    #4aa8ff,
+    #7b5cff,
+    #ff2fa0
+  );
+  filter: blur(52px) saturate(1.6) brightness(1.24);
+  mix-blend-mode: screen;
+  will-change: transform;
+  animation: nxr-siri-spin 24s linear infinite;
+}
+.nxr-aia-siri-layer-b {
+  background: conic-gradient(
+    from 210deg at 50% 50%,
+    #7b5cff,
+    #ff2fa0,
+    #ff7a3d,
+    #a8f04a,
+    #35e0c8,
+    #4aa8ff,
+    #7b5cff
+  );
+  filter: blur(80px) saturate(1.35) brightness(1.1);
+  opacity: 0.7;
+  animation-duration: 35s;
+  animation-direction: reverse;
+}
+@keyframes nxr-siri-spin {
+  0% {
+    transform: rotate(0deg) scale(1.06);
+  }
+  50% {
+    transform: rotate(180deg) scale(1.2);
+  }
+  100% {
+    transform: rotate(360deg) scale(1.06);
+  }
+}
+/* Móvil (formato vertical): una sola capa (la segunda difuminada no aporta y
+   ahorra un blend fullscreen) y una máscara más cerrada + menos intensidad —
+   en vertical la elipse proporcional del desktop dejaba demasiada superficie
+   coloreada y lavaba el texto de las secciones con contenido; estos valores
+   (afinados sobre la sección Casos) mantienen el centro oscuro y el texto
+   legible con el color confinado al borde y las esquinas. */
+@media (max-width: 767px) {
+  .nxr-aia-siri {
+    -webkit-mask: radial-gradient(92% 116% at 50% 50%, transparent 58%, #000 96%);
+    mask: radial-gradient(92% 116% at 50% 50%, transparent 58%, #000 96%);
+  }
+  .nxr-aia-siri-layer {
+    filter: blur(44px) saturate(1.5) brightness(1.15);
+    opacity: 0.6;
+  }
+  .nxr-aia-siri-layer-b {
+    display: none;
+  }
+}
+
 /* ===== Agentes IA (service page) — Hero: agente atendiendo en directo (v2) ===== */
 /* RECONSTRUIDO (V16.0): un solo grid "pipeline" posee la composición entera —
    chat (cliente) | núcleo (agente) | herramientas (acciones), con el CTA

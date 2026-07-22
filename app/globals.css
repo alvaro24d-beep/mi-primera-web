@@ -6236,19 +6236,18 @@ input[type="range"].nxr-ms-range::-moz-range-thumb {
 }
 
 /* ===== Agentes IA (service page) — Siri ambient edge glow ===== */
-/* Halo multicolor difuminado que abraza SOLO el borde del viewport (estilo la
-   activación de Siri de Apple). Overlay FIJO, pointer-events:none, montado
-   solo en /agentes-ia (components/AgentesIaGlow.tsx). Vive ÚNICAMENTE durante
-   la animación de entrada del hero: un ScrollTrigger enganchado al rango del
-   pin del hero escribe --siri-op (0 → 1 al empezar, → 0 cuando la gestión ya
-   está resuelta), y desaparece para el resto de la página.
-   El color/movimiento es CSS puro: dos capas de gradiente cónico full-spectrum
-   difuminadas UNA vez que giran (rotate) y respiran (scale) por separado y a
-   ritmos distintos — barato para el compositor (la textura difuminada se
-   cachea y solo se recomponen rotate/scale; no invalida el canvas WebGL). El
-   centro se recorta con una máscara elíptica de radio alto (transparent 68%),
-   así el color queda CONFINADO a la banda del borde y el contenido central no
-   se tiñe.
+/* Marco FINO multicolor en movimiento que abraza el borde del viewport (estilo
+   la activación de Siri de Apple). Overlay FIJO, pointer-events:none, montado
+   solo en /agentes-ia (components/AgentesIaGlow.tsx). Se muestra mientras se
+   reproduce la animación de entrada del hero y se retira al terminar, con un
+   fade AUTOMÁTICO por TIEMPO (la transición de opacidad de abajo): un
+   ScrollTrigger solo alterna la clase `.nxr-aia-siri-on` al entrar/salir del
+   rango del hero, así un scroll rápido no lo muestra/oculta de golpe.
+   El color/movimiento es CSS: una capa de gradiente cónico full-spectrum,
+   difuminada una vez, que GIRA muy rápido (rotate) — barato (textura cacheada,
+   solo se recompone la transform; no invalida el canvas WebGL). El marco fino
+   de esquinas internas REDONDEADAS y difuminadas lo da una máscara SVG inline
+   (ver AgentesIaGlow.tsx).
    z-index 1050: por encima del contenido de las secciones, por debajo de las
    bandas GradualBlur (~1100) y del header/nav (9997+), que nunca se tiñen. */
 .nxr-aia-siri {
@@ -6257,10 +6256,12 @@ input[type="range"].nxr-ms-range::-moz-range-thumb {
   z-index: 1050;
   pointer-events: none;
   overflow: hidden;
-  opacity: var(--siri-op, 0);
-  /* La máscara elíptica que confina el color al borde se aplica INLINE desde
-     AgentesIaGlow.tsx (el minificador de CSS de producción colapsaba el stop
-     a 0px aquí, lavando el centro). */
+  opacity: 0;
+  /* Fundido automático por tiempo — independiente de la velocidad de scroll. */
+  transition: opacity 0.85s ease;
+}
+.nxr-aia-siri-on {
+  opacity: 1;
 }
 .nxr-aia-siri-layer {
   position: absolute;
@@ -6276,35 +6277,26 @@ input[type="range"].nxr-ms-range::-moz-range-thumb {
     #7b5cff,
     #ff2fa0
   );
-  filter: blur(30px) saturate(1.9) brightness(1.45);
+  filter: blur(26px) saturate(1.95) brightness(1.5);
   mix-blend-mode: screen;
-  /* rotate y scale son propiedades de transform INDEPENDIENTES: se componen
-     entre sí. Giro MUY rápido (4s por vuelta) para que los colores recorran
-     el marco a gran velocidad, con una respiración sutil aparte. */
-  will-change: rotate, scale;
+  /* Giro MUY rápido (2s por vuelta, antes 4s) para que los colores recorran el
+     marco a gran velocidad. `rotate` es una propiedad de transform que se
+     compone con `scale` (fijo, solo para cubrir bajo el giro). */
+  will-change: rotate;
   rotate: 0deg;
-  scale: 1.1;
-  animation: nxr-siri-rot 4s linear infinite, nxr-siri-breathe 3s ease-in-out infinite;
+  scale: 1.12;
+  animation: nxr-siri-rot 2s linear infinite;
 }
 @keyframes nxr-siri-rot {
   to {
     rotate: 360deg;
   }
 }
-@keyframes nxr-siri-breathe {
-  0%,
-  100% {
-    scale: 1.07;
-  }
-  50% {
-    scale: 1.16;
-  }
-}
 /* Móvil (formato vertical): el marco más estrecho se aplica inline (ver
    AgentesIaGlow.tsx); aquí solo un blur algo menor acorde a la banda. */
 @media (max-width: 767px) {
   .nxr-aia-siri-layer {
-    filter: blur(22px) saturate(1.8) brightness(1.4);
+    filter: blur(18px) saturate(1.85) brightness(1.45);
   }
 }
 @media (prefers-reduced-motion: reduce) {

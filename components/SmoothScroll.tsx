@@ -54,6 +54,31 @@ export default function SmoothScroll() {
     });
     window.__nxrLenis = lenis;
 
+    // TOPE DE VELOCIDAD/ALCANCE POR GESTO en móvil (V16.53, petición: "que no
+    // se pueda desplazar muy rápido por las páginas"). Con exponent 1.9 la
+    // curva de inercia se dispara en flicks fuertes (|v|^1.9), así que un solo
+    // deslizamiento podía volar varias secciones. Lenis no tiene tope propio:
+    // en touchend, tras un rAF (su listener de inercia corre primero, se
+    // registra al crear la instancia), se clampa cuánto puede quedar el
+    // objetivo por delante de la posición actual. Al capar el hueco máximo se
+    // capa también la velocidad pico del planeo (v_pico ≈ hueco·lerp), que es
+    // exactamente el "tope de velocidad" pedido. El scrollTo usa el mismo
+    // syncTouchLerp (0.05) para que la cola de frenado mantenga el tacto largo
+    // de V16.52. Reintroduce el capFlickReach que existía antes de V16.17;
+    // 1.35 pantallas está co-afinado con el prólogo del reel de Servicios (ver
+    // memoria reel-geometria-validada) — la paginación del reel es inmune (sus
+    // escrituras immediate por frame sobrescriben cualquier objetivo).
+    const capFlickReach = () => {
+      requestAnimationFrame(() => {
+        const ahead = lenis.targetScroll - lenis.animatedScroll;
+        const cap = window.innerHeight * 1.35;
+        if (Math.abs(ahead) > cap) {
+          lenis.scrollTo(lenis.animatedScroll + Math.sign(ahead) * cap, { lerp: 0.05 });
+        }
+      });
+    };
+    window.addEventListener("touchend", capFlickReach, { passive: true });
+
     // Any ScrollTrigger created anywhere in the app (this is the only place
     // that should own a Lenis instance) needs to recompute on Lenis' own
     // scroll event, since Lenis drives scroll via rAF rather than firing
@@ -69,6 +94,7 @@ export default function SmoothScroll() {
 
     return () => {
       cancelAnimationFrame(rafId);
+      window.removeEventListener("touchend", capFlickReach);
       delete window.__nxrLenis;
       lenis.destroy();
     };

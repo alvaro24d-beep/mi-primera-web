@@ -6276,16 +6276,15 @@ input[type="range"].nxr-ms-range::-moz-range-thumb {
     #7b5cff,
     #ff2fa0
   );
-  filter: blur(46px) saturate(1.85) brightness(1.4);
+  filter: blur(30px) saturate(1.9) brightness(1.45);
   mix-blend-mode: screen;
   /* rotate y scale son propiedades de transform INDEPENDIENTES: se componen
-     entre sí, así que giro y respiración corren en animaciones separadas y a
-     velocidades distintas (imposible con un solo `transform`). Rápidas y
-     notables (giro 11s, respiración 4s) — el color fluye y respira sin parar. */
+     entre sí. Giro MUY rápido (4s por vuelta) para que los colores recorran
+     el marco a gran velocidad, con una respiración sutil aparte. */
   will-change: rotate, scale;
   rotate: 0deg;
-  scale: 1.08;
-  animation: nxr-siri-rot 11s linear infinite, nxr-siri-breathe 4s ease-in-out infinite;
+  scale: 1.1;
+  animation: nxr-siri-rot 4s linear infinite, nxr-siri-breathe 3s ease-in-out infinite;
 }
 @keyframes nxr-siri-rot {
   to {
@@ -6295,17 +6294,17 @@ input[type="range"].nxr-ms-range::-moz-range-thumb {
 @keyframes nxr-siri-breathe {
   0%,
   100% {
-    scale: 1.05;
+    scale: 1.07;
   }
   50% {
-    scale: 1.22;
+    scale: 1.16;
   }
 }
-/* Móvil (formato vertical): la máscara más cerrada se aplica inline (ver
-   AgentesIaGlow.tsx); aquí solo se atenúa un poco el blur para el borde. */
+/* Móvil (formato vertical): el marco más estrecho se aplica inline (ver
+   AgentesIaGlow.tsx); aquí solo un blur algo menor acorde a la banda. */
 @media (max-width: 767px) {
   .nxr-aia-siri-layer {
-    filter: blur(40px) saturate(1.7) brightness(1.3);
+    filter: blur(22px) saturate(1.8) brightness(1.4);
   }
 }
 @media (prefers-reduced-motion: reduce) {

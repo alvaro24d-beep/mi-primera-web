@@ -30,19 +30,25 @@ export default function AgentesIaGlow() {
       const setVar = (name: string, v: number) => el.style.setProperty(name, String(v));
       setVar("--siri-op", 0);
 
-      // Máscara elíptica INLINE (no en globals.css) a propósito: el minificador
-      // de CSS del build de producción colapsa la posición del stop a `0px`
-      // en máscaras radiales de tamaño ≥100% (deja de recortar el centro y el
-      // color lava toda la pantalla) — un estilo inline nunca pasa por el
-      // minificador. Radio alto + centro transparente amplio ⇒ el color queda
-      // CONFINADO al borde. Móvil (vertical) usa una elipse más cerrada.
+      // Máscara de MARCO de grosor UNIFORME (inline, no en globals.css: el
+      // minificador de producción rompe los stops de gradiente en máscara).
+      // Una radial elíptica dejaba las esquinas gruesas y los lados finos o
+      // invisibles; en su lugar se unen CUATRO gradientes lineales (uno por
+      // lado: opaco en el borde → transparente `band` px hacia dentro), que
+      // siguen el RECTÁNGULO y dan la misma anchura en todo el marco. La unión
+      // se hace con mask-composite: add (source-over en webkit).
       const applyMask = () => {
-        const m =
-          window.innerWidth < 768
-            ? "radial-gradient(62% 74% at 50% 50%, rgba(0,0,0,0) 78%, #000 100%)"
-            : "radial-gradient(122% 122% at 50% 50%, rgba(0,0,0,0) 68%, #000 100%)";
-        el.style.webkitMask = m;
-        el.style.mask = m;
+        const band = window.innerWidth < 768 ? 58 : 110;
+        const g = [
+          `linear-gradient(to right, #000, rgba(0,0,0,0) ${band}px)`,
+          `linear-gradient(to left, #000, rgba(0,0,0,0) ${band}px)`,
+          `linear-gradient(to bottom, #000, rgba(0,0,0,0) ${band}px)`,
+          `linear-gradient(to top, #000, rgba(0,0,0,0) ${band}px)`,
+        ].join(", ");
+        el.style.webkitMask = g;
+        el.style.mask = g;
+        el.style.webkitMaskComposite = "source-over";
+        el.style.maskComposite = "add";
       };
       applyMask();
       window.addEventListener("resize", applyMask, { passive: true });

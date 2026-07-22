@@ -6260,28 +6260,34 @@ input[type="range"].nxr-ms-range::-moz-range-thumb {
   /* Fundido automático por tiempo — independiente de la velocidad de scroll. */
   transition: opacity 0.85s ease;
 }
-.nxr-aia-siri-on {
+/* Especificidad doble (.nxr-aia-siri.nxr-aia-siri-on) a propósito: el
+   minificador de producción reordena reglas de igual especificidad y
+   .nxr-aia-siri {opacity:0} acababa ganando; con doble clase gana siempre. */
+.nxr-aia-siri.nxr-aia-siri-on {
   opacity: 1;
 }
 .nxr-aia-siri-layer {
   position: absolute;
   inset: -55%;
+  /* Colores casi-BLANCOS con un matiz de color (alta luminosidad, sin tonos
+     oscuros que al girar parecían una "sombra"): el marco es un BRILLO BLANCO
+     luminoso con un tinte de color que fluye — no un arcoíris saturado. */
   background: conic-gradient(
     from 0deg at 50% 50%,
-    #ff2fa0,
-    #ff5c38,
-    #ff9d4d,
-    #a8f04a,
-    #35e0c8,
-    #4aa8ff,
-    #7b5cff,
-    #ff2fa0
+    #ffcfe9,
+    #ffe4cc,
+    #fff8cc,
+    #dcffcc,
+    #ccfff1,
+    #ccdfff,
+    #e6d4ff,
+    #ffcfe9
   );
-  filter: blur(26px) saturate(1.95) brightness(1.5);
+  filter: blur(16px) saturate(1.35) brightness(2.15);
   mix-blend-mode: screen;
-  /* Giro MUY rápido (2s por vuelta, antes 4s) para que los colores recorran el
-     marco a gran velocidad. `rotate` es una propiedad de transform que se
-     compone con `scale` (fijo, solo para cubrir bajo el giro). */
+  /* Giro MUY rápido (2s por vuelta) para que los colores recorran el marco a
+     gran velocidad. `rotate` es una propiedad de transform que se compone con
+     `scale` (fijo, solo para cubrir bajo el giro). */
   will-change: rotate;
   rotate: 0deg;
   scale: 1.12;
@@ -6296,7 +6302,7 @@ input[type="range"].nxr-ms-range::-moz-range-thumb {
    AgentesIaGlow.tsx); aquí solo un blur algo menor acorde a la banda. */
 @media (max-width: 767px) {
   .nxr-aia-siri-layer {
-    filter: blur(18px) saturate(1.85) brightness(1.45);
+    filter: blur(11px) saturate(1.35) brightness(2.15);
   }
 }
 @media (prefers-reduced-motion: reduce) {

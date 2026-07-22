@@ -37,9 +37,9 @@ export default function AgentesIaGlow() {
         const W = Math.round(window.innerWidth);
         const H = Math.round(window.innerHeight);
         const mobile = W < 768;
-        const band = mobile ? 20 : 26; // grosor del marco (fino, aún más en desktop)
-        const r = mobile ? 34 : 58; // radio de las esquinas internas
-        const soft = mobile ? 10 : 15; // difuminado del borde interior
+        const band = mobile ? 10 : 12; // grosor del marco (muy fino)
+        const r = mobile ? 26 : 40; // radio de las esquinas internas
+        const soft = mobile ? 9 : 13; // difuminado del borde interior (glow suave)
         const iw = Math.max(0, W - 2 * band);
         const ih = Math.max(0, H - 2 * band);
         const svg =
@@ -67,20 +67,27 @@ export default function AgentesIaGlow() {
       const raf = requestAnimationFrame(() => {
         const hero = document.getElementById("nxr-aia-hero");
         if (!hero) return;
-        // Fade AUTOMÁTICO y suave: el ScrollTrigger solo ENCIENDE/APAGA una
-        // clase (mientras el hero está en su rango = animación reproduciéndose,
-        // hasta ~86% del pin); la transición CSS de opacidad hace el fundido
-        // por TIEMPO, así que un scroll muy rápido no lo muestra/oculta de
-        // golpe (el fundido siempre dura lo mismo, decoupled del scroll).
+        // Fade AUTOMÁTICO y suave, decoupled del scroll: el ScrollTrigger solo
+        // ENCIENDE/APAGA la clase `.nxr-aia-siri-on` según el PROGRESO del pin
+        // del hero, y la transición CSS de opacidad hace el fundido por TIEMPO
+        // (un flick rápido no lo muestra/oculta de golpe). La ventana [0.1,
+        // 0.86] hace que NO aparezca al cargar la página (progreso 0): entra
+        // cuando la animación de entrada del título ya ha arrancado (~10% del
+        // pin) y se retira antes de que el hero despinee. onToggle fuerza el
+        // apagado si se sale del rango de golpe (p. ej. un salto de scroll).
+        const gate = (p: number) => el.classList.toggle("nxr-aia-siri-on", p > 0.1 && p < 0.86);
         const st = ScrollTrigger.create({
           trigger: hero,
           start: "top top",
-          end: () => "+=" + (window.innerWidth < 768 ? 460 : 540) * 0.86 + "%",
+          end: () => (window.innerWidth < 768 ? "+=460%" : "+=540%"),
           invalidateOnRefresh: true,
-          onToggle: (self) => el.classList.toggle("nxr-aia-siri-on", self.isActive),
+          onUpdate: (self) => gate(self.progress),
+          onToggle: (self) => {
+            if (!self.isActive) el.classList.remove("nxr-aia-siri-on");
+          },
         });
         triggers.push(st);
-        el.classList.toggle("nxr-aia-siri-on", st.isActive);
+        gate(st.progress);
       });
       return () => {
         cancelAnimationFrame(raf);

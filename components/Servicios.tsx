@@ -1431,6 +1431,7 @@ export default function Servicios() {
       if (window.innerWidth <= 900) {
         let touchIdx = 0;
         let touchY = 0;
+        let touchX = 0;
         let touchInPin = false;
         const onTouchStart = (e: TouchEvent) => {
           fingerDown = true;
@@ -1438,6 +1439,7 @@ export default function Servicios() {
           touchInPin = !!st?.isActive;
           if (!st || !touchInPin) return;
           touchY = e.touches[0]?.clientY ?? 0;
+          touchX = e.touches[0]?.clientX ?? 0;
           touchIdx = nearestIdx(progressNow(st));
         };
         const onTouchCancel = () => {
@@ -1450,6 +1452,7 @@ export default function Servicios() {
           if (!touchInPin || !st?.isActive) return;
           touchInPin = false;
           const dy = touchY - (e.changedTouches[0]?.clientY ?? touchY);
+          const dx = touchX - (e.changedTouches[0]?.clientX ?? touchX);
           const p = progressNow(st);
           // Released while the phrase still holds at full brightness:
           // leave the scroll natural. 0.65 = el inicio del fade-out (misma
@@ -1458,10 +1461,22 @@ export default function Servicios() {
           if (p * snapAmount < snapPro * 0.65) return;
           const eps = 0.02;
           let targetIdx: number | null = null;
-          if (dy > 25) {
+          // El reel se recorre en DIAGONAL, así que un swipe HORIZONTAL tipo
+          // carrusel también pagina — mismo glideTo, misma paginación de
+          // una-card-por-gesto; solo cambia el EJE de entrada, la geometría
+          // y el pin del reel siguen intactos (el glide desplaza el scroll
+          // vertical por debajo, que es lo que mueve el reel). Arrastrar las
+          // cards a la izquierda avanza (igual que el swipe hacia arriba), a
+          // la derecha retrocede. El eje horizontal solo manda cuando DOMINA
+          // el gesto (|dx| > |dy| y > 30px), para no interceptar el scroll
+          // vertical normal ni sus micro-desvíos laterales.
+          const horiz = Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > 30;
+          const fwd = horiz ? dx > 0 : dy > 25;
+          const back = horiz ? dx < 0 : dy < -25;
+          if (fwd) {
             if (p < pOf(touchIdx) - eps) targetIdx = touchIdx;
             else if (touchIdx < cards.length - 1) targetIdx = touchIdx + 1;
-          } else if (dy < -25) {
+          } else if (back) {
             if (p > pOf(touchIdx) + eps) targetIdx = touchIdx;
             else if (touchIdx > 0) targetIdx = touchIdx - 1;
           }

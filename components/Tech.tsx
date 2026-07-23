@@ -70,21 +70,15 @@ export default function Tech() {
       if (!cards.length) return;
       const N = cards.length;
 
-      // Estado del motor: p (0 esfera → 1 retícula plana) escrito por el
-      // scrub; rot avanza en el ticker y su influencia se desvanece con p.
+      // Estado del motor: p (0 esfera → 1 retícula plana) lo mueve un tween
+      // POR TIEMPO (auto-play al centrar la esfera; V16.54 — antes lo escribía
+      // el scrub del pin y "no quedaba fluido que se ralentizara al pasar").
+      // rot avanza en el ticker y su influencia se desvanece con p.
       const state = { p: 0, rot: 0 };
       let sphereGeo: Array<{ yf: number; rf: number; lon: number }> = [];
       let gridGeo: Array<{ x: number; y: number }> = [];
       let R = 200;
       let measured = false;
-      // Deriva total del pin (V16.34): lo que hay que subir para que el
-      // CENTRO del área de la esfera acabe en el centro del viewport — la
-      // retícula final queda perfectamente centrada.
-      let driftD = 0;
-      // Sesgo inicial (V16.37): cuánto puede subir la esfera EN EL ARRANQUE
-      // sin que su chip más alto invada el párrafo del header — el 0.55·D
-      // deseado, recortado por el hueco real disponible (con 24px de aire).
-      let bias0 = 0;
 
       // Toda la geometría se recalcula en cada refresh de ScrollTrigger
       // (resize incluido) — nunca por frame: el render solo compone
@@ -118,47 +112,17 @@ export default function Tech() {
           const inRow = Math.min(cols, N - r * cols);
           return { x: (c - (inRow - 1) / 2) * cellW, y: (r - (rows - 1) / 2) * cellH };
         });
-        // Con el stage pineado a top 0, el centro del wrap cae en
-        // padTop + offsetTop + H/2; la deriva lo lleva al centro del
-        // viewport (offsetTop es relativo a .nxr-tech-drift, positioned).
-        const padTop = parseFloat(getComputedStyle(stage).paddingTop) || 0;
-        driftD = Math.max(0, padTop + wrap.offsetTop + H / 2 - window.innerHeight / 2);
-        bias0 = driftD * 0.55;
         measured = true;
-      };
-
-      // Techo EMPÍRICO del sesgo (V16.37, "las cards tapan el párrafo"): la
-      // geometría teórica se quedaba corta (escala por profundidad, yf
-      // reales), así que tras cada measure+render se mide el déficit REAL
-      // entre el chip más alto y el final del header (rects de pantalla,
-      // mismas coordenadas) y se recorta bias0 justo lo necesario para
-      // dejar 16px de aire. Un solo pase por refresh.
-      const settleBias = () => {
-        if (!measured) return;
-        const innerEl = section!.querySelector<HTMLElement>(".nxr-tech-inner");
-        if (!innerEl) return;
-        const headerBottom = innerEl.getBoundingClientRect().bottom;
-        let minTop = Infinity;
-        cards.forEach((c) => (minTop = Math.min(minTop, c.getBoundingClientRect().top)));
-        const deficit = headerBottom + 16 - minTop;
-        if (deficit > 0) {
-          bias0 = Math.max(0, bias0 - deficit);
-          render();
-        }
       };
 
       const ease = gsap.parseEase("power2.inOut");
       const render = () => {
         if (!measured) return;
         const e = ease(state.p);
-        // Deriva aplicada A LOS CHIPS (no a un ancestro): un transform en
-        // el contenedor creaba un backdrop root y el blur de los chips no
-        // podía muestrear el muro de vídeo ("en móvil no se ve el fondo
-        // blur"). El sesgo 0.55→1.0·driftD también CENTRA la esfera desde
-        // el arranque ("que empiece un poco más arriba") y sigue creciendo
-        // con p — el conjunto nunca deja de subir y la retícula final queda
-        // centrada.
-        const dyChip = -(bias0 + (driftD - bias0) * state.p);
+        // Sin deriva (V16.54): la sección ya no está pineada, así que la
+        // esfera/retícula viven centradas en su wrap y el disparo del
+        // aplanado ocurre justo cuando ese centro está en el centro del
+        // viewport — la retícula final queda centrada sin mover los chips.
         for (let i = 0; i < N; i++) {
           const s = sphereGeo[i];
           const lon = s.lon + state.rot;
@@ -172,7 +136,7 @@ export default function Tech() {
           const so = 0.28 + 0.72 * d;
           const g = gridGeo[i];
           const x = x3 + (g.x - x3) * e;
-          const y = y3 + (g.y - y3) * e + dyChip;
+          const y = y3 + (g.y - y3) * e;
           const sc = ss + (1 - ss) * e;
           const op = so + (1 - so) * e;
           const card = cards[i];
@@ -182,29 +146,25 @@ export default function Tech() {
         }
       };
 
-      const tl = gsap.timeline({
-        scrollTrigger: {
-          trigger: section,
-          start: "top top",
-          end: () => (window.innerWidth < 768 ? "+=120%" : "+=150%"),
-          scrub: 0.6,
-          pin: stage,
-          anticipatePin: 1,
-          invalidateOnRefresh: true,
-          onRefresh: () => {
-            measure();
-            render();
-            settleBias();
-          },
+      // APLANADO AUTOMÁTICO por TIEMPO (no scrubbeado): timeline en pausa que
+      // se reproduce cuando la esfera llega al CENTRO del viewport (start
+      // "center center" sobre el propio wrap). Así el scroll pasa fluido por
+      // la sección — ya no se ralentiza. Se rebobina si vuelves a subir por
+      // encima del centro, de modo que la animación puede volver a verse.
+      const flat = gsap
+        .timeline({ paused: true })
+        .to(state, { p: 1, duration: 1.35, ease: "power2.inOut", onUpdate: render });
+      ScrollTrigger.create({
+        trigger: wrap,
+        start: "center center",
+        end: "bottom top",
+        onEnter: () => flat.play(),
+        onLeaveBack: () => flat.reverse(),
+        onRefresh: () => {
+          measure();
+          render();
         },
       });
-      tl.to(state, { p: 1, duration: 1, ease: "none", onUpdate: render }, 0);
-      // La DERIVA anti-sticky del HEADER: sube a velocidad constante y
-      // reducida durante el pin. Se anima el bloque del header (sin glass
-      // dentro) y NUNCA un ancestro de los chips — ver el comentario del
-      // backdrop root en render().
-      const inner = section.querySelector<HTMLElement>(".nxr-tech-inner");
-      if (inner) tl.to(inner, { y: () => -driftD, duration: 1, ease: "none" }, 0);
 
       // Giro idle de la esfera: solo con la sección cerca del viewport (IO)
       // y con influencia (1-p) — plana, deja de girar y el ticker no pinta.
@@ -228,7 +188,6 @@ export default function Tech() {
 
       measure();
       render();
-      settleBias();
 
       return () => {
         gsap.ticker.remove(spin);

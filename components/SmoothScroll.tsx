@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
+import { usePathname } from "next/navigation";
 import Lenis from "lenis";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
@@ -18,6 +19,33 @@ declare global {
 }
 
 export default function SmoothScroll() {
+  // Refresh de ScrollTrigger tras navegación CLIENTE (SPA). V16.54, bug: al
+  // volver a la home desde otra página, la frase "todo lo que tu negocio
+  // necesita" (y potencialmente otros textos scroll-driven) no reaparecía —
+  // en una navegación SPA no hay evento `load`, así que los pins/starts se
+  // quedaban con las posiciones calculadas antes de que el layout de la nueva
+  // página se asentara, y el clamp de la frase la dejaba apagada fuera de su
+  // rango real. Un refresh diferido (2 rAF, ya montados los efectos de la
+  // página nueva) recalcula todas las posiciones. Seguro: tras navegar estás
+  // en el top (scroll 0), así que solo recalcula secciones fuera de pantalla,
+  // sin salto visible. Se salta el montaje inicial (ese ya lo cubre `load`).
+  const pathname = usePathname();
+  const firstMount = useRef(true);
+  useEffect(() => {
+    if (firstMount.current) {
+      firstMount.current = false;
+      return;
+    }
+    let raf2 = 0;
+    const raf1 = requestAnimationFrame(() => {
+      raf2 = requestAnimationFrame(() => ScrollTrigger.refresh());
+    });
+    return () => {
+      cancelAnimationFrame(raf1);
+      cancelAnimationFrame(raf2);
+    };
+  }, [pathname]);
+
   useEffect(() => {
     // Mobile browsers (Chrome/Safari) show/hide their address bar as you scroll,
     // firing a `resize` that only changes viewport HEIGHT. By default that makes

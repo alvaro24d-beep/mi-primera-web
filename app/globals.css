@@ -3722,7 +3722,10 @@ p.nxr-hero-mastery-line {
    ticker; billboard 2D — translate/scale/opacity por profundidad — para
    que el texto sea legible en todo momento). */
 .nxr-tech-stage {
-  height: 100lvh;
+  /* V16.54: altura NATURAL (antes 100lvh pineada). La sección ya no se pina —
+     el aplanado se auto-reproduce por tiempo al centrar la esfera (Tech.tsx),
+     así que el header y el área de la esfera caben juntos y ambos se ven
+     cuando la retícula se centra. */
   display: flex;
   flex-direction: column;
   /* El MISMO offset superior que tenía la sección antes de la esfera
@@ -3731,22 +3734,19 @@ p.nxr-hero-mastery-line {
   padding-top: var(--section-pad);
 }
 
-/* Envoltorio de DERIVA (V16.34, "que no se note que se queda sticky"):
-   durante el pin, este contenedor sigue subiendo despacio (tween y lineal
-   en Tech.tsx) — la animación nunca se percibe congelada y al completarse
-   el aplanado la retícula queda centrada en el viewport. */
 .nxr-tech-drift {
   position: relative;
-  flex: 1;
-  min-height: 0;
   display: flex;
   flex-direction: column;
 }
 
+/* Alto FIJO del área de la esfera (V16.54): sin pin ya no es flex:1 de un
+   stage de 100lvh; un alto propio le da sitio a la esfera/retícula y mantiene
+   la sección por debajo de un viewport para que el título quede visible junto
+   a la retícula al centrarse. */
 .nxr-tech-sphere-wrap {
   position: relative;
-  flex: 1;
-  min-height: 0;
+  height: 54lvh;
 }
 
 .nxr-tech-sphere-wrap .nxr-tech-card {
@@ -3903,21 +3903,21 @@ p.nxr-hero-mastery-line {
 @media (max-width: 900px) {
   .nxr-tech-strip {
     grid-template-columns: repeat(2, 1fr);
-    /* V16.37 "debajo de la sección herramientas hay un espacio enorme":
-       con la retícula centrada en el viewport, la mitad inferior del stage
-       de 100lvh quedaba vacía (331px medidos hasta el strip a 844 de
-       alto). El margen negativo ESCALA con el viewport (hueco natural =
-       vh/2 − 139 medido en dos alturas) y deja siempre ~55px entre la
-       retícula y las stats; durante el tramo final del pin asoman por
-       abajo sobre la zona vacía. */
-    margin-top: calc(-50vh + 194px);
-    margin-top: calc(-50lvh + 194px);
+    /* V16.54: sin el stage pineado de 100lvh ya no hay media pantalla vacía
+       que rellenar — se retira el margen negativo (antes -50lvh+194px) y el
+       strip fluye normal bajo la sección. */
+    margin-top: 24px;
   }
   .nxr-tech-header {
     flex-direction: column;
   }
   .nxr-tech-header-right {
     max-width: 100%;
+  }
+  /* Área de la esfera algo más corta en teléfono para que la sección entera
+     (título + esfera) quepa holgada en un viewport. */
+  .nxr-tech-sphere-wrap {
+    height: 52lvh;
   }
   /* Chips compactos para la esfera en teléfono: solo el nombre (la
      categoría no cabe en una retícula de 3 columnas a 390px). */

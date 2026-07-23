@@ -229,47 +229,29 @@ p.nxr-hero-mastery-line {
    Hero.tsx — this button only exists in the hero): no painted CSS glass
    anymore, just layout + a legibility scrim, same treatment as the other
    glass-panel cards. */
+/* CTA "Empezar proyecto": SOLO texto + flecha, sin caja de cristal (petición).
+   Se retiró el fondo/borde/pill y el mesh volumétrico (useGlassPanels en
+   Hero.tsx). Hover sutil: el texto tira a lima y la flecha se desplaza. */
 .nxr-btn-secondary {
-  position: relative;
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  padding: 14px 30px;
-  border-radius: 100px;
-  overflow: hidden;
+  padding: 6px 2px;
   color: var(--c-white);
   font-size: 15px;
   font-weight: 500;
   font-family: var(--font);
   cursor: pointer;
-  border: 1px solid transparent;
-  background: rgba(8, 10, 14, 0.34);
+  transition: color 0.25s ease;
 }
-/* Hover como overlay con FUNDIDO: el estado anterior cambiaba
-   background-image (degradados) en el :hover, y background-image no es
-   transicionable — el claro/oscuro entraba de golpe. El mismo look vive
-   ahora en un ::before cuya opacidad sí transiciona. */
-.nxr-btn-secondary::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  border-radius: inherit;
-  background-image: linear-gradient(
-      rgba(255, 255, 255, 0.1),
-      rgba(255, 255, 255, 0.1)
-    ),
-    var(--glass-border-gradient);
-  opacity: 0;
-  transition: opacity 0.35s ease;
-  pointer-events: none;
+.nxr-btn-secondary:hover {
+  color: var(--c-lime);
 }
-.nxr-btn-secondary:hover::before {
-  opacity: 1;
+.nxr-btn-secondary .nxr-hero-cta-arrow {
+  transition: transform 0.25s ease;
 }
-/* El contenido (texto + flecha) por encima del overlay. */
-.nxr-btn-secondary > * {
-  position: relative;
-  z-index: 1;
+.nxr-btn-secondary:hover .nxr-hero-cta-arrow {
+  transform: translateX(4px);
 }
 
 .nxr-reveal {

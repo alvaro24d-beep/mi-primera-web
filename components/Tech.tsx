@@ -77,6 +77,16 @@ export default function Tech() {
       const state = { p: 0, rot: 0 };
       let sphereGeo: Array<{ yf: number; rf: number; lon: number }> = [];
       let gridGeo: Array<{ x: number; y: number }> = [];
+      // Retardo de aplanado POR CHIP (V16.55, "que se reagrupen de otra
+      // manera"): de dentro hacia fuera — los del centro de la retícula
+      // asientan primero y los de los bordes después, así el conjunto se
+      // "monta" progresivamente en vez de aplanarse todo a la vez.
+      let stag: number[] = [];
+      // Último zIndex escrito por chip: escribir zIndex cada frame fuerza
+      // re-apilado de los 20; solo se escribe cuando el valor redondeado
+      // cambia (perf).
+      const lastZ = new Array<number>(N).fill(-1);
+      const STAG = 0.38;
       let R = 200;
       let measured = false;
 
@@ -112,18 +122,27 @@ export default function Tech() {
           const inRow = Math.min(cols, N - r * cols);
           return { x: (c - (inRow - 1) / 2) * cellW, y: (r - (rows - 1) / 2) * cellH };
         });
+        // Retardo por chip proporcional a su distancia al centro de la
+        // retícula (centro = 0, borde = STAG): reagrupación de dentro afuera.
+        let maxDist = 1;
+        gridGeo.forEach((g) => (maxDist = Math.max(maxDist, Math.hypot(g.x, g.y))));
+        stag = gridGeo.map((g) => (Math.hypot(g.x, g.y) / maxDist) * STAG);
         measured = true;
       };
 
       const ease = gsap.parseEase("power2.inOut");
+      const denom = 1 - STAG;
       const render = () => {
         if (!measured) return;
-        const e = ease(state.p);
         // Sin deriva (V16.54): la sección ya no está pineada, así que la
         // esfera/retícula viven centradas en su wrap y el disparo del
         // aplanado ocurre justo cuando ese centro está en el centro del
         // viewport — la retícula final queda centrada sin mover los chips.
         for (let i = 0; i < N; i++) {
+          // Progreso POR CHIP con su retardo (reagrupación escalonada).
+          let pe = (state.p - stag[i]) / denom;
+          pe = pe < 0 ? 0 : pe > 1 ? 1 : pe;
+          const e = ease(pe);
           const s = sphereGeo[i];
           const lon = s.lon + state.rot;
           const x3 = R * s.rf * Math.sin(lon);
@@ -142,7 +161,13 @@ export default function Tech() {
           const card = cards[i];
           card.style.transform = `translate(-50%, -50%) translate3d(${x.toFixed(1)}px, ${y.toFixed(1)}px, 0) scale(${sc.toFixed(3)})`;
           card.style.opacity = op.toFixed(3);
-          card.style.zIndex = String(200 + Math.round(z3));
+          // zIndex solo cuando cambia el valor redondeado (evita re-apilado
+          // de los 20 chips en cada frame — el coste real del giro).
+          const zi = 200 + Math.round(z3);
+          if (zi !== lastZ[i]) {
+            card.style.zIndex = String(zi);
+            lastZ[i] = zi;
+          }
         }
       };
 
@@ -153,7 +178,7 @@ export default function Tech() {
       // encima del centro, de modo que la animación puede volver a verse.
       const flat = gsap
         .timeline({ paused: true })
-        .to(state, { p: 1, duration: 1.35, ease: "power2.inOut", onUpdate: render });
+        .to(state, { p: 1, duration: 2.4, ease: "power2.inOut", onUpdate: render });
       ScrollTrigger.create({
         trigger: wrap,
         start: "center center",
@@ -179,10 +204,18 @@ export default function Tech() {
         stage.classList.toggle("nxr-tech-far", !entry.isIntersecting);
       }, { rootMargin: "120px" });
       io.observe(stage);
+      let spinTick = 0;
       const spin = () => {
         if (!near || state.p > 0.995) return;
-        state.rot += 0.0042 * (1 - state.p);
-        render();
+        // Giro más lento (0.0026, antes 0.0042). El rot avanza cada tick
+        // (tiempo-exacto) pero solo se PINTA una de cada dos (~30fps): a esta
+        // velocidad el salto es imperceptible y se ahorra la mitad del render
+        // (20 chips) mientras la sección está cerca, que es lo que competía
+        // con el scroll. Durante el aplanado NO pinta aquí: el onUpdate del
+        // tween ya renderiza cada frame con el rot actual (sin doble render).
+        state.rot += 0.0026 * (1 - state.p);
+        if (flat.isActive()) return;
+        if ((spinTick++ & 1) === 0) render();
       };
       gsap.ticker.add(spin);
 

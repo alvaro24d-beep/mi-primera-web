@@ -1380,33 +1380,64 @@ export default function Servicios() {
         // fuerza el apagado con un fundido corto (0.25s, blur incluido):
         // misma autoridad anti-carrera, sin corte visible.
         let clamping = false;
+        let healing = false;
+        let spacer: HTMLElement | null = null;
         const clampTitle = () => {
           const st = tl.scrollTrigger;
           if (!st) return;
           const y = window.scrollY;
+          // Rango del pin medido EN VIVO desde el pin-spacer (V16.55, bug "la
+          // frase desaparece al volver a la home"): st.start/st.end quedaban
+          // OBSOLETOS tras una navegación cliente (en SPA no hay evento load
+          // que refresque), y el clamp apagaba la frase con un rango
+          // equivocado dejándola invisible. El top del pin-spacer en el
+          // documento (getBoundingClientRect + scrollY) es una lectura viva y
+          // siempre correcta; el largo del pin (end−start) es estable aunque
+          // el absoluto esté desfasado.
+          if (!spacer) spacer = sticky.closest<HTMLElement>(".pin-spacer");
+          const start = spacer ? spacer.getBoundingClientRect().top + y : st.start;
+          const end = start + (st.end - st.start);
           // Fuera del rango completo del momento-frase, O ya pasado el
-          // final de su fade-out DENTRO del pin (el fade termina a
-          // 1.2·pro — más allá la frase debe estar apagada SIEMPRE; una
-          // carrera de catch-ups tras un salto la dejaba pintada sobre las
-          // cards del reel: "no se oculta y se queda sobre la sección").
-          const outside = y < st.start - window.innerHeight || y > st.end || y > st.start + snapPro * 1.3;
-          if (!outside) {
-            clamping = false;
+          // final de su fade-out DENTRO del pin (el fade termina a 1.2·pro).
+          const outside = y < start - window.innerHeight || y > end || y > start + snapPro * 1.3;
+          if (outside) {
+            const op = parseFloat(headTitle.style.opacity || "1");
+            if (op > 0.01 && !clamping) {
+              clamping = true;
+              gsap.to(headTitle, {
+                opacity: 0,
+                filter: "blur(18px)",
+                duration: 0.25,
+                ease: "power1.in",
+                overwrite: "auto",
+                onComplete: () => {
+                  clamping = false;
+                },
+              });
+            }
             return;
           }
-          const op = parseFloat(headTitle.style.opacity || "1");
-          if (op > 0.01 && !clamping) {
-            clamping = true;
-            gsap.to(headTitle, {
-              opacity: 0,
-              filter: "blur(18px)",
-              duration: 0.25,
-              ease: "power1.in",
-              overwrite: "auto",
-              onComplete: () => {
-                clamping = false;
-              },
-            });
+          clamping = false;
+          // AUTO-RECUPERADO en la zona de HOLD (V16.55): si por cualquier
+          // carrera la frase quedó apagada cuando DEBE estar a plena luz (justo
+          // al entrar el pin, antes de su fade-out en snapPro·0.65), se
+          // reenciende. Complementa al clamp (que solo apagaba) y hace la frase
+          // auto-sanable pase lo que pase con los drivers scrubbeados/refresh.
+          if (y >= start && y <= start + snapPro * 0.6) {
+            const op = parseFloat(headTitle.style.opacity || "1");
+            if (op < 0.98 && !healing) {
+              healing = true;
+              gsap.to(headTitle, {
+                opacity: 1,
+                filter: "blur(0px)",
+                duration: 0.3,
+                ease: "power1.out",
+                overwrite: "auto",
+                onComplete: () => {
+                  healing = false;
+                },
+              });
+            }
           }
         };
         gsap.ticker.add(clampTitle);

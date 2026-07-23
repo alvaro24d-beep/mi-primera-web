@@ -112,7 +112,9 @@ export default function Intro() {
       // el scroll como cualquier contenido.
       ScrollTrigger.create({
         trigger: texts,
-        start: "top 80%",
+        // "top 90%" (antes "top 80%"): la intro aparece un poco ANTES, justo
+        // cuando las frases "Construido con maestría" del hero se van.
+        start: "top 90%",
         onEnter: () => {
           gsap.to(texts, { opacity: 1, filter: "blur(0px)", duration: 0.45, ease: "power1.out", overwrite: "auto" });
           scramble();

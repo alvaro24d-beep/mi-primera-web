@@ -87,7 +87,14 @@ export default function Tech() {
       // cambia (perf).
       const lastZ = new Array<number>(N).fill(-1);
       const STAG = 0.38;
-      let R = 200;
+      // Radios INDEPENDIENTES (V16.56, "en ordenador se ven demasiado
+      // agrupadas"): en desktop el radio único quedaba limitado por el ALTO
+      // del wrap (~194px) y la esfera se veía apiñada frente al ancho
+      // disponible. Ahora el radio horizontal aprovecha el ANCHO (como en
+      // móvil, donde la esfera llena casi todo el viewport) y el vertical
+      // sigue acotado por el alto.
+      let rx = 200;
+      let ry = 200;
       let measured = false;
 
       // Toda la geometría se recalcula en cada refresh de ScrollTrigger
@@ -98,7 +105,12 @@ export default function Tech() {
         const H = wrap.clientHeight;
         if (!W || !H) return;
         const isMobile = window.innerWidth <= 768;
-        R = Math.min(W, H) * (isMobile ? 0.46 : 0.4);
+        if (isMobile) {
+          rx = ry = Math.min(W, H) * 0.46;
+        } else {
+          rx = Math.min(W * 0.32, 470);
+          ry = H * 0.42;
+        }
         sphereGeo = Array.from({ length: N }, (_, i) => {
           const yf = 1 - (2 * (i + 0.5)) / N;
           return { yf, rf: Math.sqrt(Math.max(0, 1 - yf * yf)), lon: i * GOLDEN_ANGLE };
@@ -145,12 +157,12 @@ export default function Tech() {
           const e = ease(pe);
           const s = sphereGeo[i];
           const lon = s.lon + state.rot;
-          const x3 = R * s.rf * Math.sin(lon);
-          const z3 = R * s.rf * Math.cos(lon);
-          const y3 = R * s.yf * 0.82;
+          const x3 = rx * s.rf * Math.sin(lon);
+          const z3 = rx * s.rf * Math.cos(lon);
+          const y3 = ry * s.yf * 0.82;
           // Profundidad 0 (detrás) → 1 (delante): escala/opacidad venden la
           // esfera sin 3D real por chip (billboard, texto siempre legible).
-          const d = (z3 / R + 1) / 2;
+          const d = (z3 / rx + 1) / 2;
           const ss = 0.62 + 0.48 * d;
           const so = 0.28 + 0.72 * d;
           const g = gridGeo[i];
@@ -163,7 +175,10 @@ export default function Tech() {
           card.style.opacity = op.toFixed(3);
           // zIndex solo cuando cambia el valor redondeado (evita re-apilado
           // de los 20 chips en cada frame — el coste real del giro).
-          const zi = 200 + Math.round(z3);
+          // Normalizado por rx (rango 0..400): con el radio horizontal grande
+          // de desktop, el z3 crudo daba z-index NEGATIVOS (chips detrás del
+          // contenido de la sección).
+          const zi = 200 + Math.round((z3 / rx) * 200);
           if (zi !== lastZ[i]) {
             card.style.zIndex = String(zi);
             lastZ[i] = zi;
@@ -172,16 +187,22 @@ export default function Tech() {
       };
 
       // APLANADO AUTOMÁTICO por TIEMPO (no scrubbeado): timeline en pausa que
-      // se reproduce cuando la esfera llega al CENTRO del viewport (start
-      // "center center" sobre el propio wrap). Así el scroll pasa fluido por
-      // la sección — ya no se ralentiza. Se rebobina si vuelves a subir por
-      // encima del centro, de modo que la animación puede volver a verse.
+      // se reproduce al llegar la esfera al centro. V16.56 ("tarda un poco en
+      // activarse"): dos causas corregidas —
+      //  1) ease "power2.inOut" → "power2.out": el in-out apenas movía nada el
+      //     primer medio segundo (arranque ease-in), leído como retraso; con
+      //     ease-out el movimiento es visible EN el instante del disparo y
+      //     aterriza suave (misma duración total).
+      //  2) start "center 58%" (antes "center center"): dispara un pelín antes
+      //     del centro exacto — si el usuario frena con la esfera centrada sin
+      //     llegar a cruzar el 50% matemático, antes no se activaba nunca.
+      // Se rebobina si vuelves a subir por encima, para poder verla otra vez.
       const flat = gsap
         .timeline({ paused: true })
-        .to(state, { p: 1, duration: 2.4, ease: "power2.inOut", onUpdate: render });
+        .to(state, { p: 1, duration: 2.4, ease: "power2.out", onUpdate: render });
       ScrollTrigger.create({
         trigger: wrap,
-        start: "center center",
+        start: "center 58%",
         end: "bottom top",
         onEnter: () => flat.play(),
         onLeaveBack: () => flat.reverse(),

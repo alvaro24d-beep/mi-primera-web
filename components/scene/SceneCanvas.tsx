@@ -9,7 +9,6 @@ import SceneBackground from "./SceneBackground";
 import ServiciosCardsLayer from "./ServiciosCardsLayer";
 import ZoomParallaxCardsLayer from "./ZoomParallaxCardsLayer";
 import GlassPanelsLayer from "./GlassPanelsLayer";
-import FluidTrailLayer from "./FluidTrailLayer";
 import PixelCamera, { CAMERA_DISTANCE } from "./PixelCamera";
 import { nearSections } from "@/store/sceneActivity";
 
@@ -258,11 +257,6 @@ export default function SceneCanvas() {
         <ServiciosCardsLayer isMobile={isMobile} />
         <ZoomParallaxCardsLayer isMobile={isMobile} />
         <GlassPanelsLayer isMobile={isMobile} />
-        {/* Estela de humo fluido del cursor — DENTRO de este contexto a
-            propósito (un segundo canvas WebGL hundía la página a ~20fps por
-            la mera composición entre contextos, medido). Solo desktop; se
-            auto-pausa sin input y respeta reduced-motion internamente. */}
-        {!isMobile && <FluidTrailLayer />}
         {!isMobile && (
           // multisampling 0 (library default: 8, then 2): MSAA on a
           // fullscreen 1.25-DPR buffer was the single most expensive setting

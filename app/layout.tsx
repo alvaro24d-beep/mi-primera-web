@@ -7,6 +7,7 @@ import RevealInit from "@/components/RevealInit";
 import SmoothScroll from "@/components/SmoothScroll";
 import ScrollProgress from "@/components/ScrollProgress";
 import CursorDrift from "@/components/CursorDrift";
+import CursorFx from "@/components/CursorFx";
 import GradualBlur from "@/components/GradualBlur";
 
 const manrope = Manrope({
@@ -66,6 +67,8 @@ export default function RootLayout({
         {/* Deriva global de contenido con el cursor (vars CSS en :root; la
             lista curada de contenedores vive en globals.css). */}
         <CursorDrift />
+        {/* Cursor personalizado "mira" (solo desktop, ver CursorFx). */}
+        <CursorFx />
         {/* WebGL backdrop deferred off the load's critical path — see
             SceneCanvasLazy (dynamic import + idle mount + fade-in). */}
         <SceneCanvasLazy />

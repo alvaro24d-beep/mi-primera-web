@@ -7,7 +7,6 @@ import RevealInit from "@/components/RevealInit";
 import SmoothScroll from "@/components/SmoothScroll";
 import ScrollProgress from "@/components/ScrollProgress";
 import CursorDrift from "@/components/CursorDrift";
-import CursorTrail from "@/components/CursorTrail";
 import GradualBlur from "@/components/GradualBlur";
 
 const manrope = Manrope({
@@ -67,10 +66,10 @@ export default function RootLayout({
         {/* Deriva global de contenido con el cursor (vars CSS en :root; la
             lista curada de contenedores vive en globals.css). */}
         <CursorDrift />
-        {/* Estela de fluido del cursor (solo desktop, ver CursorTrail). */}
-        <CursorTrail />
         {/* WebGL backdrop deferred off the load's critical path — see
-            SceneCanvasLazy (dynamic import + idle mount + fade-in). */}
+            SceneCanvasLazy (dynamic import + idle mount + fade-in). La estela
+            de humo fluido del cursor vive DENTRO de esa escena
+            (components/scene/FluidTrailLayer.tsx). */}
         <SceneCanvasLazy />
         <RevealInit />
         {/* Fixed to the viewport (`target="page"`), sitting above page content

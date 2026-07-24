@@ -286,7 +286,7 @@ export default function SceneBackground({
       Math.max(2, Math.round(mode.PANELS_X / a))
     );
     // Desktop un poco más oscuro (petición V16.63); móvil sin cambio.
-    mat.uniforms.uDim.value = mode === WALL_MODES.portrait ? 1 : 0.86;
+    mat.uniforms.uDim.value = mode === WALL_MODES.portrait ? 1 : 0.72;
     invalidate();
   }, [mode, invalidate]);
 

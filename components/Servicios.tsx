@@ -19,6 +19,12 @@ gsap.registerPlugin(ScrollTrigger);
 // real. La coreografía vive en los loops JS de abajo (perCard timers +
 // reinicio-al-centrar); los detalles idle (shimmer, pulsos, caret) son
 // keyframes CSS pausados por .nxr-anims-live fuera de pantalla.
+// V16.68 — coreografía elaborada: la URL se TECLEA (candado SSL al terminar),
+// la página se construye en dos pasos (WIREFRAME punteado → "pintado" con
+// color), el cursor clica el CTA y la página SCROLLEA internamente revelando
+// una sección de testimonios, el badge de performance CUENTA hasta 98 y el
+// ciclo remata con un preview RESPONSIVE (la página se estrecha a móvil con
+// los tiles apilados y vuelve). El guion vive en el loopWeb de abajo.
 function Web3DAnim() {
   return (
     <div className="anim-wb" aria-hidden="true">
@@ -27,37 +33,65 @@ function Web3DAnim() {
         <span className="anim-wb-dot" />
         <span className="anim-wb-dot" />
         <div className="anim-wb-url">
-          <svg viewBox="0 0 24 24">
+          <svg className="anim-wb-lock" viewBox="0 0 24 24">
             <rect x="5" y="11" width="14" height="9" rx="2" />
             <path d="M8 11V8a4 4 0 0 1 8 0v3" />
           </svg>
-          <span>tunegocio.es</span>
+          <span className="anim-wb-url-text">tunegocio.es</span>
           <i className="anim-wb-progress" />
         </div>
       </div>
       <div className="anim-wb-page">
-        <div className="anim-wb-hero">
-          <span className="anim-wb-line -title" />
-          <span className="anim-wb-line -sub" />
-          <span className="anim-wb-btn">
-            <i />
-          </span>
-        </div>
-        <div className="anim-wb-grid">
-          <div className="anim-wb-tile">
-            <i className="anim-wb-img" />
-            <i className="anim-wb-line -t1" />
-            <i className="anim-wb-line -t2" />
+        <div className="anim-wb-flow">
+          {/* Primer "viewport" a altura completa: hero + grid llenan la vista
+              inicial y la sec2 queda FUERA (debajo) hasta el scroll interno. */}
+          <div className="anim-wb-view">
+            <div className="anim-wb-hero">
+              <span className="anim-wb-line -title" />
+              <span className="anim-wb-line -sub" />
+              <span className="anim-wb-btn">
+                <i />
+              </span>
+            </div>
+            <div className="anim-wb-grid">
+              <div className="anim-wb-tile">
+                <i className="anim-wb-img" />
+                <i className="anim-wb-line -t1" />
+                <i className="anim-wb-line -t2" />
+              </div>
+              <div className="anim-wb-tile">
+                <i className="anim-wb-img" />
+                <i className="anim-wb-line -t1" />
+                <i className="anim-wb-line -t2" />
+              </div>
+              <div className="anim-wb-tile">
+                <i className="anim-wb-img" />
+                <i className="anim-wb-line -t1" />
+                <i className="anim-wb-line -t2" />
+              </div>
+            </div>
           </div>
-          <div className="anim-wb-tile">
-            <i className="anim-wb-img" />
-            <i className="anim-wb-line -t1" />
-            <i className="anim-wb-line -t2" />
-          </div>
-          <div className="anim-wb-tile">
-            <i className="anim-wb-img" />
-            <i className="anim-wb-line -t1" />
-            <i className="anim-wb-line -t2" />
+          <div className="anim-wb-sec2">
+            <span className="anim-wb-line -sec2title" />
+            <div className="anim-wb-sec2row">
+              <div className="anim-wb-quote">
+                <i className="anim-wb-ava" />
+                <span className="anim-wb-qcol">
+                  <i className="anim-wb-line -q1" />
+                  <i className="anim-wb-line -q2" />
+                </span>
+              </div>
+              <div className="anim-wb-quote">
+                <i className="anim-wb-ava -b" />
+                <span className="anim-wb-qcol">
+                  <i className="anim-wb-line -q1" />
+                  <i className="anim-wb-line -q2" />
+                </span>
+              </div>
+            </div>
+            <span className="anim-wb-btn -footer">
+              <i />
+            </span>
           </div>
         </div>
       </div>
@@ -1669,7 +1703,10 @@ export default function Servicios() {
       perCard[i].length = 0;
     };
 
-    // ===== Pantalla 1 — navegador construyendo la web =====
+    // ===== Pantalla 1 — navegador construyendo la web (V16.68, guion
+    // elaborado): URL tecleada + SSL → carga → WIREFRAME → pintado → click
+    // del cursor → scroll interno a testimonios → performance 0→98 →
+    // preview responsive (móvil) → vuelta y loop. =====
     if (cards[0]) {
       const card0 = cards[0];
       function loopWeb(card: HTMLElement) {
@@ -1677,13 +1714,30 @@ export default function Servicios() {
           perCard[0].push(setTimeout(() => loopWeb(card), 1500));
           return;
         }
+        const anim = card.querySelector<HTMLElement>(".anim-wb");
+        const urlBox = card.querySelector<HTMLElement>(".anim-wb-url");
+        const urlText = card.querySelector<HTMLElement>(".anim-wb-url-text");
         const progress = card.querySelector<HTMLElement>(".anim-wb-progress");
+        const page = card.querySelector<HTMLElement>(".anim-wb-page");
+        const flow = card.querySelector<HTMLElement>(".anim-wb-flow");
         const hero = Array.from(card.querySelectorAll<HTMLElement>(".anim-wb-hero > *"));
         const tiles = Array.from(card.querySelectorAll<HTMLElement>(".anim-wb-tile"));
-        const btn = card.querySelector<HTMLElement>(".anim-wb-btn");
+        const btn = card.querySelector<HTMLElement>(".anim-wb-hero .anim-wb-btn");
         const badge = card.querySelector<HTMLElement>(".anim-wb-badge");
+        const badgeNum = card.querySelector<HTMLElement>(".anim-wb-badge b");
         const cursor = card.querySelector<HTMLElement>(".anim-wb-cursor");
+        // --- Reset instantáneo (las transiciones del flow/page se anulan un
+        // frame para que el snap-back del scroll interno y del preview móvil
+        // no se vea animado). Los elementos arrancan ocultos y en WIREFRAME.
+        [flow, page].forEach((el) => el && (el.style.transition = "none"));
+        anim?.classList.remove("-mobile");
+        flow?.classList.remove("-scrolled");
+        urlBox?.classList.remove("-ssl", "-typing");
+        if (urlText) urlText.textContent = "";
+        if (badgeNum) badgeNum.textContent = "0";
         instant([...hero, ...tiles], { opacity: "0", transform: "translateY(10px)" });
+        hero.forEach((el) => el.classList.add("-wire"));
+        tiles.forEach((el) => el.classList.add("-wire"));
         if (progress) {
           progress.style.transition = "none";
           progress.style.transform = "scaleX(0)";
@@ -1700,7 +1754,8 @@ export default function Servicios() {
           cursor.style.top = "84%";
         }
         btn?.classList.remove("-clicked");
-        card.querySelector(".anim-wb-page")?.getBoundingClientRect();
+        page?.getBoundingClientRect();
+        [flow, page].forEach((el) => el && (el.style.transition = ""));
         const T = perCard[0];
         const show = (el: HTMLElement, at: number) =>
           T.push(
@@ -1710,19 +1765,33 @@ export default function Servicios() {
               el.style.transform = "translateY(0)";
             }, at)
           );
+        // 1) La URL se teclea con caret; el candado SSL aparece al terminar.
+        T.push(setTimeout(() => urlBox?.classList.add("-typing"), 140));
+        if (urlText) typeInto(T, urlText, "tunegocio.es", 150, 40);
+        T.push(
+          setTimeout(() => {
+            urlBox?.classList.remove("-typing");
+            urlBox?.classList.add("-ssl");
+          }, 700)
+        );
+        // 2) Carga.
         T.push(
           setTimeout(() => {
             if (progress) {
               progress.style.transition = "transform .7s ease";
               progress.style.transform = "scaleX(1)";
             }
-          }, 200)
+          }, 800)
         );
-        hero.forEach((el, i) => show(el, 900 + i * 180));
-        tiles.forEach((el, i) => show(el, 1500 + i * 160));
-        // El cursor aparece, viaja hasta el CTA (posición medida en % para
-        // sobrevivir al scale del cover-flow) y hace click: el botón pulsa
-        // y el badge de performance corona la build.
+        // 3) El esqueleto WIREFRAME entra por bloques…
+        hero.forEach((el, i) => show(el, 1550 + i * 150));
+        tiles.forEach((el, i) => show(el, 2050 + i * 150));
+        // 4) …y se "pinta" con stagger (el fundido lo hacen las transitions
+        // de background/border de globals.css).
+        hero.forEach((el, i) => T.push(setTimeout(() => el.classList.remove("-wire"), 2750 + i * 130)));
+        tiles.forEach((el, i) => T.push(setTimeout(() => el.classList.remove("-wire"), 3150 + i * 130)));
+        // 5) El cursor aparece, viaja hasta el CTA (posición medida en % para
+        // sobrevivir al scale del cover-flow) y hace click.
         T.push(
           setTimeout(() => {
             if (cursor) {
@@ -1730,7 +1799,7 @@ export default function Servicios() {
                 "opacity .3s, left 1.1s cubic-bezier(.4,0,.2,1), top 1.1s cubic-bezier(.4,0,.2,1)";
               cursor.style.opacity = "1";
             }
-          }, 2300)
+          }, 3800)
         );
         T.push(
           setTimeout(() => {
@@ -1742,9 +1811,18 @@ export default function Servicios() {
                 cursor.style.top = `${((b.top + b.height * 0.7 - c.top) / c.height) * 100}%`;
               }
             }
-          }, 2500)
+          }, 4000)
         );
-        T.push(setTimeout(() => btn?.classList.add("-clicked"), 3650));
+        T.push(setTimeout(() => btn?.classList.add("-clicked"), 5100));
+        // 6) El click "navega": la página scrollea a la sección de
+        // testimonios; el cursor se retira.
+        T.push(setTimeout(() => flow?.classList.add("-scrolled"), 5400));
+        T.push(
+          setTimeout(() => {
+            if (cursor) cursor.style.opacity = "0";
+          }, 5600)
+        );
+        // 7) El badge de performance corona la build CONTANDO hasta 98.
         T.push(
           setTimeout(() => {
             if (badge) {
@@ -1752,14 +1830,16 @@ export default function Servicios() {
               badge.style.opacity = "1";
               badge.style.transform = "scale(1)";
             }
-          }, 3950)
+          }, 6300)
         );
-        T.push(
-          setTimeout(() => {
-            if (cursor) cursor.style.opacity = "0";
-          }, 4400)
-        );
-        T.push(setTimeout(() => loopWeb(card), 7400));
+        if (badgeNum) countTo(T, badgeNum, 98, 6400, 900, null);
+        // 8) Preview RESPONSIVE: la página se estrecha a móvil (tiles
+        // apilados), se sostiene un momento y vuelve a escritorio.
+        T.push(setTimeout(() => anim?.classList.add("-mobile"), 7700));
+        T.push(setTimeout(() => anim?.classList.remove("-mobile"), 9300));
+        // 9) El scroll interno vuelve arriba y el ciclo se cierra.
+        T.push(setTimeout(() => flow?.classList.remove("-scrolled"), 9700));
+        T.push(setTimeout(() => loopWeb(card), 11200));
       }
       demoRestartRef.current[0] = () => {
         clearCard(0);

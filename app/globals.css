@@ -2077,6 +2077,34 @@ p.nxr-hero-mastery-line {
   flex-shrink: 0;
 }
 
+/* Candado SSL: oculto hasta que la URL termina de teclearse (clase -ssl). */
+.anim-wb-url .anim-wb-lock {
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+
+.anim-wb-url.-ssl .anim-wb-lock {
+  opacity: 1;
+}
+
+/* Caret de tecleo mientras la URL se escribe (clase -typing). */
+.anim-wb-url.-typing .anim-wb-url-text::after {
+  content: "";
+  display: inline-block;
+  width: 5px;
+  height: 9px;
+  margin-left: 2px;
+  vertical-align: -1px;
+  background: rgba(255, 255, 255, 0.7);
+  animation: nxr-wb-caret 0.7s steps(1) infinite;
+}
+
+@keyframes nxr-wb-caret {
+  50% {
+    opacity: 0;
+  }
+}
+
 .anim-wb-url span {
   font-family: var(--font-space-mono), ui-monospace, monospace;
   font-size: 10px;
@@ -2105,6 +2133,47 @@ p.nxr-hero-mastery-line {
   padding: 10px;
   background: rgba(255, 255, 255, 0.02);
   overflow: hidden;
+  /* Preview responsive (V16.68): en .-mobile la página se estrecha a un
+     "device" centrado; el ancho transiciona como el resize de un editor. */
+  width: 100%;
+  align-self: center;
+  transition: width 0.55s cubic-bezier(0.65, 0, 0.35, 1);
+}
+
+.anim-wb.-mobile .anim-wb-page {
+  width: 50%;
+}
+
+.anim-wb.-mobile .anim-wb-grid {
+  grid-template-columns: 1fr;
+}
+
+/* Flujo interno desplazable (V16.68): hero + grid + sec2 en una columna que
+   la coreografía traslada para "scrollear" la página tras el click del CTA.
+   El % del translate es relativo al alto del flow (= interior de la page). */
+.anim-wb-flow {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  transition: transform 0.85s cubic-bezier(0.65, 0, 0.35, 1);
+}
+
+.anim-wb-flow.-scrolled {
+  transform: translateY(-84%);
+}
+
+/* Primer "viewport" del flujo: alto COMPLETO del interior de la página y
+   sin encoger — así hero+grid llenan la vista inicial y la sec2 queda fuera
+   (debajo, recortada por el overflow de .anim-wb-page) hasta el scroll. */
+.anim-wb-view {
+  height: 100%;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-height: 0;
 }
 
 .anim-wb-hero {
@@ -2122,6 +2191,45 @@ p.nxr-hero-mastery-line {
   background: rgba(255, 255, 255, 0.12);
   position: relative;
   overflow: hidden;
+  /* Borde reservado para el estado WIREFRAME (transparente en reposo para
+     que el "pintado" solo funda colores, sin saltos de layout). */
+  border: 1px dashed transparent;
+  transition: background-color 0.5s, border-color 0.5s;
+}
+
+/* ---- Estado WIREFRAME (V16.68): la página se construye primero como plano
+   punteado sin color y ~medio segundo después se "pinta" (el JS quita las
+   clases -wire con stagger — las transitions de arriba hacen el fundido). */
+.anim-wb-line.-wire {
+  background-color: transparent;
+  border-color: rgba(255, 255, 255, 0.28);
+}
+
+.anim-wb-line.-wire::after,
+.anim-wb-img.-wire::after,
+.anim-wb-tile.-wire .anim-wb-line::after,
+.anim-wb-tile.-wire .anim-wb-img::after {
+  animation: none;
+}
+
+.anim-wb-btn.-wire {
+  background-color: transparent;
+  border-color: rgba(168, 240, 74, 0.55);
+}
+
+.anim-wb-tile.-wire {
+  background-color: transparent;
+  border-color: rgba(255, 255, 255, 0.22);
+}
+
+.anim-wb-tile.-wire .anim-wb-img {
+  background-color: transparent;
+  border-color: rgba(255, 157, 125, 0.4);
+}
+
+.anim-wb-tile.-wire .anim-wb-line {
+  background-color: transparent;
+  border-color: rgba(255, 255, 255, 0.28);
 }
 
 /* Shimmer de skeleton: barrido continuo mientras la sección está viva. */
@@ -2162,7 +2270,8 @@ p.nxr-hero-mastery-line {
   border-radius: 7px;
   background: rgba(168, 240, 74, 0.75);
   margin-top: 2px;
-  transition: transform 0.18s, box-shadow 0.25s;
+  border: 1px dashed transparent;
+  transition: transform 0.18s, box-shadow 0.25s, background-color 0.5s, border-color 0.5s;
 }
 
 .anim-wb-btn i {
@@ -2206,6 +2315,7 @@ p.nxr-hero-mastery-line {
   padding: 6px;
   background: rgba(255, 255, 255, 0.03);
   min-height: 0;
+  transition: background-color 0.5s, border-color 0.5s;
 }
 
 .anim-wb-img {
@@ -2215,6 +2325,8 @@ p.nxr-hero-mastery-line {
   border-radius: 5px;
   background: rgba(255, 157, 125, 0.14);
   overflow: hidden;
+  border: 1px dashed transparent;
+  transition: background-color 0.5s, border-color 0.5s;
 }
 
 .anim-wb-tile .anim-wb-line.-t1 {
@@ -2266,6 +2378,81 @@ p.nxr-hero-mastery-line {
   fill: #fff;
   stroke: rgba(0, 0, 0, 0.45);
   stroke-width: 1;
+}
+
+/* Sección 2 del flujo (V16.68): banda de "testimonios" + CTA de cierre que
+   el scroll interno revela tras el click. Alto relativo al viewport de la
+   página (el translateY(-84%) del flow la centra en pantalla). */
+.anim-wb-sec2 {
+  height: 82%;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding-top: 8px;
+  border-top: 1px dashed rgba(255, 255, 255, 0.1);
+}
+
+.anim-wb-line.-sec2title {
+  width: 38%;
+  height: 8px;
+  background: rgba(255, 255, 255, 0.18);
+}
+
+.anim-wb-sec2row {
+  display: flex;
+  gap: 8px;
+  flex: 1;
+  min-height: 0;
+}
+
+.anim-wb-quote {
+  flex: 1;
+  display: flex;
+  gap: 6px;
+  align-items: flex-start;
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  border-radius: 8px;
+  padding: 7px;
+  background: rgba(255, 255, 255, 0.03);
+  min-height: 0;
+}
+
+.anim-wb-ava {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: rgba(168, 240, 74, 0.35);
+  flex-shrink: 0;
+}
+
+.anim-wb-ava.-b {
+  background: rgba(255, 157, 125, 0.35);
+}
+
+.anim-wb-qcol {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  padding-top: 2px;
+}
+
+.anim-wb-quote .anim-wb-line {
+  height: 5px;
+}
+
+.anim-wb-quote .anim-wb-line.-q1 {
+  width: 90%;
+}
+
+.anim-wb-quote .anim-wb-line.-q2 {
+  width: 62%;
+}
+
+.anim-wb-btn.-footer {
+  width: 34%;
+  margin-top: 0;
 }
 
 /* --- Pantalla 2: chat del agente (.anim-ia) --- */

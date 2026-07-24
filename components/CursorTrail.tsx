@@ -5,46 +5,58 @@ import { useReducedMotion } from "@/hooks/useReducedMotion";
 
 const noopSubscribe = () => () => {};
 
-// ESTELA PIXELADA del cursor (patrón PixelTrail de React Bits, reimplementado
-// en canvas 2D por rendimiento). Al mover el ratón se "encienden" celdas de
-// una retícula de píxeles —el mismo lenguaje visual que el muro CRT, que
-// pixela el vídeo en celdas— con los colores de marca, y se desvanecen en
-// ~medio segundo. El cursor NATIVO queda intacto.
+// ESTELA DE HUMO del cursor. Al mover el ratón nacen volutas suaves de color
+// que heredan el impulso del gesto, se expanden, derivan levemente hacia
+// arriba y se funden — el color va rotando por el espectro como en el efecto
+// de fluidos original. El cursor NATIVO queda intacto.
 //
-// Por qué NO el SplashCursor de fluidos del catálogo: se probó y medido — un
-// segundo contexto WebGL fullscreen compitiendo con la escena R3F hundía el
-// hero de 47.9 a 12.3 fps incluso a resolución mínima. Este canvas 2D es una
-// única textura para el compositor y pintar ≤400 rects/frame cuesta <1ms.
-//
-// Presupuesto de coste (medido): el rAF solo corre mientras quedan celdas
-// vivas (~0.5s tras el último movimiento) — coste CERO en reposo.
+// Técnica: PARTÍCULAS con sprites difuminados en canvas 2D (composición
+// aditiva DENTRO del canvas). El SplashCursor de fluidos real (React Bits) se
+// probó y medía 12 fps — un segundo contexto WebGL fullscreen compitiendo con
+// la escena R3F es inviable aquí. Esto da el mismo carácter de humo con coste
+// ~cero: sprites pre-renderizados (12 tonos en una rueda de hue), ≤140
+// drawImage por frame a MEDIA resolución (el upscale suave además ayuda al
+// look de humo), y un rAF que solo corre mientras quedan volutas vivas.
 
-// El canvas se pinta a MEDIA resolución y se escala 2x con
-// image-rendering:pixelated: mismas celdas efectivas de 14px en pantalla
-// (nearest-neighbor no suaviza nada) con una textura 4 veces menor para el
-// compositor.
-const SCALE = 2;
-const CELL = 7; // celda en px de canvas → 14px efectivos en pantalla
-const LIFE_DECAY = 1.5; // vida/seg → una celda vive ~0.65s
-const MAX_CELLS = 420;
-// Paleta de marca (tokens de globals.css) con pesos: lima y salmón dominan,
-// rojo y blanco como chispas.
-const COLORS: Array<[string, number]> = [
-  ["168,240,74", 0.4], // --c-lime
-  ["255,157,125", 0.3], // --c-salmon
-  ["239,61,13", 0.18], // --c-red
-  ["255,255,255", 0.12],
-];
+const SCALE = 2; // canvas a media resolución, escalado suave por CSS
+const MAX_PARTICLES = 140;
+const SPRITE = 64; // tamaño del sprite base px
+const HUES = 12; // sprites precacheados en rueda de 30°
 
-function pickColor(): string {
-  let r = Math.random();
-  for (const [c, w] of COLORS) {
-    if ((r -= w) <= 0) return c;
-  }
-  return COLORS[0][0];
+interface Particle {
+  x: number;
+  y: number;
+  vx: number;
+  vy: number;
+  life: number; // 1 → 0
+  decay: number; // vida/seg
+  size: number;
+  growth: number; // px/seg
+  hue: number; // índice de sprite
 }
 
-function PixelTrailCanvas() {
+function makeSprites(): HTMLCanvasElement[] {
+  const sprites: HTMLCanvasElement[] = [];
+  for (let i = 0; i < HUES; i++) {
+    const c = document.createElement("canvas");
+    c.width = SPRITE;
+    c.height = SPRITE;
+    const ctx = c.getContext("2d")!;
+    const h = (i * 360) / HUES;
+    const g = ctx.createRadialGradient(SPRITE / 2, SPRITE / 2, 0, SPRITE / 2, SPRITE / 2, SPRITE / 2);
+    // Núcleo casi blanco con el tono, que se apaga a transparente: en
+    // composición aditiva varias volutas superpuestas dan el cuerpo del humo.
+    g.addColorStop(0, `hsla(${h}, 90%, 72%, 0.55)`);
+    g.addColorStop(0.35, `hsla(${h}, 95%, 58%, 0.28)`);
+    g.addColorStop(1, `hsla(${h}, 95%, 50%, 0)`);
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, SPRITE, SPRITE);
+    sprites.push(c);
+  }
+  return sprites;
+}
+
+function SmokeTrailCanvas() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
   useEffect(() => {
@@ -52,6 +64,7 @@ function PixelTrailCanvas() {
     if (!canvas) return;
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
+    const sprites = makeSprites();
 
     const resize = () => {
       canvas.width = Math.ceil(window.innerWidth / SCALE);
@@ -60,46 +73,59 @@ function PixelTrailCanvas() {
     resize();
     window.addEventListener("resize", resize, { passive: true });
 
-    // Celdas vivas: clave "cx,cy" → { life, color }. Re-pasar por una celda
-    // refresca su vida (sin duplicados).
-    const cells = new Map<string, { cx: number; cy: number; life: number; color: string }>();
+    const particles: Particle[] = [];
     let rafId = 0;
     let running = false;
     let last = 0;
     let prevX = -1;
     let prevY = -1;
+    // El tono base rota despacio con el tiempo (como el rainbow del fluido);
+    // cada voluta nace con el tono actual + un poco de dispersión.
+    let huePhase = Math.random() * HUES;
 
-    const light = (x: number, y: number) => {
-      const cx = Math.floor(x / CELL);
-      const cy = Math.floor(y / CELL);
-      const key = cx + "," + cy;
-      const existing = cells.get(key);
-      if (existing) {
-        existing.life = 1;
-      } else {
-        if (cells.size >= MAX_CELLS) return;
-        // Vida inicial ligeramente aleatoria: el borde de la estela se
-        // deshace irregular en vez de cortarse en bloque.
-        cells.set(key, { cx, cy, life: 0.75 + Math.random() * 0.25, color: pickColor() });
-      }
+    const spawn = (x: number, y: number, mvx: number, mvy: number) => {
+      if (particles.length >= MAX_PARTICLES) return;
+      particles.push({
+        x,
+        y,
+        // Hereda el impulso del gesto + jitter: el humo "sale despedido"
+        // en la dirección del movimiento y se frena enseguida.
+        vx: mvx * 3.2 + (Math.random() - 0.5) * 14,
+        vy: mvy * 3.2 + (Math.random() - 0.5) * 14 - 6,
+        life: 1,
+        decay: 0.9 + Math.random() * 0.5, // vive ~0.7-1.1s
+        size: 14 + Math.random() * 10,
+        growth: 26 + Math.random() * 18,
+        hue: Math.floor(huePhase + Math.random() * 1.6) % HUES,
+      });
     };
 
     const tick = (now: number) => {
       const dt = Math.min((now - last) / 1000, 0.05);
       last = now;
+      huePhase = (huePhase + dt * 2.2) % HUES;
       ctx.clearRect(0, 0, canvas.width, canvas.height);
-      for (const [key, c] of cells) {
-        c.life -= dt * LIFE_DECAY;
-        if (c.life <= 0) {
-          cells.delete(key);
+      ctx.globalCompositeOperation = "lighter";
+      for (let i = particles.length - 1; i >= 0; i--) {
+        const p = particles[i];
+        p.life -= dt * p.decay;
+        if (p.life <= 0) {
+          particles.splice(i, 1);
           continue;
         }
-        // Alpha con curva cuadrática: brillante al nacer, se apaga suave.
-        const a = c.life * c.life * 0.7;
-        ctx.fillStyle = `rgba(${c.color},${a.toFixed(3)})`;
-        ctx.fillRect(c.cx * CELL + 1, c.cy * CELL + 1, CELL - 2, CELL - 2);
+        p.x += p.vx * dt;
+        p.y += p.vy * dt;
+        p.vx *= 1 - dt * 2.2; // fricción: el impulso muere rápido
+        p.vy = p.vy * (1 - dt * 2.2) - dt * 9; // deriva ascendente suave
+        p.size += p.growth * dt; // el humo se expande al disiparse
+        // Curva de alpha: entra fuerte, se funde suave al final.
+        ctx.globalAlpha = p.life * p.life;
+        const s = p.size;
+        ctx.drawImage(sprites[p.hue], p.x - s / 2, p.y - s / 2, s, s);
       }
-      if (cells.size > 0) {
+      ctx.globalAlpha = 1;
+      ctx.globalCompositeOperation = "source-over";
+      if (particles.length > 0) {
         rafId = requestAnimationFrame(tick);
       } else {
         running = false;
@@ -117,16 +143,18 @@ function PixelTrailCanvas() {
     const onMove = (e: MouseEvent) => {
       const x = e.clientX / SCALE;
       const y = e.clientY / SCALE;
-      // Interpola el segmento desde la posición anterior: un movimiento
-      // rápido enciende la LÍNEA de celdas atravesadas, no puntos sueltos.
       if (prevX >= 0) {
-        const dist = Math.hypot(x - prevX, y - prevY);
-        const steps = Math.min(Math.ceil(dist / (CELL * 0.75)), 24);
+        const dx = x - prevX;
+        const dy = y - prevY;
+        const dist = Math.hypot(dx, dy);
+        // Volutas repartidas a lo largo del tramo (gesto rápido = más humo,
+        // sin huecos), con el impulso del gesto.
+        const steps = Math.min(Math.max(1, Math.round(dist / 7)), 6);
         for (let i = 1; i <= steps; i++) {
-          light(prevX + ((x - prevX) * i) / steps, prevY + ((y - prevY) * i) / steps);
+          spawn(prevX + (dx * i) / steps, prevY + (dy * i) / steps, dx, dy);
         }
       } else {
-        light(x, y);
+        spawn(x, y, 0, 0);
       }
       prevX = x;
       prevY = y;
@@ -145,11 +173,10 @@ function PixelTrailCanvas() {
     <canvas
       ref={canvasRef}
       aria-hidden="true"
-      // Sin mix-blend-mode a propósito: un blend fullscreen añade un render
-      // pass del compositor por frame (medido caro en esta web); sobre el
-      // fondo oscuro la composición alpha normal se ve prácticamente igual.
-      // width/height 100% + pixelated: el canvas a media resolución se escala
-      // 2x con nearest-neighbor — celdas nítidas, cero suavizado.
+      // Sin mix-blend-mode CSS a propósito (un blend fullscreen añade un
+      // render pass del compositor): el aditivo va DENTRO del canvas
+      // (globalCompositeOperation lighter), que para el compositor es una
+      // textura normal. El escalado 2x suave difumina — bien para humo.
       style={{
         position: "fixed",
         inset: 0,
@@ -157,7 +184,6 @@ function PixelTrailCanvas() {
         height: "100%",
         zIndex: 50,
         pointerEvents: "none",
-        imageRendering: "pixelated",
       }}
     />
   );
@@ -174,5 +200,5 @@ export default function CursorTrail() {
   );
   if (!mounted || reducedMotion) return null;
   if (!window.matchMedia("(pointer: fine)").matches || window.innerWidth <= 900) return null;
-  return <PixelTrailCanvas />;
+  return <SmokeTrailCanvas />;
 }

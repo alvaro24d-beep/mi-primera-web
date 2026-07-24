@@ -113,7 +113,8 @@ const fragmentShader = /* glsl */ `
   uniform vec2 uPanels;    // monitor-tile counts (across / down) for the panel-wall read
   uniform vec2 uRes;       // drawing-buffer size, for the SCREEN-SPACE edge vignette
   uniform float uDim;      // atenuación global del muro (1 móvil, <1 desktop)
-  uniform float uLoopFade; // 1 = vídeo pleno; baja a 0 alrededor del punto de loop
+  uniform sampler2D uFirstFrame; // primer frame del clip, para el loop invisible
+  uniform float uLoopBlend;      // 0 = vídeo; →1 en el último tramo (funde al primer frame)
 
   vec3 sampleSource(vec2 uv) {
     if (uHasVideo > 0.5) {
@@ -122,7 +123,15 @@ const fragmentShader = /* glsl */ `
       // never stretched) — computed in JS from videoWidth/Height vs the
       // wall's unrolled aspect.
       vec2 cuv = vec2(0.5) + (uv - vec2(0.5)) * uCoverScale;
-      return texture2D(uSource, cuv).rgb;
+      vec3 v = texture2D(uSource, cuv).rgb;
+      // LOOP INVISIBLE: en el último tramo del clip el vídeo funde en cruz
+      // hacia su PRIMER frame (capturado en JS); al reiniciar, lo que se ve
+      // ya ES el frame de arranque — sin salto ni oscurecimiento. El branch
+      // uniforme evita el segundo tap el resto del tiempo.
+      if (uLoopBlend > 0.001) {
+        v = mix(v, texture2D(uFirstFrame, cuv).rgb, uLoopBlend);
+      }
+      return v;
     }
     // Pre-video / video-failed fallback: the plain dark base — the grid and
     // depth glow on top still read as the designed wall. (The old SMPTE
@@ -165,10 +174,6 @@ const fragmentShader = /* glsl */ `
       float b = sampleSource(puv - vec2(o, 0.0)).b;
       vec3 tv = vec3(r, gg, b);
       tv *= 0.78 + 0.22 * sin(vUv.y * uPixel.y * 6.28318);
-      // Fundido del LOOP: cerca del corte (final→principio) el vídeo funde
-      // hacia el tono base — el reinicio deja de ser un corte brusco y se lee
-      // como una respiración de la pantalla. uLoopFade lo escribe el rVFC.
-      tv = mix(uBase, tv, uLoopFade);
       // Dim + tint toward the site's dark base so overlaid text stays legible.
       fill = mix(uBase * 0.7, tv, 0.5);
     } else {
@@ -257,7 +262,8 @@ export default function SceneBackground({
       uPanels: { value: new THREE.Vector2(15, Math.round(15 / wallAspect(WALL_MODES.landscape))) },
       uRes: { value: new THREE.Vector2(1, 1) },
       uDim: { value: 1 },
-      uLoopFade: { value: 1 },
+      uFirstFrame: { value: blankTex as THREE.Texture },
+      uLoopBlend: { value: 0 },
     }),
     // eslint-disable-next-line react-hooks/exhaustive-deps
     []
@@ -339,27 +345,51 @@ export default function SceneBackground({
 
     const supportsRVFC = typeof video.requestVideoFrameCallback === "function";
     let rvfcId: number | null = null;
-    // Fundido del LOOP (petición: "que el corte no fuera brusco"): en los
-    // últimos LOOP_FADE segundos el vídeo funde hacia el tono base y en los
-    // primeros vuelve a entrar — simétrico alrededor del corte, así el
-    // reinicio queda enmascarado por una respiración suave. Se recalcula por
-    // frame decodificado (este mismo callback).
-    const LOOP_FADE = 0.8;
-    const updateLoopFade = () => {
+    // LOOP INVISIBLE (petición: "que no se note que termina el vídeo"): se
+    // captura el PRIMER frame del clip en una textura y, durante el último
+    // LOOP_FADE del clip, el vídeo funde en cruz hacia esa imagen. Al
+    // reiniciar, lo que hay en pantalla ya ES el frame de arranque, así que
+    // el blend cae a 0 sin ningún salto visible. (V16.63 hacía un dip a
+    // oscuro — "se notaba que terminaba"; esto lo sustituye.)
+    const LOOP_FADE = 1.0;
+    let firstFrameTex: THREE.CanvasTexture | null = null;
+    const captureFirstFrame = () => {
+      if (firstFrameTex || !video.videoWidth) return;
+      const c = document.createElement("canvas");
+      c.width = video.videoWidth;
+      c.height = video.videoHeight;
+      const cctx = c.getContext("2d");
+      if (!cctx) return;
+      cctx.drawImage(video, 0, 0);
+      firstFrameTex = new THREE.CanvasTexture(c);
+      firstFrameTex.colorSpace = THREE.SRGBColorSpace;
+      firstFrameTex.magFilter = THREE.NearestFilter;
+      firstFrameTex.minFilter = THREE.LinearFilter;
+      firstFrameTex.wrapS = THREE.MirroredRepeatWrapping;
+      firstFrameTex.wrapT = THREE.MirroredRepeatWrapping;
+      if (mat) mat.uniforms.uFirstFrame.value = firstFrameTex;
+    };
+    const updateLoopBlend = () => {
       if (!mat) return;
       const d = video.duration;
-      if (!isFinite(d) || d < LOOP_FADE * 3) return;
-      const t = video.currentTime;
-      const k = Math.min(t, d - t) / LOOP_FADE;
-      mat.uniforms.uLoopFade.value = Math.max(0, Math.min(1, k));
+      if (!firstFrameTex || !isFinite(d) || d < LOOP_FADE * 3) return;
+      const toEnd = d - video.currentTime;
+      // 1 justo en el corte, 0 fuera del último tramo (tras el loop, toEnd
+      // vuelve a ser grande → 0 instantáneo, sin salto: el frame mostrado y
+      // el del vídeo son el mismo).
+      const k = 1 - toEnd / LOOP_FADE;
+      mat.uniforms.uLoopBlend.value = Math.max(0, Math.min(1, k));
     };
     const onFrame = () => {
-      updateLoopFade();
+      updateLoopBlend();
       invalidate();
       if (!document.hidden) rvfcId = video.requestVideoFrameCallback(onFrame);
     };
 
     const onReady = () => {
+      // Con loadeddata el vídeo está en (o pegado a) su primer frame — el
+      // momento para capturarlo.
+      captureFirstFrame();
       if (mat) {
         mat.uniforms.uSource.value = tex;
         mat.uniforms.uHasVideo.value = 1;
@@ -391,7 +421,7 @@ export default function SceneBackground({
     if (!supportsRVFC) {
       fallbackInterval = window.setInterval(() => {
         if (!document.hidden) {
-          updateLoopFade();
+          updateLoopBlend();
           invalidate();
         }
       }, 33);
@@ -440,10 +470,12 @@ export default function SceneBackground({
       video.pause();
       video.src = "";
       tex.dispose();
+      firstFrameTex?.dispose();
       if (mat) {
         mat.uniforms.uHasVideo.value = 0;
         mat.uniforms.uSource.value = blankTex;
-        mat.uniforms.uLoopFade.value = 1;
+        mat.uniforms.uFirstFrame.value = blankTex;
+        mat.uniforms.uLoopBlend.value = 0;
       }
     };
   }, [tv, videoSrc, blankTex, invalidate, portrait]);

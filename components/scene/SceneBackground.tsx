@@ -112,6 +112,8 @@ const fragmentShader = /* glsl */ `
   uniform vec2 uCoverScale; // aspect-correct "cover" crop: fraction of the video sampled per axis
   uniform vec2 uPanels;    // monitor-tile counts (across / down) for the panel-wall read
   uniform vec2 uRes;       // drawing-buffer size, for the SCREEN-SPACE edge vignette
+  uniform float uDim;      // atenuación global del muro (1 móvil, <1 desktop)
+  uniform float uLoopFade; // 1 = vídeo pleno; baja a 0 alrededor del punto de loop
 
   vec3 sampleSource(vec2 uv) {
     if (uHasVideo > 0.5) {
@@ -163,6 +165,10 @@ const fragmentShader = /* glsl */ `
       float b = sampleSource(puv - vec2(o, 0.0)).b;
       vec3 tv = vec3(r, gg, b);
       tv *= 0.78 + 0.22 * sin(vUv.y * uPixel.y * 6.28318);
+      // Fundido del LOOP: cerca del corte (final→principio) el vídeo funde
+      // hacia el tono base — el reinicio deja de ser un corte brusco y se lee
+      // como una respiración de la pantalla. uLoopFade lo escribe el rVFC.
+      tv = mix(uBase, tv, uLoopFade);
       // Dim + tint toward the site's dark base so overlaid text stays legible.
       fill = mix(uBase * 0.7, tv, 0.5);
     } else {
@@ -187,6 +193,10 @@ const fragmentShader = /* glsl */ `
     float rr = length(sd);
     float edge = 0.45 * smoothstep(0.38, 0.72, rr) + 0.40 * smoothstep(0.72, 1.0, rr);
     col *= (1.0 - min(edge, 0.85));
+
+    // Atenuación global del muro (petición: "oscurece un poco el fondo en
+    // ordenador") — solo <1 en desktop, ver el efecto de orientación en JS.
+    col *= uDim;
 
     gl_FragColor = vec4(col, 1.0);
   }
@@ -246,6 +256,8 @@ export default function SceneBackground({
       uCoverScale: { value: new THREE.Vector2(1, 1) },
       uPanels: { value: new THREE.Vector2(15, Math.round(15 / wallAspect(WALL_MODES.landscape))) },
       uRes: { value: new THREE.Vector2(1, 1) },
+      uDim: { value: 1 },
+      uLoopFade: { value: 1 },
     }),
     // eslint-disable-next-line react-hooks/exhaustive-deps
     []
@@ -267,6 +279,8 @@ export default function SceneBackground({
       mode.PANELS_X,
       Math.max(2, Math.round(mode.PANELS_X / a))
     );
+    // Desktop un poco más oscuro (petición V16.63); móvil sin cambio.
+    mat.uniforms.uDim.value = mode === WALL_MODES.portrait ? 1 : 0.86;
     invalidate();
   }, [mode, invalidate]);
 
@@ -325,7 +339,22 @@ export default function SceneBackground({
 
     const supportsRVFC = typeof video.requestVideoFrameCallback === "function";
     let rvfcId: number | null = null;
+    // Fundido del LOOP (petición: "que el corte no fuera brusco"): en los
+    // últimos LOOP_FADE segundos el vídeo funde hacia el tono base y en los
+    // primeros vuelve a entrar — simétrico alrededor del corte, así el
+    // reinicio queda enmascarado por una respiración suave. Se recalcula por
+    // frame decodificado (este mismo callback).
+    const LOOP_FADE = 0.8;
+    const updateLoopFade = () => {
+      if (!mat) return;
+      const d = video.duration;
+      if (!isFinite(d) || d < LOOP_FADE * 3) return;
+      const t = video.currentTime;
+      const k = Math.min(t, d - t) / LOOP_FADE;
+      mat.uniforms.uLoopFade.value = Math.max(0, Math.min(1, k));
+    };
     const onFrame = () => {
+      updateLoopFade();
       invalidate();
       if (!document.hidden) rvfcId = video.requestVideoFrameCallback(onFrame);
     };
@@ -361,7 +390,10 @@ export default function SceneBackground({
     let fallbackInterval: number | null = null;
     if (!supportsRVFC) {
       fallbackInterval = window.setInterval(() => {
-        if (!document.hidden) invalidate();
+        if (!document.hidden) {
+          updateLoopFade();
+          invalidate();
+        }
       }, 33);
     }
 
@@ -411,6 +443,7 @@ export default function SceneBackground({
       if (mat) {
         mat.uniforms.uHasVideo.value = 0;
         mat.uniforms.uSource.value = blankTex;
+        mat.uniforms.uLoopFade.value = 1;
       }
     };
   }, [tv, videoSrc, blankTex, invalidate, portrait]);

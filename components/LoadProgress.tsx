@@ -5,20 +5,31 @@ import { useEffect, useRef } from "react";
 declare global {
   interface Window {
     __nxrWallSettled?: boolean;
+    __nxrCurtainOpen?: boolean;
   }
 }
 
-// ===== Barra de carga (progreso REAL de la carga inicial) =====
-// Petición: "el fondo tarda un poco en cargarse". Decisión de proyecto
-// vigente (guía award-sites, 2026-07-07): nada de preloaders con delay
-// artificial — un loader solo entra si no penaliza LCP/CWV. Esta barra es
-// un hilo de 2px fijo arriba que NUNCA bloquea ni retrasa contenido:
-// refleja hitos reales y se desvanece cuando el último se cumple (el muro
-// de vídeo pintando de verdad — señal `nxr:wall-settled` que emite
-// SceneBackground al primer frame, o a su fallback definitivo si el vídeo
-// falla). Solo aparece en la carga completa de página (el layout persiste
-// en navegación cliente, así que no re-dispara por ruta), y solo si la
-// carga tarda >250ms — en cargas calientes ni parpadea.
+// ===== Cortina de carga (el fondo sale YA cargado desde el primer frame) =====
+// Petición: "quiero que el fondo salga ya cargado desde el principio" — la
+// V16.71 (hilo fino informativo arriba) no bastaba: el fondo negro seguía a
+// la vista hasta que llegaba el muro. Esta cortina cubre la página DESDE EL
+// PRIMER PAINT (div en el SSR + CSS visible por defecto, así tampoco hay
+// hueco pre-hidratación) con la marca y una barra de progreso centradas, y
+// se levanta cuando el muro de vídeo ya está pintando (señal real
+// nxr:wall-settled de SceneBackground) — debajo aparece la página con el
+// fondo en marcha, nunca el vacío negro.
+//
+// Sigue SIN ser el "preloader teatral" que descartamos con la guía de
+// award-sites: no retrasa nada artificialmente — se abre EN CUANTO el muro
+// asienta (en cargas calientes dura una fracción de segundo), el progreso
+// son hitos reales con goteo nprogress entre ellos (nunca por encima de la
+// carga real), y un failsafe la abre a los 8s (red rota → el muro
+// procedural de respaldo ya está pintando y la web es usable). El coste
+// asumido y pedido: el primer contenido pintado es la cortina, no el hero.
+//
+// Al abrirse deja window.__nxrCurtainOpen y emite `nxr:curtain-open`:
+// HeroTitleAssemble espera esa señal para arrancar la formación del h1
+// justo cuando la página se descubre — no en off bajo la cortina.
 //
 // Hitos (acumulados):
 //   0.15 montaje (bundle ejecutado + React hidratado)
@@ -26,26 +37,24 @@ declare global {
 //   0.50 window load (estáticos del documento)
 //   0.70 canvas WebGL montado (.nxr-scene-arrive en el DOM — montaje en idle)
 //   1.00 muro asentado (nxr:wall-settled)
-// Entre hitos, goteo asintótico estilo nprogress: acerca la barra a un
-// techo POR DEBAJO del hito siguiente (suaviza la percepción, nunca miente
-// llegando a donde la carga real no llegó). Failsafe 12s: con una red rota
-// el muro tiene su propio fallback procedural y la web es usable — la
-// barra se cierra en vez de quedarse eternamente a medias.
 const M_MOUNT = 0.15;
 const M_FONTS = 0.3;
 const M_LOAD = 0.5;
 const M_CANVAS = 0.7;
 const TRICKLE_HEAD = 0.09; // techo de goteo por encima del último hito real
 const TICK_MS = 140;
-const SHOW_AFTER_MS = 250;
-const FAILSAFE_MS = 12000;
+const FILL_MS = 240; // respiro con la barra llena antes de levantar la cortina
+const LIFT_MS = 700; // duración del fade de la cortina (= CSS .55s + margen)
+const FAILSAFE_MS = 8000;
 
 export default function LoadProgress() {
+  const rootRef = useRef<HTMLDivElement>(null);
   const barRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
+    const root = rootRef.current;
     const bar = barRef.current;
-    if (!bar) return;
+    if (!root || !bar) return;
 
     let target = M_MOUNT;
     let shown = 0; // progreso pintado (persigue al target con easing)
@@ -63,6 +72,20 @@ export default function LoadProgress() {
       window.removeEventListener("load", onLoad);
     };
 
+    const open = () => {
+      root.classList.add("nxr-curtain-open");
+      if (!window.__nxrCurtainOpen) {
+        window.__nxrCurtainOpen = true;
+        window.dispatchEvent(new Event("nxr:curtain-open"));
+      }
+      timers.push(
+        window.setTimeout(() => {
+          root.style.display = "none";
+          window.clearInterval(interval);
+        }, LIFT_MS)
+      );
+    };
+
     const complete = () => {
       if (done) return;
       done = true;
@@ -71,15 +94,7 @@ export default function LoadProgress() {
       // interval deja de escribir en cuanto `done` es true (ver abajo) para
       // no pisar este valor final.
       bar.style.transform = "scaleX(1)";
-      // Llena, respira un instante, se desvanece, y deja de existir para
-      // el compositor (display none) — coste residual cero.
-      timers.push(
-        window.setTimeout(() => bar.classList.add("nxr-loadbar-done"), 420),
-        window.setTimeout(() => {
-          bar.style.display = "none";
-          window.clearInterval(interval);
-        }, 950)
-      );
+      timers.push(window.setTimeout(open, FILL_MS));
     };
 
     const onLoad = () => bump(M_LOAD);
@@ -91,14 +106,7 @@ export default function LoadProgress() {
     if (window.__nxrWallSettled) complete();
     else window.addEventListener("nxr:wall-settled", complete, { once: true });
 
-    timers.push(
-      // Solo se muestra si a los 250ms sigue incompleta (cargas calientes
-      // completan antes y la barra ni parpadea).
-      window.setTimeout(() => {
-        if (!done) bar.classList.add("nxr-loadbar-show");
-      }, SHOW_AFTER_MS),
-      window.setTimeout(complete, FAILSAFE_MS)
-    );
+    timers.push(window.setTimeout(complete, FAILSAFE_MS));
 
     interval = window.setInterval(() => {
       if (done) return;
@@ -113,5 +121,14 @@ export default function LoadProgress() {
     return cleanup;
   }, []);
 
-  return <div ref={barRef} className="nxr-loadbar" aria-hidden="true" />;
+  return (
+    <div ref={rootRef} className="nxr-curtain" aria-hidden="true">
+      <div className="nxr-curtain-logo">
+        Nexora<span>.</span>
+      </div>
+      <div className="nxr-curtain-track">
+        <div ref={barRef} className="nxr-curtain-bar" />
+      </div>
+    </div>
+  );
 }

@@ -64,8 +64,9 @@ export default function RootLayout({
         <link rel="preload" as="video" href="/bg-video-vertical.mp4" media="(orientation: portrait)" />
         <SmoothScroll />
         <ScrollProgress />
-        {/* Barra de progreso REAL de la carga inicial (el muro de vídeo es
-            el hito final) — hilo de 2px arriba, jamás bloquea contenido. */}
+        {/* Cortina de carga: cubre la página desde el primer paint hasta que
+            el muro de vídeo está pintando (progreso por hitos reales) — el
+            fondo nunca se ve "a medio llegar". */}
         <LoadProgress />
         {/* Deriva global de contenido con el cursor (vars CSS en :root; la
             lista curada de contenedores vive en globals.css). */}

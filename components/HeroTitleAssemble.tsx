@@ -127,6 +127,7 @@ export default function HeroTitleAssemble({ h1Ref }: { h1Ref: RefObject<HTMLHead
     let watchdog = 0;
     let revealed = false;
     let visListener: (() => void) | null = null;
+    let curtainListener: (() => void) | null = null;
 
     // Camino de FALLBACK (watchdog, resize a mitad, muestreo vacío,
     // getImageData bloqueado…): revelación por crossfade CSS clásico.
@@ -157,6 +158,23 @@ export default function HeroTitleAssemble({ h1Ref }: { h1Ref: RefObject<HTMLHead
     window.addEventListener("resize", onResize, { passive: true });
 
     const start = async () => {
+      // La cortina de carga (LoadProgress.tsx) cubre la página hasta que el
+      // muro está pintando: esperar a que se levante para que la formación
+      // ocurra A LA VISTA — arranca justo cuando la página se descubre, no
+      // consumida en off bajo la cortina. Si la cortina no existe (página
+      // futura sin ella), no hay nada que esperar. No hace falta re-chequear
+      // el flag tras colgar el listener: entre el if y el addEventListener
+      // no corre nada más (main thread), y LoadProgress pone el flag ANTES
+      // de emitir el evento para los montajes tardíos.
+      if (document.querySelector(".nxr-curtain") && !window.__nxrCurtainOpen) {
+        await new Promise<void>((resolve) => {
+          curtainListener = () => resolve();
+          window.addEventListener("nxr:curtain-open", curtainListener, { once: true });
+        });
+        curtainListener = null;
+        if (cancelled || revealed) return;
+      }
+
       // Carga en pestaña oculta/OCLUIDA (verificado con getAnimations():
       // Chrome congela el DocumentTimeline — rAF y transiciones CSS no
       // avanzan, y los timers van a 1Hz): esperar a que la pestaña sea
@@ -399,6 +417,7 @@ export default function HeroTitleAssemble({ h1Ref }: { h1Ref: RefObject<HTMLHead
       window.clearTimeout(swapTimer);
       window.removeEventListener("resize", onResize);
       if (visListener) document.removeEventListener("visibilitychange", visListener);
+      if (curtainListener) window.removeEventListener("nxr:curtain-open", curtainListener);
     };
   }, [reducedMotion, h1Ref]);
 

@@ -1367,30 +1367,51 @@ p.nxr-hero-mastery-line {
   max-width: 800px;
 }
 
-/* ===== Barra de carga (progreso real de la carga inicial) =====
-   Ver LoadProgress.tsx. Hilo de 2px sobre TODO el chrome (header 9999):
-   transform/opacity solo, pointer-events none — cero impacto en layout,
-   display:none al completar. Rojo→salmón de marca, eco del ScrollProgress. */
-.nxr-loadbar {
+/* ===== Cortina de carga (el fondo sale ya cargado) =====
+   Ver LoadProgress.tsx. Cubre TODO desde el primer paint (visible por
+   defecto — el div viene en el SSR, sin hueco pre-hidratación) hasta que
+   el muro de vídeo está pintando; mismo #050810 que html para que la
+   transición pre/post hidratación sea invisible. transform/opacity solo;
+   display:none al completar (coste residual cero). */
+.nxr-curtain {
   position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 2px;
-  background: linear-gradient(90deg, var(--c-red), var(--c-salmon));
-  box-shadow: 0 0 10px rgba(239, 61, 13, 0.55);
-  transform-origin: 0 50%;
-  transform: scaleX(0);
-  transition: transform 0.25s linear, opacity 0.45s ease;
+  inset: 0;
+  z-index: 10002;
+  background: #050810;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 18px;
+  transition: opacity 0.55s ease;
+}
+.nxr-curtain.nxr-curtain-open {
   opacity: 0;
   pointer-events: none;
-  z-index: 10001;
 }
-.nxr-loadbar.nxr-loadbar-show {
-  opacity: 1;
+.nxr-curtain-logo {
+  font-size: 26px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--c-white);
 }
-.nxr-loadbar.nxr-loadbar-done {
-  opacity: 0;
+.nxr-curtain-logo span {
+  color: var(--c-lime);
+}
+.nxr-curtain-track {
+  width: min(220px, 56vw);
+  height: 2px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.12);
+  overflow: hidden;
+}
+.nxr-curtain-bar {
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, var(--c-red), var(--c-salmon));
+  transform-origin: 0 50%;
+  transform: scaleX(0);
+  transition: transform 0.25s linear;
 }
 
 /* ===== Hero H1 assemble (fragmentos que forman el título) =====

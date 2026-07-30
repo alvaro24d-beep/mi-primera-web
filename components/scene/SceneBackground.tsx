@@ -342,7 +342,20 @@ export default function SceneBackground({
       if (!document.hidden) rvfcId = video.requestVideoFrameCallback(onFrame);
     };
 
+    // Señal one-shot para la barra de carga (components/LoadProgress.tsx):
+    // "el muro ya asentó" — primer frame del vídeo listo O fallo definitivo
+    // (en cuyo caso pinta el fallback procedural y no hay nada más que
+    // esperar). El guard en window sobrevive al re-run de este efecto por
+    // flip de orientación, que NO debe re-disparar la barra.
+    const settleWall = () => {
+      if (!window.__nxrWallSettled) {
+        window.__nxrWallSettled = true;
+        window.dispatchEvent(new Event("nxr:wall-settled"));
+      }
+    };
+
     const onReady = () => {
+      settleWall();
       if (mat) {
         mat.uniforms.uSource.value = tex;
         mat.uniforms.uHasVideo.value = 1;
@@ -399,6 +412,7 @@ export default function SceneBackground({
     // Decode/network failure → fall back to the procedural TV signal (the
     // keep-alive interval below animates it) instead of a frozen dark wall.
     const onError = () => {
+      settleWall();
       if (mat) {
         mat.uniforms.uHasVideo.value = 0;
         mat.uniforms.uSource.value = blankTex;

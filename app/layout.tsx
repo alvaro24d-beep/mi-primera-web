@@ -6,6 +6,7 @@ import SceneCanvasLazy from "@/components/scene/SceneCanvasLazy";
 import RevealInit from "@/components/RevealInit";
 import SmoothScroll from "@/components/SmoothScroll";
 import ScrollProgress from "@/components/ScrollProgress";
+import LoadProgress from "@/components/LoadProgress";
 import CursorDrift from "@/components/CursorDrift";
 import GradualBlur from "@/components/GradualBlur";
 
@@ -63,6 +64,9 @@ export default function RootLayout({
         <link rel="preload" as="video" href="/bg-video-vertical.mp4" media="(orientation: portrait)" />
         <SmoothScroll />
         <ScrollProgress />
+        {/* Barra de progreso REAL de la carga inicial (el muro de vídeo es
+            el hito final) — hilo de 2px arriba, jamás bloquea contenido. */}
+        <LoadProgress />
         {/* Deriva global de contenido con el cursor (vars CSS en :root; la
             lista curada de contenedores vive en globals.css). */}
         <CursorDrift />

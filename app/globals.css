@@ -4447,18 +4447,27 @@ p.nxr-hero-mastery-line {
   margin-top: 0;
 }
 
+/* V16.74 — de píldoras sueltas (flex-wrap) a TILES rectangulares en grid
+   (petición): 3 columnas × 2 filas en desktop, 2 columnas × 3 filas en
+   móvil, centradas y a ancho completo de la card. El icono va ARRIBA de la
+   etiqueta para que el tile aproveche el alto y las etiquetas largas
+   ("Automatización") no fuercen la caja. */
 .nxr-ms-chips {
-  display: flex;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
   gap: 10px;
 }
 
 .nxr-ms-chip {
   display: flex;
+  flex-direction: column;
   align-items: center;
-  gap: 8px;
-  padding: 11px 18px;
-  border-radius: 100px;
+  justify-content: center;
+  text-align: center;
+  gap: 7px;
+  min-height: 72px;
+  padding: 12px 10px;
+  border-radius: 12px;
   border: 1px solid rgba(255, 255, 255, 0.12);
   background: rgba(255, 255, 255, 0.04);
   color: rgba(255, 255, 255, 0.6);
@@ -4484,8 +4493,18 @@ p.nxr-hero-mastery-line {
 }
 
 .nxr-ms-chip-icon {
-  font-size: 16px;
+  font-size: 19px;
   line-height: 1;
+}
+
+@media (max-width: 768px) {
+  .nxr-ms-chips {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .nxr-ms-chip {
+    min-height: 66px;
+    font-size: 13px;
+  }
 }
 
 .nxr-ms-input,

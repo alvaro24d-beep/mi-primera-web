@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { usePathname } from "next/navigation";
-import { Canvas } from "@react-three/fiber";
+import { Canvas, useThree } from "@react-three/fiber";
 import { Environment, Lightformer } from "@react-three/drei";
 import { EffectComposer, Bloom, Vignette } from "@react-three/postprocessing";
 import SceneBackground from "./SceneBackground";
@@ -41,6 +41,53 @@ function SceneEnvironment() {
       <Lightformer form="rect" intensity={2.1} color="#ffffff" position={[0, 3.5, 6]} scale={[20, 0.3, 1]} />
     </Environment>
   );
+}
+
+// Precompila TODOS los shaders de la escena nada más montar el canvas, en vez
+// de dejar que el primer draw los compile bajo demanda. Sin esto, el primer
+// programa de MeshTransmissionMaterial (un shader ENORME) se compilaba en el
+// instante exacto en que `nxr-servicios` entraba en el margen de 300px del
+// observer — con la Intro en pantalla — y el hilo principal se congelaba
+// ~1-2s en mitad del scroll (medido: long task de 1805ms; solo la primera
+// vez por carga, porque el programa queda cacheado después). El warm-up de
+// 45 frames de ServiciosCardsLayer no lo evitaba: dibuja a opacidad 0, pero
+// también arranca al entrar en el margen, así que solo movía el coste unos
+// frames. Claves de por qué esto funciona:
+//  - `WebGLRenderer.compile()` recorre la escena con `scene.traverse` (no
+//    `traverseVisible`), así que las cards aparcadas en `visible=false`
+//    también compilan sus programas.
+//  - `compileAsync` usa KHR_parallel_shader_compile: la compilación corre en
+//    hilos del proceso GPU y solo se hace `useProgram` cuando está lista —
+//    cero bloqueo del main thread donde la extensión existe (Chrome/Edge/
+//    Android); donde no (Safari), el coste se paga igualmente AQUÍ, en el
+//    idle de la carga, no en mitad del scroll del usuario.
+function ShaderWarmup() {
+  const { gl, scene, camera } = useThree();
+  useEffect(() => {
+    let cancelled = false;
+    let timer = 0;
+    const warm = () => {
+      if (cancelled) return;
+      // El <Environment> de drei instala scene.environment un par de frames
+      // tras montar (primero renderiza los Lightformers a su PMREM). Compilar
+      // ANTES cachearía la variante de programa SIN envmap — y la variante
+      // real seguiría compilándose en el primer draw visible, que es
+      // exactamente el parón que este componente elimina.
+      if (!scene.environment) {
+        timer = window.setTimeout(warm, 100);
+        return;
+      }
+      gl.compileAsync(scene, camera).catch(() => {
+        // Contexto perdido / teardown — peor caso: compilación lazy como antes.
+      });
+    };
+    warm();
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timer);
+    };
+  }, [gl, scene, camera]);
+  return null;
 }
 
 export default function SceneCanvas() {
@@ -240,6 +287,7 @@ export default function SceneCanvas() {
         }}
       >
         <PixelCamera />
+        <ShaderWarmup />
         <ambientLight intensity={0.35} />
         <directionalLight position={[500, 800, 600]} intensity={0.5} color="#ffffff" />
         <SceneEnvironment />

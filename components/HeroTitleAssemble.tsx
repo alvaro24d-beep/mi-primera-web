@@ -9,14 +9,27 @@ import { useReducedMotion } from "@/hooks/useReducedMotion";
 // titular de la home se ensambla a partir de glifos monospace sueltos —
 // letras, dígitos y símbolos de código, la misma identidad del efecto
 // scramble de Intro/reel — que vuelan desde fuera del hero hasta ocupar la
-// silueta exacta del texto, y al asentarse se funden con el H1 real.
+// silueta exacta del texto.
+//
+// TRANSICIÓN AL TEXTO REAL (V16.72 — "que quede más orgánico"): NO hay un
+// crossfade global de canvas→h1 (la primera versión lo tenía y el cambiazo
+// se notaba). En su lugar:
+//  - el h1 real EMERGE progresivamente BAJO el enjambre, con opacidad
+//    proporcional a la fracción de fragmentos ya aterrizados (empieza al
+//    35%, plena al 95%) — texto y fragmentos conviven superpuestos;
+//  - cada fragmento, tras aterrizar y un remanso aleatorio PROPIO, se
+//    apaga individualmente (goteo disperso por todo el título, no un fade
+//    en bloque), con una micro-deriva que decae mientras se disuelve;
+//  - el final es simplemente "el último fragmento se apagó" — no existe
+//    ningún fotograma de swap.
 //
 // SEO/a11y: el <h1> REAL está siempre en el DOM con su texto completo
 // (renderizado en servidor); este canvas es solo pintura (aria-hidden,
 // pointer-events none). Durante la formación el texto va oculto con la
 // clase .nxr-hero-h1-assemble (mismo patrón CSS-oculta/JS-revela que
-// .nxr-intro-texts o .nxr-hero-mastery), y un watchdog fuerza la
-// revelación aunque cualquier paso falle — el título nunca puede quedarse
+// .nxr-intro-texts o .nxr-hero-mastery), y un watchdog más los fallbacks
+// (resize a mitad, fuentes que no cargan, muestreo vacío) fuerzan la
+// revelación por el camino CSS clásico — el título nunca puede quedarse
 // invisible.
 //
 // Muestreo desde el DOM real, no desde un texto configurado: cada palabra
@@ -30,17 +43,21 @@ import { useReducedMotion } from "@/hooks/useReducedMotion";
 //
 // Física adaptada de Originkit: cada fragmento persigue con un muelle
 // (STIFFNESS/DAMPING) un objetivo que viaja de su punto de aparición (fuera
-// del hero) a su casilla final con easing — organicidad del muelle +
-// aterrizaje determinista. Se quitaron las colisiones y la repulsión del
-// puntero del original: es una entrada one-shot de ~2s, no una escena
-// interactiva persistente. Al completar: crossfade al h1 real, se cancela
-// el rAF y el canvas pasa a display:none — coste residual CERO (playbook).
+// del hero) a su casilla final con easing. Se quitaron las colisiones y la
+// repulsión del puntero del original: es una entrada one-shot de ~3s, no
+// una escena interactiva persistente. Al acabar: rAF cancelado y canvas a
+// display:none — coste residual CERO (playbook).
 const GLYPHS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789<>/{}[]#&+=";
 const FLY_MS = 1250; // vuelo de un fragmento (su objetivo llega a casa)
 const STAGGER_MS = 520; // escalonado de salida entre fragmentos
-const SETTLE_MS = 260; // margen para que los muelles asienten tras volar
-const SWAP_MS = 420; // crossfade fragmentos → texto real (= CSS .38s + margen)
-const WATCHDOG_MS = 4000; // pase lo que pase, el título se revela
+const HOLD_MIN_MS = 180; // remanso mínimo de un fragmento ya aterrizado…
+const HOLD_VAR_MS = 650; // …más su parte aleatoria (goteo disperso del apagado)
+const FADE_MS = 430; // apagado individual de cada fragmento
+const TEXT_START = 0.35; // fracción de aterrizados con la que el h1 real asoma
+const TEXT_FULL = 0.95; // fracción con la que el h1 real llega a opacidad 1
+const DRIFT_AMP = 1.6; // px de micro-deriva en reposo (decae al disolverse)
+const SWAP_MS = 420; // fade del canvas en los caminos de FALLBACK (CSS .38s)
+const WATCHDOG_MS = 5000; // pase lo que pase, el título se revela
 const ALPHA_IN_MS = 140; // fade-in de cada fragmento al aparecer
 const STIFFNESS = 120;
 const DAMPING = 18;
@@ -60,6 +77,7 @@ interface Frag {
   size: number;
   color: string;
   delay: number;
+  hold: number;
 }
 
 function easeOutCubic(t: number) {
@@ -101,18 +119,26 @@ export default function HeroTitleAssemble({ h1Ref }: { h1Ref: RefObject<HTMLHead
     const canvas = canvasRef.current;
     const h1 = h1Ref.current;
     if (!canvas || !h1) return;
+    const h1In = h1.querySelector<HTMLElement>(".nxr-hero-h1-in");
 
     let cancelled = false;
     let raf = 0;
     let swapTimer = 0;
+    let watchdog = 0;
     let revealed = false;
+    let visListener: (() => void) | null = null;
 
-    // Revelación única: texto real dentro (CSS transiciona su opacity),
-    // canvas fuera. Sirve para el final feliz Y para todos los fallbacks
-    // (watchdog, resize a mitad, muestreo vacío, getImageData bloqueado).
+    // Camino de FALLBACK (watchdog, resize a mitad, muestreo vacío,
+    // getImageData bloqueado…): revelación por crossfade CSS clásico.
+    // Limpia los inline styles del emerger progresivo ANTES de añadir la
+    // clase — un opacity inline parcial ganaría a la clase para siempre.
     const reveal = (keepCanvasWhileFading: boolean) => {
       if (revealed) return;
       revealed = true;
+      if (h1In) {
+        h1In.style.opacity = "";
+        h1In.style.visibility = "";
+      }
       h1.classList.add("nxr-h1-on");
       canvas.classList.add("nxr-hero-assemble-out");
       swapTimer = window.setTimeout(
@@ -123,7 +149,6 @@ export default function HeroTitleAssemble({ h1Ref }: { h1Ref: RefObject<HTMLHead
         keepCanvasWhileFading ? SWAP_MS : 0
       );
     };
-    const watchdog = window.setTimeout(() => reveal(true), WATCHDOG_MS);
 
     // Un resize durante la formación invalida las casillas medidas (el
     // título puede re-envolver líneas): mejor un final anticipado limpio
@@ -132,8 +157,30 @@ export default function HeroTitleAssemble({ h1Ref }: { h1Ref: RefObject<HTMLHead
     window.addEventListener("resize", onResize, { passive: true });
 
     const start = async () => {
+      // Carga en pestaña oculta/OCLUIDA (verificado con getAnimations():
+      // Chrome congela el DocumentTimeline — rAF y transiciones CSS no
+      // avanzan, y los timers van a 1Hz): esperar a que la pestaña sea
+      // visible antes de arrancar el reloj de la formación. Sin esto, el
+      // watchdog revelaría el título "en off" y quien abrió la web en una
+      // pestaña de fondo llegaría con la animación ya consumida. El
+      // watchdog se arma DESPUÉS de esta espera por la misma razón.
+      if (document.visibilityState === "hidden") {
+        await new Promise<void>((resolve) => {
+          visListener = () => {
+            if (document.visibilityState === "visible") resolve();
+          };
+          document.addEventListener("visibilitychange", visListener);
+        });
+        if (visListener) {
+          document.removeEventListener("visibilitychange", visListener);
+          visListener = null;
+        }
+        if (cancelled || revealed) return;
+      }
+      watchdog = window.setTimeout(() => reveal(true), WATCHDOG_MS);
+
       // Sin las fuentes reales cargadas se muestrearía la silueta del
-      // fallback del sistema y el crossfade final "saltaría" de forma.
+      // fallback del sistema y el emerger final "saltaría" de forma.
       try {
         await document.fonts.ready;
       } catch {
@@ -228,6 +275,7 @@ export default function HeroTitleAssemble({ h1Ref }: { h1Ref: RefObject<HTMLHead
           size: Math.round(base * (0.75 + Math.random() * 0.5)),
           color,
           delay: Math.random() * STAGGER_MS,
+          hold: HOLD_MIN_MS + Math.random() * HOLD_VAR_MS,
         };
       });
       // Orden por tamaño y color: el bucle de dibujo solo cambia ctx.font /
@@ -245,8 +293,10 @@ export default function HeroTitleAssemble({ h1Ref }: { h1Ref: RefObject<HTMLHead
       ctx.textAlign = "center";
       ctx.textBaseline = "middle";
 
+      const total = frags.length;
       const t0 = performance.now();
       let last = t0;
+      let lastTextOp = -1;
       const frame = (now: number) => {
         raf = requestAnimationFrame(frame);
         const dt = Math.min((now - last) / 1000, 0.05);
@@ -257,12 +307,35 @@ export default function HeroTitleAssemble({ h1Ref }: { h1Ref: RefObject<HTMLHead
         ctx.clearRect(0, 0, W, H);
         let lastSize = -1;
         let lastColor = "";
+        let landed = 0;
+        let finished = 0;
         for (const f of frags) {
           const own = elapsed - f.delay;
           if (own < 0) continue;
-          const t = easeOutCubic(own >= FLY_MS ? 1 : own / FLY_MS);
-          const tx = f.startX + (f.homeX - f.startX) * t;
-          const ty = f.startY + (f.homeY - f.startY) * t;
+          const flying = own < FLY_MS;
+          if (!flying) landed++;
+          // Disolución POR FRAGMENTO: tras aterrizar y su remanso propio,
+          // cada glifo se apaga individualmente — el goteo disperso es lo
+          // que evita cualquier "momento de cambio" perceptible.
+          const fadeT = flying ? 0 : Math.min(Math.max((own - FLY_MS - f.hold) / FADE_MS, 0), 1);
+          if (fadeT >= 1) {
+            finished++;
+            continue;
+          }
+          let tx: number;
+          let ty: number;
+          if (flying) {
+            const t = easeOutCubic(own / FLY_MS);
+            tx = f.startX + (f.homeX - f.startX) * t;
+            ty = f.startY + (f.homeY - f.startY) * t;
+          } else {
+            // Micro-deriva en reposo (decae con la disolución): el objetivo
+            // ondula y el muelle lo persigue — continuidad de velocidad,
+            // nada de fragmentos congelados esperando su apagado.
+            const w = (1 - fadeT) * DRIFT_AMP;
+            tx = f.homeX + Math.sin(now * 0.0035 + f.homeX * 0.13 + f.homeY * 0.07) * w;
+            ty = f.homeY + Math.cos(now * 0.0031 + f.homeX * 0.07 - f.homeY * 0.11) * w;
+          }
           f.vx += ((tx - f.x) * STIFFNESS - f.vx * DAMPING) * dt;
           f.vy += ((ty - f.y) * STIFFNESS - f.vy * DAMPING) * dt;
           const sp = Math.hypot(f.vx, f.vy);
@@ -280,15 +353,39 @@ export default function HeroTitleAssemble({ h1Ref }: { h1Ref: RefObject<HTMLHead
             lastColor = f.color;
             ctx.fillStyle = f.color;
           }
-          ctx.globalAlpha = own < ALPHA_IN_MS ? own / ALPHA_IN_MS : 1;
+          // fadeT² en vez de lineal: el apagado arranca suave (el glifo
+          // "se ablanda" antes de irse) — más melt, menos parpadeo.
+          ctx.globalAlpha = (own < ALPHA_IN_MS ? own / ALPHA_IN_MS : 1) * (1 - fadeT * fadeT);
           ctx.fillText(f.glyph, f.x, f.y);
         }
         ctx.globalAlpha = 1;
 
-        // Los muelles siguen asentándose DURANTE el crossfade (reveal deja
-        // el rAF vivo SWAP_MS más), así los fragmentos se disuelven en el
-        // texto nítido sin congelarse a mitad de camino.
-        if (elapsed >= STAGGER_MS + FLY_MS + SETTLE_MS) reveal(true);
+        // El h1 real EMERGE bajo el enjambre según la fracción aterrizada —
+        // opacidad inline por frame (gana a la clase de ocultación); el
+        // camino de fallback la limpia antes de usar el crossfade CSS.
+        if (h1In && !revealed) {
+          const frac = total ? landed / total : 1;
+          const k = Math.min(Math.max((frac - TEXT_START) / (TEXT_FULL - TEXT_START), 0), 1);
+          const op = k * k * (3 - 2 * k);
+          if (Math.abs(op - lastTextOp) > 0.01 || (op === 1 && lastTextOp !== 1)) {
+            lastTextOp = op;
+            h1In.style.visibility = op > 0 ? "visible" : "hidden";
+            h1In.style.opacity = String(op);
+          }
+        }
+
+        // Final natural: el último fragmento se apagó con el texto ya a
+        // opacidad plena — consolidar estado persistente y apagar el canvas.
+        if (finished >= total && !revealed) {
+          revealed = true;
+          if (h1In) {
+            h1In.style.opacity = "";
+            h1In.style.visibility = "";
+          }
+          h1.classList.add("nxr-h1-on");
+          canvas.style.display = "none";
+          cancelAnimationFrame(raf);
+        }
       };
       raf = requestAnimationFrame(frame);
     };
@@ -301,6 +398,7 @@ export default function HeroTitleAssemble({ h1Ref }: { h1Ref: RefObject<HTMLHead
       window.clearTimeout(watchdog);
       window.clearTimeout(swapTimer);
       window.removeEventListener("resize", onResize);
+      if (visListener) document.removeEventListener("visibilitychange", visListener);
     };
   }, [reducedMotion, h1Ref]);
 

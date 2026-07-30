@@ -5,7 +5,7 @@ import { useFrame, useThree } from "@react-three/fiber";
 import * as THREE from "three";
 import VolumetricCard from "./VolumetricCard";
 import { useZoomParallaxCardsRegistry, ZP_MAX_CARDS } from "@/store/useZoomParallaxCardsRegistry";
-import { nearSections } from "@/store/sceneActivity";
+import { nearSections, canvasBox } from "@/store/sceneActivity";
 
 const DEG2RAD = Math.PI / 180;
 // Ambient mouse tilt, shared by every card equally — a small "the whole
@@ -231,8 +231,10 @@ export default function ZoomParallaxCardsLayer({ isMobile }: { isMobile: boolean
         });
       }
       group.visible = true;
-      const cx = rect.left + rect.width / 2;
-      const cy = rect.top + rect.height / 2;
+      // canvasBox: compensación del canvas fijo recolocado por el teclado
+      // móvil (normalmente (0,0)) — ver store/sceneActivity.ts.
+      const cx = rect.left - canvasBox.x + rect.width / 2;
+      const cy = rect.top - canvasBox.y + rect.height / 2;
       // Same pixel-accurate mapping as PixelCamera (1 world unit = 1px at z=0).
       group.position.x = cx - size.width / 2;
       group.position.y = -(cy - size.height / 2);

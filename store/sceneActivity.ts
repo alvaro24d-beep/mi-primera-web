@@ -14,3 +14,15 @@
 // .getState() registries): membership flips a handful of times per page of
 // scrolling and must never cost a React render.
 export const nearSections = new Set<string>();
+
+// Posición REAL del canvas fijo en coords del layout viewport, medida cada
+// frame por CanvasBoxTracker (SceneCanvas.tsx) y restada por las tres capas
+// al mapear rects DOM → mundo. Normalmente es (0,0) y la resta es un no-op —
+// pero con el TECLADO EN PANTALLA abierto, iOS/Safari recoloca los elementos
+// position:fixed para seguir al visual viewport mientras el resto del
+// contenido no se mueve: el canvas deja de estar clavado en (0,0) y, sin
+// esta compensación, TODOS los meshes se pintaban desplazados respecto a su
+// DOM (bug: "al escribir en el paso 4 la card de cristal se sube y el
+// textarea se sale por abajo"). Mismo patrón singleton mutable que arriba:
+// se lee en cada useFrame y no debe costar nunca un render de React.
+export const canvasBox = { x: 0, y: 0 };

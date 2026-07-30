@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { usePathname } from "next/navigation";
-import { Canvas, useThree } from "@react-three/fiber";
+import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import { Environment, Lightformer } from "@react-three/drei";
 import { EffectComposer, Bloom, Vignette } from "@react-three/postprocessing";
 import SceneBackground from "./SceneBackground";
@@ -10,7 +10,7 @@ import ServiciosCardsLayer from "./ServiciosCardsLayer";
 import ZoomParallaxCardsLayer from "./ZoomParallaxCardsLayer";
 import GlassPanelsLayer from "./GlassPanelsLayer";
 import PixelCamera, { CAMERA_DISTANCE } from "./PixelCamera";
-import { nearSections } from "@/store/sceneActivity";
+import { nearSections, canvasBox } from "@/store/sceneActivity";
 
 // Procedural HDRI: `<Environment>` + `<Lightformer>` only — never the
 // `preset` prop, which downloads an HDRI from drei's CDN at runtime. That
@@ -41,6 +41,21 @@ function SceneEnvironment() {
       <Lightformer form="rect" intensity={2.1} color="#ffffff" position={[0, 3.5, 6]} scale={[20, 0.3, 1]} />
     </Environment>
   );
+}
+
+// Mide la posición real del canvas fijo cada frame ANTES de que las capas
+// mapeen sus rects (prioridad -50) — ver el comentario de `canvasBox` en
+// store/sceneActivity.ts (teclado móvil ↔ elementos fixed recolocados).
+// Una sola lectura de rect por frame, compartida por las tres capas.
+function CanvasBoxTracker({ el }: { el: React.RefObject<HTMLCanvasElement | null> }) {
+  useFrame(() => {
+    const c = el.current;
+    if (!c) return;
+    const r = c.getBoundingClientRect();
+    canvasBox.x = r.left;
+    canvasBox.y = r.top;
+  }, -50);
+  return null;
 }
 
 // Precompila TODOS los shaders de la escena nada más montar el canvas, en vez
@@ -287,6 +302,7 @@ export default function SceneCanvas() {
         }}
       >
         <PixelCamera />
+        <CanvasBoxTracker el={canvasRef} />
         <ShaderWarmup />
         <ambientLight intensity={0.35} />
         <directionalLight position={[500, 800, 600]} intensity={0.5} color="#ffffff" />

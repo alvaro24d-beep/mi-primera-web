@@ -5,7 +5,7 @@ import { useFrame, useThree } from "@react-three/fiber";
 import * as THREE from "three";
 import VolumetricCard from "./VolumetricCard";
 import { useServiciosCardsRegistry, type CardStyle } from "@/store/useServiciosCardsRegistry";
-import { nearSections } from "@/store/sceneActivity";
+import { nearSections, canvasBox } from "@/store/sceneActivity";
 
 const MAX_CARDS = 5;
 const DEFAULT_STYLE: CardStyle = { color: "#0d1520", material: "glass", curveX: 0.06, curveY: 0 };
@@ -130,8 +130,10 @@ function CardSlot({ id, isMobile }: { id: number; isMobile: boolean }) {
     group.visible =
       (warming || t.opacity > 0.01) && Math.abs(rw - dims.width) <= 1 && Math.abs(rh - dims.height) <= 1;
     if (!group.visible) return;
-    group.position.x = x + width / 2 - size.width / 2 + t.x;
-    group.position.y = -(y + height / 2 - size.height / 2) + t.y;
+    // canvasBox: compensación del canvas fijo recolocado por el teclado
+    // móvil (normalmente (0,0)) — ver store/sceneActivity.ts.
+    group.position.x = x - canvasBox.x + width / 2 - size.width / 2 + t.x;
+    group.position.y = -(y - canvasBox.y + height / 2 - size.height / 2) + t.y;
     group.position.z = t.z;
     group.rotation.x = t.rotationX * DEG2RAD;
     group.rotation.y = t.rotationY * DEG2RAD;

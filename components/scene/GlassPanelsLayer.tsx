@@ -5,7 +5,7 @@ import { useFrame, useThree } from "@react-three/fiber";
 import * as THREE from "three";
 import VolumetricCard from "./VolumetricCard";
 import { useGlassPanelsRegistry, type GlassPanel } from "@/store/useGlassPanelsRegistry";
-import { nearSections } from "@/store/sceneActivity";
+import { nearSections, canvasBox } from "@/store/sceneActivity";
 
 // Renders one flat fluid-glass mesh docked to a registered DOM anchor (see
 // hooks/useGlassPanels.ts). Geometry is built ONCE from the panel's
@@ -72,8 +72,11 @@ function PanelSlot({ panel, isMobile }: { panel: GlassPanel; isMobile: boolean }
         if (mesh.isMesh) (mesh.material as THREE.MeshPhysicalMaterial).opacity = opacity;
       });
     }
-    group.position.x = rect.left + rect.width / 2 - size.width / 2;
-    group.position.y = -(rect.top + rect.height / 2 - size.height / 2);
+    // canvasBox: normalmente (0,0); con el teclado móvil abierto iOS recoloca
+    // el canvas fijo y sin esta resta el cristal se pintaba desplazado del
+    // DOM (paso 4 de Contacto) — ver store/sceneActivity.ts.
+    group.position.x = rect.left - canvasBox.x + rect.width / 2 - size.width / 2;
+    group.position.y = -(rect.top - canvasBox.y + rect.height / 2 - size.height / 2);
     // Live rect vs registered geometry size: pure transform (≈1 in steady
     // state; covers the moments between a layout change and the
     // ResizeObserver-driven rebuild). Z uses the mean so the bevel scales

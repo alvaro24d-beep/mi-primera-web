@@ -1367,6 +1367,34 @@ p.nxr-hero-mastery-line {
   max-width: 800px;
 }
 
+/* ===== Hero H1 assemble (fragmentos que forman el título) =====
+   Ver HeroTitleAssemble.tsx. El texto real del h1 (SIEMPRE en el DOM, por
+   SEO) va oculto solo mientras los fragmentos del canvas lo forman — mismo
+   patrón CSS-oculta/JS-revela de .nxr-intro-texts. La clase .nxr-h1-on la
+   añade el componente al completar la formación (o su watchdog/fallbacks:
+   el título nunca puede quedarse invisible). Solo la rama animada lleva
+   .nxr-hero-h1-assemble; la estática (reduced motion) no oculta nada. */
+.nxr-hero-assemble-canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  transition: opacity 0.38s ease;
+}
+.nxr-hero-assemble-canvas.nxr-hero-assemble-out {
+  opacity: 0;
+}
+.nxr-hero-h1-assemble .nxr-hero-h1-in {
+  visibility: hidden;
+  opacity: 0;
+}
+.nxr-hero-h1-assemble.nxr-h1-on .nxr-hero-h1-in {
+  visibility: visible;
+  opacity: 1;
+  transition: opacity 0.38s ease;
+}
+
 .nxr-hero-sub {
   font-size: clamp(14px, 1.6vw, 18px);
   font-weight: 400;

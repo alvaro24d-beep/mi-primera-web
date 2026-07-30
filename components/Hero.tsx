@@ -1,10 +1,11 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, type RefObject } from "react";
 import Link from "next/link";
 import gsap from "gsap";
 import { useGSAP } from "@gsap/react";
 import { useReducedMotion } from "@/hooks/useReducedMotion";
+import HeroTitleAssemble from "@/components/HeroTitleAssemble";
 
 const ARROW = (
   <svg
@@ -22,13 +23,24 @@ const ARROW = (
   </svg>
 );
 
-function HeroCopy() {
+// `assemble`: la rama animada forma el h1 con HeroTitleAssemble (fragmentos
+// que convergen), así que su entrada .nxr-reveal se retira ahí — la clase
+// también aplica translateY, y medir las casillas de los fragmentos a mitad
+// de un translate las dejaría desplazadas. La rama reduced-motion conserva
+// el reveal estándar. El texto vive SIEMPRE completo en el DOM (SSR) — el
+// canvas solo pinta encima; ver HeroTitleAssemble.tsx.
+function HeroCopy({ assemble, h1Ref }: { assemble?: boolean; h1Ref?: RefObject<HTMLHeadingElement | null> }) {
   return (
     <div className="nxr-hero-center">
-      <h1 className="nxr-hero-h1 nxr-reveal nxr-reveal-delay-2">
-        Tu empresa en
-        <br />
-        <span className="nxr-gradient-text-lime">piloto automático.</span>
+      <h1
+        className={assemble ? "nxr-hero-h1 nxr-hero-h1-assemble" : "nxr-hero-h1 nxr-reveal nxr-reveal-delay-2"}
+        ref={h1Ref}
+      >
+        <span className="nxr-hero-h1-in">
+          Tu empresa en
+          <br />
+          <span className="nxr-gradient-text-lime">piloto automático.</span>
+        </span>
       </h1>
 
       <p className="nxr-hero-sub nxr-reveal nxr-reveal-delay-3">
@@ -61,6 +73,7 @@ function MasteryLines() {
 export default function Hero() {
   const sectionRef = useRef<HTMLElement>(null);
   const stageRef = useRef<HTMLDivElement>(null);
+  const h1Ref = useRef<HTMLHeadingElement>(null);
   const reducedMotion = useReducedMotion();
 
   // El CTA "Empezar proyecto" ya NO lleva cristal liquid-glass (petición:
@@ -230,7 +243,11 @@ export default function Hero() {
     <section key="animated" id="nxr-hero" ref={sectionRef}>
       <div className="nxr-hero-stage" ref={stageRef}>
         <div className="nxr-hero-fade">
-          <HeroCopy />
+          {/* Dentro de .nxr-hero-fade a propósito: el canvas de fragmentos
+              hereda el blur de entrada y el fade/blur de salida scrubbed de
+              la fase 1, igual que el resto del hero. */}
+          <HeroTitleAssemble h1Ref={h1Ref} />
+          <HeroCopy assemble h1Ref={h1Ref} />
         </div>
         <h2 className="nxr-hero-mastery">
           <MasteryLines />

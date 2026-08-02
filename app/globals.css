@@ -386,6 +386,25 @@ p.nxr-hero-mastery-line {
     width: fit-content;
     max-width: 540px;
   }
+  /* MISMA regla ≠ MISMO aspecto (V16.78, "los títulos de desarrollo web se
+     ven mucho más grandes que los de la home"): la magnificación del borde
+     cercano crece con el ANCHO de la caja — a perspective(460px), los
+     títulos largos de las páginas de servicio (llenan el cap de 540px, 3
+     líneas) proyectaban 1.42× donde los cortos de la home (357-424px)
+     proyectan 1.22× (medido: 767×295 vs 436×177 con el mismo font-size).
+     La perspectiva más larga iguala la magnificación proyectada (~1.25×
+     para una caja a ancho de cap) — mismo tamaño EN PANTALLA que la home,
+     mismo ángulo/lenguaje del plano. La home NO entra aquí: es la
+     referencia. */
+  #nxr-dwh-capacidades .nxr-section-h2,
+  #nxr-dwh-tech .nxr-section-h2,
+  #nxr-aia-casos .nxr-section-h2,
+  #nxr-aia-pasos .nxr-section-h2,
+  #nxr-seo-pasos .nxr-section-h2,
+  #nxr-seo-resultados .nxr-section-h2,
+  #nxr-precios .nxr-section-h2 {
+    transform: translateX(20%) perspective(750px) rotateY(16deg);
+  }
   /* Compensación de POSICIÓN (no de formato): estas secciones van a sangre
      completa (contenedor en pad-x 64) y la proyección del tier sacaba las
      primeras letras del marco (-55px medidos); el margen las deja

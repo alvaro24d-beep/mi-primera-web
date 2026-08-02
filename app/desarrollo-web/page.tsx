@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import DesarrolloWebHero from "@/components/DesarrolloWebHero";
 import ProcesoReel from "@/components/ProcesoReel";
 import CapacidadesWeb from "@/components/CapacidadesWeb";
+import IphoneBuild from "@/components/dwh/IphoneBuild";
 import DwhClaims from "@/components/DwhClaims";
 import DwhTechStack from "@/components/DwhTechStack";
 import Contacto from "@/components/Contacto";
@@ -22,6 +23,7 @@ export default function DesarrolloWebPage() {
       <DesarrolloWebHero />
       <ProcesoReel />
       <CapacidadesWeb />
+      <IphoneBuild />
       <DwhClaims />
       <DwhTechStack />
       <Contacto />

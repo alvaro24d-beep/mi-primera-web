@@ -8623,3 +8623,706 @@ input[type="range"].nxr-ms-range::-moz-range-thumb {
     min-height: 205px;
   }
 }
+
+/* ===== DWH iPhone Build (cinemática móvil + código en directo) =====
+   Ver components/dwh/IphoneBuild.tsx — port del CinematicHero que pasó
+   Álvaro, con la coreografía intacta y el contenido convertido a "la web se
+   construye en el móvil mientras se escribe su código". Sección DOM pura
+   (GSAP + pin), sin meshes: nxr-dwh-iphone NO va en alwaysIds. */
+
+.nxr-ip {
+  position: relative;
+}
+/* Guard anti-flash pre-hidratación: card y CTA ocultas por CSS hasta que
+   los gsap.set (layout effect) toman el control con visibility inline.
+   La rama estática (reduced motion) no oculta nada. */
+.nxr-ip:not(.nxr-ip-static) :is(.nxr-ip-card, .nxr-ip-cta) {
+  visibility: hidden;
+}
+
+.nxr-ip-stage {
+  position: relative;
+  height: 100lvh;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  perspective: 1500px;
+}
+
+.nxr-ip-grain {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 30;
+  opacity: 0.05;
+  mix-blend-mode: overlay;
+  background: url('data:image/svg+xml;utf8,<svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg"><filter id="noiseFilter"><feTurbulence type="fractalNoise" baseFrequency="0.8" numOctaves="3" stitchTiles="stitch"/></filter><rect width="100%" height="100%" filter="url(%23noiseFilter)"/></svg>');
+}
+
+.nxr-ip-grid {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  opacity: 0.5;
+  background-size: 60px 60px;
+  background-image: linear-gradient(to right, rgba(255, 255, 255, 0.04) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(255, 255, 255, 0.04) 1px, transparent 1px);
+  mask-image: radial-gradient(ellipse at center, black 0%, transparent 70%);
+  -webkit-mask-image: radial-gradient(ellipse at center, black 0%, transparent 70%);
+}
+
+/* ---- Fase 1: títulos ---- */
+.nxr-ip-titles {
+  position: absolute;
+  z-index: 5;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 0 var(--pad-x);
+  pointer-events: none;
+  will-change: transform, filter;
+}
+.nxr-ip-t1,
+.nxr-ip-t2 {
+  font-size: clamp(38px, 6.4vw, 88px);
+  line-height: 1.04;
+  letter-spacing: 0.01em;
+  text-transform: uppercase;
+}
+.nxr-ip-t1 {
+  color: var(--c-white);
+  text-shadow: 0 10px 30px rgba(255, 255, 255, 0.14), 0 2px 4px rgba(255, 255, 255, 0.08);
+}
+.nxr-ip-t2 {
+  color: var(--c-lime);
+  text-shadow: 0 10px 34px rgba(168, 240, 74, 0.18);
+}
+
+/* ---- Fase final: CTA descubierto tras la card ---- */
+.nxr-ip-cta {
+  position: absolute;
+  z-index: 5;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 0 var(--pad-x);
+  will-change: transform, filter;
+}
+.nxr-ip-cta-title {
+  font-size: clamp(34px, 5.4vw, 72px);
+  text-transform: uppercase;
+  letter-spacing: 0.01em;
+  color: var(--c-white);
+  margin-bottom: 16px;
+}
+.nxr-ip-cta-desc {
+  font-size: clamp(13px, 1.4vw, 16px);
+  color: rgba(255, 255, 255, 0.62);
+  max-width: 560px;
+  margin-bottom: 34px;
+}
+.nxr-ip-cta-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 15px 30px;
+  border-radius: 100px;
+  background: var(--c-red);
+  color: var(--c-white);
+  font-weight: 600;
+  font-size: 15px;
+  text-decoration: none;
+  box-shadow: 0 14px 34px rgba(239, 61, 13, 0.35), inset 0 1px 1px rgba(255, 255, 255, 0.25);
+  transition: transform 0.3s cubic-bezier(0.25, 1, 0.5, 1), box-shadow 0.3s;
+}
+.nxr-ip-cta-btn:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 20px 44px rgba(239, 61, 13, 0.45), inset 0 1px 1px rgba(255, 255, 255, 0.25);
+}
+
+/* ---- La card física profunda ---- */
+.nxr-ip-cardwrap {
+  position: absolute;
+  inset: 0;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  perspective: 1500px;
+}
+.nxr-ip-card {
+  position: relative;
+  width: 85vw;
+  height: 85vh;
+  border-radius: 40px;
+  overflow: hidden;
+  pointer-events: auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(145deg, #131c30 0%, #080d18 100%);
+  border: 1px solid rgba(255, 255, 255, 0.04);
+  box-shadow: 0 40px 100px -20px rgba(0, 0, 0, 0.9), 0 20px 40px -20px rgba(0, 0, 0, 0.8),
+    inset 0 1px 2px rgba(255, 255, 255, 0.16), inset 0 -2px 4px rgba(0, 0, 0, 0.8);
+  will-change: transform;
+}
+.nxr-ip-sheen {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  z-index: 40;
+  background: radial-gradient(800px circle at var(--mouse-x, 50%) var(--mouse-y, 50%), rgba(255, 255, 255, 0.06) 0%, transparent 40%);
+  mix-blend-mode: screen;
+}
+
+.nxr-ip-cardgrid {
+  position: relative;
+  z-index: 10;
+  width: 100%;
+  height: 100%;
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 0 48px;
+  display: grid;
+  grid-template-columns: minmax(300px, 400px) 1fr minmax(230px, 320px);
+  align-items: center;
+  gap: 28px;
+}
+
+/* ---- Panel de código ---- */
+.nxr-ip-code {
+  background: rgba(6, 10, 18, 0.85);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 16px;
+  box-shadow: 0 24px 48px rgba(0, 0, 0, 0.55), inset 0 1px 1px rgba(255, 255, 255, 0.05);
+  overflow: hidden;
+  will-change: transform;
+}
+.nxr-ip-code-head {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 12px 16px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+.nxr-ip-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+}
+.nxr-ip-dot.r {
+  background: #ff5f57;
+}
+.nxr-ip-dot.y {
+  background: #febc2e;
+}
+.nxr-ip-dot.g {
+  background: #28c840;
+}
+.nxr-ip-code-file {
+  margin-left: 8px;
+  font-family: var(--font-space-mono), ui-monospace, monospace;
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.45);
+}
+.nxr-ip-code-body {
+  margin: 0;
+  padding: 18px 20px 22px;
+  font-family: var(--font-space-mono), ui-monospace, monospace;
+  font-size: 12.5px;
+  line-height: 1.75;
+  color: rgba(220, 228, 240, 0.88);
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+.nxr-ip-code-body .tok-t {
+  color: var(--c-lime);
+}
+.nxr-ip-code-body .tok-a {
+  color: var(--c-salmon);
+}
+.nxr-ip-code-body .tok-s {
+  color: rgba(255, 255, 255, 0.92);
+}
+.nxr-ip-code-body .tok-c {
+  color: rgba(255, 255, 255, 0.32);
+}
+
+/* ---- Zona del iPhone ---- */
+.nxr-ip-phonezone {
+  position: relative;
+  height: 620px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  perspective: 1000px;
+}
+.nxr-ip-phonescale {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transform-style: preserve-3d;
+  will-change: transform;
+}
+/* Escala CSS estática por breakpoint, separada del wrapper que anima GSAP
+   (mismo reparto que el original: si vivieran en el mismo elemento, GSAP
+   pisaría el transform de la media query). */
+.nxr-ip-phoneinner {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.nxr-ip-bezel {
+  position: relative;
+  width: 280px;
+  height: 580px;
+  border-radius: 3rem;
+  background-color: #111;
+  box-shadow: inset 0 0 0 2px #52525b, inset 0 0 0 7px #000, 0 40px 80px -15px rgba(0, 0, 0, 0.9),
+    0 15px 25px -5px rgba(0, 0, 0, 0.7);
+  transform-style: preserve-3d;
+  will-change: transform;
+}
+.nxr-ip-hwbtn {
+  position: absolute;
+  width: 3px;
+  background: linear-gradient(90deg, #404040 0%, #171717 100%);
+  box-shadow: -2px 0 5px rgba(0, 0, 0, 0.8), inset -1px 0 1px rgba(255, 255, 255, 0.15),
+    inset 1px 0 2px rgba(0, 0, 0, 0.8);
+  border-left: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 4px 0 0 4px;
+}
+.nxr-ip-hwbtn.b1 {
+  top: 120px;
+  left: -3px;
+  height: 25px;
+}
+.nxr-ip-hwbtn.b2 {
+  top: 160px;
+  left: -3px;
+  height: 45px;
+}
+.nxr-ip-hwbtn.b3 {
+  top: 220px;
+  left: -3px;
+  height: 45px;
+}
+.nxr-ip-hwbtn.br {
+  top: 170px;
+  right: -3px;
+  height: 70px;
+  transform: scaleX(-1);
+}
+
+.nxr-ip-screen {
+  position: absolute;
+  inset: 7px;
+  background: #050914;
+  border-radius: 2.5rem;
+  overflow: hidden;
+  box-shadow: inset 0 0 15px rgba(0, 0, 0, 1);
+  color: var(--c-white);
+}
+.nxr-ip-glare {
+  position: absolute;
+  inset: 0;
+  z-index: 40;
+  pointer-events: none;
+  background: linear-gradient(110deg, rgba(255, 255, 255, 0.08) 0%, rgba(255, 255, 255, 0) 45%);
+}
+.nxr-ip-island {
+  position: absolute;
+  top: 5px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 100px;
+  height: 28px;
+  background: #000;
+  border-radius: 100px;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  padding: 0 12px;
+  box-shadow: inset 0 -1px 2px rgba(255, 255, 255, 0.1);
+}
+.nxr-ip-island-led {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--c-lime);
+  box-shadow: 0 0 8px rgba(168, 240, 74, 0.8);
+  animation: nxr-ip-led 2s ease-in-out infinite;
+}
+@keyframes nxr-ip-led {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.35;
+  }
+}
+
+/* ---- La web que se construye dentro del móvil ---- */
+.nxr-ip-web {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  padding: 44px 16px 18px;
+  display: flex;
+  flex-direction: column;
+}
+.nxr-ip-w-nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 2px 10px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+  margin-bottom: 14px;
+}
+.nxr-ip-w-logo {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+.nxr-ip-w-logodot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--c-lime);
+  box-shadow: 0 0 6px rgba(168, 240, 74, 0.7);
+}
+.nxr-ip-w-burger {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.nxr-ip-w-burger i {
+  width: 14px;
+  height: 1.5px;
+  background: rgba(255, 255, 255, 0.55);
+  border-radius: 2px;
+}
+.nxr-ip-w-hero {
+  text-align: left;
+  margin-bottom: 14px;
+}
+.nxr-ip-w-hero h4 {
+  font-size: 19px;
+  line-height: 1.15;
+  margin-bottom: 6px;
+}
+.nxr-ip-w-hero p {
+  font-size: 9.5px;
+  color: rgba(255, 255, 255, 0.55);
+  margin-bottom: 10px;
+}
+.nxr-ip-w-cta {
+  display: inline-block;
+  padding: 7px 14px;
+  border-radius: 100px;
+  background: var(--c-lime);
+  color: #0a0d14;
+  font-size: 10.5px;
+  font-weight: 700;
+  box-shadow: 0 8px 18px rgba(168, 240, 74, 0.25);
+}
+.nxr-ip-w-cards {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+  margin-bottom: 14px;
+}
+.nxr-ip-w-card {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px;
+  border-radius: 14px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.04) 0%, rgba(255, 255, 255, 0.01) 100%);
+  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.3), inset 0 1px 1px rgba(255, 255, 255, 0.05),
+    inset 0 -1px 1px rgba(0, 0, 0, 0.5);
+  border: 1px solid rgba(255, 255, 255, 0.03);
+}
+.nxr-ip-w-cardico {
+  width: 32px;
+  height: 32px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.4);
+}
+.nxr-ip-w-cardico svg {
+  width: 15px;
+  height: 15px;
+}
+.nxr-ip-w-cardico.lime {
+  background: rgba(168, 240, 74, 0.12);
+  color: var(--c-lime);
+  border: 1px solid rgba(168, 240, 74, 0.25);
+}
+.nxr-ip-w-cardico.salmon {
+  background: rgba(255, 157, 125, 0.12);
+  color: var(--c-salmon);
+  border: 1px solid rgba(255, 157, 125, 0.25);
+}
+.nxr-ip-w-cardtxt {
+  flex: 1;
+}
+.nxr-ip-w-cardtxt b {
+  display: block;
+  font-size: 10.5px;
+  font-weight: 600;
+  margin-bottom: 5px;
+}
+.nxr-ip-w-cardtxt i {
+  display: block;
+  width: 60%;
+  height: 5px;
+  border-radius: 100px;
+  background: rgba(255, 255, 255, 0.14);
+  box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.5);
+}
+.nxr-ip-w-stats {
+  display: flex;
+  justify-content: space-between;
+  padding: 10px 6px;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+.nxr-ip-w-stats > div {
+  flex: 1;
+  text-align: center;
+}
+.nxr-ip-w-stats b {
+  display: block;
+  font-size: 14px;
+  letter-spacing: -0.01em;
+}
+.nxr-ip-w-stats > div:nth-child(1) b {
+  color: var(--c-lime);
+}
+.nxr-ip-w-stats > div:nth-child(2) b {
+  color: var(--c-salmon);
+}
+.nxr-ip-w-stats span {
+  font-family: var(--font-space-mono), ui-monospace, monospace;
+  font-size: 7.5px;
+  color: rgba(255, 255, 255, 0.45);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+.nxr-ip-w-footer {
+  margin-top: auto;
+  text-align: center;
+  font-family: var(--font-space-mono), ui-monospace, monospace;
+  font-size: 8.5px;
+  color: rgba(255, 255, 255, 0.35);
+  padding-bottom: 10px;
+}
+.nxr-ip-homebar {
+  position: absolute;
+  bottom: 6px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 120px;
+  height: 4px;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 100px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+}
+
+/* ---- Badges flotantes de cristal ---- */
+.nxr-ip-badge {
+  position: absolute;
+  z-index: 30;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px;
+  border-radius: 16px;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.08) 0%, rgba(255, 255, 255, 0.01) 100%);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.1), 0 25px 50px -12px rgba(0, 0, 0, 0.8),
+    inset 0 1px 1px rgba(255, 255, 255, 0.2), inset 0 -1px 1px rgba(0, 0, 0, 0.5);
+  will-change: transform;
+}
+.nxr-ip-badge-resp {
+  top: 46px;
+  left: -84px;
+}
+.nxr-ip-badge-perf {
+  bottom: 84px;
+  right: -84px;
+}
+.nxr-ip-badge-ico {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(180deg, rgba(168, 240, 74, 0.16) 0%, rgba(168, 240, 74, 0.04) 100%);
+  border: 1px solid rgba(168, 240, 74, 0.3);
+  color: var(--c-lime);
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.4);
+}
+.nxr-ip-badge-ico svg {
+  width: 17px;
+  height: 17px;
+}
+.nxr-ip-badge > span:last-child b {
+  display: block;
+  font-size: 12.5px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+.nxr-ip-badge > span:last-child i {
+  display: block;
+  font-family: var(--font-space-mono), ui-monospace, monospace;
+  font-style: normal;
+  font-size: 9.5px;
+  color: rgba(255, 255, 255, 0.5);
+  margin-top: 2px;
+}
+.nxr-ip-ringwrap {
+  position: relative;
+  width: 44px;
+  height: 44px;
+  flex-shrink: 0;
+}
+.nxr-ip-ringwrap svg {
+  width: 100%;
+  height: 100%;
+}
+.nxr-ip-ring {
+  transform: rotate(-90deg);
+  transform-origin: center;
+  stroke-dasharray: 164;
+  stroke-dashoffset: 164;
+  stroke-linecap: round;
+}
+.nxr-ip-ring-val {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11.5px;
+  font-weight: 700;
+}
+
+/* ---- Claim lateral ---- */
+.nxr-ip-claim {
+  will-change: transform;
+}
+.nxr-ip-claim h3 {
+  font-size: clamp(26px, 2.6vw, 40px);
+  line-height: 1.06;
+  text-transform: uppercase;
+  letter-spacing: 0.01em;
+  margin-bottom: 16px;
+}
+.nxr-ip-claim p {
+  font-size: 13.5px;
+  line-height: 1.65;
+  color: rgba(255, 255, 255, 0.6);
+  max-width: 300px;
+}
+
+/* ---- Rama estática (prefers-reduced-motion): composición completa, sin
+   pin ni animaciones — todo visible tal cual. ---- */
+.nxr-ip-static .nxr-ip-stage {
+  height: auto;
+  overflow: visible;
+  flex-direction: column;
+  gap: 40px;
+  padding: 80px 0;
+}
+.nxr-ip-static .nxr-ip-titles,
+.nxr-ip-static .nxr-ip-cta {
+  position: static;
+  pointer-events: auto;
+}
+.nxr-ip-static .nxr-ip-cardwrap {
+  position: static;
+  pointer-events: auto;
+}
+.nxr-ip-static .nxr-ip-ring {
+  stroke-dashoffset: 8;
+}
+
+/* ---- Móvil ---- */
+@media (max-width: 1023px) {
+  .nxr-ip-cardgrid {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-evenly;
+    padding: 18px 16px;
+    gap: 10px;
+  }
+  .nxr-ip-claim {
+    order: 1;
+    text-align: center;
+  }
+  .nxr-ip-claim h3 {
+    font-size: 22px;
+    margin-bottom: 0;
+  }
+  .nxr-ip-claim p {
+    display: none;
+  }
+  .nxr-ip-phonezone {
+    order: 2;
+    height: 380px;
+    flex: 1;
+    min-height: 0;
+  }
+  .nxr-ip-phoneinner {
+    transform: scale(0.62);
+  }
+  .nxr-ip-badge-resp {
+    left: -18px;
+    top: 28px;
+  }
+  .nxr-ip-badge-perf {
+    right: -18px;
+    bottom: 48px;
+  }
+  .nxr-ip-code {
+    order: 3;
+    width: 100%;
+    max-height: 172px;
+  }
+  .nxr-ip-code-body {
+    font-size: 10.5px;
+    line-height: 1.6;
+    padding: 12px 14px 14px;
+  }
+  .nxr-ip-card {
+    width: 92vw;
+    height: 88svh;
+    border-radius: 32px;
+  }
+}

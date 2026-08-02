@@ -4,7 +4,7 @@ import { useEffect, useRef } from "react";
 import dynamic from "next/dynamic";
 import gsap from "gsap";
 import { useGSAP } from "@gsap/react";
-import MacbookBuild from "./dwh/MacbookBuild";
+import IphoneMock from "./dwh/IphoneMock";
 import DecryptedText from "./DecryptedText";
 
 // Three.js + R3F + drei + postprocessing is by far the heaviest JS on this
@@ -21,11 +21,11 @@ export default function DesarrolloWebHero() {
   const stageRef = useRef<HTMLDivElement>(null);
   const reducedMotion = useReducedMotion();
 
-  // Mouse-driven 3D tilt of the MacBook rig (separate from the scroll
+  // Mouse-driven 3D tilt of the iPhone rig (separate from the scroll
   // timeline): with the scene's strong perspective, even ±6° reads deep.
   useEffect(() => {
     if (reducedMotion) return;
-    const tilt = sectionRef.current?.querySelector<HTMLElement>(".nxr-mb-tilt");
+    const tilt = sectionRef.current?.querySelector<HTMLElement>(".nxr-ip-tilt");
     if (!tilt) return;
     const rotY = gsap.quickTo(tilt, "rotationY", { duration: 0.7, ease: "power2" });
     const rotX = gsap.quickTo(tilt, "rotationX", { duration: 0.7, ease: "power2" });
@@ -47,11 +47,7 @@ export default function DesarrolloWebHero() {
       const q = gsap.utils.selector(section);
       const head = q(".nxr-dwh-head")[0] as HTMLElement | undefined;
       const canvasWrap = q(".nxr-dwh-canvas-wrap")[0] as HTMLElement | undefined;
-      const laptop = q(".nxr-mb-laptop")[0] as HTMLElement | undefined;
-      const lid = q(".nxr-mb-lid")[0] as HTMLElement | undefined;
-      const pageEl = q(".nxr-mb-page")[0] as HTMLElement | undefined;
-      const viewEl = q(".nxr-mb-viewport")[0] as HTMLElement | undefined;
-      const statUsers = q(".nxr-mb-stat-users")[0] as HTMLElement | undefined;
+      const rig = q(".nxr-ip-rig")[0] as HTMLElement | undefined;
       const labels = q(".nxr-dwh-layer-label");
       const facetPanel = q(".nxr-dwh-layers-panel")[0] as HTMLElement | undefined;
       const mobile = window.innerWidth < 768;
@@ -75,11 +71,11 @@ export default function DesarrolloWebHero() {
       const y0 = vh / 2 - restTop - (hh * S) / 2;
       if (head) gsap.set(head, { transformOrigin: "left top", scale: S, y: y0 });
 
-      // ---- On mobile, centre the MacBook in the REAL band between the top
+      // ---- On mobile, centre the iPhone in the REAL band between the top
       // edge and the facet card's top edge, measured live — the facet card
       // height varies per phone.
       if (mobile) {
-        const scene = q(".nxr-mb-scene")[0] as HTMLElement | undefined;
+        const scene = q(".nxr-ip-scene")[0] as HTMLElement | undefined;
         if (scene && facetPanel) {
           const stageHeight = stage.offsetHeight;
           const panelBottomOffset = parseFloat(getComputedStyle(facetPanel).bottom) || 0;
@@ -94,33 +90,29 @@ export default function DesarrolloWebHero() {
       // ---- Hidden start states.
       gsap.set(canvasWrap ?? [], { opacity: 0 });
       gsap.set(facetPanel ?? [], { opacity: 0, y: 24 });
-      // El MacBook espera abajo, pequeño y con la TAPA BIEN cerrada. -68°
-      // (no -34): entrando muy por debajo del origen de perspectiva, una
-      // tapa a -34° se proyecta casi plana y SE LEÍA COMO ABIERTA, y al
-      // subir el portátil el mismo ángulo se escorzaba de golpe — "primero
-      // se ve desplegado y pega un salto a más plegado". A -68° la tapa se
-      // lee cerrada desde cualquier ángulo de cámara. La entrada también es
-      // menos profunda (0.42·vh) para que el barrido del punto de vista sea
-      // menor.
-      gsap.set(laptop ?? [], { y: vh * 0.42, scale: mobile ? 0.76 : 0.78, autoAlpha: 0 });
-      gsap.set(lid ?? [], { rotateX: -68, transformOrigin: "center bottom" });
-      // Piezas de la página: caen desde arriba en su franja (construcción
-      // descendente).
-      gsap.set(q(".nxr-mb-el"), { opacity: 0, y: -14 });
-      gsap.set(q(".nxr-mb-url-load"), { scaleX: 0 });
-      gsap.set(q(".nxr-mb-live"), { opacity: 0, scale: 0.6, y: -6 });
+      // El iPhone espera abajo, tumbado y en profundidad — la entrada 3D
+      // firma del CinematicHero portado (V16.76): sube enderezándose desde
+      // z -500 con expo.out. transformPerspective da el escorzo real.
+      gsap.set(rig ?? [], {
+        y: vh * 0.42,
+        z: -500,
+        rotationX: 50,
+        rotationY: -30,
+        scale: 0.6,
+        autoAlpha: 0,
+        transformPerspective: 1000,
+      });
+      // Piezas de la web del teléfono: caen desde arriba en su franja
+      // (construcción descendente, mismo lenguaje que tenía el Mac).
+      gsap.set(q(".nxr-ip-w-nav, .nxr-ip-w-stats, .nxr-ip-w-footer, .nxr-ip-w-hero > *, .nxr-ip-w-card"), {
+        opacity: 0,
+        y: -14,
+      });
       gsap.set(labels, { opacity: 0, filter: "blur(10px)" });
 
       // Reveal the containers CSS keeps `visibility:hidden` until here (stops
       // the finished server-rendered page flashing before this effect runs).
-      gsap.set([q(".nxr-mb-scene"), facetPanel ?? []].flat(), { visibility: "visible" });
-
-      if (statUsers) statUsers.textContent = "0";
-      const statProxy = { val: 0 };
-      // Auto-scroll interno de la página: la construcción baja y el viewport
-      // de Safari la sigue. Function-based para sobrevivir refreshes.
-      const maxShift = () =>
-        pageEl && viewEl ? Math.max(0, pageEl.scrollHeight - viewEl.clientHeight) : 0;
+      gsap.set([q(".nxr-ip-scene"), facetPanel ?? []].flat(), { visibility: "visible" });
 
       const tl = gsap.timeline({
         scrollTrigger: {
@@ -141,62 +133,36 @@ export default function DesarrolloWebHero() {
       // ===== PHASE A — el título sale RECTO hacia arriba =====
       tl.to(head ?? {}, { y: -(restTop + hh * S + vh * 0.08), duration: 1.15, ease: "power2.in" }, 0);
 
-      // ===== La pantalla ENTRA y se posiciona (mucho 3D) =====
+      // ===== El iPhone ENTRA desde profundidad y se endereza (mucho 3D) =====
       tl.to(canvasWrap ?? {}, { opacity: 1, duration: 0.6 }, 0.6);
-      tl.to(laptop ?? {}, { autoAlpha: 1, duration: 0.3 }, 0.55);
-      tl.to(laptop ?? {}, { y: 0, scale: mobile ? 0.95 : 1, duration: 1.6, ease: "power2.out" }, 0.6);
-      // La tapa se ABRE desde la bisagra, progresiva y LARGA (termina en
-      // 2.75) — la apertura es el gesto protagonista de la entrada.
-      tl.to(lid ?? {}, { rotateX: 0, duration: 1.9, ease: "power2.inOut" }, 0.85);
+      tl.to(rig ?? {}, { autoAlpha: 1, duration: 0.3 }, 0.55);
+      tl.to(
+        rig ?? {},
+        { y: 0, z: 0, rotationX: 0, rotationY: 0, scale: mobile ? 0.98 : 1, duration: 2.0, ease: "expo.out" },
+        0.6
+      );
       tl.to(facetPanel ?? {}, { opacity: 1, y: 0, duration: 0.5 }, 1.15);
       if (labels[0]) tl.to(labels[0], { opacity: 1, filter: "blur(0px)", duration: 0.4 }, 1.3);
-      // Deriva 3D continua durante TODO el build: crece y se inclina un
-      // pelín hacia ti — nunca se queda quieta. (Empieza tras acabar la
-      // apertura: dos tweens del mismo rotateX no deben solaparse.)
-      tl.to(laptop ?? {}, { scale: mobile ? 1.02 : 1.1, duration: 3.3, ease: "sine.inOut" }, 2.3);
-      tl.to(lid ?? {}, { rotateX: 2.5, duration: 2.8, ease: "sine.inOut" }, 2.85);
+      // Deriva 3D continua durante TODO el build: crece y gira un pelín —
+      // nunca se queda quieto. (Empieza tras acabar la entrada: dos tweens
+      // de las mismas propiedades no deben solaparse.)
+      tl.to(rig ?? {}, { scale: mobile ? 1.03 : 1.08, rotationY: 5, duration: 3.1, ease: "sine.inOut" }, 2.65);
 
-      // ===== La página se CONSTRUYE de arriba hacia abajo =====
-      // La barra de carga del campo de URL es el progreso global del build.
-      tl.to(q(".nxr-mb-url-load"), { scaleX: 1, duration: 3.5, ease: "none" }, 1.7);
-
+      // ===== La web se CONSTRUYE de arriba hacia abajo en la pantalla =====
       const reveal = (sel: string, at: number, stagger = 0) =>
         tl.to(q(sel), { opacity: 1, y: 0, duration: 0.5, stagger, ease: "power2.out" }, at);
 
-      reveal(".nxr-mb-pnav", 1.75);
-      reveal(".nxr-mb-phero .nxr-mb-el", 2.05, 0.09);
+      reveal(".nxr-ip-w-nav", 1.75);
+      reveal(".nxr-ip-w-hero > *", 2.05, 0.09);
       crossfadeFacet(tl, labels, 0, 1, 2.7);
-      reveal(".nxr-mb-plogos .nxr-mb-el", 2.85, 0.06);
-      tl.to(pageEl ?? {}, { y: () => -0.28 * maxShift(), duration: 0.5, ease: "power1.inOut" }, 3.0);
-      reveal(".nxr-mb-pfeats .nxr-mb-el", 3.1, 0.12);
+      reveal(".nxr-ip-w-card", 2.95, 0.14);
       crossfadeFacet(tl, labels, 1, 2, 3.5);
-      tl.to(pageEl ?? {}, { y: () => -0.55 * maxShift(), duration: 0.5, ease: "power1.inOut" }, 3.55);
-      reveal(".nxr-mb-pmedia", 3.65);
-      reveal(".nxr-mb-pstats .nxr-mb-el", 3.95, 0.1);
-      tl.to(
-        statProxy,
-        {
-          val: 2840,
-          duration: 0.8,
-          ease: "power1.out",
-          onUpdate: () => {
-            if (statUsers) statUsers.textContent = Math.round(statProxy.val).toLocaleString("es-ES");
-          },
-        },
-        4.0
-      );
-      tl.to(pageEl ?? {}, { y: () => -0.8 * maxShift(), duration: 0.5, ease: "power1.inOut" }, 4.3);
-      reveal(".nxr-mb-pquote", 4.35);
-      crossfadeFacet(tl, labels, 2, 3, 4.6);
-      tl.to(pageEl ?? {}, { y: () => -maxShift(), duration: 0.45, ease: "power1.inOut" }, 4.65);
-      reveal(".nxr-mb-pfoot", 4.7);
-
-      // ===== Publicado: vuelve arriba y sella EN VIVO =====
-      tl.to(pageEl ?? {}, { y: 0, duration: 0.5, ease: "power2.inOut" }, 5.25);
-      tl.to(q(".nxr-mb-live"), { opacity: 1, scale: 1, y: 0, duration: 0.5, ease: "back.out(1.7)" }, 5.35);
+      reveal(".nxr-ip-w-stats", 3.75);
+      crossfadeFacet(tl, labels, 2, 3, 4.4);
+      reveal(".nxr-ip-w-footer", 4.55);
 
       // Hold so the finished site is what's on screen at the pin end.
-      tl.to({}, { duration: 0.45 }, 5.75);
+      tl.to({}, { duration: 0.5 }, 5.1);
 
       // Navegación cliente: este efecto corre ANTES que el del template que
       // resetea el scroll a 0 (los efectos de React van de hijo a padre),
@@ -215,7 +181,7 @@ export default function DesarrolloWebHero() {
       });
 
       // Idle breathing (independent of scroll).
-      gsap.to(q(".nxr-mb-float"), { yPercent: -2, duration: 3.4, ease: "sine.inOut", yoyo: true, repeat: -1 });
+      gsap.to(q(".nxr-ip-float"), { yPercent: -2, duration: 3.4, ease: "sine.inOut", yoyo: true, repeat: -1 });
     },
     { scope: sectionRef, dependencies: [reducedMotion] }
   );
@@ -253,7 +219,7 @@ export default function DesarrolloWebHero() {
         <div className="nxr-dwh-canvas-wrap">
           <HeroScene />
         </div>
-        <MacbookBuild />
+        <IphoneMock />
         <div className="nxr-dwh-overlay">
           <div className="nxr-dwh-head">
             {/* DecryptedText (React Bits, adapted): the headline "compiles"

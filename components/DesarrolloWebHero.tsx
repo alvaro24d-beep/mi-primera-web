@@ -153,9 +153,12 @@ export default function DesarrolloWebHero() {
       // de las mismas propiedades no deben solaparse.)
       tl.to(rig ?? {}, { scale: mobile ? 1.03 : 1.08, rotationY: 5, duration: 3.1, ease: "sine.inOut" }, 2.65);
 
-      // El indicador de "haz scroll" se retira en cuanto el usuario scrollea
-      // (primer tramo del scrub) — y vuelve solo si regresa arriba del todo.
-      tl.to(q(".nxr-dwh-scrollcue"), { autoAlpha: 0, duration: 0.3 }, 0.1);
+      // El indicador de "sigue scrolleando" acompaña SOLO a la animación del
+      // iPhone (V16.85, "no en el h1"): oculto en reposo (fase del titular),
+      // entra cuando el teléfono ya está en escena y se retira al terminar
+      // la construcción de la web.
+      tl.to(q(".nxr-dwh-scrollcue"), { autoAlpha: 1, duration: 0.35 }, 1.2);
+      tl.to(q(".nxr-dwh-scrollcue"), { autoAlpha: 0, duration: 0.35 }, 5.3);
 
       // ===== La web se CONSTRUYE de arriba hacia abajo Y SE SCROLLEA =====
       // El viewport de Safari sigue la construcción hacia abajo (el mismo

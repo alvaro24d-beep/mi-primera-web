@@ -50,14 +50,17 @@ import { useReducedMotion } from "@/hooks/useReducedMotion";
 const GLYPHS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789<>/{}[]#&+=";
 const FLY_MS = 1250; // vuelo de un fragmento (su objetivo llega a casa)
 const STAGGER_MS = 520; // escalonado de salida entre fragmentos
-// V16.80 ("que desaparezcan al llegar a la letra, un poco antes"): sin
-// remanso mínimo — cada fragmento empieza a apagarse NADA MÁS aterrizar,
-// con una dispersión corta para que el goteo siga siendo orgánico.
-const HOLD_MIN_MS = 0; // remanso mínimo de un fragmento ya aterrizado…
-const HOLD_VAR_MS = 280; // …más su parte aleatoria (goteo disperso del apagado)
-const FADE_MS = 430; // apagado individual de cada fragmento
-const TEXT_START = 0.35; // fracción de aterrizados con la que el h1 real asoma
-const TEXT_FULL = 0.95; // fracción con la que el h1 real llega a opacidad 1
+// V16.80→V16.85 ("se quedan detrás del título unos milisegundos; que
+// desaparezcan difuminados más rápido y un poco antes"): el apagado
+// arranca ANTES de aterrizar (hold negativo — el fragmento se disuelve
+// durante su aproximación final y se funde en la letra, nunca se posa
+// encima), dura menos, y el h1 real emerge antes para que haya letra
+// debajo en el momento de la fusión.
+const HOLD_MIN_MS = -140; // apagado desde 140ms ANTES de aterrizar…
+const HOLD_VAR_MS = 160; // …con dispersión corta (goteo orgánico, sin bloque)
+const FADE_MS = 260; // apagado individual de cada fragmento
+const TEXT_START = 0.12; // fracción de aterrizados con la que el h1 real asoma
+const TEXT_FULL = 0.75; // fracción con la que el h1 real llega a opacidad 1
 const DRIFT_AMP = 1.6; // px de micro-deriva en reposo (decae al disolverse)
 const SWAP_MS = 420; // fade del canvas en los caminos de FALLBACK (CSS .38s)
 const WATCHDOG_MS = 5000; // pase lo que pase, el título se revela
@@ -335,10 +338,11 @@ export default function HeroTitleAssemble({ h1Ref }: { h1Ref: RefObject<HTMLHead
           if (own < 0) continue;
           const flying = own < FLY_MS;
           if (!flying) landed++;
-          // Disolución POR FRAGMENTO: tras aterrizar y su remanso propio,
-          // cada glifo se apaga individualmente — el goteo disperso es lo
-          // que evita cualquier "momento de cambio" perceptible.
-          const fadeT = flying ? 0 : Math.min(Math.max((own - FLY_MS - f.hold) / FADE_MS, 0), 1);
+          // Disolución POR FRAGMENTO, sin esperar al aterrizaje (V16.85):
+          // con hold negativo el apagado empieza durante la aproximación
+          // final — el glifo se difumina mientras llega y se funde en su
+          // letra; el goteo disperso evita cualquier "momento de cambio".
+          const fadeT = Math.min(Math.max((own - FLY_MS - f.hold) / FADE_MS, 0), 1);
           if (fadeT >= 1) {
             finished++;
             continue;

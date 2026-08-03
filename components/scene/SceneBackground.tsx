@@ -228,6 +228,31 @@ const fragmentShader = /* glsl */ `
     float ch = fract(sin(dot(cid, vec2(419.2, 371.9))) * 833.7);
     float tw = step(0.92, ch) * (0.5 + 0.5 * sin(uTime * (1.2 + ch * 2.5) + ch * 40.0));
     col += uLine * tw * 0.16 * min(uOffLift, 2.4) * (1.0 - uPower);
+
+    // ===== Textura extra del estado APAGADO (V17.18, "más detalle y
+    // textura") — todo escala con (1-uPower): desaparece al encender. =====
+    float offAmt = 1.0 - uPower;
+    float offL = min(uOffLift, 2.4);
+    vec2 tp = fract(p);
+    // a) El cristal de cada monitor se hunde hacia su marco: sombra
+    // interior por tile, volumen físico de cada pantalla.
+    float inset = smoothstep(0.0, 0.18, tp.x) * smoothstep(1.0, 0.82, tp.x)
+                * smoothstep(0.0, 0.22, tp.y) * smoothstep(1.0, 0.78, tp.y);
+    col *= mix(1.0, mix(0.55, 1.0, inset), offAmt);
+    // b) Brillo de cristal: banda diagonal tenue por panel, cada uno con
+    // posición e intensidad propias — luz ambiente reflejada en el vidrio.
+    float sh = fract(sin(dot(pid, vec2(93.7, 211.3))) * 611.9);
+    float bandPos = tp.x * 0.8 + tp.y * 0.5;
+    float sheen = max(0.0, (1.0 - abs(bandPos - (0.35 + 0.5 * sh))) * 1.6 - 0.9);
+    col += vec3(0.10, 0.11, 0.14) * sheen * (0.4 + 0.6 * ph) * offL * offAmt;
+    // c) Subpíxeles "atascados": celdas sueltas (~0.6%) tenuemente
+    // encendidas en azulado o verdoso, fijas — detalle de muro real.
+    float sp = fract(sin(dot(cid, vec2(741.3, 128.5))) * 397.1);
+    vec3 stuckCol = mix(vec3(0.12, 0.16, 0.22), vec3(0.10, 0.20, 0.14), step(0.5, fract(sp * 37.0)));
+    col += stuckCol * step(0.994, sp) * offL * offAmt;
+    // d) Grano sutil animado: la superficie respira vista de cerca.
+    float gr = fract(sin(dot(gl_FragCoord.xy + vec2(uTime * 60.0, 0.0), vec2(12.9898, 78.233))) * 43758.5453);
+    col += vec3((gr - 0.5) * 0.016 * offL) * offAmt;
     // Deep dark gaps between the monitor tiles — applied AFTER glow/grid so
     // the separators cut through everything, like real bezels.
     col = mix(col, col * 0.16, sep);

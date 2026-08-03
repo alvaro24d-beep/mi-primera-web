@@ -1890,10 +1890,11 @@ p.nxr-hero-mastery-line {
    el reel escribe `y` inline en las captions cada frame y pisaría un
    transform de CSS. */
 @media (max-width: 900px) {
-  /* 30px (antes 14, V16.88 "baja lo del texto"): el primer empujón supo a
-     poco en teléfono real. */
+  /* 48px (14→30→48, V16.89 "tapan un poco la card, bájalo todo"): el
+     bloque completo de la card 0 (tag, título, párrafo y pills) baja para
+     despejar la card de cristal de arriba. Solo ese servicio y solo móvil. */
   .nxr-servicios-captions .nxr-srv-caption:first-child {
-    margin-top: 30px;
+    margin-top: 48px;
   }
 }
 
@@ -4285,6 +4286,20 @@ p.nxr-hero-mastery-line {
 }
 .nxr-contacto-page .nxr-contacto-inner {
   width: 100%;
+}
+/* V16.89 ("solo el formulario directamente"): en la página dedicada, la
+   columna izquierda entera (título de sección, párrafo, ítems de
+   confianza) se oculta y el grid pasa a UNA columna centrada — queda el
+   formulario step-by-step solo. El componente no cambia (sus hooks corren
+   sobre el bloque oculto sin efecto visible); embebido en las demás
+   páginas conserva sus dos columnas. */
+.nxr-contacto-page .nxr-contacto-left {
+  display: none;
+}
+.nxr-contacto-page .nxr-contacto-grid {
+  grid-template-columns: 1fr;
+  max-width: 640px;
+  margin: 0 auto;
 }
 @media (max-width: 768px) {
   .nxr-contacto-page #nxr-contacto {

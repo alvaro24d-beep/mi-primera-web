@@ -113,6 +113,7 @@ const fragmentShader = /* glsl */ `
   uniform vec2 uPanels;    // monitor-tile counts (across / down) for the panel-wall read
   uniform vec2 uRes;       // drawing-buffer size, for the SCREEN-SPACE edge vignette
   uniform float uDim;      // atenuación global del muro (1 móvil, <1 desktop)
+  uniform float uGridShift; // deriva vertical de la cuadrícula con el scroll (V17.5)
 
   vec3 sampleSource(vec2 uv) {
     if (uHasVideo > 0.5) {
@@ -131,8 +132,15 @@ const fragmentShader = /* glsl */ `
   }
 
   void main() {
+    // Deriva de la CUADRÍCULA con el scroll (V17.5): solo la textura de
+    // pantalla (rejilla fina + paneles) se desplaza en V — en el espacio UV
+    // del cilindro, así la cuadrícula se deforma siguiendo la perspectiva
+    // curvada exactamente igual que en reposo. El VÍDEO (pixelación,
+    // scanlines) y el glow/viñetas siguen muestreando vUv fijo.
+    vec2 gv = vec2(vUv.x, vUv.y - uGridShift);
+
     // Crisp grid via screen-space derivatives (constant ~1px lines).
-    vec2 g = vUv * uCells;
+    vec2 g = gv * uCells;
     vec2 gr = abs(fract(g - 0.5) - 0.5) / fwidth(g);
     float line = 1.0 - min(min(gr.x, gr.y), 1.0);
 
@@ -141,7 +149,7 @@ const fragmentShader = /* glsl */ `
     // own luminance so the wall reads as MANY PHYSICAL SCREENS, not one
     // continuous texture. Screen-space band width via fwidth = constant
     // ~2.5px separators regardless of depth/curvature.
-    vec2 p = vUv * uPanels;
+    vec2 p = gv * uPanels;
     vec2 pid = floor(p);
     vec2 pr = abs(fract(p - 0.5) - 0.5) / fwidth(p);
     float sep = 1.0 - smoothstep(0.0, 2.5, min(pr.x, pr.y));
@@ -254,6 +262,7 @@ export default function SceneBackground({
       uPanels: { value: new THREE.Vector2(15, Math.round(15 / wallAspect(WALL_MODES.landscape))) },
       uRes: { value: new THREE.Vector2(1, 1) },
       uDim: { value: 1 },
+      uGridShift: { value: 0 },
     }),
     // eslint-disable-next-line react-hooks/exhaustive-deps
     []
@@ -481,6 +490,13 @@ export default function SceneBackground({
     if (matV) {
       gl.getDrawingBufferSize(scratchSize.current);
       (matV.uniforms.uRes.value as THREE.Vector2).copy(scratchSize.current);
+      // Deriva de la cuadrícula ligada al scroll REAL (Lenis conduce el
+      // scroll nativo, ya suavizado): al bajar, la cuadrícula sube
+      // lentamente y viceversa. Signo: restar el shift en el shader mueve
+      // el patrón hacia V creciente (arriba) cuando scrollY crece. Lectura
+      // de window.scrollY sin coste de layout; se refresca en cada frame
+      // renderizado (vídeo ~30fps / always al scrollear).
+      matV.uniforms.uGridShift.value = window.scrollY * 0.00004;
     }
     const c = current.current;
     const t = target.current;

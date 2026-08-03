@@ -197,28 +197,26 @@ const fragmentShader = /* glsl */ `
       fill = uBase;
     }
 
-    // Panel APAGADO (V17.12, "más oscura, que se sienta apagada"): casi
-    // negro con un punto de frío — la lectura de "monitores en reposo" la
-    // dan los biseles, la rejilla tenue y el LED de standby de abajo, no un
-    // gris plano. El paso apagado→vídeo es POR PANEL (tileOn) y duro, con
-    // el destello blanco-frío del fallo digital encima.
-    vec3 offCol = vec3(0.030, 0.032, 0.040);
+    // Panel APAGADO (V17.13, "quita lo gris, casi negro"): fondo casi negro
+    // — la lectura de "pantalla apagada" la dan la CUADRÍCULA (más clara en
+    // reposo, ver el coeficiente de uLine abajo) y los biseles. El paso
+    // apagado→vídeo es POR PANEL (tileOn) y duro, con el destello
+    // blanco-frío del fallo digital encima.
+    vec3 offCol = vec3(0.013, 0.014, 0.018);
     fill = mix(offCol, fill, tileOn);
     fill += vec3(0.55, 0.6, 0.7) * glitch * (0.35 + 0.45 * ph);
 
     vec3 col = fill * panelLum;
     col += uGlowCol * glow * 0.10 * uPower;
-    col += uLine * line * (mix(0.07, 0.05, uPower) + 0.28 * glow * uPower);
+    // Apagada, la cuadrícula sube a 0.16 (V17.13, "que se vea que está
+    // ahí") — sobre el fondo casi negro es lo único que dibuja la pantalla.
+    col += uLine * line * (mix(0.16, 0.05, uPower) + 0.28 * glow * uPower);
     // Deep dark gaps between the monitor tiles — applied AFTER glow/grid so
     // the separators cut through everything, like real bezels.
     col = mix(col, col * 0.16, sep);
 
-    // LED de standby (V17.12): puntito rojo tenue abajo-derecha de cada
-    // monitor apagado, como un muro real en reposo — se apaga en cuanto su
-    // panel arranca. Aspect aproximado vía uPanels para que no se estire.
-    vec2 lc = (fract(p) - vec2(0.86, 0.18)) * vec2(uPanels.y / uPanels.x, 1.0);
-    float led = (1.0 - tileOn) * smoothstep(0.075, 0.035, length(lc));
-    col += vec3(0.5, 0.07, 0.04) * led * 0.55;
+    // (Los LEDs de standby rojos de V17.12 se retiraron en V17.13 a
+    // petición: "quita los puntos rojos esos".)
     col *= (0.42 + 0.58 * vig);
 
     // SCREEN-SPACE edge vignette ("sombra del vídeo de fondo") — inside the

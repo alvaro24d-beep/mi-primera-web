@@ -2122,9 +2122,16 @@ p.nxr-hero-mastery-line {
    aquí viven los estados, transiciones e idles CSS (pausados fuera de
    pantalla por .nxr-anims-live). */
 
-/* --- Pantalla 1: navegador construyendo la web (.anim-wb) --- */
+/* --- Pantalla 1: web experiencial con fondo 3D (.anim-w3, V16.82) ---
+   La web ficticia tiene un FONDO 3D (suelo-rejilla en perspectiva + orbes
+   de marca a distinta profundidad) tras un flujo de 3 secciones que el
+   guion recorre con scroll automático: -built enciende el fondo, -s1/-s2
+   son los dos tramos de scroll (el flujo sube una pantalla por tramo y
+   cada capa del fondo parallaxea a su propia velocidad — parallax manual
+   por capa, mismos 1.05s/curva que el flujo para que viajen juntos).
+   -snap anula transiciones un frame en el reset del loop. */
 
-.anim-wb {
+.anim-w3 {
   position: absolute;
   inset: 0;
   display: flex;
@@ -2132,7 +2139,11 @@ p.nxr-hero-mastery-line {
   gap: 8px;
 }
 
-.anim-wb-bar {
+.anim-w3.-snap * {
+  transition: none !important;
+}
+
+.anim-w3-bar {
   display: flex;
   align-items: center;
   gap: 5px;
@@ -2142,14 +2153,14 @@ p.nxr-hero-mastery-line {
   border-radius: 10px;
 }
 
-.anim-wb-dot {
+.anim-w3-dot {
   width: 7px;
   height: 7px;
   border-radius: 50%;
   background: rgba(255, 255, 255, 0.16);
 }
 
-.anim-wb-url {
+.anim-w3-url {
   flex: 1;
   margin-left: 6px;
   display: flex;
@@ -2162,7 +2173,7 @@ p.nxr-hero-mastery-line {
   overflow: hidden;
 }
 
-.anim-wb-url svg {
+.anim-w3-url svg {
   width: 10px;
   height: 10px;
   stroke: var(--c-lime);
@@ -2172,17 +2183,17 @@ p.nxr-hero-mastery-line {
 }
 
 /* Candado SSL: oculto hasta que la URL termina de teclearse (clase -ssl). */
-.anim-wb-url .anim-wb-lock {
+.anim-w3-url .anim-w3-lock {
   opacity: 0;
   transition: opacity 0.3s;
 }
 
-.anim-wb-url.-ssl .anim-wb-lock {
+.anim-w3-url.-ssl .anim-w3-lock {
   opacity: 1;
 }
 
 /* Caret de tecleo mientras la URL se escribe (clase -typing). */
-.anim-wb-url.-typing .anim-wb-url-text::after {
+.anim-w3-url.-typing .anim-w3-url-text::after {
   content: "";
   display: inline-block;
   width: 5px;
@@ -2190,363 +2201,406 @@ p.nxr-hero-mastery-line {
   margin-left: 2px;
   vertical-align: -1px;
   background: rgba(255, 255, 255, 0.7);
-  animation: nxr-wb-caret 0.7s steps(1) infinite;
+  animation: nxr-w3-caret 0.7s steps(1) infinite;
 }
 
-@keyframes nxr-wb-caret {
+@keyframes nxr-w3-caret {
   50% {
     opacity: 0;
   }
 }
 
-.anim-wb-url span {
+.anim-w3-url span {
   font-family: var(--font-space-mono), ui-monospace, monospace;
   font-size: 10px;
   color: rgba(255, 255, 255, 0.6);
 }
 
-.anim-wb-progress {
-  position: absolute;
-  left: 0;
-  bottom: 0;
-  width: 100%;
-  height: 2px;
-  background: var(--c-lime);
-  transform: scaleX(0);
-  transform-origin: left;
-}
-
-.anim-wb-page {
+/* --- Viewport de la web: el fondo 3D vive detrás del flujo de secciones. */
+.anim-w3-view {
   flex: 1;
   min-height: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
+  position: relative;
   border: 1px solid rgba(255, 255, 255, 0.07);
   border-radius: 10px;
-  padding: 10px;
   background: rgba(255, 255, 255, 0.02);
   overflow: hidden;
-  /* Preview responsive (V16.68): en .-mobile la página se estrecha a un
-     "device" centrado; el ancho transiciona como el resize de un editor. */
-  width: 100%;
-  align-self: center;
-  transition: width 0.55s cubic-bezier(0.65, 0, 0.35, 1);
+  perspective: 420px;
+  perspective-origin: 50% 30%;
 }
 
-.anim-wb.-mobile .anim-wb-page {
-  width: 50%;
+.anim-w3-bg {
+  position: absolute;
+  inset: 0;
+  transform-style: preserve-3d;
 }
 
-.anim-wb.-mobile .anim-wb-grid {
-  grid-template-columns: 1fr;
+/* Suelo-rejilla en perspectiva: el "3D" del fondo. Se enciende con -built
+   y retrocede (translateY dentro de su plano) con cada tramo de scroll. */
+.anim-w3-floor {
+  position: absolute;
+  left: -40%;
+  right: -40%;
+  bottom: -55%;
+  height: 105%;
+  background-image: repeating-linear-gradient(
+      to right,
+      rgba(168, 240, 74, 0.1) 0 1px,
+      transparent 1px 16px
+    ),
+    repeating-linear-gradient(to bottom, rgba(255, 255, 255, 0.06) 0 1px, transparent 1px 16px);
+  transform: rotateX(74deg) translateY(0);
+  transform-origin: 50% 0%;
+  mask-image: linear-gradient(to bottom, transparent 0%, #000 34%);
+  -webkit-mask-image: linear-gradient(to bottom, transparent 0%, #000 34%);
+  opacity: 0;
+  transition: opacity 0.8s ease, transform 1.05s cubic-bezier(0.65, 0, 0.35, 1);
 }
 
-/* Flujo interno desplazable (V16.68): hero + grid + sec2 en una columna que
-   la coreografía traslada para "scrollear" la página tras el click del CTA.
-   El % del translate es relativo al alto del flow (= interior de la page). */
-.anim-wb-flow {
-  flex: 1;
-  min-height: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  transition: transform 0.85s cubic-bezier(0.65, 0, 0.35, 1);
+.anim-w3.-built .anim-w3-floor {
+  opacity: 1;
 }
 
-.anim-wb-flow.-scrolled {
-  transform: translateY(-84%);
+.anim-w3.-s1 .anim-w3-floor {
+  transform: rotateX(74deg) translateY(13%);
 }
 
-/* Primer "viewport" del flujo: alto COMPLETO del interior de la página y
-   sin encoger — así hero+grid llenan la vista inicial y la sec2 queda fuera
-   (debajo, recortada por el overflow de .anim-wb-page) hasta el scroll. */
-.anim-wb-view {
+.anim-w3.-s2 .anim-w3-floor {
+  transform: rotateX(74deg) translateY(27%);
+}
+
+/* Orbes de profundidad: cada uno parallaxea a su propia velocidad (los más
+   "cercanos" viajan más). Desenfoque fijo barato (blur pequeño en elementos
+   diminutos, sin backdrop-filter). */
+.anim-w3-orb {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(9px);
+  opacity: 0;
+  transition: opacity 0.9s ease, transform 1.05s cubic-bezier(0.65, 0, 0.35, 1);
+}
+
+.anim-w3-orb.-a {
+  width: 30%;
+  aspect-ratio: 1;
+  top: 8%;
+  left: 6%;
+  background: radial-gradient(circle, rgba(168, 240, 74, 0.4) 0%, transparent 70%);
+}
+
+.anim-w3-orb.-b {
+  width: 24%;
+  aspect-ratio: 1;
+  top: 26%;
+  right: 4%;
+  background: radial-gradient(circle, rgba(255, 157, 125, 0.38) 0%, transparent 70%);
+}
+
+.anim-w3-orb.-c {
+  width: 42%;
+  aspect-ratio: 1;
+  top: 48%;
+  left: 26%;
+  background: radial-gradient(circle, rgba(239, 61, 13, 0.22) 0%, transparent 70%);
+}
+
+.anim-w3.-built .anim-w3-orb {
+  opacity: 1;
+}
+
+.anim-w3.-s1 .anim-w3-orb.-a {
+  transform: translateY(-46%);
+}
+
+.anim-w3.-s1 .anim-w3-orb.-b {
+  transform: translateY(-24%);
+}
+
+.anim-w3.-s1 .anim-w3-orb.-c {
+  transform: translateY(-13%);
+}
+
+.anim-w3.-s2 .anim-w3-orb.-a {
+  transform: translateY(-96%);
+}
+
+.anim-w3.-s2 .anim-w3-orb.-b {
+  transform: translateY(-52%);
+}
+
+.anim-w3.-s2 .anim-w3-orb.-c {
+  transform: translateY(-28%);
+}
+
+/* --- Flujo de secciones: 3 pantallas apiladas; cada tramo sube una. --- */
+.anim-w3-flow {
+  position: absolute;
+  inset: 0;
+  transition: transform 1.05s cubic-bezier(0.65, 0, 0.35, 1);
+}
+
+.anim-w3.-s1 .anim-w3-flow {
+  transform: translateY(-100%);
+}
+
+.anim-w3.-s2 .anim-w3-flow {
+  transform: translateY(-200%);
+}
+
+.anim-w3-sec {
   height: 100%;
-  flex-shrink: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  min-height: 0;
-}
-
-.anim-wb-hero {
+  padding: 12px 14px;
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  gap: 6px;
-  padding: 4px 2px 2px;
+  justify-content: center;
+  gap: 7px;
 }
 
-.anim-wb-line {
+.anim-w3-line {
   display: block;
   height: 7px;
   border-radius: 4px;
-  background: rgba(255, 255, 255, 0.12);
-  position: relative;
-  overflow: hidden;
-  /* Borde reservado para el estado WIREFRAME (transparente en reposo para
-     que el "pintado" solo funda colores, sin saltos de layout). */
-  border: 1px dashed transparent;
-  transition: background-color 0.5s, border-color 0.5s;
+  background: rgba(255, 255, 255, 0.16);
 }
 
-/* ---- Estado WIREFRAME (V16.68): la página se construye primero como plano
-   punteado sin color y ~medio segundo después se "pinta" (el JS quita las
-   clases -wire con stagger — las transitions de arriba hacen el fundido). */
-.anim-wb-line.-wire {
-  background-color: transparent;
-  border-color: rgba(255, 255, 255, 0.28);
-}
-
-.anim-wb-line.-wire::after,
-.anim-wb-img.-wire::after,
-.anim-wb-tile.-wire .anim-wb-line::after,
-.anim-wb-tile.-wire .anim-wb-img::after {
-  animation: none;
-}
-
-.anim-wb-btn.-wire {
-  background-color: transparent;
-  border-color: rgba(168, 240, 74, 0.55);
-}
-
-.anim-wb-tile.-wire {
-  background-color: transparent;
-  border-color: rgba(255, 255, 255, 0.22);
-}
-
-.anim-wb-tile.-wire .anim-wb-img {
-  background-color: transparent;
-  border-color: rgba(255, 157, 125, 0.4);
-}
-
-.anim-wb-tile.-wire .anim-wb-line {
-  background-color: transparent;
-  border-color: rgba(255, 255, 255, 0.28);
-}
-
-/* Shimmer de skeleton: barrido continuo mientras la sección está viva. */
-.anim-wb-line::after,
-.anim-wb-img::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(100deg, transparent 30%, rgba(255, 255, 255, 0.14) 50%, transparent 70%);
-  transform: translateX(-100%);
-  animation: nxr-wb-shimmer 2.6s ease-in-out infinite;
-}
-
-@keyframes nxr-wb-shimmer {
-  0% {
-    transform: translateX(-100%);
-  }
-  60%,
-  100% {
-    transform: translateX(100%);
-  }
-}
-
-.anim-wb-line.-title {
-  width: 46%;
-  height: 9px;
-  background: rgba(255, 255, 255, 0.2);
-}
-
-.anim-wb-line.-sub {
+.anim-w3-line.-title {
   width: 64%;
+  height: 12px;
+  background: linear-gradient(90deg, rgba(255, 255, 255, 0.42), rgba(255, 255, 255, 0.2));
 }
 
-.anim-wb-btn {
-  position: relative;
-  width: 27%;
-  height: 14px;
-  border-radius: 7px;
-  background: rgba(168, 240, 74, 0.75);
-  margin-top: 2px;
-  border: 1px dashed transparent;
-  transition: transform 0.18s, box-shadow 0.25s, background-color 0.5s, border-color 0.5s;
+.anim-w3-line.-sub {
+  width: 44%;
 }
 
-.anim-wb-btn i {
-  position: absolute;
-  inset: 0;
-  border-radius: inherit;
+.anim-w3-line.-t1 {
+  width: 46%;
+  height: 5px;
 }
 
-.anim-wb-btn.-clicked {
-  transform: scale(0.94);
-  box-shadow: 0 0 18px rgba(168, 240, 74, 0.5);
+.anim-w3-btn {
+  margin-top: 4px;
+  width: 34%;
+  height: 16px;
+  border-radius: 999px;
+  background: var(--c-lime);
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
-.anim-wb-btn.-clicked i {
-  animation: nxr-wb-ripple 0.6s ease-out;
+.anim-w3-btn i {
+  width: 55%;
+  height: 4px;
+  border-radius: 2px;
+  background: rgba(5, 8, 16, 0.55);
 }
 
-@keyframes nxr-wb-ripple {
-  0% {
-    box-shadow: 0 0 0 0 rgba(168, 240, 74, 0.55);
-  }
-  100% {
-    box-shadow: 0 0 0 14px rgba(168, 240, 74, 0);
-  }
-}
-
-.anim-wb-grid {
-  flex: 1;
-  min-height: 0;
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
+/* Galería: tiles ocultos hasta que su tramo de scroll llega (-s1), con
+   stagger vía transition-delay — el contenido "se crea" al llegar a él. */
+.anim-w3-sec.-gal {
   gap: 8px;
 }
 
-.anim-wb-tile {
-  display: flex;
-  flex-direction: column;
-  gap: 5px;
-  border: 1px solid rgba(255, 255, 255, 0.07);
-  border-radius: 8px;
-  padding: 6px;
-  background: rgba(255, 255, 255, 0.03);
-  min-height: 0;
-  transition: background-color 0.5s, border-color 0.5s;
-}
-
-.anim-wb-img {
-  position: relative;
-  flex: 1;
-  min-height: 14px;
-  border-radius: 5px;
-  background: rgba(255, 157, 125, 0.14);
-  overflow: hidden;
-  border: 1px dashed transparent;
-  transition: background-color 0.5s, border-color 0.5s;
-}
-
-.anim-wb-tile .anim-wb-line.-t1 {
-  width: 85%;
-  height: 5px;
-}
-
-.anim-wb-tile .anim-wb-line.-t2 {
-  width: 55%;
-  height: 5px;
-}
-
-.anim-wb-badge {
-  position: absolute;
-  right: 8px;
-  bottom: 8px;
+.anim-w3-tile {
   display: flex;
   align-items: center;
-  gap: 5px;
-  font-family: var(--font-rajdhani), system-ui, sans-serif;
-  font-size: 9px;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: rgba(255, 255, 255, 0.65);
-  border: 1px solid rgba(168, 240, 74, 0.4);
-  background: rgba(12, 18, 6, 0.55);
-  border-radius: 999px;
-  padding: 4px 9px;
+  gap: 8px;
+  width: 84%;
+  padding: 7px 9px;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.045);
+  opacity: 0;
+  transform: translateY(12px);
+  transition: opacity 0.5s ease, transform 0.5s ease;
 }
 
-.anim-wb-badge b {
-  font-size: 13px;
+.anim-w3.-s1 .anim-w3-tile {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.anim-w3.-s1 .anim-w3-tile:nth-child(1) {
+  transition-delay: 0.45s;
+}
+
+.anim-w3.-s1 .anim-w3-tile:nth-child(2) {
+  transition-delay: 0.62s;
+}
+
+.anim-w3.-s1 .anim-w3-tile:nth-child(3) {
+  transition-delay: 0.79s;
+}
+
+.anim-w3-img {
+  width: 30px;
+  height: 22px;
+  border-radius: 6px;
+  flex-shrink: 0;
+  background: linear-gradient(135deg, rgba(168, 240, 74, 0.5), rgba(168, 240, 74, 0.12));
+}
+
+.anim-w3-img.-b {
+  background: linear-gradient(135deg, rgba(255, 157, 125, 0.5), rgba(255, 157, 125, 0.12));
+}
+
+.anim-w3-img.-c {
+  background: linear-gradient(135deg, rgba(239, 61, 13, 0.45), rgba(239, 61, 13, 0.1));
+}
+
+/* Sección final: métricas que cuentan + tira de footer. */
+.anim-w3-sec.-fin {
+  gap: 12px;
+}
+
+.anim-w3-stats {
+  display: flex;
+  gap: 18px;
+}
+
+.anim-w3-stat {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  opacity: 0;
+  transform: translateY(10px);
+  transition: opacity 0.5s ease 0.5s, transform 0.5s ease 0.5s;
+}
+
+.anim-w3-stat.-b {
+  transition-delay: 0.68s;
+}
+
+.anim-w3.-s2 .anim-w3-stat {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.anim-w3-stat b {
+  font-size: 17px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
   color: var(--c-lime);
 }
 
-.anim-wb-cursor {
-  position: absolute;
-  left: 78%;
-  top: 84%;
-  width: 13px;
-  height: 13px;
+.anim-w3-stat.-b b {
+  color: var(--c-salmon);
+}
+
+.anim-w3-stat i {
+  font-style: normal;
+  font-family: var(--font-space-mono), ui-monospace, monospace;
+  font-size: 8px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: rgba(255, 255, 255, 0.45);
+}
+
+.anim-w3-foot {
+  width: 70%;
+  height: 18px;
+  border-radius: 7px;
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  background: rgba(255, 255, 255, 0.04);
   opacity: 0;
-  z-index: 3;
+  transform: translateY(10px);
+  transition: opacity 0.5s ease 0.85s, transform 0.5s ease 0.85s;
 }
 
-.anim-wb-cursor svg {
-  width: 100%;
-  height: 100%;
-  fill: #fff;
-  stroke: rgba(0, 0, 0, 0.45);
-  stroke-width: 1;
+.anim-w3.-s2 .anim-w3-foot {
+  opacity: 1;
+  transform: translateY(0);
 }
 
-/* Sección 2 del flujo (V16.68): banda de "testimonios" + CTA de cierre que
-   el scroll interno revela tras el click. Alto relativo al viewport de la
-   página (el translateY(-84%) del flow la centra en pantalla). */
-.anim-wb-sec2 {
-  height: 82%;
-  flex-shrink: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  padding-top: 8px;
-  border-top: 1px dashed rgba(255, 255, 255, 0.1);
+/* --- Rótulos laterales: uno por sección, entra desde su lado. --- */
+.anim-w3-cap {
+  position: absolute;
+  padding: 4px 9px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(10, 13, 20, 0.72);
+  font-family: var(--font-space-mono), ui-monospace, monospace;
+  font-size: 8.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.09em;
+  color: rgba(255, 255, 255, 0.72);
+  opacity: 0;
+  transition: opacity 0.45s ease, transform 0.45s ease;
 }
 
-.anim-wb-line.-sec2title {
-  width: 38%;
-  height: 8px;
-  background: rgba(255, 255, 255, 0.18);
+.anim-w3-cap.-c0 {
+  top: 24%;
+  right: 8px;
+  transform: translateX(12px);
 }
 
-.anim-wb-sec2row {
-  display: flex;
-  gap: 8px;
-  flex: 1;
-  min-height: 0;
+.anim-w3-cap.-c1 {
+  top: 38%;
+  left: 8px;
+  transform: translateX(-12px);
 }
 
-.anim-wb-quote {
-  flex: 1;
-  display: flex;
-  gap: 6px;
-  align-items: flex-start;
-  border: 1px solid rgba(255, 255, 255, 0.07);
-  border-radius: 8px;
-  padding: 7px;
-  background: rgba(255, 255, 255, 0.03);
-  min-height: 0;
+.anim-w3-cap.-c2 {
+  top: 30%;
+  right: 8px;
+  transform: translateX(12px);
 }
 
-.anim-wb-ava {
-  width: 14px;
-  height: 14px;
-  border-radius: 50%;
-  background: rgba(168, 240, 74, 0.35);
-  flex-shrink: 0;
+.anim-w3.-built:not(.-s1):not(.-s2) .anim-w3-cap.-c0,
+.anim-w3.-s1:not(.-s2) .anim-w3-cap.-c1,
+.anim-w3.-s2 .anim-w3-cap.-c2 {
+  opacity: 1;
+  transform: translateX(0);
+  transition-delay: 0.55s;
 }
 
-.anim-wb-ava.-b {
-  background: rgba(255, 157, 125, 0.35);
+/* --- Rueda de scroll: el gesto que "conduce" el recorrido. --- */
+.anim-w3-wheel {
+  position: absolute;
+  right: 10px;
+  bottom: 10px;
+  width: 12px;
+  height: 19px;
+  border: 1.5px solid rgba(255, 255, 255, 0.35);
+  border-radius: 999px;
+  opacity: 0;
+  transition: opacity 0.5s ease;
 }
 
-.anim-wb-qcol {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  gap: 5px;
-  padding-top: 2px;
+.anim-w3.-built .anim-w3-wheel {
+  opacity: 1;
 }
 
-.anim-wb-quote .anim-wb-line {
-  height: 5px;
+.anim-w3-wheel i {
+  position: absolute;
+  left: 50%;
+  top: 3px;
+  width: 2px;
+  height: 4px;
+  margin-left: -1px;
+  border-radius: 2px;
+  background: rgba(255, 255, 255, 0.6);
 }
 
-.anim-wb-quote .anim-wb-line.-q1 {
-  width: 90%;
+.nxr-anims-live .anim-w3-wheel i {
+  animation: nxr-w3-wheel 1.6s ease-in-out infinite;
 }
 
-.anim-wb-quote .anim-wb-line.-q2 {
-  width: 62%;
-}
-
-.anim-wb-btn.-footer {
-  width: 34%;
-  margin-top: 0;
+@keyframes nxr-w3-wheel {
+  0%,
+  100% {
+    transform: translateY(0);
+    opacity: 1;
+  }
+  55% {
+    transform: translateY(7px);
+    opacity: 0.2;
+  }
+  70% {
+    opacity: 0;
+  }
 }
 
 /* --- Pantalla 2: chat del agente (.anim-ia) --- */
@@ -3348,9 +3402,6 @@ p.nxr-hero-mastery-line {
 /* --- Responsive de las pantallas --- */
 
 @media (max-width: 900px) {
-  .anim-wb-grid {
-    gap: 6px;
-  }
   /* Chat compacto (V16.37, "se cortan algunas cosas"): la conversación
      completa (cabecera + 4 mensajes + card + input) debe caber en la card
      4/3 del teléfono — antes el primer mensaje asomaba cortado por arriba. */

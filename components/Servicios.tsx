@@ -19,89 +19,82 @@ gsap.registerPlugin(ScrollTrigger);
 // real. La coreografía vive en los loops JS de abajo (perCard timers +
 // reinicio-al-centrar); los detalles idle (shimmer, pulsos, caret) son
 // keyframes CSS pausados por .nxr-anims-live fuera de pantalla.
-// V16.68 — coreografía elaborada: la URL se TECLEA (candado SSL al terminar),
-// la página se construye en dos pasos (WIREFRAME punteado → "pintado" con
-// color), el cursor clica el CTA y la página SCROLLEA internamente revelando
-// una sección de testimonios, el badge de performance CUENTA hasta 98 y el
-// ciclo remata con un preview RESPONSIVE (la página se estrecha a móvil con
-// los tiles apilados y vuelve). El guion vive en el loopWeb de abajo.
+// V16.82 — "Web experiencial": la pantalla muestra una web CON FONDO 3D
+// (suelo-rejilla en perspectiva + orbes de marca flotando a distinta
+// profundidad, como la propia Nexora) que primero SE CREA (URL tecleada +
+// candado SSL → el fondo 3D se enciende → el hero entra por bloques) y
+// después SE RECORRE con scroll AUTOMÁTICO: el flujo de secciones pasa por
+// el viewport (estados -s1/-s2) mientras cada capa del fondo se desplaza a
+// su propia velocidad (parallax manual por capa) y un rótulo lateral
+// acompaña cada sección. El guion vive en el loopWeb de abajo.
 function Web3DAnim() {
   return (
-    <div className="anim-wb" aria-hidden="true">
-      <div className="anim-wb-bar">
-        <span className="anim-wb-dot" />
-        <span className="anim-wb-dot" />
-        <span className="anim-wb-dot" />
-        <div className="anim-wb-url">
-          <svg className="anim-wb-lock" viewBox="0 0 24 24">
+    <div className="anim-w3" aria-hidden="true">
+      <div className="anim-w3-bar">
+        <span className="anim-w3-dot" />
+        <span className="anim-w3-dot" />
+        <span className="anim-w3-dot" />
+        <div className="anim-w3-url">
+          <svg className="anim-w3-lock" viewBox="0 0 24 24">
             <rect x="5" y="11" width="14" height="9" rx="2" />
             <path d="M8 11V8a4 4 0 0 1 8 0v3" />
           </svg>
-          <span className="anim-wb-url-text">tunegocio.es</span>
-          <i className="anim-wb-progress" />
+          <span className="anim-w3-url-text">tunegocio.es</span>
         </div>
       </div>
-      <div className="anim-wb-page">
-        <div className="anim-wb-flow">
-          {/* Primer "viewport" a altura completa: hero + grid llenan la vista
-              inicial y la sec2 queda FUERA (debajo) hasta el scroll interno. */}
-          <div className="anim-wb-view">
-            <div className="anim-wb-hero">
-              <span className="anim-wb-line -title" />
-              <span className="anim-wb-line -sub" />
-              <span className="anim-wb-btn">
-                <i />
-              </span>
-            </div>
-            <div className="anim-wb-grid">
-              <div className="anim-wb-tile">
-                <i className="anim-wb-img" />
-                <i className="anim-wb-line -t1" />
-                <i className="anim-wb-line -t2" />
-              </div>
-              <div className="anim-wb-tile">
-                <i className="anim-wb-img" />
-                <i className="anim-wb-line -t1" />
-                <i className="anim-wb-line -t2" />
-              </div>
-              <div className="anim-wb-tile">
-                <i className="anim-wb-img" />
-                <i className="anim-wb-line -t1" />
-                <i className="anim-wb-line -t2" />
-              </div>
-            </div>
-          </div>
-          <div className="anim-wb-sec2">
-            <span className="anim-wb-line -sec2title" />
-            <div className="anim-wb-sec2row">
-              <div className="anim-wb-quote">
-                <i className="anim-wb-ava" />
-                <span className="anim-wb-qcol">
-                  <i className="anim-wb-line -q1" />
-                  <i className="anim-wb-line -q2" />
-                </span>
-              </div>
-              <div className="anim-wb-quote">
-                <i className="anim-wb-ava -b" />
-                <span className="anim-wb-qcol">
-                  <i className="anim-wb-line -q1" />
-                  <i className="anim-wb-line -q2" />
-                </span>
-              </div>
-            </div>
-            <span className="anim-wb-btn -footer">
+      <div className="anim-w3-view">
+        {/* Fondo 3D de la web ficticia — parallax por capas en -s1/-s2 */}
+        <div className="anim-w3-bg">
+          <i className="anim-w3-floor" />
+          <i className="anim-w3-orb -a" />
+          <i className="anim-w3-orb -b" />
+          <i className="anim-w3-orb -c" />
+        </div>
+        {/* Contenido: 3 pantallas apiladas que el auto-scroll recorre */}
+        <div className="anim-w3-flow">
+          <div className="anim-w3-sec">
+            <span className="anim-w3-line -title" />
+            <span className="anim-w3-line -sub" />
+            <span className="anim-w3-btn">
               <i />
             </span>
           </div>
+          <div className="anim-w3-sec -gal">
+            <div className="anim-w3-tile">
+              <i className="anim-w3-img" />
+              <i className="anim-w3-line -t1" />
+            </div>
+            <div className="anim-w3-tile">
+              <i className="anim-w3-img -b" />
+              <i className="anim-w3-line -t1" />
+            </div>
+            <div className="anim-w3-tile">
+              <i className="anim-w3-img -c" />
+              <i className="anim-w3-line -t1" />
+            </div>
+          </div>
+          <div className="anim-w3-sec -fin">
+            <div className="anim-w3-stats">
+              <span className="anim-w3-stat">
+                <b>0</b>
+                <i>visitas</i>
+              </span>
+              <span className="anim-w3-stat -b">
+                <b>0</b>
+                <i>conversión</i>
+              </span>
+            </div>
+            <span className="anim-w3-foot" />
+          </div>
         </div>
-      </div>
-      <span className="anim-wb-badge">
-        <b>98</b> Performance
-      </span>
-      <div className="anim-wb-cursor">
-        <svg viewBox="0 0 24 24">
-          <path d="M4,2 L4,20 L9,15.5 L12,22 L15,20.5 L12,14 L18,14 Z" />
-        </svg>
+        {/* Rótulos laterales por sección */}
+        <span className="anim-w3-cap -c0">Inmersiva</span>
+        <span className="anim-w3-cap -c1">Fluida</span>
+        <span className="anim-w3-cap -c2">Convierte</span>
+        {/* Rueda: el "scroll" que conduce el recorrido */}
+        <span className="anim-w3-wheel">
+          <i />
+        </span>
       </div>
     </div>
   );
@@ -378,7 +371,7 @@ function AppAnim() {
 const CARDS = [
   {
     tag: "Desarrollo web",
-    title: "Webs que convierten visitas en clientes.",
+    title: "Web experiencial.",
     desc: "Diseñamos y desarrollamos sitios web a medida con rendimiento real, experiencia de usuario cuidada y arquitectura pensada para escalar. Sin plantillas. Sin límites.",
     pills: ["Landing pages", "Portales corporativos", "E-commerce", "Plataformas SaaS"],
     icon: (
@@ -1703,10 +1696,11 @@ export default function Servicios() {
       perCard[i].length = 0;
     };
 
-    // ===== Pantalla 1 — navegador construyendo la web (V16.68, guion
-    // elaborado): URL tecleada + SSL → carga → WIREFRAME → pintado → click
-    // del cursor → scroll interno a testimonios → performance 0→98 →
-    // preview responsive (móvil) → vuelta y loop. =====
+    // ===== Pantalla 1 — web experiencial (V16.82): URL tecleada + SSL →
+    // el FONDO 3D de la web se enciende (rejilla + orbes) → el hero entra
+    // por bloques → scroll AUTOMÁTICO por las secciones (-s1 galería, -s2
+    // stats) con parallax por capa en el fondo y rótulos laterales → las
+    // métricas cuentan → snap-back y loop. =====
     if (cards[0]) {
       const card0 = cards[0];
       function loopWeb(card: HTMLElement) {
@@ -1714,48 +1708,22 @@ export default function Servicios() {
           perCard[0].push(setTimeout(() => loopWeb(card), 1500));
           return;
         }
-        const anim = card.querySelector<HTMLElement>(".anim-wb");
-        const urlBox = card.querySelector<HTMLElement>(".anim-wb-url");
-        const urlText = card.querySelector<HTMLElement>(".anim-wb-url-text");
-        const progress = card.querySelector<HTMLElement>(".anim-wb-progress");
-        const page = card.querySelector<HTMLElement>(".anim-wb-page");
-        const flow = card.querySelector<HTMLElement>(".anim-wb-flow");
-        const hero = Array.from(card.querySelectorAll<HTMLElement>(".anim-wb-hero > *"));
-        const tiles = Array.from(card.querySelectorAll<HTMLElement>(".anim-wb-tile"));
-        const btn = card.querySelector<HTMLElement>(".anim-wb-hero .anim-wb-btn");
-        const badge = card.querySelector<HTMLElement>(".anim-wb-badge");
-        const badgeNum = card.querySelector<HTMLElement>(".anim-wb-badge b");
-        const cursor = card.querySelector<HTMLElement>(".anim-wb-cursor");
-        // --- Reset instantáneo (las transiciones del flow/page se anulan un
-        // frame para que el snap-back del scroll interno y del preview móvil
-        // no se vea animado). Los elementos arrancan ocultos y en WIREFRAME.
-        [flow, page].forEach((el) => el && (el.style.transition = "none"));
-        anim?.classList.remove("-mobile");
-        flow?.classList.remove("-scrolled");
+        const anim = card.querySelector<HTMLElement>(".anim-w3");
+        const urlBox = card.querySelector<HTMLElement>(".anim-w3-url");
+        const urlText = card.querySelector<HTMLElement>(".anim-w3-url-text");
+        const flow = card.querySelector<HTMLElement>(".anim-w3-flow");
+        const heroBits = Array.from(card.querySelectorAll<HTMLElement>(".anim-w3-sec:first-child > *"));
+        const statNums = Array.from(card.querySelectorAll<HTMLElement>(".anim-w3-stat b"));
+        // --- Reset instantáneo: la clase -snap anula todas las transiciones
+        // un frame para que el snap-back del scroll/parallax no se vea.
+        anim?.classList.add("-snap");
+        anim?.classList.remove("-built", "-s1", "-s2");
         urlBox?.classList.remove("-ssl", "-typing");
         if (urlText) urlText.textContent = "";
-        if (badgeNum) badgeNum.textContent = "0";
-        instant([...hero, ...tiles], { opacity: "0", transform: "translateY(10px)" });
-        hero.forEach((el) => el.classList.add("-wire"));
-        tiles.forEach((el) => el.classList.add("-wire"));
-        if (progress) {
-          progress.style.transition = "none";
-          progress.style.transform = "scaleX(0)";
-        }
-        if (badge) {
-          badge.style.transition = "none";
-          badge.style.opacity = "0";
-          badge.style.transform = "scale(0.6)";
-        }
-        if (cursor) {
-          cursor.style.transition = "none";
-          cursor.style.opacity = "0";
-          cursor.style.left = "78%";
-          cursor.style.top = "84%";
-        }
-        btn?.classList.remove("-clicked");
-        page?.getBoundingClientRect();
-        [flow, page].forEach((el) => el && (el.style.transition = ""));
+        statNums.forEach((b) => (b.textContent = "0"));
+        instant(heroBits, { opacity: "0", transform: "translateY(10px)" });
+        flow?.getBoundingClientRect();
+        anim?.classList.remove("-snap");
         const T = perCard[0];
         const show = (el: HTMLElement, at: number) =>
           T.push(
@@ -1774,72 +1742,27 @@ export default function Servicios() {
             urlBox?.classList.add("-ssl");
           }, 700)
         );
-        // 2) Carga.
-        T.push(
-          setTimeout(() => {
-            if (progress) {
-              progress.style.transition = "transform .7s ease";
-              progress.style.transform = "scaleX(1)";
-            }
-          }, 800)
-        );
-        // 3) El esqueleto WIREFRAME entra por bloques…
-        hero.forEach((el, i) => show(el, 1550 + i * 150));
-        tiles.forEach((el, i) => show(el, 2050 + i * 150));
-        // 4) …y se "pinta" con stagger (el fundido lo hacen las transitions
-        // de background/border de globals.css).
-        hero.forEach((el, i) => T.push(setTimeout(() => el.classList.remove("-wire"), 2750 + i * 130)));
-        tiles.forEach((el, i) => T.push(setTimeout(() => el.classList.remove("-wire"), 3150 + i * 130)));
-        // 5) El cursor aparece, viaja hasta el CTA (posición medida en % para
-        // sobrevivir al scale del cover-flow) y hace click.
-        T.push(
-          setTimeout(() => {
-            if (cursor) {
-              cursor.style.transition =
-                "opacity .3s, left 1.1s cubic-bezier(.4,0,.2,1), top 1.1s cubic-bezier(.4,0,.2,1)";
-              cursor.style.opacity = "1";
-            }
-          }, 3800)
-        );
-        T.push(
-          setTimeout(() => {
-            if (cursor && btn) {
-              const c = card.getBoundingClientRect();
-              const b = btn.getBoundingClientRect();
-              if (c.width > 0) {
-                cursor.style.left = `${((b.left + b.width * 0.6 - c.left) / c.width) * 100}%`;
-                cursor.style.top = `${((b.top + b.height * 0.7 - c.top) / c.height) * 100}%`;
-              }
-            }
-          }, 4000)
-        );
-        T.push(setTimeout(() => btn?.classList.add("-clicked"), 5100));
-        // 6) El click "navega": la página scrollea a la sección de
-        // testimonios; el cursor se retira.
-        T.push(setTimeout(() => flow?.classList.add("-scrolled"), 5400));
-        T.push(
-          setTimeout(() => {
-            if (cursor) cursor.style.opacity = "0";
-          }, 5600)
-        );
-        // 7) El badge de performance corona la build CONTANDO hasta 98.
-        T.push(
-          setTimeout(() => {
-            if (badge) {
-              badge.style.transition = "opacity .35s, transform .35s cubic-bezier(.34,1.56,.64,1)";
-              badge.style.opacity = "1";
-              badge.style.transform = "scale(1)";
-            }
-          }, 6300)
-        );
-        if (badgeNum) countTo(T, badgeNum, 98, 6400, 900, null);
-        // 8) Preview RESPONSIVE: la página se estrecha a móvil (tiles
-        // apilados), se sostiene un momento y vuelve a escritorio.
-        T.push(setTimeout(() => anim?.classList.add("-mobile"), 7700));
-        T.push(setTimeout(() => anim?.classList.remove("-mobile"), 9300));
-        // 9) El scroll interno vuelve arriba y el ciclo se cierra.
-        T.push(setTimeout(() => flow?.classList.remove("-scrolled"), 9700));
-        T.push(setTimeout(() => loopWeb(card), 11200));
+        // 2) El fondo 3D de la web SE ENCIENDE (rejilla en perspectiva +
+        // orbes de profundidad + rótulo "Inmersiva" + rueda de scroll).
+        T.push(setTimeout(() => anim?.classList.add("-built"), 950));
+        // 3) El hero entra por bloques sobre el fondo ya vivo.
+        heroBits.forEach((el, i) => show(el, 1500 + i * 170));
+        // 4) SCROLL AUTOMÁTICO a la galería: el flujo sube una pantalla y
+        // cada capa del fondo parallaxea a su velocidad (CSS de -s1).
+        T.push(setTimeout(() => anim?.classList.add("-s1"), 3200));
+        // 5) Segundo tramo de scroll: sección final con las métricas
+        // contando — la experiencia termina en resultados.
+        T.push(setTimeout(() => anim?.classList.add("-s2"), 5500));
+        if (statNums[0]) {
+          countTo(T, statNums[0], 140, 6100, 750, null);
+          T.push(setTimeout(() => (statNums[0].textContent = "+140%"), 6980));
+        }
+        if (statNums[1]) {
+          countTo(T, statNums[1], 3, 6300, 550, null);
+          T.push(setTimeout(() => (statNums[1].textContent = "x3"), 6980));
+        }
+        // 6) Lectura y ciclo.
+        T.push(setTimeout(() => loopWeb(card), 9400));
       }
       demoRestartRef.current[0] = () => {
         clearCard(0);

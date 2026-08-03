@@ -72,7 +72,9 @@ export default function Contacto() {
   useTextScramble(sectionRef, ".nxr-contacto-desc");
   const [negocio, setNegocio] = useState<string | null>(null);
   const [servicios, setServicios] = useState<string[]>([]);
-  const [budgetIndex, setBudgetIndex] = useState(2);
+  // Índice 4 = "5.000€ – 10.000€": el punto MEDIO exacto de los 9 tramos —
+  // la barra arranca centrada (petición V16.79) en vez de anclada abajo.
+  const [budgetIndex, setBudgetIndex] = useState(4);
   const [nombre, setNombre] = useState("");
   const [email, setEmail] = useState("");
   const [mensaje, setMensaje] = useState("");

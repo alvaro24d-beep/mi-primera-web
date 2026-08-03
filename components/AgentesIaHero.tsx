@@ -1,35 +1,29 @@
 "use client";
 
-import { useRef } from "react";
-import dynamic from "next/dynamic";
+import { useRef, useState } from "react";
 import gsap from "gsap";
 import { useGSAP } from "@gsap/react";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { useReducedMotion } from "@/hooks/useReducedMotion";
 import { useGlassPanels } from "@/hooks/useGlassPanels";
-import type { AiaDrive, AiaLayout } from "./aia/AgentScene";
+import SiriSplash from "./aia/SiriSplash";
 
 gsap.registerPlugin(ScrollTrigger);
 
-// Heaviest JS on the route — separate chunk, after hydration (same reasoning
-// as DesarrolloWebHero's HeroScene).
-const AgentScene = dynamic(() => import("./aia/AgentScene"), { ssr: false });
-
-// /agentes-ia hero, RECONSTRUIDO (V16.0): a pinned, scroll-scrubbed
+// /agentes-ia hero (V16.0, PODADO en V16.98): a pinned, scroll-scrubbed
 // re-enactment of an AI agent resolving a real request end to end (golden
-// rule: the animation SHOWS the service). The layout is now a PIPELINE the
-// eye reads in order — customer chat → agent core → tools — laid out by ONE
-// CSS grid (desktop: three columns with the core column as the space between;
-// mobile: one flex column), so every gap is a grid gap and nothing is
-// absolutely positioned against anything else: overlap is impossible by
-// construction and proportions are owned by minmax()/clamp() in the CSS.
+// rule: the animation SHOWS the service). ONE CSS grid lays out the
+// pipeline — customer chat | tools (desktop) / columna única (mobile) — so
+// overlap is impossible by construction.
 //
-// The GSAP timeline lives here in the DOM tree (per AGENTS.md) and drives:
-//   1. DOM: conversation, tool chips, facet labels, closing CTA.
-//   2. WebGL (components/aia/AgentScene): core chip, beams, pulses — via the
-//      plain-object `driveRef` read by useFrame (contract unchanged).
-// Chat panel, tool chips and CTA are volumetric-glass anchors rendered by the
-// GLOBAL SceneCanvas (useGlassPanels) — `nxr-aia-hero` is in its alwaysIds.
+// V16.98 ("quita los dibujos del circuito… muy cutres" / "quita el botón"):
+// fuera el canvas AgentScene entero (núcleo-chip + haces + pulsos) con su
+// maquinaria de medición de anclas, y fuera el CTA "Quiero mi agente". La
+// historia la cuentan el chat y las herramientas solos. Antes del titular,
+// un SPLASH de entrada (onda Siri, components/aia/SiriSplash.tsx) aparece
+// ~1s con fundido difuminado y da paso al h1; y un indicador "Desliza"
+// acompaña la animación pineada. Chat y tools siguen siendo anclas de
+// cristal del SceneCanvas global (`nxr-aia-hero` está en alwaysIds).
 
 const FACETS = [
   { title: "Escucha", desc: "Entiende a tus clientes en lenguaje natural, por web o WhatsApp.", color: "var(--c-salmon)" },
@@ -159,40 +153,18 @@ function Tools() {
   );
 }
 
-function Cta({ onCta }: { onCta?: (e: React.MouseEvent) => void }) {
-  return (
-    <a className="nxr-aia-cta" href="#nxr-contacto" onClick={onCta}>
-      <span className="nxr-aia-cta-inner">
-        Quiero mi agente
-        <svg viewBox="0 0 24 24">
-          <path d="M5 12h14M13 6l6 6-6 6" />
-        </svg>
-      </span>
-    </a>
-  );
-}
-
 export default function AgentesIaHero() {
   const sectionRef = useRef<HTMLElement>(null);
   const stageRef = useRef<HTMLDivElement>(null);
-  const driveRef = useRef<AiaDrive>({ core: 0, read: 0, t0: 0, t1: 0, t2: 0, reply: 0 });
-  const layoutRef = useRef<AiaLayout>({ ready: false, core: { x: 0, y: 0 }, chat: { x: 0, y: 0 }, tools: [] });
+  // El splash Siri vive solo durante la entrada; al desmontarlo se libera
+  // su contexto WebGL (ver SiriSplash.tsx).
+  const [splashDone, setSplashDone] = useState(false);
   const reducedMotion = useReducedMotion();
 
   // Volumetric fluid glass from the global SceneCanvas on the story's
   // surfaces (anchors stay transparent DOM shells — the mesh IS the glass).
   useGlassPanels(sectionRef, ".nxr-aia-chat", "#10141c", [reducedMotion]);
   useGlassPanels(sectionRef, ".nxr-aia-tool", "#12161c", [reducedMotion]);
-  useGlassPanels(sectionRef, ".nxr-aia-cta", "#141018", [reducedMotion]);
-
-  const goContacto = (e: React.MouseEvent) => {
-    e.preventDefault();
-    const el = document.getElementById("nxr-contacto");
-    if (!el) return;
-    const lenis = (window as unknown as { __nxrLenis?: { scrollTo: (t: HTMLElement, o?: object) => void } }).__nxrLenis;
-    if (lenis) lenis.scrollTo(el, { offset: -10 });
-    else el.scrollIntoView({ behavior: "smooth" });
-  };
 
   useGSAP(
     () => {
@@ -203,7 +175,6 @@ export default function AgentesIaHero() {
 
       const q = gsap.utils.selector(section);
       const head = q(".nxr-aia-head")[0] as HTMLElement | undefined;
-      const canvasWrap = q(".nxr-aia-canvas-wrap")[0] as HTMLElement | undefined;
       const chat = q(".nxr-aia-chat")[0] as HTMLElement | undefined;
       const tools = q(".nxr-aia-tool") as HTMLElement[];
       const checks = q(".nxr-aia-tool-check") as HTMLElement[];
@@ -211,57 +182,13 @@ export default function AgentesIaHero() {
       const typing = q(".nxr-aia-typing")[0] as HTMLElement | undefined;
       const msgOut = q(".nxr-aia-msg-out")[0] as HTMLElement | undefined;
       const badge = q(".nxr-aia-badge")[0] as HTMLElement | undefined;
-      const cta = q(".nxr-aia-cta")[0] as HTMLElement | undefined;
       const facetsPanel = q(".nxr-aia-facets-panel")[0] as HTMLElement | undefined;
       const labels = q(".nxr-aia-facet-label");
-      const coreSpot = q(".nxr-aia-core-spot")[0] as HTMLElement | undefined;
       const mobile = window.innerWidth < 768;
 
       // Same Safari/Chrome `100lvh` disagreement fix as DesarrolloWebHero:
       // one real innerHeight measurement drives the mobile stage height.
       if (mobile) section.style.setProperty("--aia-vh", `${window.innerHeight}px`);
-
-      // ---- Measure beam anchor points for the WebGL scene. offsetLeft/Top
-      // chains ignore transforms, so this reads REST positions even when
-      // called mid-scrub (fonts.ready / resize re-runs).
-      const centerOf = (el: HTMLElement) => {
-        let x = el.offsetWidth / 2;
-        let y = el.offsetHeight / 2;
-        let node: HTMLElement | null = el;
-        while (node && node !== stage) {
-          x += node.offsetLeft;
-          y += node.offsetTop;
-          node = node.offsetParent as HTMLElement | null;
-        }
-        return { x, y };
-      };
-      const measure = () => {
-        if (!chat || !coreSpot || tools.length < 3) return;
-        const isMobileNow = window.innerWidth < 768;
-        const chatC = centerOf(chat);
-        const l = layoutRef.current;
-        l.core = centerOf(coreSpot);
-        // Beams land on the EDGE facing the core. Desktop pipeline is
-        // horizontal (chat | core | tools): chat's right edge, each tool's
-        // left edge. Mobile pipeline is vertical (chat / core / tools):
-        // chat's bottom edge, and each tool's top edge AT ITS ICON (x =
-        // left + 30) so the three beams land staggered instead of piling
-        // onto the same centre line.
-        l.chat = isMobileNow
-          ? { x: chatC.x, y: chatC.y + chat.offsetHeight / 2 - 4 }
-          : { x: chatC.x + chat.offsetWidth / 2 + 4, y: chatC.y };
-        l.tools = tools.map((el) => {
-          const c = centerOf(el);
-          return isMobileNow
-            ? { x: c.x - el.offsetWidth / 2 + 30, y: c.y - el.offsetHeight / 2 - 4 }
-            : { x: c.x - el.offsetWidth / 2 - 4, y: c.y };
-        });
-        l.ready = true;
-        window.dispatchEvent(new Event("nxr-aia-layout"));
-      };
-      measure();
-      document.fonts?.ready.then(measure).catch(() => {});
-      window.addEventListener("resize", measure, { passive: true });
 
       // ---- Title intro: big at mid-height, then exits STRAIGHT UP while
       // the pipeline rises in (same family gesture as /desarrollo-web V15.88).
@@ -299,7 +226,6 @@ export default function AgentesIaHero() {
       // ---- Hidden start states. The same waiting poses also exist as a CSS
       // floor (see globals.css) so no init race can ever paint the resolved
       // scene — these inline sets simply take over from it.
-      gsap.set(canvasWrap ?? [], { opacity: 0 });
       gsap.set(chat ?? [], { opacity: 0, y: 36 });
       gsap.set(msgIn ?? [], { opacity: 0, y: 14, filter: "blur(8px)" });
       gsap.set(typing ?? [], { opacity: 0 });
@@ -307,14 +233,29 @@ export default function AgentesIaHero() {
       gsap.set(badge ?? [], { opacity: 0, scale: 0.85, y: 8 });
       gsap.set(tools, { opacity: 0, y: mobile ? 18 : 0, x: mobile ? 0 : 26, scale: 0.92 });
       gsap.set(checks, { opacity: 0, scale: 0.5 });
-      gsap.set(cta ?? [], { opacity: 0, y: 16 });
       gsap.set(facetsPanel ?? [], { opacity: 0, y: 24 });
       gsap.set(labels, { opacity: 0, filter: "blur(10px)" });
       gsap.set(q(".nxr-aia-scene"), { visibility: "visible" });
       gsap.set(facetsPanel ?? [], { visibility: "visible" });
 
-      const d = driveRef.current;
-      d.core = d.read = d.t0 = d.t1 = d.t2 = d.reply = 0;
+      // ---- SPLASH de entrada (V16.98): la onda Siri aparece ~1s con
+      // fundido difuminado y da paso AUTOMÁTICAMENTE al titular — timeline
+      // por TIEMPO (no scrubbeada), toca solo opacity/filter del head (el
+      // scrub posee su y, sin conflicto). Al terminar, el estado React
+      // desmonta el canvas del splash y libera su contexto WebGL.
+      const splashEl = q(".nxr-aia-splash")[0] as HTMLElement | undefined;
+      if (splashEl && head) {
+        gsap.set(head, { opacity: 0, filter: "blur(14px)" });
+        const intro = gsap.timeline({ onComplete: () => setSplashDone(true) });
+        intro
+          .fromTo(
+            splashEl,
+            { opacity: 0, filter: "blur(16px)", scale: 0.92 },
+            { opacity: 1, filter: "blur(0px)", scale: 1, duration: 0.45, ease: "power2.out" }
+          )
+          .to(splashEl, { opacity: 0, filter: "blur(16px)", scale: 1.05, duration: 0.5, ease: "power2.in" }, 1.45)
+          .to(head, { opacity: 1, filter: "blur(0px)", duration: 0.6, ease: "power2.out" }, 1.7);
+      }
 
       const tl = gsap.timeline({
         scrollTrigger: {
@@ -337,26 +278,24 @@ export default function AgentesIaHero() {
           tl.scrollTrigger?.refresh();
         })
         .catch(() => {});
-      tl.to(canvasWrap ?? {}, { opacity: 1, duration: 0.6 }, 0.6);
       tl.to(chat ?? {}, { opacity: 1, y: 0, duration: 0.6, ease: "power3.out" }, 0.85);
       tl.to(facetsPanel ?? {}, { opacity: 1, y: 0, duration: 0.5 }, 1.15);
       if (labels[0]) tl.to(labels[0], { opacity: 1, filter: "blur(0px)", duration: 0.4 }, 1.25);
+      // Indicador "Desliza" mientras corre la animación (V16.98) — entra
+      // con el pipeline y se retira al resolverse la gestión.
+      tl.to(q(".nxr-scrollcue"), { autoAlpha: 1, duration: 0.35 }, 1.0);
 
       // ===== PHASE B — the customer writes =====
       tl.to(msgIn ?? {}, { opacity: 1, y: 0, filter: "blur(0px)", duration: 0.5, ease: "power2.out" }, 1.5);
 
       // ===== PHASE C — the agent reads & thinks =====
       tl.to(typing ?? {}, { opacity: 1, duration: 0.35 }, 2.05);
-      tl.to(d, { core: 1, duration: 0.8, ease: "power2.inOut" }, 2.1);
-      tl.to(d, { read: 1, duration: 1.0, ease: "none" }, 2.25);
       crossfadeFacet(tl, labels, 0, 1, 2.3);
 
       // ===== PHASE D — tools fan out, one beat each =====
-      const toolKeys = ["t0", "t1", "t2"] as const;
       tools.forEach((tool, i) => {
         const at = 3.05 + i * 0.55;
         tl.to(tool, { opacity: 1, x: 0, y: 0, scale: 1, duration: 0.5, ease: "back.out(1.5)" }, at);
-        tl.to(d, { [toolKeys[i]]: 1, duration: 0.6, ease: "none" }, at + 0.12);
         if (checks[i]) tl.to(checks[i], { opacity: 1, scale: 1, duration: 0.35, ease: "back.out(2)" }, at + 0.5);
       });
       crossfadeFacet(tl, labels, 1, 2, 3.15);
@@ -364,12 +303,9 @@ export default function AgentesIaHero() {
       // ===== PHASE E — the reply closes the loop =====
       crossfadeFacet(tl, labels, 2, 3, 4.6);
       tl.to(typing ?? {}, { opacity: 0, duration: 0.3 }, 4.65);
-      tl.to(d, { reply: 1, duration: 0.8, ease: "power1.inOut" }, 4.65);
       tl.to(msgOut ?? {}, { opacity: 1, y: 0, filter: "blur(0px)", duration: 0.55, ease: "power2.out" }, 4.75);
       tl.to(badge ?? {}, { opacity: 1, scale: 1, y: 0, duration: 0.5, ease: "back.out(1.7)" }, 5.3);
-
-      // ===== PHASE F — the CTA is the story's closing beat =====
-      tl.to(cta ?? {}, { opacity: 1, y: 0, duration: 0.5, ease: "back.out(1.4)" }, 5.6);
+      tl.to(q(".nxr-scrollcue"), { autoAlpha: 0, duration: 0.35 }, 5.5);
 
       // Hold — the resolved gestión is what's on screen at pin end.
       tl.to({}, { duration: 0.5 }, 6.1);
@@ -390,8 +326,6 @@ export default function AgentesIaHero() {
         const scrubTween = typeof st.getTween === "function" ? st.getTween() : null;
         if (scrubTween) scrubTween.progress(1);
       });
-
-      return () => window.removeEventListener("resize", measure);
     },
     { scope: sectionRef, dependencies: [reducedMotion] }
   );
@@ -409,7 +343,6 @@ export default function AgentesIaHero() {
         <div className="nxr-aia-flow">
           <ChatPanel static />
           <Tools />
-          <Cta onCta={goContacto} />
         </div>
         <div className="nxr-aia-st-facets">
           {FACETS.map((f, i) => (
@@ -431,23 +364,28 @@ export default function AgentesIaHero() {
   return (
     <section key="animated" id="nxr-aia-hero" className="nxr-aia-hero" ref={sectionRef}>
       <div className="nxr-aia-stage" ref={stageRef}>
-        <div className="nxr-aia-canvas-wrap">
-          <AgentScene drive={driveRef} layout={layoutRef} />
-        </div>
+        {/* Splash de entrada: la onda Siri saluda ~1s y se disuelve dando
+            paso al titular (timeline por tiempo en el useGSAP). */}
+        {!splashDone && (
+          <div className="nxr-aia-splash" aria-hidden="true">
+            <SiriSplash />
+          </div>
+        )}
         <div className="nxr-aia-scene">
-          {/* THE pipeline: one grid owns every actor. Desktop areas
-                chat | core | tools   (CTA in a second row under the chat)
-              Mobile: single flex column chat → core → tools → cta. The
-              core slot is a real in-flow box the ghost core-spot centres
-              in — the WebGL chip renders exactly there on every viewport. */}
+          {/* THE pipeline: one grid owns every actor — desktop
+                chat | tools ; mobile: single flex column chat → tools. */}
           <div className="nxr-aia-flow">
             <ChatPanel />
-            <div className="nxr-aia-core-slot" aria-hidden="true">
-              <div className="nxr-aia-core-spot" />
-            </div>
             <Tools />
-            <Cta onCta={goContacto} />
           </div>
+        </div>
+        {/* Indicador de scroll compartido (mismas clases que /desarrollo-web);
+            el timeline lo enciende solo mientras corre la animación. */}
+        <div className="nxr-scrollcue">
+          <span className="nxr-scrollcue-wheel">
+            <i />
+          </span>
+          <span className="nxr-scrollcue-txt">Desliza</span>
         </div>
         <div className="nxr-aia-overlay">
           <div className="nxr-aia-head">

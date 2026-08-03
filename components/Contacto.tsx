@@ -32,7 +32,7 @@ const SERVICIO_OPTS = [
   { val: "automatizacion", icon: "⚡", label: "Automatización" },
   { val: "seo", icon: "🔍", label: "SEO" },
   { val: "app", icon: "📱", label: "App / Software" },
-  { val: "no-lo-se", icon: "🤷", label: "No lo sé aún" },
+  { val: "no-lo-se", icon: "🤷", label: "Otra cosa" },
 ];
 
 const TOTAL_STEPS = 5;

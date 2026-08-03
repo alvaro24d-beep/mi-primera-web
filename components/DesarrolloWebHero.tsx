@@ -157,8 +157,8 @@ export default function DesarrolloWebHero() {
       // iPhone (V16.85, "no en el h1"): oculto en reposo (fase del titular),
       // entra cuando el teléfono ya está en escena y se retira al terminar
       // la construcción de la web.
-      tl.to(q(".nxr-dwh-scrollcue"), { autoAlpha: 1, duration: 0.35 }, 1.2);
-      tl.to(q(".nxr-dwh-scrollcue"), { autoAlpha: 0, duration: 0.35 }, 5.3);
+      tl.to(q(".nxr-scrollcue"), { autoAlpha: 1, duration: 0.35 }, 1.2);
+      tl.to(q(".nxr-scrollcue"), { autoAlpha: 0, duration: 0.35 }, 5.3);
 
       // ===== La web se CONSTRUYE de arriba hacia abajo Y SE SCROLLEA =====
       // El viewport de Safari sigue la construcción hacia abajo (el mismo
@@ -281,11 +281,11 @@ export default function DesarrolloWebHero() {
           </div>
           {/* Indicador de scroll: visible en reposo, se funde con el primer
               tramo del scrub (y reaparece si vuelves arriba del todo). */}
-          <div className="nxr-dwh-scrollcue">
-            <span className="nxr-dwh-scrollcue-wheel">
+          <div className="nxr-scrollcue">
+            <span className="nxr-scrollcue-wheel">
               <i />
             </span>
-            <span className="nxr-dwh-scrollcue-txt">Scroll</span>
+            <span className="nxr-scrollcue-txt">Scroll</span>
           </div>
           <div className="nxr-dwh-layers-panel">
             <div className="nxr-dwh-layers-inner">

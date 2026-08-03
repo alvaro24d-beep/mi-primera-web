@@ -6445,13 +6445,11 @@ input[type="range"].nxr-ms-range::-moz-range-thumb {
 /* ===== Agentes IA (service page) — Hero: agente atendiendo en directo (v2) ===== */
 /* RECONSTRUIDO (V16.0): un solo grid "pipeline" posee la composición entera —
    chat (cliente) | núcleo (agente) | herramientas (acciones), con el CTA
-   cerrando la historia bajo el chat. Cada distancia es un gap/área del grid y
    las proporciones viven en minmax()/clamp(): el solape es imposible por
    construcción, y el panel de chat mide EXACTAMENTE su contenido resuelto
    (nada de cajas medio vacías). Móvil: la misma tubería en columna única.
-   El cristal de chat/herramientas/CTA lo pone el canvas global
-   (useGlassPanels); el núcleo y los haces los pinta components/aia/AgentScene
-   sobre las anclas medidas (.nxr-aia-core-spot y bordes de los paneles). */
+   El cristal de chat/herramientas lo pone el canvas global (useGlassPanels).
+   V16.98: el canvas AgentScene (núcleo + haces) y el CTA se eliminaron. */
 
 .nxr-aia-hero {
   position: relative;
@@ -6461,16 +6459,23 @@ input[type="range"].nxr-ms-range::-moz-range-thumb {
   height: 100lvh;
   overflow: hidden;
 }
-.nxr-aia-canvas-wrap {
+/* Splash de entrada (V16.98): la onda Siri centrada sobre el muro; el
+   shader pinta fondo negro opaco y el blend screen lo vuelve transparente
+   (solo brilla la onda). El canvas interno es 300px; el CSS lo escala. */
+.nxr-aia-splash {
   position: absolute;
   inset: 0;
-  z-index: 1;
+  z-index: 6;
+  display: grid;
+  place-items: center;
   pointer-events: none;
+  opacity: 0;
 }
-.nxr-aia-canvas-wrap canvas {
+.nxr-aia-splash-canvas {
   display: block;
-  width: 100%;
-  height: 100%;
+  width: min(400px, 74vw);
+  aspect-ratio: 1;
+  mix-blend-mode: screen;
 }
 
 /* Suelo pre-GSAP (receta de Bug-Log-Pin-Nace-Con-Scroll-Viejo): la escena
@@ -6483,9 +6488,9 @@ input[type="range"].nxr-ms-range::-moz-range-thumb {
 }
 .nxr-aia-hero:not(.nxr-aia-static) .nxr-aia-chat,
 .nxr-aia-hero:not(.nxr-aia-static) .nxr-aia-tool,
-.nxr-aia-hero:not(.nxr-aia-static) .nxr-aia-cta,
 .nxr-aia-hero:not(.nxr-aia-static) .nxr-aia-msg,
-.nxr-aia-hero:not(.nxr-aia-static) .nxr-aia-badge {
+.nxr-aia-hero:not(.nxr-aia-static) .nxr-aia-badge,
+.nxr-aia-hero:not(.nxr-aia-static) .nxr-aia-head {
   opacity: 0;
 }
 
@@ -6502,40 +6507,21 @@ input[type="range"].nxr-ms-range::-moz-range-thumb {
 }
 .nxr-aia-flow {
   display: grid;
-  grid-template-areas:
-    "chat core tools"
-    "cta  core tools";
-  /* La columna del núcleo ES el espacio entre chat y herramientas: los
-     haces del canvas cruzan por aquí. */
-  grid-template-columns: minmax(300px, 400px) clamp(150px, 17vw, 240px) minmax(250px, 320px);
-  grid-template-rows: auto auto;
+  grid-template-areas: "chat tools";
+  /* El hueco central que ocupaba la columna del núcleo (V16.98: canvas de
+     haces eliminado) queda como gap — la lectura chat → herramientas se
+     mantiene. */
+  grid-template-columns: minmax(300px, 400px) minmax(250px, 320px);
+  column-gap: clamp(150px, 17vw, 240px);
   align-items: center;
   width: min(1080px, 100%);
+  justify-content: center;
 }
 .nxr-aia-chat {
   grid-area: chat;
 }
-.nxr-aia-core-slot {
-  grid-area: core;
-  position: relative;
-  align-self: stretch;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-/* Div fantasma 0×0: la escena WebGL centra el chip donde el layout ponga
-   esta caja — mover el núcleo por breakpoint es puro CSS. */
-.nxr-aia-core-spot {
-  width: 0;
-  height: 0;
-}
 .nxr-aia-tools {
   grid-area: tools;
-}
-.nxr-aia-cta {
-  grid-area: cta;
-  justify-self: start;
-  margin-top: 18px;
 }
 
 /* --- panel de chat (ancla de cristal: scrim mínimo, el mesh es el cuerpo) --- */
@@ -6779,39 +6765,6 @@ input[type="range"].nxr-ms-range::-moz-range-thumb {
   stroke-linejoin: round;
 }
 
-/* --- CTA (cierre de la historia; ancla de cristal) --- */
-.nxr-aia-cta {
-  display: inline-block;
-  border-radius: 99px;
-  background: rgba(20, 16, 24, 0.3);
-  text-decoration: none;
-}
-.nxr-aia-cta-inner {
-  display: inline-flex;
-  align-items: center;
-  gap: 9px;
-  font-family: var(--font-rajdhani), system-ui, sans-serif;
-  font-weight: 600;
-  font-size: 16px;
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
-  color: var(--c-white);
-  padding: 13px 26px;
-}
-.nxr-aia-cta-inner svg {
-  width: 16px;
-  height: 16px;
-  stroke: currentColor;
-  fill: none;
-  stroke-width: 2;
-  stroke-linecap: round;
-  stroke-linejoin: round;
-  transition: transform 0.25s;
-}
-.nxr-aia-cta:hover .nxr-aia-cta-inner svg {
-  transform: translateX(3px);
-}
-
 /* --- overlay: titular + facetas --- */
 .nxr-aia-overlay {
   position: absolute;
@@ -6900,10 +6853,6 @@ input[type="range"].nxr-ms-range::-moz-range-thumb {
     max-width: 430px;
     margin: 0 auto;
   }
-  .nxr-aia-core-slot {
-    align-self: auto;
-    height: clamp(84px, 12vh, 116px);
-  }
   .nxr-aia-chat-inner {
     padding: 14px 14px 12px;
     gap: 10px;
@@ -6920,14 +6869,6 @@ input[type="range"].nxr-ms-range::-moz-range-thumb {
   .nxr-aia-tool-icon {
     width: 32px;
     height: 32px;
-  }
-  .nxr-aia-cta {
-    align-self: center;
-    margin-top: 2px;
-  }
-  .nxr-aia-cta-inner {
-    font-size: 14px;
-    padding: 11px 22px;
   }
   .nxr-aia-head {
     top: 36px;
@@ -6967,9 +6908,6 @@ input[type="range"].nxr-ms-range::-moz-range-thumb {
   .nxr-aia-flow {
     gap: 8px;
   }
-  .nxr-aia-core-slot {
-    height: 52px;
-  }
   .nxr-aia-chat-inner {
     padding: 12px 12px 10px;
     gap: 8px;
@@ -6986,10 +6924,6 @@ input[type="range"].nxr-ms-range::-moz-range-thumb {
   .nxr-aia-tool-icon {
     width: 28px;
     height: 28px;
-  }
-  .nxr-aia-cta-inner {
-    font-size: 13px;
-    padding: 10px 20px;
   }
 }
 
@@ -7020,10 +6954,6 @@ input[type="range"].nxr-ms-range::-moz-range-thumb {
 .nxr-aia-static .nxr-aia-tool {
   background: rgba(18, 22, 28, 0.85);
   border: 1px solid var(--glass-border);
-}
-.nxr-aia-static .nxr-aia-cta {
-  background: var(--c-red);
-  align-self: flex-start;
 }
 .nxr-aia-st-facets {
   display: grid;
@@ -8982,7 +8912,7 @@ input[type="range"].nxr-ms-range::-moz-range-thumb {
    reposo (fase del titular) — el timeline lo enciende solo mientras corre
    la animación del iPhone y lo retira al terminar la construcción. Los
    estilos inline de GSAP (autoAlpha) ganan a este suelo en cuanto existen. */
-.nxr-dwh-scrollcue {
+.nxr-scrollcue {
   position: absolute;
   /* A la derecha (V16.86, "si no tapa texto"): el panel de facetas vive
      abajo-izquierda en desktop y a todo lo ancho abajo en móvil — la
@@ -8999,20 +8929,20 @@ input[type="range"].nxr-ms-range::-moz-range-thumb {
   visibility: hidden;
 }
 @media (max-width: 768px) {
-  .nxr-dwh-scrollcue {
+  .nxr-scrollcue {
     right: 12px;
     bottom: auto;
     top: 46%;
   }
 }
-.nxr-dwh-scrollcue-wheel {
+.nxr-scrollcue-wheel {
   position: relative;
   width: 15px;
   height: 24px;
   border: 1.5px solid rgba(255, 255, 255, 0.42);
   border-radius: 999px;
 }
-.nxr-dwh-scrollcue-wheel i {
+.nxr-scrollcue-wheel i {
   position: absolute;
   left: 50%;
   top: 4px;
@@ -9021,9 +8951,9 @@ input[type="range"].nxr-ms-range::-moz-range-thumb {
   margin-left: -1.25px;
   border-radius: 2px;
   background: rgba(255, 255, 255, 0.7);
-  animation: nxr-dwh-wheel 1.7s ease-in-out infinite;
+  animation: nxr-cue-wheel 1.7s ease-in-out infinite;
 }
-@keyframes nxr-dwh-wheel {
+@keyframes nxr-cue-wheel {
   0%,
   100% {
     transform: translateY(0);
@@ -9037,7 +8967,7 @@ input[type="range"].nxr-ms-range::-moz-range-thumb {
     opacity: 0;
   }
 }
-.nxr-dwh-scrollcue-txt {
+.nxr-scrollcue-txt {
   font-family: var(--font-space-mono), ui-monospace, monospace;
   font-size: 10px;
   text-transform: uppercase;

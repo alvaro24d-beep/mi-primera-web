@@ -158,6 +158,18 @@ const fragmentShader = /* glsl */ `
     float ph = fract(sin(dot(pid, vec2(127.1, 311.7))) * 43758.5453);
     float panelLum = 0.84 + 0.32 * ph;
 
+    // ===== Encendido por PANELES (V17.12, "cuadrantes que se van cargando
+    // de manera aleatoria con falla digital") =====
+    // Cada monitor tiene su umbral aleatorio (hash independiente del de
+    // luminancia) escalado a 0.85: al llegar uPower a 1 ningún panel
+    // conserva el fallo residual. tileOn es un step DURO — el panel salta
+    // de apagado a vídeo de golpe, nada de fundido difuminado — y glitch
+    // es una banda corta tras el umbral: el destello/desgarro del arranque,
+    // que recorre el muro en cascada mientras uPower rampa.
+    float thr = fract(sin(dot(pid, vec2(269.5, 183.3))) * 951.1357) * 0.85;
+    float tileOn = step(thr, uPower);
+    float glitch = tileOn * (1.0 - smoothstep(0.0, 0.09, uPower - thr));
+
     // Depth: light pooling toward uFocus + outward vignette.
     float d = distance(vUv, uFocus);
     float glow = smoothstep(0.85, 0.0, d);
@@ -168,6 +180,9 @@ const fragmentShader = /* glsl */ `
       // Chunky pixelation (in the curved UV, so the pixels follow the
       // concave deformation) + RGB split + scanlines = CRT screen.
       vec2 puv = (floor(vUv * uPixel) + 0.5) / uPixel;
+      // Desgarro horizontal del arranque (V17.12): mientras el panel está
+      // en su banda de fallo, su vídeo entra desplazado en X y recoloca.
+      puv.x += (ph - 0.5) * 0.14 * glitch;
       float o = 1.3 / uPixel.x;
       float r = sampleSource(puv + vec2(o, 0.0)).r;
       float gg = sampleSource(puv).g;
@@ -177,26 +192,33 @@ const fragmentShader = /* glsl */ `
       // Dim + tint toward the site's dark base so overlaid text stays legible.
       // (El "vídeo limpio en móvil" de V16.94 duró un día: V16.95 restaura
       // el sombreado completo también ahí, ya con el clip de montañas.)
-      // uPower (V17.10): con la pantalla apagada el vídeo desaparece y queda
-      // la textura física (paneles, biseles, rejilla, viñetas), como un muro
-      // de monitores sin señal. La base apagada es un GRIS propio, más claro
-      // que uBase (V17.11, "no completamente negro: se tiene que sentir
-      // apagada pero verse un poco") — con uBase*0.7 y el uDim de desktop
-      // encima quedaba negro puro.
-      vec3 offBase = vec3(0.11, 0.115, 0.13);
-      fill = mix(offBase, mix(uBase * 0.7, tv, 0.5), uPower);
+      fill = mix(uBase * 0.7, tv, 0.5);
     } else {
       fill = uBase;
     }
 
+    // Panel APAGADO (V17.12, "más oscura, que se sienta apagada"): casi
+    // negro con un punto de frío — la lectura de "monitores en reposo" la
+    // dan los biseles, la rejilla tenue y el LED de standby de abajo, no un
+    // gris plano. El paso apagado→vídeo es POR PANEL (tileOn) y duro, con
+    // el destello blanco-frío del fallo digital encima.
+    vec3 offCol = vec3(0.030, 0.032, 0.040);
+    fill = mix(offCol, fill, tileOn);
+    fill += vec3(0.55, 0.6, 0.7) * glitch * (0.35 + 0.45 * ph);
+
     vec3 col = fill * panelLum;
     col += uGlowCol * glow * 0.10 * uPower;
-    // Apagada, la rejilla sube un punto (0.12 vs 0.05): es lo que hace leer
-    // "pantalla" y no "hueco negro".
-    col += uLine * line * (mix(0.12, 0.05, uPower) + 0.28 * glow * uPower);
+    col += uLine * line * (mix(0.07, 0.05, uPower) + 0.28 * glow * uPower);
     // Deep dark gaps between the monitor tiles — applied AFTER glow/grid so
     // the separators cut through everything, like real bezels.
     col = mix(col, col * 0.16, sep);
+
+    // LED de standby (V17.12): puntito rojo tenue abajo-derecha de cada
+    // monitor apagado, como un muro real en reposo — se apaga en cuanto su
+    // panel arranca. Aspect aproximado vía uPanels para que no se estire.
+    vec2 lc = (fract(p) - vec2(0.86, 0.18)) * vec2(uPanels.y / uPanels.x, 1.0);
+    float led = (1.0 - tileOn) * smoothstep(0.075, 0.035, length(lc));
+    col += vec3(0.5, 0.07, 0.04) * led * 0.55;
     col *= (0.42 + 0.58 * vig);
 
     // SCREEN-SPACE edge vignette ("sombra del vídeo de fondo") — inside the
@@ -212,10 +234,10 @@ const fragmentShader = /* glsl */ `
 
     // Atenuación global del muro (petición: "oscurece un poco el fondo en
     // ordenador") — solo <1 en desktop, ver el efecto de orientación en JS.
-    // Apagada casi no se atenúa (suelo 0.85): uDim existe para domar el
-    // BRILLO del vídeo bajo el texto; aplicado al gris del apagado lo
-    // hundía a negro (V17.11).
-    col *= mix(0.85, uDim, uPower);
+    // Apagada casi no se atenúa (suelo 0.9): uDim existe para domar el
+    // BRILLO del vídeo bajo el texto; el apagado ya es casi negro de por
+    // sí y los LEDs/rejilla deben seguir leyéndose (V17.12).
+    col *= mix(0.9, uDim, uPower);
 
     gl_FragColor = vec4(col, 1.0);
   }
@@ -542,7 +564,9 @@ export default function SceneBackground({
         pTarget = Math.min(1, Math.max(0, (vh * 0.95 - top) / (vh * 0.4)));
       }
       const pPrev = powerRef.current;
-      const pNext = pPrev === null ? pTarget : pPrev + (pTarget - pPrev) * 0.1;
+      // 0.07 (V17.12): rampa algo más larga (~0.8s) para que la cascada de
+      // paneles encendiéndose con su fallo digital se pueda LEER.
+      const pNext = pPrev === null ? pTarget : pPrev + (pTarget - pPrev) * 0.07;
       powerRef.current = pNext;
       matV.uniforms.uPower.value = pNext;
       // Sigue invalidando mientras la rampa no asiente (modo demand).

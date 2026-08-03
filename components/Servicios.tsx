@@ -49,16 +49,30 @@ function Web3DAnim() {
           <i className="anim-w3-orb -b" />
           <i className="anim-w3-orb -c" />
         </div>
+        {/* Nav fija de la web ficticia: no viaja con el scroll (V17.9). */}
+        <div className="anim-w3-nav">
+          <i className="anim-w3-nav-logo" />
+          <i className="anim-w3-nav-link" />
+          <i className="anim-w3-nav-link" />
+          <i className="anim-w3-nav-link" />
+          <i className="anim-w3-nav-cta" />
+        </div>
         {/* Contenido: 3 pantallas apiladas que el auto-scroll recorre */}
         <div className="anim-w3-flow">
           <div className="anim-w3-sec">
             <span className="anim-w3-line -title" />
             <span className="anim-w3-line -sub" />
-            <span className="anim-w3-btn">
-              <i />
+            <span className="anim-w3-btns">
+              <span className="anim-w3-btn">
+                <i />
+              </span>
+              <span className="anim-w3-btn -ghost">
+                <i />
+              </span>
             </span>
           </div>
           <div className="anim-w3-sec -gal">
+            <i className="anim-w3-line -ghead" />
             <div className="anim-w3-tile">
               <i className="anim-w3-img" />
               <i className="anim-w3-line -t1" />
@@ -81,6 +95,10 @@ function Web3DAnim() {
               <span className="anim-w3-stat -b">
                 <b>0</b>
                 <i>conversión</i>
+              </span>
+              <span className="anim-w3-stat -c">
+                <b>0</b>
+                <i>rendimiento</i>
               </span>
             </div>
             <span className="anim-w3-foot" />
@@ -131,6 +149,7 @@ function ChatAnim() {
           </span>
         </div>
         <div className="anim-ia-msg -user">¡Perfecto, gracias!</div>
+        <div className="anim-ia-msg -bot">Te envío un recordatorio el día antes. 📅</div>
       </div>
       <div className="anim-ia-input">
         <span className="anim-ia-intext" />
@@ -166,16 +185,20 @@ function FlowAnim() {
           <path className="anim-fl-conn" d="M150,69 C204,69 210,30 264,30" />
           <path className="anim-fl-conn" d="M150,69 C204,69 210,108 264,108" />
           <circle className="anim-fl-pulse" r="3.2">
-            <animate attributeName="opacity" values="0;1;1;0" keyTimes="0;0.06;0.92;1" dur="2.4s" repeatCount="indefinite" />
-            <animateMotion dur="2.4s" repeatCount="indefinite" path="M36,30 C90,30 96,69 150,69 C204,69 210,30 264,30" />
+            <animate attributeName="opacity" values="0;1;1;0" keyTimes="0;0.06;0.92;1" dur="2s" repeatCount="indefinite" />
+            <animateMotion dur="2s" repeatCount="indefinite" path="M36,30 C90,30 96,69 150,69 C204,69 210,30 264,30" />
           </circle>
           <circle className="anim-fl-pulse" r="2.8">
-            <animate attributeName="opacity" values="0;1;1;0" keyTimes="0;0.06;0.92;1" dur="2.8s" repeatCount="indefinite" begin="1.1s" />
-            <animateMotion dur="2.8s" repeatCount="indefinite" begin="1.1s" path="M36,108 C90,108 96,69 150,69 C204,69 210,108 264,108" />
+            <animate attributeName="opacity" values="0;1;1;0" keyTimes="0;0.06;0.92;1" dur="2.3s" repeatCount="indefinite" begin="0.9s" />
+            <animateMotion dur="2.3s" repeatCount="indefinite" begin="0.9s" path="M36,108 C90,108 96,69 150,69 C204,69 210,108 264,108" />
           </circle>
           <circle className="anim-fl-pulse -lime" r="2.8">
-            <animate attributeName="opacity" values="0;1;1;0" keyTimes="0;0.06;0.92;1" dur="2.6s" repeatCount="indefinite" begin="0.6s" />
-            <animateMotion dur="2.6s" repeatCount="indefinite" begin="0.6s" path="M36,30 C90,30 96,69 150,69 C204,69 210,108 264,108" />
+            <animate attributeName="opacity" values="0;1;1;0" keyTimes="0;0.06;0.92;1" dur="2.1s" repeatCount="indefinite" begin="0.5s" />
+            <animateMotion dur="2.1s" repeatCount="indefinite" begin="0.5s" path="M36,30 C90,30 96,69 150,69 C204,69 210,108 264,108" />
+          </circle>
+          <circle className="anim-fl-pulse -lime" r="3">
+            <animate attributeName="opacity" values="0;1;1;0" keyTimes="0;0.06;0.92;1" dur="2.2s" repeatCount="indefinite" begin="1.4s" />
+            <animateMotion dur="2.2s" repeatCount="indefinite" begin="1.4s" path="M36,108 C90,108 96,69 150,69 C204,69 210,30 264,30" />
           </circle>
         </svg>
         <div className="anim-fl-node" style={{ left: "12%", top: "20%" }}>
@@ -283,7 +306,10 @@ function SeoAnim() {
             className="anim-sc-line -clics"
             d="M0,68 L26,64 L52,66 L78,56 L104,58 L130,46 L156,50 L182,38 L208,34 L234,24 L260,16"
           />
+          {/* Objetivo del trimestre: guía punteada que la curva casi alcanza. */}
+          <path className="anim-sc-goal" d="M0,14 L260,14" />
         </svg>
+        <span className="anim-sc-badge">▲ 23% este mes</span>
         {/* Runner: cursor vertical + punto + tooltip que recorren la curva
             de clics en bucle (lo mueve el loop JS punto a punto). */}
         <div className="anim-sc-run">
@@ -1679,26 +1705,29 @@ export default function Servicios() {
       perCard[i].length = 0;
     };
 
-    // ===== Pantalla 1 — web experiencial (V16.82): URL tecleada + SSL →
-    // el FONDO 3D de la web se enciende (rejilla + orbes) → el hero entra
-    // por bloques → scroll AUTOMÁTICO por las secciones (-s1 galería, -s2
-    // stats) con parallax por capa en el fondo y rótulos laterales → las
-    // métricas cuentan → snap-back y loop. =====
+    // ===== Pantalla 1 — web experiencial (V17.9): las demos ya NO vuelven
+    // a vacío en cada ciclo ("quiero que en todo momento se vean llenas").
+    // INTRO (una sola vez, rápida): URL tecleada + SSL → el fondo 3D se
+    // enciende → el hero entra por bloques. LIVE (ciclo corto): scroll
+    // automático hero → galería → stats contando → snap-back invisible al
+    // hero, con el fondo, la nav y el hero SIEMPRE encendidos. =====
     if (cards[0]) {
       const card0 = cards[0];
-      function loopWeb(card: HTMLElement) {
+      let webBuilt = false;
+      const webEls = (card: HTMLElement) => ({
+        anim: card.querySelector<HTMLElement>(".anim-w3"),
+        urlBox: card.querySelector<HTMLElement>(".anim-w3-url"),
+        urlText: card.querySelector<HTMLElement>(".anim-w3-url-text"),
+        flow: card.querySelector<HTMLElement>(".anim-w3-flow"),
+        heroBits: Array.from(card.querySelectorAll<HTMLElement>(".anim-w3-sec:first-child > *")),
+        statNums: Array.from(card.querySelectorAll<HTMLElement>(".anim-w3-stat b")),
+      });
+      function introWeb(card: HTMLElement) {
         if (!visRef.current) {
-          perCard[0].push(setTimeout(() => loopWeb(card), 1500));
+          perCard[0].push(setTimeout(() => introWeb(card), 1500));
           return;
         }
-        const anim = card.querySelector<HTMLElement>(".anim-w3");
-        const urlBox = card.querySelector<HTMLElement>(".anim-w3-url");
-        const urlText = card.querySelector<HTMLElement>(".anim-w3-url-text");
-        const flow = card.querySelector<HTMLElement>(".anim-w3-flow");
-        const heroBits = Array.from(card.querySelectorAll<HTMLElement>(".anim-w3-sec:first-child > *"));
-        const statNums = Array.from(card.querySelectorAll<HTMLElement>(".anim-w3-stat b"));
-        // --- Reset instantáneo: la clase -snap anula todas las transiciones
-        // un frame para que el snap-back del scroll/parallax no se vea.
+        const { anim, urlBox, urlText, flow, heroBits, statNums } = webEls(card);
         anim?.classList.add("-snap");
         anim?.classList.remove("-built", "-s1", "-s2");
         urlBox?.classList.remove("-ssl", "-typing");
@@ -1708,136 +1737,251 @@ export default function Servicios() {
         flow?.getBoundingClientRect();
         anim?.classList.remove("-snap");
         const T = perCard[0];
-        const show = (el: HTMLElement, at: number) =>
-          T.push(
-            setTimeout(() => {
-              el.style.transition = "opacity .45s, transform .45s";
-              el.style.opacity = "1";
-              el.style.transform = "translateY(0)";
-            }, at)
-          );
-        // 1) La URL se teclea con caret; el candado SSL aparece al terminar.
-        T.push(setTimeout(() => urlBox?.classList.add("-typing"), 140));
-        if (urlText) typeInto(T, urlText, "tunegocio.es", 150, 40);
+        // 1) URL tecleada + SSL, en medio segundo.
+        T.push(setTimeout(() => urlBox?.classList.add("-typing"), 100));
+        if (urlText) typeInto(T, urlText, "tunegocio.es", 110, 26);
         T.push(
           setTimeout(() => {
             urlBox?.classList.remove("-typing");
             urlBox?.classList.add("-ssl");
-          }, 700)
+          }, 460)
         );
-        // 2) El fondo 3D de la web SE ENCIENDE (rejilla en perspectiva +
-        // orbes de profundidad + rótulo "Inmersiva" + rueda de scroll).
-        T.push(setTimeout(() => anim?.classList.add("-built"), 950));
-        // 3) El hero entra por bloques sobre el fondo ya vivo.
-        heroBits.forEach((el, i) => show(el, 1500 + i * 170));
-        // 4) SCROLL AUTOMÁTICO a la galería: el flujo sube una pantalla y
-        // cada capa del fondo parallaxea a su velocidad (CSS de -s1).
-        T.push(setTimeout(() => anim?.classList.add("-s1"), 3200));
-        // 5) Segundo tramo de scroll: sección final con las métricas
-        // contando — la experiencia termina en resultados.
-        T.push(setTimeout(() => anim?.classList.add("-s2"), 5500));
+        // 2) El fondo 3D + la nav se encienden ya.
+        T.push(setTimeout(() => anim?.classList.add("-built"), 550));
+        // 3) El hero entra por bloques, pegado al encendido.
+        heroBits.forEach((el, i) =>
+          T.push(
+            setTimeout(() => {
+              el.style.transition = "opacity .4s, transform .4s";
+              el.style.opacity = "1";
+              el.style.transform = "translateY(0)";
+            }, 700 + i * 110)
+          )
+        );
+        T.push(
+          setTimeout(() => {
+            webBuilt = true;
+            liveWeb(card);
+          }, 1800)
+        );
+      }
+      function liveWeb(card: HTMLElement) {
+        if (!visRef.current) {
+          perCard[0].push(setTimeout(() => liveWeb(card), 1500));
+          return;
+        }
+        const { anim, urlBox, urlText, flow, heroBits, statNums } = webEls(card);
+        // Normalizado SIN vaciar: fondo/nav/hero/URL quedan como están —
+        // solo se garantiza el estado (por si un restart cortó a medias).
+        anim?.classList.add("-snap");
+        anim?.classList.add("-built");
+        anim?.classList.remove("-s1", "-s2");
+        urlBox?.classList.remove("-typing");
+        urlBox?.classList.add("-ssl");
+        if (urlText) urlText.textContent = "tunegocio.es";
+        instant(heroBits, { opacity: "1", transform: "translateY(0)" });
+        // Las stats se rearman a 0 mientras su pantalla está fuera de vista.
+        statNums.forEach((b) => (b.textContent = "0"));
+        flow?.getBoundingClientRect();
+        anim?.classList.remove("-snap");
+        const T = perCard[0];
+        // 1) Respiro en el hero y scroll automático a la galería.
+        T.push(setTimeout(() => anim?.classList.add("-s1"), 1100));
+        // 2) Scroll a la pantalla final: métricas contando.
+        T.push(setTimeout(() => anim?.classList.add("-s2"), 2800));
         if (statNums[0]) {
-          countTo(T, statNums[0], 140, 6100, 750, null);
-          T.push(setTimeout(() => (statNums[0].textContent = "+140%"), 6980));
+          countTo(T, statNums[0], 140, 3300, 600, null);
+          T.push(setTimeout(() => (statNums[0].textContent = "+140%"), 4020));
         }
         if (statNums[1]) {
-          countTo(T, statNums[1], 3, 6300, 550, null);
-          T.push(setTimeout(() => (statNums[1].textContent = "x3"), 6980));
+          countTo(T, statNums[1], 3, 3450, 450, null);
+          T.push(setTimeout(() => (statNums[1].textContent = "x3"), 4020));
         }
-        // 6) Lectura y ciclo.
-        T.push(setTimeout(() => loopWeb(card), 9400));
+        if (statNums[2]) countTo(T, statNums[2], 99, 3600, 500, null);
+        // 3) Lectura breve y snap-back invisible al hero (todo sigue lleno).
+        T.push(setTimeout(() => liveWeb(card), 5700));
       }
       demoRestartRef.current[0] = () => {
         clearCard(0);
-        loopWeb(card0);
+        if (webBuilt) liveWeb(card0);
+        else introWeb(card0);
       };
-      perCard[0].push(setTimeout(() => loopWeb(card0), 300));
+      perCard[0].push(setTimeout(() => introWeb(card0), 300));
     }
 
-    // ===== Pantalla 2 — chat del agente (el usuario TECLEA en el input,
-    // envía, el bot responde con typing y una card de confirmación) =====
+    // ===== Pantalla 2 — chat del agente (V17.9): la conversación NUNCA se
+    // vacía. INTRO (una vez): el hilo llega ya con 3 burbujas y el usuario
+    // teclea el cierre. LIVE (ciclo): solo se renuevan los 2 últimos
+    // mensajes — el usuario pide mover la cita, el agente ACTUALIZA la
+    // card de confirmación (pop + texto nuevo) y responde; los ciclos
+    // alternan 12:00 ↔ 10:30 para que el hilo evolucione de verdad. =====
     if (cards[1]) {
       const card1 = cards[1];
-      function loopChat(card: HTMLElement) {
+      let chatBuilt = false;
+      let chatFlip = false;
+      const SCRIPTS = [
+        { ask: "¿Podéis moverla a las 12:00?", when: "Jueves · 12:00", reply: "¡Hecho! Nos vemos a las 12:00. ✅" },
+        { ask: "¿Mejor volvemos a las 10:30?", when: "Jueves · 10:30", reply: "¡Hecho! Te espero el jueves. ✅" },
+      ];
+      const chatEls = (card: HTMLElement) => ({
+        msgs: Array.from(card.querySelectorAll<HTMLElement>(".anim-ia-msg:not(.-typing)")),
+        typingEl: card.querySelector<HTMLElement>(".anim-ia-msg.-typing"),
+        intext: card.querySelector<HTMLElement>(".anim-ia-intext"),
+        send: card.querySelector<HTMLElement>(".anim-ia-send"),
+        cardMsg: card.querySelector<HTMLElement>(".anim-ia-msg.-card"),
+      });
+      const chatShow = (T: ReturnType<typeof setTimeout>[], m: HTMLElement | undefined, at: number) => {
+        if (!m) return;
+        T.push(
+          setTimeout(() => {
+            m.style.transition = "opacity .4s, transform .4s";
+            m.style.opacity = "1";
+            m.style.transform = "translateY(0)";
+          }, at)
+        );
+      };
+      const chatTyping = (
+        T: ReturnType<typeof setTimeout>[],
+        typingEl: HTMLElement | null,
+        before: HTMLElement | undefined,
+        from: number,
+        to: number
+      ) => {
+        if (!typingEl) return;
+        T.push(
+          setTimeout(() => {
+            if (before && before.parentElement) before.parentElement.insertBefore(typingEl, before);
+            typingEl.style.display = "flex";
+          }, from)
+        );
+        T.push(setTimeout(() => (typingEl.style.display = "none"), to));
+      };
+      const chatSend = (
+        T: ReturnType<typeof setTimeout>[],
+        send: HTMLElement | null,
+        intext: HTMLElement | null,
+        at: number
+      ) => {
+        T.push(setTimeout(() => send?.classList.add("-hot"), at));
+        T.push(
+          setTimeout(() => {
+            if (intext) intext.textContent = "";
+            send?.classList.remove("-hot");
+          }, at + 320)
+        );
+      };
+      function introChat(card: HTMLElement) {
         if (!visRef.current) {
-          perCard[1].push(setTimeout(() => loopChat(card), 1500));
+          perCard[1].push(setTimeout(() => introChat(card), 1500));
           return;
         }
-        const msgs = Array.from(card.querySelectorAll<HTMLElement>(".anim-ia-msg:not(.-typing)"));
-        const typingEl = card.querySelector<HTMLElement>(".anim-ia-msg.-typing");
-        const intext = card.querySelector<HTMLElement>(".anim-ia-intext");
-        const send = card.querySelector<HTMLElement>(".anim-ia-send");
+        const { msgs, typingEl, intext, send } = chatEls(card);
         if (!msgs.length) return;
-        instant(msgs, { opacity: "0", transform: "translateY(8px)" });
+        // El hilo NACE lleno: pregunta + respuesta + cita confirmada ya
+        // visibles; solo el cierre se anima.
+        instant(msgs.slice(0, 3), { opacity: "1", transform: "translateY(0)" });
+        instant(msgs.slice(3), { opacity: "0", transform: "translateY(8px)" });
         if (typingEl) typingEl.style.display = "none";
         if (intext) intext.textContent = "";
         send?.classList.remove("-hot");
         card.querySelector(".anim-ia-msgs")?.getBoundingClientRect();
         const T = perCard[1];
-        const show = (m: HTMLElement | undefined, at: number) => {
-          if (!m) return;
-          T.push(
-            setTimeout(() => {
-              m.style.transition = "opacity .4s, transform .4s";
-              m.style.opacity = "1";
-              m.style.transform = "translateY(0)";
-            }, at)
-          );
-        };
-        // La burbuja "escribiendo…" se recoloca delante del mensaje al que
-        // precede (una sola burbuja, insertBefore barato).
-        const typing = (before: HTMLElement | undefined, from: number, to: number) => {
-          if (!typingEl) return;
-          T.push(
-            setTimeout(() => {
-              if (before && before.parentElement) before.parentElement.insertBefore(typingEl, before);
-              typingEl.style.display = "flex";
-            }, from)
-          );
-          T.push(setTimeout(() => (typingEl.style.display = "none"), to));
-        };
-        const sendPulse = (at: number) => {
-          T.push(setTimeout(() => send?.classList.add("-hot"), at));
-          T.push(
-            setTimeout(() => {
-              if (intext) intext.textContent = "";
-              send?.classList.remove("-hot");
-            }, at + 380)
-          );
-        };
-        let t = 300;
-        if (intext) t = typeInto(T, intext, "¿Tenéis cita para el jueves?", 300);
-        sendPulse(t + 120);
-        show(msgs[0], t + 500);
-        typing(msgs[1], t + 1000, t + 1900);
-        show(msgs[1], t + 1900);
-        typing(msgs[2], t + 2500, t + 3400);
-        show(msgs[2], t + 3400);
-        let t2 = t + 4100;
-        if (intext) t2 = typeInto(T, intext, "¡Perfecto, gracias!", t + 4100);
-        sendPulse(t2 + 120);
-        show(msgs[3], t2 + 500);
-        T.push(setTimeout(() => loopChat(card), t2 + 3300));
+        let t = 250;
+        if (intext) t = typeInto(T, intext, "¡Perfecto, gracias!", 250, 22);
+        chatSend(T, send, intext, t + 100);
+        chatShow(T, msgs[3], t + 250);
+        chatTyping(T, typingEl, msgs[4], t + 700, t + 1400);
+        chatShow(T, msgs[4], t + 1400);
+        T.push(
+          setTimeout(() => {
+            chatBuilt = true;
+            liveChat(card);
+          }, t + 3400)
+        );
+      }
+      function liveChat(card: HTMLElement) {
+        if (!visRef.current) {
+          perCard[1].push(setTimeout(() => liveChat(card), 1500));
+          return;
+        }
+        const { msgs, typingEl, intext, send, cardMsg } = chatEls(card);
+        if (!msgs.length) return;
+        const script = SCRIPTS[chatFlip ? 1 : 0];
+        chatFlip = !chatFlip;
+        // Normalizado sin vaciar: el hilo 0-2 queda visible siempre.
+        instant(msgs.slice(0, 3), { opacity: "1", transform: "translateY(0)" });
+        if (typingEl) typingEl.style.display = "none";
+        if (intext) intext.textContent = "";
+        send?.classList.remove("-hot");
+        cardMsg?.classList.remove("-pop");
+        card.querySelector(".anim-ia-msgs")?.getBoundingClientRect();
+        const T = perCard[1];
+        // 1) Solo los 2 últimos mensajes se renuevan (fade corto).
+        T.push(
+          setTimeout(() => {
+            msgs.slice(3).forEach((m) => {
+              m.style.transition = "opacity .25s, transform .25s";
+              m.style.opacity = "0";
+              m.style.transform = "translateY(6px)";
+            });
+          }, 150)
+        );
+        T.push(
+          setTimeout(() => {
+            if (msgs[3]) msgs[3].textContent = script.ask;
+            if (msgs[4]) msgs[4].textContent = script.reply;
+          }, 450)
+        );
+        // 2) El usuario teclea la nueva petición y envía.
+        let t = 500;
+        if (intext) t = typeInto(T, intext, script.ask, 500, 22);
+        chatSend(T, send, intext, t + 100);
+        chatShow(T, msgs[3], t + 250);
+        // 3) El agente "escribe", ACTUALIZA la card de la cita (pop) y
+        // confirma con el último mensaje.
+        chatTyping(T, typingEl, msgs[4], t + 700, t + 1450);
+        T.push(
+          setTimeout(() => {
+            if (cardMsg) {
+              const b = cardMsg.querySelector("b");
+              const s = cardMsg.querySelector("span > span");
+              if (b) b.textContent = "Cita actualizada";
+              if (s) s.textContent = script.when;
+              cardMsg.classList.add("-pop");
+            }
+          }, t + 1450)
+        );
+        chatShow(T, msgs[4], t + 1550);
+        T.push(setTimeout(() => cardMsg?.classList.remove("-pop"), t + 2100));
+        // 4) Lectura y siguiente ciclo.
+        T.push(setTimeout(() => liveChat(card), t + 3900));
       }
       demoRestartRef.current[1] = () => {
         clearCard(1);
-        loopChat(card1);
+        if (chatBuilt) liveChat(card1);
+        else introChat(card1);
       };
-      perCard[1].push(setTimeout(() => loopChat(card1), 300));
+      perCard[1].push(setTimeout(() => introChat(card1), 300));
     }
 
-    // ===== Pantalla 3 — canvas de automatización (nodos que se montan,
-    // conexiones que se dibujan, pulsos SMIL continuos y contador vivo) =====
+    // ===== Pantalla 3 — canvas de automatización (V17.9): el diagrama se
+    // monta UNA vez (rápido) y ya nunca se desmonta. LIVE: cada ciclo es
+    // una "ejecución" — los nodos destellan en cadena (trigger → agente →
+    // salidas, clase -hit), el contador acumula sin reiniciarse y el
+    // "✓ sin errores" late al completarse. Los pulsos SMIL siguen
+    // circulando por debajo todo el tiempo. =====
     if (cards[2]) {
       const card2 = cards[2];
-      function loopFlow(card: HTMLElement) {
+      let flowBuilt = false;
+      let flowRuns = 247;
+      let flowHitAlt = false;
+      function introFlow(card: HTMLElement) {
         if (!visRef.current) {
-          perCard[2].push(setTimeout(() => loopFlow(card), 1500));
+          perCard[2].push(setTimeout(() => introFlow(card), 1500));
           return;
         }
         const nodes = Array.from(card.querySelectorAll<HTMLElement>(".anim-fl-node"));
         const conns = Array.from(card.querySelectorAll(".anim-fl-conn")) as unknown as SVGPathElement[];
-        const countEl = card.querySelector<HTMLElement>(".anim-fl-count b");
         instant(nodes, { opacity: "0", transform: "translate(-50%, -50%) scale(0.6)" });
         conns.forEach((c) => {
           const el = c as unknown as HTMLElement;
@@ -1853,7 +1997,7 @@ export default function Servicios() {
             setTimeout(() => {
               const n = nodes[i];
               if (!n) return;
-              n.style.transition = "opacity .4s, transform .45s cubic-bezier(.34,1.56,.64,1)";
+              n.style.transition = "opacity .35s, transform .4s cubic-bezier(.34,1.56,.64,1)";
               n.style.opacity = "1";
               n.style.transform = "translate(-50%, -50%) scale(1)";
             }, at)
@@ -1863,45 +2007,90 @@ export default function Servicios() {
             setTimeout(() => {
               const el = conns[i] as unknown as HTMLElement | undefined;
               if (!el) return;
-              el.style.transition = "stroke-dashoffset .6s ease";
+              el.style.transition = "stroke-dashoffset .45s ease";
               el.style.strokeDashoffset = "0";
             }, at)
           );
-        // Triggers → conexiones de entrada → agente → salidas.
-        popNode(0, 250);
-        popNode(1, 470);
-        drawConn(0, 800);
-        drawConn(1, 950);
-        popNode(2, 1350);
-        drawConn(2, 1800);
-        drawConn(3, 1950);
-        popNode(3, 2350);
-        popNode(4, 2550);
-        // El contador de ejecuciones late con los pulsos.
-        if (countEl) {
-          for (let k = 0; k < 4; k++) {
-            T.push(
-              setTimeout(() => {
-                countEl.textContent = String(247 + k + 1);
-                countEl.style.transition = "none";
-                countEl.style.transform = "scale(1.25)";
-                T.push(
-                  setTimeout(() => {
-                    countEl.style.transition = "transform .3s";
-                    countEl.style.transform = "scale(1)";
-                  }, 30)
-                );
-              }, 3100 + k * 1350)
-            );
-          }
+        // Triggers → conexiones de entrada → agente → salidas, sin pausas.
+        popNode(0, 150);
+        popNode(1, 300);
+        drawConn(0, 450);
+        drawConn(1, 550);
+        popNode(2, 700);
+        drawConn(2, 950);
+        drawConn(3, 1050);
+        popNode(3, 1200);
+        popNode(4, 1350);
+        T.push(
+          setTimeout(() => {
+            flowBuilt = true;
+            liveFlow(card);
+          }, 1900)
+        );
+      }
+      function liveFlow(card: HTMLElement) {
+        if (!visRef.current) {
+          perCard[2].push(setTimeout(() => liveFlow(card), 1500));
+          return;
         }
-        T.push(setTimeout(() => loopFlow(card), 9200));
+        const nodes = Array.from(card.querySelectorAll<HTMLElement>(".anim-fl-node"));
+        const conns = Array.from(card.querySelectorAll(".anim-fl-conn"));
+        const countEl = card.querySelector<HTMLElement>(".anim-fl-count b");
+        const okEl = card.querySelector<HTMLElement>(".anim-fl-ok");
+        // Normalizado sin vaciar: todo montado y conectado siempre.
+        instant(nodes, { opacity: "1", transform: "translate(-50%, -50%) scale(1)" });
+        conns.forEach((c) => {
+          const el = c as unknown as HTMLElement;
+          el.style.transition = "none";
+          el.style.strokeDashoffset = "0";
+        });
+        nodes.forEach((n) => n.classList.remove("-hit"));
+        okEl?.classList.remove("-blink");
+        card.querySelector(".anim-fl-svg")?.getBoundingClientRect();
+        // Los destellos -hit transicionan brillo/borde (el transition inline
+        // de instant() los dejaría en "none").
+        nodes.forEach((n) => (n.style.transition = "box-shadow .3s, border-color .3s, background .3s"));
+        const T = perCard[2];
+        const hit = (i: number, at: number, off: number) => {
+          T.push(setTimeout(() => nodes[i]?.classList.add("-hit"), at));
+          T.push(setTimeout(() => nodes[i]?.classList.remove("-hit"), off));
+        };
+        // Una ejecución recorre el flujo: entrada (alterna Gmail/Formulario)
+        // → agente → las dos salidas.
+        const entrada = flowHitAlt ? 1 : 0;
+        flowHitAlt = !flowHitAlt;
+        hit(entrada, 200, 700);
+        hit(2, 600, 1250);
+        hit(3, 1150, 1700);
+        hit(4, 1300, 1850);
+        // El contador acumula (sin resetear entre ciclos) y el "sin
+        // errores" parpadea al cerrar la ejecución.
+        if (countEl) {
+          T.push(
+            setTimeout(() => {
+              flowRuns += 1;
+              countEl.textContent = String(flowRuns);
+              countEl.style.transition = "none";
+              countEl.style.transform = "scale(1.25)";
+              T.push(
+                setTimeout(() => {
+                  countEl.style.transition = "transform .3s";
+                  countEl.style.transform = "scale(1)";
+                }, 30)
+              );
+            }, 1500)
+          );
+        }
+        T.push(setTimeout(() => okEl?.classList.add("-blink"), 1700));
+        T.push(setTimeout(() => okEl?.classList.remove("-blink"), 2300));
+        T.push(setTimeout(() => liveFlow(card), 2700));
       }
       demoRestartRef.current[2] = () => {
         clearCard(2);
-        loopFlow(card2);
+        if (flowBuilt) liveFlow(card2);
+        else introFlow(card2);
       };
-      perCard[2].push(setTimeout(() => loopFlow(card2), 300));
+      perCard[2].push(setTimeout(() => introFlow(card2), 300));
     }
 
     // ===== Pantalla 4 — Search Console (líneas que se dibujan, contadores
@@ -1922,16 +2111,44 @@ export default function Servicios() {
         [208, 34],
         [234, 24],
       ];
-      function loopSeo(card: HTMLElement) {
+      // V17.9: el gráfico se dibuja UNA vez y queda; el ciclo vivo es el
+      // cursor barriendo la curva ida y vuelta mientras las métricas
+      // ACUMULAN (nunca recuentan desde 0 — un recuento lee como reset).
+      let seoBuilt = false;
+      let seoClics = 3482;
+      let seoImpr = 86400;
+      let seoCtrAlt = false;
+      const seoSweep = (T: ReturnType<typeof setTimeout>[], card: HTMLElement, start: number, back: boolean) => {
+        const run = card.querySelector<HTMLElement>(".anim-sc-run");
+        const tipB = card.querySelector<HTMLElement>(".anim-sc-tip b");
+        const stepMs = 200;
+        for (let k = 0; k < PTS.length; k++) {
+          T.push(
+            setTimeout(() => {
+              if (!run) return;
+              const [x, y] = PTS[back ? PTS.length - 1 - k : k];
+              // Clamp 7.5%–92.5% (V16.37): en x=0 el tooltip (centrado
+              // con translateX(-50%)) se cortaba por el borde izquierdo.
+              const fx = Math.max(0.075, Math.min(0.925, x / 260));
+              run.style.left = `${fx * 100}%`;
+              run.style.setProperty("--dy", `${(y / 90) * 100}%`);
+              if (tipB) tipB.textContent = Math.round((84 - y) * 21).toLocaleString("es-ES");
+            }, start + k * stepMs)
+          );
+        }
+        return start + PTS.length * stepMs;
+      };
+      function introSeo(card: HTMLElement) {
         if (!visRef.current) {
-          perCard[3].push(setTimeout(() => loopSeo(card), 1500));
+          perCard[3].push(setTimeout(() => introSeo(card), 1500));
           return;
         }
         const lines = Array.from(card.querySelectorAll(".anim-sc-line")) as unknown as SVGPathElement[];
         const areas = Array.from(card.querySelectorAll<HTMLElement>(".anim-sc-area"));
         const chips = Array.from(card.querySelectorAll<HTMLElement>(".anim-sc-chip-val"));
+        const goal = card.querySelector<HTMLElement>(".anim-sc-goal");
+        const badge = card.querySelector<HTMLElement>(".anim-sc-badge");
         const run = card.querySelector<HTMLElement>(".anim-sc-run");
-        const tipB = card.querySelector<HTMLElement>(".anim-sc-tip b");
         lines.forEach((l) => {
           const el = l as unknown as HTMLElement;
           el.style.transition = "none";
@@ -1940,6 +2157,8 @@ export default function Servicios() {
           el.style.strokeDashoffset = String(len);
         });
         instant(areas, { opacity: "0" });
+        if (goal) instant([goal], { opacity: "0" });
+        if (badge) instant([badge], { opacity: "0", transform: "translateY(-4px)" });
         if (run) {
           run.style.transition = "none";
           run.style.opacity = "0";
@@ -1948,69 +2167,133 @@ export default function Servicios() {
         chips.forEach((c) => (c.textContent = fmtNum(0, c.dataset.fmt ?? null)));
         card.querySelector(".anim-sc-chart")?.getBoundingClientRect();
         const T = perCard[3];
+        // Curvas, áreas, objetivo y badge en poco más de un segundo.
         lines.forEach((l, i) =>
           T.push(
             setTimeout(() => {
               const el = l as unknown as HTMLElement;
-              el.style.transition = "stroke-dashoffset 1.4s cubic-bezier(.22,1,.36,1)";
+              el.style.transition = "stroke-dashoffset .9s cubic-bezier(.22,1,.36,1)";
               el.style.strokeDashoffset = "0";
-            }, 150 + i * 200)
+            }, 100 + i * 160)
           )
         );
         T.push(
-          setTimeout(
-            () =>
-              areas.forEach((a) => {
-                a.style.transition = "opacity .6s";
-                a.style.opacity = "1";
-              }),
-            1100
-          )
+          setTimeout(() => {
+            areas.forEach((a) => {
+              a.style.transition = "opacity .5s";
+              a.style.opacity = "1";
+            });
+            if (goal) {
+              goal.style.transition = "opacity .5s";
+              goal.style.opacity = "1";
+            }
+          }, 650)
         );
-        chips.forEach((c, i) => countTo(T, c, Number(c.dataset.t ?? 0), 300 + i * 150, 1500, c.dataset.fmt ?? null));
+        T.push(
+          setTimeout(() => {
+            if (badge) {
+              badge.style.transition = "opacity .4s, transform .4s";
+              badge.style.opacity = "1";
+              badge.style.transform = "translateY(0)";
+            }
+          }, 950)
+        );
+        chips.forEach((c, i) => countTo(T, c, Number(c.dataset.t ?? 0), 250 + i * 120, 900, c.dataset.fmt ?? null));
         T.push(
           setTimeout(() => {
             if (run) {
-              run.style.transition = "opacity .3s, left .24s linear";
+              run.style.transition = "opacity .3s, left .2s linear";
               run.style.opacity = "1";
             }
-          }, 1900)
+          }, 1200)
         );
-        const runStart = 2050;
-        const stepMs = 240;
-        for (let s = 0; s < 2; s++) {
-          for (let k = 0; k < PTS.length; k++) {
-            T.push(
-              setTimeout(() => {
-                if (!run) return;
-                const [x, y] = PTS[s % 2 === 0 ? k : PTS.length - 1 - k];
-                // Clamp 7.5%–92.5% (V16.37): en x=0 el tooltip (centrado
-                // con translateX(-50%)) se cortaba por el borde izquierdo.
-                const fx = Math.max(0.075, Math.min(0.925, x / 260));
-                run.style.left = `${fx * 100}%`;
-                run.style.setProperty("--dy", `${(y / 90) * 100}%`);
-                if (tipB) tipB.textContent = Math.round((84 - y) * 21).toLocaleString("es-ES");
-              }, runStart + s * PTS.length * stepMs + k * stepMs)
-            );
-          }
+        T.push(
+          setTimeout(() => {
+            seoBuilt = true;
+            liveSeo(card);
+          }, 1500)
+        );
+      }
+      function liveSeo(card: HTMLElement) {
+        if (!visRef.current) {
+          perCard[3].push(setTimeout(() => liveSeo(card), 1500));
+          return;
         }
-        T.push(setTimeout(() => loopSeo(card), runStart + 2 * PTS.length * stepMs + 700));
+        const chips = Array.from(card.querySelectorAll<HTMLElement>(".anim-sc-chip-val"));
+        const run = card.querySelector<HTMLElement>(".anim-sc-run");
+        // Normalizado sin vaciar: gráfico completo y cursor visible.
+        if (run) {
+          run.style.transition = "opacity .3s, left .2s linear";
+          run.style.opacity = "1";
+        }
+        const T = perCard[3];
+        // 1) Barrido de ida; al llegar, las métricas SUBEN un tick con pop.
+        const endFwd = seoSweep(T, card, 200, false);
+        T.push(
+          setTimeout(() => {
+            seoClics += 9;
+            seoImpr += 180;
+            seoCtrAlt = !seoCtrAlt;
+            const vals = [
+              fmtNum(seoClics, "int"),
+              fmtNum(seoImpr, "k"),
+              (seoCtrAlt ? "4,1" : "4,0") + "%",
+            ];
+            chips.forEach((c, i) => {
+              c.textContent = vals[i] ?? c.textContent;
+              c.style.transition = "none";
+              c.style.transform = "scale(1.18)";
+              T.push(
+                setTimeout(() => {
+                  c.style.transition = "transform .3s";
+                  c.style.transform = "scale(1)";
+                }, 30)
+              );
+            });
+          }, endFwd + 150)
+        );
+        // 2) Barrido de vuelta y siguiente ciclo.
+        const endBack = seoSweep(T, card, endFwd + 500, true);
+        T.push(setTimeout(() => liveSeo(card), endBack + 400));
       }
       demoRestartRef.current[3] = () => {
         clearCard(3);
-        loopSeo(card3);
+        if (seoBuilt) liveSeo(card3);
+        else introSeo(card3);
       };
-      perCard[3].push(setTimeout(() => loopSeo(card3), 300));
+      perCard[3].push(setTimeout(() => introSeo(card3), 300));
     }
 
-    // ===== Pantalla 5 — app en marcha (barras, ventas contando,
-    // notificaciones entrando y anillo de uptime) =====
+    // ===== Pantalla 5 — app en marcha (V17.9): el dashboard se monta UNA
+    // vez y ya nunca se vacía. LIVE: entran pedidos/reseñas/usuarios
+    // rotando en las notificaciones, las ventas ACUMULAN con cada pedido,
+    // y las barras del gráfico se reacomodan como datos frescos. =====
     if (cards[4]) {
       const card4 = cards[4];
       const RING_LEN = 2 * Math.PI * 26;
-      function loopApp(card: HTMLElement) {
+      let appBuilt = false;
+      let appVentas = 2840;
+      let appTick = 0;
+      // [título, detalle, € que suma a ventas]. Orden a propósito: los
+      // índices PARES caen en el slot del icono check (pedidos/altas) y los
+      // IMPARES en el de la estrella (reseñas) — cada tipo con su icono.
+      const APP_FEED: Array<[string, string, number]> = [
+        ["Pedido #1043", "Pagado · 79 €", 79],
+        ["Nueva reseña", "★★★★★ · «Rapidísimos»", 0],
+        ["Nuevo usuario", "maría@… se ha registrado", 0],
+        ["Nueva reseña", "★★★★★ · «Vuelvo seguro»", 0],
+        ["Pedido #1044", "Pagado · 129 €", 129],
+        ["Nueva reseña", "★★★★★ · «Impecable»", 0],
+      ];
+      // Alturas de barras por ciclo: "datos frescos" reacomodándose.
+      const APP_BARS: string[][] = [
+        ["38%", "62%", "48%", "78%", "96%"],
+        ["46%", "54%", "66%", "72%", "88%"],
+        ["34%", "68%", "52%", "84%", "92%"],
+      ];
+      function introApp(card: HTMLElement) {
         if (!visRef.current) {
-          perCard[4].push(setTimeout(() => loopApp(card), 1500));
+          perCard[4].push(setTimeout(() => introApp(card), 1500));
           return;
         }
         const bars = Array.from(card.querySelectorAll<HTMLElement>(".anim-ap-bars i"));
@@ -2036,19 +2319,19 @@ export default function Servicios() {
         bars.forEach((b, i) =>
           T.push(
             setTimeout(() => {
-              b.style.transition = "transform .5s cubic-bezier(.22,1,.36,1)";
+              b.style.transition = "transform .45s cubic-bezier(.22,1,.36,1)";
               b.style.transform = "scaleY(1)";
-            }, 300 + i * 120)
+            }, 150 + i * 90)
           )
         );
-        if (count) countTo(T, count, 2840, 400, 1600, "int");
+        if (count) countTo(T, count, appVentas, 250, 900, "int");
         notifs.forEach((n, i) =>
           T.push(
             setTimeout(() => {
-              n.style.transition = "opacity .45s, transform .5s cubic-bezier(.34,1.56,.64,1)";
+              n.style.transition = "opacity .4s, transform .45s cubic-bezier(.34,1.56,.64,1)";
               n.style.opacity = "1";
               n.style.transform = "translateX(0)";
-            }, 1500 + i * 550)
+            }, 700 + i * 350)
           )
         );
         T.push(
@@ -2059,18 +2342,91 @@ export default function Servicios() {
             }
             if (ring) {
               const el = ring as unknown as HTMLElement;
-              el.style.transition = "stroke-dashoffset 1.1s cubic-bezier(.22,1,.36,1)";
+              el.style.transition = "stroke-dashoffset .9s cubic-bezier(.22,1,.36,1)";
               el.style.strokeDashoffset = String(RING_LEN * 0.001);
             }
-          }, 2700)
+          }, 1400)
         );
-        T.push(setTimeout(() => loopApp(card), 8800));
+        T.push(
+          setTimeout(() => {
+            appBuilt = true;
+            liveApp(card);
+          }, 2600)
+        );
+      }
+      function liveApp(card: HTMLElement) {
+        if (!visRef.current) {
+          perCard[4].push(setTimeout(() => liveApp(card), 1500));
+          return;
+        }
+        const bars = Array.from(card.querySelectorAll<HTMLElement>(".anim-ap-bars i"));
+        const count = card.querySelector<HTMLElement>(".anim-ap-count");
+        const notifs = Array.from(card.querySelectorAll<HTMLElement>(".anim-ap-notif"));
+        // Normalizado sin vaciar: dashboard completo siempre.
+        instant(bars, { transform: "scaleY(1)" });
+        instant(notifs, { opacity: "1", transform: "translateX(0)" });
+        const T = perCard[4];
+        // 1) Entra una notificación nueva en el hueco más antiguo (se
+        // renueva UNA de las dos: la otra sigue visible — nunca hay hueco).
+        const feed = APP_FEED[appTick % APP_FEED.length];
+        const slot = notifs[appTick % notifs.length];
+        appTick += 1;
+        if (slot) {
+          T.push(
+            setTimeout(() => {
+              slot.style.transition = "opacity .25s, transform .25s";
+              slot.style.opacity = "0";
+              slot.style.transform = "translateX(24px)";
+            }, 300)
+          );
+          T.push(
+            setTimeout(() => {
+              const b = slot.querySelector("b");
+              const s = slot.querySelector("span > span");
+              if (b) b.textContent = feed[0];
+              if (s) s.textContent = feed[1];
+              slot.style.transition = "opacity .4s, transform .45s cubic-bezier(.34,1.56,.64,1)";
+              slot.style.opacity = "1";
+              slot.style.transform = "translateX(0)";
+            }, 650)
+          );
+        }
+        // 2) Si es un pedido, las ventas ACUMULAN con pop (sin recontar).
+        if (count && feed[2] > 0) {
+          T.push(
+            setTimeout(() => {
+              appVentas += feed[2];
+              count.textContent = fmtNum(appVentas, "int");
+              count.style.transition = "none";
+              count.style.transform = "scale(1.15)";
+              T.push(
+                setTimeout(() => {
+                  count.style.transition = "transform .3s";
+                  count.style.transform = "scale(1)";
+                }, 30)
+              );
+            }, 1150)
+          );
+        }
+        // 3) Las barras se reacomodan a los datos del ciclo (transición de
+        // height en CSS, V17.9).
+        T.push(
+          setTimeout(() => {
+            const hs = APP_BARS[appTick % APP_BARS.length];
+            bars.forEach((b, i) => {
+              b.style.transition = "height .5s ease";
+              b.style.setProperty("--h", hs[i] ?? "50%");
+            });
+          }, 1600)
+        );
+        T.push(setTimeout(() => liveApp(card), 3200));
       }
       demoRestartRef.current[4] = () => {
         clearCard(4);
-        loopApp(card4);
+        if (appBuilt) liveApp(card4);
+        else introApp(card4);
       };
-      perCard[4].push(setTimeout(() => loopApp(card4), 300));
+      perCard[4].push(setTimeout(() => introApp(card4), 300));
     }
 
     return () => {

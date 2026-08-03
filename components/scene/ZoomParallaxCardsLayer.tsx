@@ -196,11 +196,13 @@ export default function ZoomParallaxCardsLayer({ isMobile }: { isMobile: boolean
     for (let i = 0; i < ZP_MAX_CARDS; i++) {
       const group = groupRefs.current[i];
       if (!group) continue;
-      // V16.20 móvil: la card central es SOLO texto ("quítale la card en
-      // sí, deja solo el texto de encima") — su cuerpo de cristal no se
-      // dibuja nunca en móvil. El anchor sigue registrado y el resto del
-      // pipeline (glitch por opacity inline, ranking de dominancia) intacto.
-      if (i === 0 && isMobile) {
+      // V16.20 móvil → V17.9 también desktop: la card central es SOLO
+      // texto ("quítale la card en sí, deja solo el texto de encima") — su
+      // cuerpo de cristal no se dibuja nunca. El anchor sigue registrado y
+      // el resto del pipeline (dissolve móvil por opacity inline, ranking
+      // de dominancia) intacto; el dissolve del texto sigue siendo un
+      // comportamiento exclusivo de móvil (vive en ZoomParallax.tsx).
+      if (i === 0) {
         group.visible = false;
         continue;
       }

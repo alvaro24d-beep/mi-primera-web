@@ -50,8 +50,11 @@ import { useReducedMotion } from "@/hooks/useReducedMotion";
 const GLYPHS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789<>/{}[]#&+=";
 const FLY_MS = 1250; // vuelo de un fragmento (su objetivo llega a casa)
 const STAGGER_MS = 520; // escalonado de salida entre fragmentos
-const HOLD_MIN_MS = 180; // remanso mínimo de un fragmento ya aterrizado…
-const HOLD_VAR_MS = 650; // …más su parte aleatoria (goteo disperso del apagado)
+// V16.80 ("que desaparezcan al llegar a la letra, un poco antes"): sin
+// remanso mínimo — cada fragmento empieza a apagarse NADA MÁS aterrizar,
+// con una dispersión corta para que el goteo siga siendo orgánico.
+const HOLD_MIN_MS = 0; // remanso mínimo de un fragmento ya aterrizado…
+const HOLD_VAR_MS = 280; // …más su parte aleatoria (goteo disperso del apagado)
 const FADE_MS = 430; // apagado individual de cada fragmento
 const TEXT_START = 0.35; // fracción de aterrizados con la que el h1 real asoma
 const TEXT_FULL = 0.95; // fracción con la que el h1 real llega a opacidad 1

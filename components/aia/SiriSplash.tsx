@@ -12,8 +12,8 @@ import { useEffect, useRef } from "react";
 // ~2s y sustituye al canvas por-página del hero (AgentScene, eliminado en
 // esta misma versión): neto, MENOS contextos que antes.
 //
-// El fondo del shader es negro opaco: el CSS lo funde con mix-blend-mode:
-// screen (negro → transparente) para que solo brille la onda sobre el muro.
+// El shader emite alpha = luminancia (V16.99): el canvas es transparente de
+// verdad — solo brilla la onda, sin fondo ni trucos de blend.
 
 const VERTEX_SHADER = `attribute vec2 aPos; void main(){ gl_Position=vec4(aPos,0.0,1.0); }`;
 
@@ -109,7 +109,10 @@ void mainImage(out vec4 fragColor, in vec2 fragCoord){
     float gauss = exp(-pow(xN*FALLOFF, 2.0));
     col *= mix(1.0, em*gauss, res);
     col *= res;
-    fragColor = vec4(col, 1.0);
+    // Alpha = luminancia (V16.99, "sin fondo"): el negro del shader queda
+    // TRANSPARENTE de verdad — sin trucos de blend, que el filter: blur()
+    // del fundido aislaba y devolvía el cuadrado negro.
+    fragColor = vec4(col, max(col.r, max(col.g, col.b)));
 }
 void main(){ mainImage(gl_FragColor, gl_FragCoord.xy); }`;
 
@@ -119,7 +122,9 @@ export default function SiriSplash() {
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
-    const gl = canvas.getContext("webgl");
+    // alpha + premultiplied: el canvas compone transparente sobre la página
+    // (el shader emite color premultiplicado: rgb ≤ alpha por construcción).
+    const gl = canvas.getContext("webgl", { alpha: true, premultipliedAlpha: true });
     if (!gl) return;
 
     const compile = (type: number, src: string) => {

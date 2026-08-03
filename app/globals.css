@@ -6459,9 +6459,9 @@ input[type="range"].nxr-ms-range::-moz-range-thumb {
   height: 100lvh;
   overflow: hidden;
 }
-/* Splash de entrada (V16.98): la onda Siri centrada sobre el muro; el
-   shader pinta fondo negro opaco y el blend screen lo vuelve transparente
-   (solo brilla la onda). El canvas interno es 300px; el CSS lo escala. */
+/* Splash de entrada (V16.98/99): la onda Siri centrada sobre el muro. El
+   shader emite alpha real (negro = transparente) — sin fondo. El canvas
+   interno es 300px; el CSS lo escala. */
 .nxr-aia-splash {
   position: absolute;
   inset: 0;
@@ -6475,7 +6475,6 @@ input[type="range"].nxr-ms-range::-moz-range-thumb {
   display: block;
   width: min(400px, 74vw);
   aspect-ratio: 1;
-  mix-blend-mode: screen;
 }
 
 /* Suelo pre-GSAP (receta de Bug-Log-Pin-Nace-Con-Scroll-Viejo): la escena

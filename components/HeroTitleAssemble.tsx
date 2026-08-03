@@ -280,9 +280,9 @@ export default function HeroTitleAssemble({ h1Ref }: { h1Ref: RefObject<HTMLHead
       shuffle(pts);
       if (pts.length > maxFrags) pts.length = maxFrags;
 
-      // Radio de los puntos ∝ tamaño del título (≈1.4-2.4px con jitter —
-      // V16.97 "más pequeños").
-      const baseR = Math.max(1.4, Math.min(2.4, titlePx * 0.024));
+      // Radio de los puntos ∝ tamaño del título (≈1-1.8px con jitter —
+      // segunda reducción, V16.99 "más pequeños").
+      const baseR = Math.max(1, Math.min(1.8, titlePx * 0.018));
       const frags: Frag[] = pts.map(([hx, hy, color]) => {
         const [sx, sy] = spawnFor(hx, hy, W, H);
         return {

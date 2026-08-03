@@ -162,13 +162,18 @@ export default function ZoomParallaxCardsLayer({ isMobile }: { isMobile: boolean
       const anchor = useZoomParallaxCardsRegistry.getState().anchors[i];
       if (!anchor) continue;
       const rect = anchor.getBoundingClientRect();
+      // Margen de cull ampliado en móvil (V16.86, "quiero que se vean desde
+      // el principio que entran en el viewport"): las cards vuelan hacia el
+      // centro deprisa al inicio del zoom — con ±80px el primer dibujo del
+      // cristal podía llegar un frame tarde respecto a la entrada visual.
+      const M = isMobile ? 220 : 80;
       const offscreen =
         rect.width < 2 ||
         rect.height < 2 ||
-        rect.right < -80 ||
-        rect.left > size.width + 80 ||
-        rect.bottom < -80 ||
-        rect.top > size.height + 80;
+        rect.right < -M ||
+        rect.left > size.width + M ||
+        rect.bottom < -M ||
+        rect.top > size.height + M;
       if (offscreen) continue;
       rects[i] = rect;
       const s = rect.height / BASE_H;
@@ -227,7 +232,15 @@ export default function ZoomParallaxCardsLayer({ isMobile }: { isMobile: boolean
         if (visBottom > visTop) {
           const fueraArriba = Math.max(0, Math.min(visBottom, stickyRect.top) - visTop);
           const fueraAbajo = Math.max(0, visBottom - Math.max(stickyRect.bottom, visTop));
-          if (fueraArriba + fueraAbajo > 24) {
+          // Tolerancia ampliada SOLO en la fase de ENTRADA móvil (V16.86:
+          // la sección aún se extiende bajo el viewport): una card llegando
+          // al encuadre puede asomar unas decenas de px fuera del box sin
+          // ser el caso fantasma — los offsets extremos pre-pin (~±28vh ≈
+          // 230px+) siguen quedando fuera de esta tolerancia y ocultos. En
+          // la SALIDA (y siempre en desktop) se mantienen los 24px, que es
+          // donde vivía el bug de la card vacía sobre el reel/Proceso.
+          const clipTol = isMobile && sectionRect.bottom > size.height ? 96 : 24;
+          if (fueraArriba + fueraAbajo > clipTol) {
             group.visible = false;
             continue;
           }

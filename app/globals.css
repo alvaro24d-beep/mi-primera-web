@@ -1884,6 +1884,17 @@ p.nxr-hero-mastery-line {
   will-change: opacity, filter, transform;
 }
 
+/* V16.86 móvil: la caption de la card 0 ("Web experiencial.") queda
+   visualmente muy arriba porque sus pills parten a dos líneas (SaaS) —
+   bajarla un poco, SOLO esa y SOLO en móvil. margin-top (no transform):
+   el reel escribe `y` inline en las captions cada frame y pisaría un
+   transform de CSS. */
+@media (max-width: 900px) {
+  .nxr-servicios-captions .nxr-srv-caption:first-child {
+    margin-top: 14px;
+  }
+}
+
 /* Shorter viewports (small laptops, browser zoom >100%): shrink the card so
    heading + reel still fit inside the pinned 100lvh with the card fully
    visible — the card's height follows from the aspect-ratio above. */
@@ -9178,9 +9189,11 @@ input[type="range"].nxr-ms-range::-moz-range-thumb {
    estilos inline de GSAP (autoAlpha) ganan a este suelo en cuanto existen. */
 .nxr-dwh-scrollcue {
   position: absolute;
-  left: 50%;
-  bottom: 26px;
-  transform: translateX(-50%);
+  /* A la derecha (V16.86, "si no tapa texto"): el panel de facetas vive
+     abajo-izquierda en desktop y a todo lo ancho abajo en móvil — la
+     esquina/borde derecho es la zona libre en ambos. */
+  right: 26px;
+  bottom: 32px;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -9189,6 +9202,13 @@ input[type="range"].nxr-ms-range::-moz-range-thumb {
   pointer-events: none;
   opacity: 0;
   visibility: hidden;
+}
+@media (max-width: 768px) {
+  .nxr-dwh-scrollcue {
+    right: 12px;
+    bottom: auto;
+    top: 46%;
+  }
 }
 .nxr-dwh-scrollcue-wheel {
   position: relative;

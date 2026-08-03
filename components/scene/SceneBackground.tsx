@@ -113,6 +113,7 @@ const fragmentShader = /* glsl */ `
   uniform vec2 uPanels;    // monitor-tile counts (across / down) for the panel-wall read
   uniform vec2 uRes;       // drawing-buffer size, for the SCREEN-SPACE edge vignette
   uniform float uDim;      // atenuación global del muro (1 móvil, <1 desktop)
+  uniform float uClear;    // 1 móvil (V16.94): vídeo limpio, sin sombras/viñetas
 
   vec3 sampleSource(vec2 uv) {
     if (uHasVideo > 0.5) {
@@ -164,8 +165,10 @@ const fragmentShader = /* glsl */ `
       float b = sampleSource(puv - vec2(o, 0.0)).b;
       vec3 tv = vec3(r, gg, b);
       tv *= 0.78 + 0.22 * sin(vUv.y * uPixel.y * 6.28318);
-      // Dim + tint toward the site's dark base so overlaid text stays legible.
-      fill = mix(uBase * 0.7, tv, 0.5);
+      // Dim + tint toward the site's dark base so overlaid text stays
+      // legible — EN MÓVIL casi puro (uClear, V16.94: "quítale las sombras
+      // y oscuridad"): el vídeo se ve como fondo de pantalla limpio.
+      fill = mix(uBase * 0.7, tv, mix(0.5, 0.92, uClear));
     } else {
       fill = uBase;
     }
@@ -176,7 +179,8 @@ const fragmentShader = /* glsl */ `
     // Deep dark gaps between the monitor tiles — applied AFTER glow/grid so
     // the separators cut through everything, like real bezels.
     col = mix(col, col * 0.16, sep);
-    col *= (0.42 + 0.58 * vig);
+    // Viñeta de profundidad: anulada en móvil (uClear).
+    col *= mix(0.42 + 0.58 * vig, 1.0, uClear);
 
     // SCREEN-SPACE edge vignette ("sombra del vídeo de fondo") — inside the
     // wall shader on purpose: it dims ONLY the wall/video; the glass cards
@@ -187,7 +191,8 @@ const fragmentShader = /* glsl */ `
     vec2 sd = vec2((sc.x - 0.5) * 2.0, ((sc.y - 0.52) * 2.0) / 0.85);
     float rr = length(sd);
     float edge = 0.45 * smoothstep(0.38, 0.72, rr) + 0.40 * smoothstep(0.72, 1.0, rr);
-    col *= (1.0 - min(edge, 0.85));
+    // Viñeta de bordes en pantalla: anulada en móvil (uClear).
+    col *= (1.0 - min(edge, 0.85) * (1.0 - uClear));
 
     // Atenuación global del muro (petición: "oscurece un poco el fondo en
     // ordenador") — solo <1 en desktop, ver el efecto de orientación en JS.
@@ -252,6 +257,7 @@ export default function SceneBackground({
       uPanels: { value: new THREE.Vector2(15, Math.round(15 / wallAspect(WALL_MODES.landscape))) },
       uRes: { value: new THREE.Vector2(1, 1) },
       uDim: { value: 1 },
+      uClear: { value: 0 },
     }),
     // eslint-disable-next-line react-hooks/exhaustive-deps
     []
@@ -274,8 +280,10 @@ export default function SceneBackground({
       Math.max(2, Math.round(mode.PANELS_X / a))
     );
     // Desktop CASI NEGRO (petición V16.66: "quiero que se vea casi negro");
-    // móvil sin cambio.
+    // móvil al revés (V16.94): vídeo LIMPIO — uClear anula el tinte oscuro
+    // del sampleo y las dos viñetas del shader.
     mat.uniforms.uDim.value = mode === WALL_MODES.portrait ? 1 : 0.32;
+    mat.uniforms.uClear.value = mode === WALL_MODES.portrait ? 1 : 0;
     invalidate();
   }, [mode, invalidate]);
 

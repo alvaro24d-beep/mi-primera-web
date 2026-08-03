@@ -221,14 +221,15 @@ const fragmentShader = /* glsl */ `
 
     // SCREEN-SPACE edge vignette ("sombra del vídeo de fondo") — inside the
     // wall shader on purpose: it dims ONLY the wall/video; the glass cards
-    // render after and stay untouched by construction. Intensity at the
-    // approved MIDDLE level (V15.66: clear centre ~38%, ~0.45 dark at
-    // mid-field, 0.85 at the corners) — the later max level read too heavy.
+    // render after and stay untouched by construction. Rebajada en V17.14
+    // ("reduce el oscurecimiento del borde", desktop Y móvil — mismo path):
+    // antes 0.45/0.40 con tope 0.85 (esquinas al 15% de brillo), ahora
+    // ~0.28 a medio campo y esquinas al 42%.
     vec2 sc = gl_FragCoord.xy / uRes;
     vec2 sd = vec2((sc.x - 0.5) * 2.0, ((sc.y - 0.52) * 2.0) / 0.85);
     float rr = length(sd);
-    float edge = 0.45 * smoothstep(0.38, 0.72, rr) + 0.40 * smoothstep(0.72, 1.0, rr);
-    col *= (1.0 - min(edge, 0.85));
+    float edge = 0.28 * smoothstep(0.38, 0.72, rr) + 0.30 * smoothstep(0.72, 1.0, rr);
+    col *= (1.0 - min(edge, 0.58));
 
     // Atenuación global del muro (petición: "oscurece un poco el fondo en
     // ordenador") — solo <1 en desktop, ver el efecto de orientación en JS.

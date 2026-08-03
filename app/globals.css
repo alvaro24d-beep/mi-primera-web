@@ -6850,13 +6850,15 @@ input[type="range"].nxr-ms-range::-moz-range-thumb {
   .nxr-aia-h1 {
     font-size: clamp(26px, 7.4vw, 34px);
   }
-  /* Indicador "Desliza" en móvil: abajo a la derecha, POR ENCIMA del nav
-     flotante inferior (V17.1 — a 16px lo tapaba: el nav ocupa ~83px +
-     safe-area). */
+  /* Indicador "Desliza" en móvil: CENTRADO horizontal siempre (V17.2),
+     por encima del nav flotante inferior (~83px + safe-area). El transform
+     es seguro: GSAP solo escribe autoAlpha en el indicador. */
   .nxr-aia-stage .nxr-scrollcue {
     top: auto;
+    right: auto;
+    left: 50%;
+    transform: translateX(-50%);
     bottom: calc(104px + env(safe-area-inset-bottom));
-    right: 14px;
   }
 }
 /* Teléfonos bajos (ej. 360×640): todo compacta fuerte — presupuesto

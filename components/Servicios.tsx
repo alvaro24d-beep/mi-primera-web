@@ -373,7 +373,7 @@ const CARDS = [
     tag: "Desarrollo web",
     title: "Web experiencial.",
     desc: "Diseñamos y desarrollamos sitios web a medida con rendimiento real, experiencia de usuario cuidada y arquitectura pensada para escalar. Sin plantillas. Sin límites.",
-    pills: ["Landing pages", "Portales corporativos", "E-commerce", "Plataformas SaaS"],
+    pills: ["Landing", "Portales corporativos", "E-com", "SaaS"],
     icon: (
       <svg viewBox="0 0 24 24">
         <rect x="3" y="3" width="18" height="18" rx="3" />

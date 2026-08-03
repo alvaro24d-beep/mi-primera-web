@@ -76,6 +76,14 @@ const CARDS: { scale: number; mobileScale?: number; content: React.ReactNode }[]
   },
   {
     scale: 8,
+    // V16.87 móvil ("las cards inferiores se cargan de golpe a mitad de la
+    // transición"): con la escala de desktop, su rect no tocaba el viewport
+    // hasta ~40% del zoom y la curva ease-out móvil comprimía la entrada en
+    // un suspiro de scroll real. Escala móvil menor = posición de SALIDA
+    // más cercana (asoma desde el inicio de la sección); la posición y
+    // tamaño FINALES no cambian — la caja CSS móvil se redujo en la misma
+    // proporción (ver nth-child(6) en globals.css).
+    mobileScale: 3.5,
     content: (
       <div className="nxr-zp-card">
         <div className="nxr-zp-card-num" style={{ color: "var(--c-lime)" }}>
@@ -88,6 +96,8 @@ const CARDS: { scale: number; mobileScale?: number; content: React.ReactNode }[]
   },
   {
     scale: 9,
+    // V16.87 móvil: ídem — ver nth-child(7) en globals.css.
+    mobileScale: 4.5,
     content: (
       <div className="nxr-zp-card">
         <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#FF9D7D" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">

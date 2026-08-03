@@ -230,15 +230,28 @@ export default function ZoomParallaxCardsLayer({ isMobile }: { isMobile: boolean
         const visTop = Math.max(rect.top, 0);
         const visBottom = Math.min(rect.bottom, size.height);
         if (visBottom > visTop) {
+          // HOLGURA DE TOOLBAR (V16.87, "las cards se cargan de golpe a
+          // mitad de la transición"): el box del sticky mide --vh-100
+          // (viewport VISUAL, con la toolbar del navegador) pero este canvas
+          // — y por tanto size.height — mide 100lvh (toolbar colapsada).
+          // Con la toolbar visible, TODA card inferior que cruza el borde
+          // bajo del sticky computaba 60-90px de "fuera del box" y el guard
+          // la ocultaba; al colapsarse la toolbar con el primer scroll, el
+          // box crecía y todas aparecían DE GOLPE. La franja entre el
+          // sticky-bottom (svh) y el fondo del canvas (lvh) es fondo propio
+          // de la sección (240vh) — pintar cristal ahí es inofensivo, y es
+          // exactamente lo que desktop ya permite (allí sticky = canvas y
+          // la holgura es 0). Misma familia lvh-vs-innerHeight que
+          // [[Bug-Log-Reel-Descentrado-Toolbar-Movil]].
+          const slack = Math.max(0, size.height - stickyRect.height);
           const fueraArriba = Math.max(0, Math.min(visBottom, stickyRect.top) - visTop);
-          const fueraAbajo = Math.max(0, visBottom - Math.max(stickyRect.bottom, visTop));
-          // Tolerancia ampliada SOLO en la fase de ENTRADA móvil (V16.86:
-          // la sección aún se extiende bajo el viewport): una card llegando
-          // al encuadre puede asomar unas decenas de px fuera del box sin
-          // ser el caso fantasma — los offsets extremos pre-pin (~±28vh ≈
-          // 230px+) siguen quedando fuera de esta tolerancia y ocultos. En
-          // la SALIDA (y siempre en desktop) se mantienen los 24px, que es
-          // donde vivía el bug de la card vacía sobre el reel/Proceso.
+          const fueraAbajo = Math.max(0, visBottom - Math.max(stickyRect.bottom + slack, visTop));
+          // Tolerancia ampliada SOLO en la fase de ENTRADA móvil (V16.86):
+          // una card llegando al encuadre puede asomar unas decenas de px
+          // fuera del box sin ser el caso fantasma — los offsets extremos
+          // pre-pin (~±28vh ≈ 230px+) siguen fuera y ocultos. En la SALIDA
+          // (y siempre en desktop) se mantienen los 24px, donde vivía el
+          // bug de la card vacía sobre el reel/Proceso.
           const clipTol = isMobile && sectionRect.bottom > size.height ? 96 : 24;
           if (fueraArriba + fueraAbajo > clipTol) {
             group.visible = false;

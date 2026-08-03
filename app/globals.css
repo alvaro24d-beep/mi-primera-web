@@ -5256,18 +5256,29 @@ input[type="range"].nxr-ms-range::-moz-range-thumb {
     top: calc(50% - 108vh);
     transform-origin: 122.222% 85.714%;
   }
+  /* V16.87 — cards INFERIORES con salida cercana ("que se vean desde el
+     principio"): caja de salida y escala máxima reducidas en la MISMA
+     proporción que sus data-max-scale-mobile (8→3.5 y 9→4.5 en
+     ZoomParallax.tsx), así el reposo final (offset/escala = caja/max) queda
+     EXACTAMENTE igual y los transform-origin son invariantes — solo cambia
+     dónde arrancan: asomando por el borde inferior del viewport desde el
+     progreso 0 en vez de aterrizar de golpe a mitad del zoom. El --zp-max
+     móvil acompaña para que los tamaños de fuente pre-multiplicados sigan
+     cancelando a 1 en reposo. */
   .nxr-zp-layer:nth-child(6) .nxr-zp-img {
-    width: 352vw;
-    height: 112vh;
-    left: calc(50% - 368vw);
-    top: calc(50% + 80vh);
+    --zp-max: 3.5;
+    width: 154vw;
+    height: 49vh;
+    left: calc(50% - 161vw);
+    top: calc(50% + 35vh);
     transform-origin: 104.545% -71.429%;
   }
   .nxr-zp-layer:nth-child(7) .nxr-zp-img {
-    width: 342vw;
-    height: 126vh;
-    left: calc(50% + 72vw);
-    top: calc(50% + 72vh);
+    --zp-max: 4.5;
+    width: 171vw;
+    height: 63vh;
+    left: calc(50% + 36vw);
+    top: calc(50% + 36vh);
     transform-origin: -21.053% -57.143%;
   }
 

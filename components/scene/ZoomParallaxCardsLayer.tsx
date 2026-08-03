@@ -127,7 +127,17 @@ export default function ZoomParallaxCardsLayer({ isMobile }: { isMobile: boolean
     // unconditionally is what makes it appear the instant it's actually
     // first visible arriving at the section, and stay visible all the way
     // out, instead of popping in/out at an artificial boundary.
-    const notYetPinned = sectionRect.top > 2;
+    //
+    // V16.82 MÓVIL ("las cards inferiores tardan en cargarse"): durante el
+    // handoff del reel la sección ya es visible desde rect.top ≈ 0.95·vh y
+    // las cards DOM se ven SIN su cristal hasta el pin — en móvil el gate
+    // se relaja en cuanto la sección asoma en viewport. La red de seguridad
+    // contra el caso histórico ("giant misplaced card") es el clip-guard
+    // endurecido de V16.41 de abajo: los offsets extremos pre-pin (±28vh)
+    // sobresalen del box del sticky muchísimo más que sus 24px de
+    // tolerancia y el mesh se oculta igual. Desktop conserva el gate
+    // estricto (allí el tramo pre-pin apenas es visible y no hay queja).
+    const notYetPinned = sectionRect.top > 2 && !(isMobile && sectionRect.top < size.height);
 
     let bestIdx = -1;
     let bestScale = 0;

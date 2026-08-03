@@ -496,7 +496,9 @@ export default function SceneBackground({
       // el patrón hacia V creciente (arriba) cuando scrollY crece. Lectura
       // de window.scrollY sin coste de layout; se refresca en cada frame
       // renderizado (vídeo ~30fps / always al scrollear).
-      matV.uniforms.uGridShift.value = window.scrollY * 0.00004;
+      // 0.00009 (antes 0.00004, V17.6 "que se mueva un poco más rápido"):
+      // ~300px de deriva visual por cada 1000px de scroll.
+      matV.uniforms.uGridShift.value = window.scrollY * 0.00009;
     }
     const c = current.current;
     const t = target.current;

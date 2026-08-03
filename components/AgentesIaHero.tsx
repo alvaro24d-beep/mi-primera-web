@@ -252,9 +252,10 @@ export default function AgentesIaHero() {
             { opacity: 0, x: vw * 0.55, filter: "blur(14px)" },
             { opacity: 1, x: 0, filter: "blur(0px)", duration: 0.6, ease: "power3.out" }
           )
-          .to(splashEl, { opacity: 0, x: -vw * 0.55, filter: "blur(14px)", duration: 0.55, ease: "power3.in" }, 1.6)
-          .to(head, { opacity: 1, x: 0, filter: "blur(0px)", duration: 0.65, ease: "power3.out" }, 1.85)
-          .to(q(".nxr-scrollcue"), { autoAlpha: 1, duration: 0.4 }, 2.05);
+          // Pausa en el centro: 0.7s (V17.3, "un pelín menos" que el 1s).
+          .to(splashEl, { opacity: 0, x: -vw * 0.55, filter: "blur(14px)", duration: 0.55, ease: "power3.in" }, 1.3)
+          .to(head, { opacity: 1, x: 0, filter: "blur(0px)", duration: 0.65, ease: "power3.out" }, 1.55)
+          .to(q(".nxr-scrollcue"), { autoAlpha: 1, duration: 0.4 }, 1.75);
       }
 
       const tl = gsap.timeline({

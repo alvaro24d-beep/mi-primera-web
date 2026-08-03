@@ -315,8 +315,8 @@ export default function SceneCanvas() {
         <SceneBackground
           tv
           // Portrait (V16.94): montañas con niebla, transcodificado a
-          // formato muro (640px/18fps/210KB) — el shader lo muestra LIMPIO
-          // (uClear anula tinte y viñetas en móvil).
+          // formato muro (640px/18fps/210KB), con el sombreado estándar del
+          // muro (V16.95 revirtió el "vídeo limpio" de V16.94).
           videoSrc={isPortrait ? "/bg-video-montanas.mp4" : "/bg-video.mp4"}
           active={active}
           portrait={isPortrait}

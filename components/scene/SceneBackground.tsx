@@ -215,9 +215,9 @@ const fragmentShader = /* glsl */ `
     col += uGlowCol * glow * 0.10 * uPower;
     // Apagada, la cuadrícula sube a 0.16 (V17.13, "que se vea que está
     // ahí") — sobre el fondo casi negro es lo único que dibuja la pantalla.
-    // En móvil dobla vía uOffLift (con tope 2: la base puede necesitar x3
-    // pero unas líneas x3 ya serían protagonistas).
-    col += uLine * line * (mix(0.16 * min(uOffLift, 2.0), 0.05, uPower) + 0.28 * glow * uPower);
+    // En móvil sube vía uOffLift con tope 2.4: la base necesita más (x4.8)
+    // pero unas líneas a ese múltiplo serían protagonistas.
+    col += uLine * line * (mix(0.16 * min(uOffLift, 2.4), 0.05, uPower) + 0.28 * glow * uPower);
 
     // Parpadeo en reposo (V17.15, "que la pantalla apagada no esté
     // estática"): ~8% de las celdas de la cuadrícula respiran un poco más
@@ -227,7 +227,7 @@ const fragmentShader = /* glsl */ `
     vec2 cid = floor(g);
     float ch = fract(sin(dot(cid, vec2(419.2, 371.9))) * 833.7);
     float tw = step(0.92, ch) * (0.5 + 0.5 * sin(uTime * (1.2 + ch * 2.5) + ch * 40.0));
-    col += uLine * tw * 0.16 * min(uOffLift, 2.0) * (1.0 - uPower);
+    col += uLine * tw * 0.16 * min(uOffLift, 2.4) * (1.0 - uPower);
     // Deep dark gaps between the monitor tiles — applied AFTER glow/grid so
     // the separators cut through everything, like real bezels.
     col = mix(col, col * 0.16, sep);
@@ -350,10 +350,11 @@ export default function SceneBackground({
     // 1.35 en móvil (V17.15 subió a 1.2; V17.16 otro punto, "se ve super
     // oscuro"): levanta el muro entero solo en portrait; desktop igual.
     mat.uniforms.uDim.value = mode === WALL_MODES.portrait ? 1.35 : 0.32;
-    // Luz extra del estado APAGADO solo en móvil (V17.16, "la pantalla
-    // apagada se ve prácticamente negra"): x3.2 la base apagada, x2 (tope
-    // en shader) la cuadrícula y el parpadeo. En desktop 1 = sin cambio.
-    mat.uniforms.uOffLift.value = mode === WALL_MODES.portrait ? 3.2 : 1;
+    // Luz extra del estado APAGADO solo en móvil (V17.16 x3.2 → V17.17
+    // x4.8, "aumenta más el brillo solo de la parte apagada"): multiplica
+    // la base apagada; la cuadrícula y el parpadeo van con tope en el
+    // shader (x2.4). En desktop 1 = sin cambio.
+    mat.uniforms.uOffLift.value = mode === WALL_MODES.portrait ? 4.8 : 1;
     invalidate();
   }, [mode, invalidate]);
 

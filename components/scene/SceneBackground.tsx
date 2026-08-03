@@ -178,16 +178,22 @@ const fragmentShader = /* glsl */ `
       // (El "vídeo limpio en móvil" de V16.94 duró un día: V16.95 restaura
       // el sombreado completo también ahí, ya con el clip de montañas.)
       // uPower (V17.10): con la pantalla apagada el vídeo desaparece y queda
-      // solo la base oscura — la textura física (paneles, biseles, rejilla
-      // tenue, viñetas) sigue, como un muro de monitores sin señal.
-      fill = mix(uBase * 0.7, tv, 0.5 * uPower);
+      // la textura física (paneles, biseles, rejilla, viñetas), como un muro
+      // de monitores sin señal. La base apagada es un GRIS propio, más claro
+      // que uBase (V17.11, "no completamente negro: se tiene que sentir
+      // apagada pero verse un poco") — con uBase*0.7 y el uDim de desktop
+      // encima quedaba negro puro.
+      vec3 offBase = vec3(0.11, 0.115, 0.13);
+      fill = mix(offBase, mix(uBase * 0.7, tv, 0.5), uPower);
     } else {
       fill = uBase;
     }
 
     vec3 col = fill * panelLum;
     col += uGlowCol * glow * 0.10 * uPower;
-    col += uLine * line * (0.05 + 0.28 * glow * uPower);
+    // Apagada, la rejilla sube un punto (0.12 vs 0.05): es lo que hace leer
+    // "pantalla" y no "hueco negro".
+    col += uLine * line * (mix(0.12, 0.05, uPower) + 0.28 * glow * uPower);
     // Deep dark gaps between the monitor tiles — applied AFTER glow/grid so
     // the separators cut through everything, like real bezels.
     col = mix(col, col * 0.16, sep);
@@ -206,7 +212,10 @@ const fragmentShader = /* glsl */ `
 
     // Atenuación global del muro (petición: "oscurece un poco el fondo en
     // ordenador") — solo <1 en desktop, ver el efecto de orientación en JS.
-    col *= uDim;
+    // Apagada casi no se atenúa (suelo 0.85): uDim existe para domar el
+    // BRILLO del vídeo bajo el texto; aplicado al gris del apagado lo
+    // hundía a negro (V17.11).
+    col *= mix(0.85, uDim, uPower);
 
     gl_FragColor = vec4(col, 1.0);
   }

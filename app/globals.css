@@ -6481,8 +6481,7 @@ input[type="range"].nxr-ms-range::-moz-range-thumb {
    espera oculta y cada actor en su pose de espera vía CSS — ninguna carrera
    de hidratación/navegación puede pintar la gestión resuelta. Los estilos
    inline de GSAP toman el relevo en cuanto existen. */
-.nxr-aia-hero:not(.nxr-aia-static) .nxr-aia-scene,
-.nxr-aia-hero:not(.nxr-aia-static) .nxr-aia-facets-panel {
+.nxr-aia-hero:not(.nxr-aia-static) .nxr-aia-scene {
   visibility: hidden;
 }
 .nxr-aia-hero:not(.nxr-aia-static) .nxr-aia-chat,
@@ -6784,35 +6783,9 @@ input[type="range"].nxr-ms-range::-moz-range-thumb {
   color: var(--c-white);
   margin: 0;
 }
-.nxr-aia-facets-panel {
-  position: absolute;
-  left: var(--pad-x);
-  bottom: 104px;
-  width: min(360px, 30vw);
-  border-radius: var(--radius-md);
-}
-/* Viewports cortos de desktop (V16.97, medido a 559px de alto): con
-   bottom 104px el panel PISABA el CTA "Quiero mi agente" (facetas y CTA
-   comparten esquina inferior-izquierda). Pegado abajo queda por debajo del
-   CTA con margen. */
-@media (min-width: 901px) and (max-height: 700px) {
-  .nxr-aia-facets-panel {
-    bottom: 10px;
-  }
-}
-.nxr-aia-facets-inner {
-  position: relative;
-  display: grid;
-  align-items: start;
-  min-height: 92px;
-  padding: 16px 18px;
-}
-.nxr-aia-facet-label {
-  grid-area: 1 / 1;
-  display: flex;
-  align-items: flex-start;
-  gap: 12px;
-}
+/* (El panel de facetas "Escucha/Decide/Actúa/Resuelve" del hero se eliminó
+   en V17.0 a petición; las clases nxr-aia-facet-num/title/desc de abajo
+   siguen en uso en el grid de la rama estática reduced-motion.) */
 .nxr-aia-facet-num {
   font-family: var(--font-space-mono), monospace;
   font-size: 13px;
@@ -6877,30 +6850,17 @@ input[type="range"].nxr-ms-range::-moz-range-thumb {
   .nxr-aia-h1 {
     font-size: clamp(26px, 7.4vw, 34px);
   }
-  /* Facetas = franja compacta de una línea sobre la bottom nav. */
-  .nxr-aia-facets-panel {
-    left: 20px;
-    right: 20px;
-    width: auto;
-    bottom: 96px;
-  }
-  .nxr-aia-facets-inner {
-    min-height: 0;
-    padding: 10px 14px;
-  }
-  .nxr-aia-facet-label {
-    align-items: center;
-  }
-  .nxr-aia-facet-desc {
-    display: none;
+  /* Indicador "Desliza" en móvil: abajo a la derecha (V17.0, "no a media
+     altura") — en /agentes-ia el bajo está libre sin el panel de facetas. */
+  .nxr-aia-stage .nxr-scrollcue {
+    top: auto;
+    bottom: 16px;
+    right: 14px;
   }
 }
-/* Teléfonos bajos (ej. 360×640): fuera facetas, todo compacta fuerte —
-   presupuesto vertical verificado con aserciones a 360×640. */
+/* Teléfonos bajos (ej. 360×640): todo compacta fuerte — presupuesto
+   vertical verificado con aserciones a 360×640. */
 @media (max-width: 767px) and (max-height: 720px) {
-  .nxr-aia-facets-panel {
-    display: none;
-  }
   .nxr-aia-scene {
     padding: 16px 20px 84px;
   }

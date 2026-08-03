@@ -182,8 +182,6 @@ export default function AgentesIaHero() {
       const typing = q(".nxr-aia-typing")[0] as HTMLElement | undefined;
       const msgOut = q(".nxr-aia-msg-out")[0] as HTMLElement | undefined;
       const badge = q(".nxr-aia-badge")[0] as HTMLElement | undefined;
-      const facetsPanel = q(".nxr-aia-facets-panel")[0] as HTMLElement | undefined;
-      const labels = q(".nxr-aia-facet-label");
       const mobile = window.innerWidth < 768;
 
       // Same Safari/Chrome `100lvh` disagreement fix as DesarrolloWebHero:
@@ -233,16 +231,15 @@ export default function AgentesIaHero() {
       gsap.set(badge ?? [], { opacity: 0, scale: 0.85, y: 8 });
       gsap.set(tools, { opacity: 0, y: mobile ? 18 : 0, x: mobile ? 0 : 26, scale: 0.92 });
       gsap.set(checks, { opacity: 0, scale: 0.5 });
-      gsap.set(facetsPanel ?? [], { opacity: 0, y: 24 });
-      gsap.set(labels, { opacity: 0, filter: "blur(10px)" });
       gsap.set(q(".nxr-aia-scene"), { visibility: "visible" });
-      gsap.set(facetsPanel ?? [], { visibility: "visible" });
 
-      // ---- SPLASH de entrada (V16.98): la onda Siri aparece ~1s con
-      // fundido difuminado y da paso AUTOMÁTICAMENTE al titular — timeline
-      // por TIEMPO (no scrubbeada), toca solo opacity/filter del head (el
-      // scrub posee su y, sin conflicto). Al terminar, el estado React
-      // desmonta el canvas del splash y libera su contexto WebGL.
+      // ---- SPLASH de entrada (V16.98): la onda Siri APARECE AGRANDÁNDOSE
+      // hasta su tamaño (V17.0) con fundido difuminado ~1s y da paso
+      // AUTOMÁTICAMENTE al titular; con el titular llega el indicador
+      // "Desliza" ("al salir la frase, el icono"). Timeline por TIEMPO (no
+      // scrubbeada), toca solo opacity/filter/scale — el scrub posee la y
+      // del head, sin conflicto. Al terminar, el estado React desmonta el
+      // canvas del splash y libera su contexto WebGL.
       const splashEl = q(".nxr-aia-splash")[0] as HTMLElement | undefined;
       if (splashEl && head) {
         gsap.set(head, { opacity: 0, filter: "blur(14px)" });
@@ -250,11 +247,12 @@ export default function AgentesIaHero() {
         intro
           .fromTo(
             splashEl,
-            { opacity: 0, filter: "blur(16px)", scale: 0.92 },
-            { opacity: 1, filter: "blur(0px)", scale: 1, duration: 0.45, ease: "power2.out" }
+            { opacity: 0, filter: "blur(16px)", scale: 0.55 },
+            { opacity: 1, filter: "blur(0px)", scale: 1, duration: 0.55, ease: "power2.out" }
           )
-          .to(splashEl, { opacity: 0, filter: "blur(16px)", scale: 1.05, duration: 0.5, ease: "power2.in" }, 1.45)
-          .to(head, { opacity: 1, filter: "blur(0px)", duration: 0.6, ease: "power2.out" }, 1.7);
+          .to(splashEl, { opacity: 0, filter: "blur(16px)", scale: 1.06, duration: 0.5, ease: "power2.in" }, 1.5)
+          .to(head, { opacity: 1, filter: "blur(0px)", duration: 0.6, ease: "power2.out" }, 1.75)
+          .to(q(".nxr-scrollcue"), { autoAlpha: 1, duration: 0.4 }, 1.95);
       }
 
       const tl = gsap.timeline({
@@ -279,18 +277,12 @@ export default function AgentesIaHero() {
         })
         .catch(() => {});
       tl.to(chat ?? {}, { opacity: 1, y: 0, duration: 0.6, ease: "power3.out" }, 0.85);
-      tl.to(facetsPanel ?? {}, { opacity: 1, y: 0, duration: 0.5 }, 1.15);
-      if (labels[0]) tl.to(labels[0], { opacity: 1, filter: "blur(0px)", duration: 0.4 }, 1.25);
-      // Indicador "Desliza" mientras corre la animación (V16.98) — entra
-      // con el pipeline y se retira al resolverse la gestión.
-      tl.to(q(".nxr-scrollcue"), { autoAlpha: 1, duration: 0.35 }, 1.0);
 
       // ===== PHASE B — the customer writes =====
       tl.to(msgIn ?? {}, { opacity: 1, y: 0, filter: "blur(0px)", duration: 0.5, ease: "power2.out" }, 1.5);
 
       // ===== PHASE C — the agent reads & thinks =====
       tl.to(typing ?? {}, { opacity: 1, duration: 0.35 }, 2.05);
-      crossfadeFacet(tl, labels, 0, 1, 2.3);
 
       // ===== PHASE D — tools fan out, one beat each =====
       tools.forEach((tool, i) => {
@@ -298,10 +290,8 @@ export default function AgentesIaHero() {
         tl.to(tool, { opacity: 1, x: 0, y: 0, scale: 1, duration: 0.5, ease: "back.out(1.5)" }, at);
         if (checks[i]) tl.to(checks[i], { opacity: 1, scale: 1, duration: 0.35, ease: "back.out(2)" }, at + 0.5);
       });
-      crossfadeFacet(tl, labels, 1, 2, 3.15);
 
       // ===== PHASE E — the reply closes the loop =====
-      crossfadeFacet(tl, labels, 2, 3, 4.6);
       tl.to(typing ?? {}, { opacity: 0, duration: 0.3 }, 4.65);
       tl.to(msgOut ?? {}, { opacity: 1, y: 0, filter: "blur(0px)", duration: 0.55, ease: "power2.out" }, 4.75);
       tl.to(badge ?? {}, { opacity: 1, scale: 1, y: 0, duration: 0.5, ease: "back.out(1.7)" }, 5.3);
@@ -395,30 +385,8 @@ export default function AgentesIaHero() {
               <span className="nxr-gradient-text-lime">a todas horas.</span>
             </h1>
           </div>
-          <div className="nxr-aia-facets-panel nxr-glass-edge">
-            <div className="nxr-glass-edge-content nxr-aia-facets-inner">
-              {FACETS.map((f, i) => (
-                <div key={f.title} className="nxr-aia-facet-label">
-                  <span className="nxr-aia-facet-num" style={{ color: f.color }}>
-                    0{i + 1}
-                  </span>
-                  <div>
-                    <div className="nxr-aia-facet-title">{f.title}</div>
-                    <div className="nxr-aia-facet-desc">{f.desc}</div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
         </div>
       </div>
     </section>
   );
-}
-
-// Progressive blur crossfade between stacked facet labels (same gesture as
-// /desarrollo-web so the service pages read as one family).
-function crossfadeFacet(tl: gsap.core.Timeline, labels: Element[], from: number, to: number, at: number) {
-  if (labels[from]) tl.to(labels[from], { opacity: 0, filter: "blur(10px)", duration: 0.5, ease: "power1.inOut" }, at);
-  if (labels[to]) tl.to(labels[to], { opacity: 1, filter: "blur(0px)", duration: 0.5, ease: "power1.inOut" }, at);
 }

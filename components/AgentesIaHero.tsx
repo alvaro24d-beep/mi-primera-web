@@ -265,12 +265,36 @@ export default function AgentesIaHero() {
 
       // ---- Title intro: big at mid-height, then exits STRAIGHT UP while
       // the pipeline rises in (same family gesture as /desarrollo-web V15.88).
-      const S = mobile ? 1.2 : 1.6;
+      // Escala ADAPTATIVA y RE-AJUSTABLE (V16.97, "que se vea bien en el
+      // viewport"): la 1.6 fija proyectaba el titular a 1843px en un
+      // viewport de 1280 (medido: se cortaba "por ti,"). El tope pasa a ser
+      // el que hace caber la LÍNEA más ancha del h1 con margen — y se
+      // recalcula cuando cargan las fuentes (medir con el fallback, más
+      // estrecho que Rajdhani, daba una escala optimista que luego
+      // desbordaba). El tween de salida es function-based y el refresh del
+      // ScrollTrigger lo re-captura.
+      const h1El = q(".nxr-aia-h1")[0] as HTMLElement | undefined;
       const vh = window.innerHeight;
       const restTop = head ? parseFloat(getComputedStyle(head).top) || 44 : 44;
-      const hh = head ? head.offsetHeight : 120;
-      const y0 = vh / 2 - restTop - (hh * S) / 2;
-      if (head) gsap.set(head, { transformOrigin: "left top", scale: S, y: y0 });
+      let hh = head ? head.offsetHeight : 120;
+      let S = 1;
+      const fitTitle = () => {
+        if (!head) return;
+        let textW = 600;
+        if (h1El) {
+          const rg = document.createRange();
+          rg.selectNodeContents(h1El);
+          // Los rects del Range incluyen la escala ya aplicada al head en
+          // re-ejecuciones — dividir por ella devuelve el ancho de layout.
+          const curScale = (gsap.getProperty(head, "scaleX") as number) || 1;
+          const w = rg.getBoundingClientRect().width / curScale;
+          if (w) textW = w;
+        }
+        hh = head.offsetHeight;
+        S = Math.min(mobile ? 1.2 : 1.6, Math.max(1, (window.innerWidth - (mobile ? 40 : 120)) / textW));
+        gsap.set(head, { transformOrigin: "left top", scale: S, y: vh / 2 - restTop - (hh * S) / 2 });
+      };
+      fitTitle();
 
       // ---- Hidden start states. The same waiting poses also exist as a CSS
       // floor (see globals.css) so no init race can ever paint the resolved
@@ -305,7 +329,14 @@ export default function AgentesIaHero() {
       });
 
       // ===== PHASE A — the title hands the stage to the pipeline =====
-      tl.to(head ?? {}, { y: -(restTop + hh * S + vh * 0.08), duration: 1.15, ease: "power2.in" }, 0);
+      tl.to(head ?? {}, { y: () => -(restTop + hh * S + vh * 0.08), duration: 1.15, ease: "power2.in" }, 0);
+      // Re-ajuste del título con las fuentes reales cargadas (ver fitTitle).
+      document.fonts?.ready
+        .then(() => {
+          fitTitle();
+          tl.scrollTrigger?.refresh();
+        })
+        .catch(() => {});
       tl.to(canvasWrap ?? {}, { opacity: 1, duration: 0.6 }, 0.6);
       tl.to(chat ?? {}, { opacity: 1, y: 0, duration: 0.6, ease: "power3.out" }, 0.85);
       tl.to(facetsPanel ?? {}, { opacity: 1, y: 0, duration: 0.5 }, 1.15);

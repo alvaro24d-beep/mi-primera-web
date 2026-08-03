@@ -69,6 +69,14 @@ export default function AgentesIaNoche() {
       const stage = stageRef.current;
       if (!stage) return;
 
+      // Móvil (V16.97, "las cards se tapan con la barra inferior"): el
+      // stage medía 100lvh (toolbar colapsada) — con la toolbar visible su
+      // parte baja (la pila) caía bajo el viewport visual, justo donde
+      // flota #nxr-nav. Una medida real de innerHeight (mismo patrón que
+      // --aia-vh en el hero / --dwh-vh en /desarrollo-web) dimensiona la
+      // composición al viewport que de verdad se ve.
+      if (window.innerWidth < 768) stage.style.setProperty("--nt-vh", `${window.innerHeight}px`);
+
       const q = gsap.utils.selector(stage);
       const clockEl = q(".nxr-aia-nt-clock")[0] as HTMLElement | undefined;
       const counterEl = q(".nxr-aia-nt-counter b")[0] as HTMLElement | undefined;

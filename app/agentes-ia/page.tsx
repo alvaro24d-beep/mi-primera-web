@@ -3,7 +3,6 @@ import AgentesIaHero from "@/components/AgentesIaHero";
 import AgentesIaNoche from "@/components/AgentesIaNoche";
 import AgentesIaCasos from "@/components/AgentesIaCasos";
 import AgentesIaPasos from "@/components/AgentesIaPasos";
-import AgentesIaGlow from "@/components/AgentesIaGlow";
 import Contacto from "@/components/Contacto";
 
 export const metadata: Metadata = {
@@ -15,7 +14,6 @@ export const metadata: Metadata = {
 export default function AgentesIaPage() {
   return (
     <>
-      <AgentesIaGlow />
       <AgentesIaHero />
       <AgentesIaNoche />
       <AgentesIaCasos />

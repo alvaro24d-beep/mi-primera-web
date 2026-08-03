@@ -515,8 +515,7 @@ p.nxr-hero-mastery-line {
    de curvatura per-char, extinto en V16.91 — pueden volver.) Todos los
    acentos lima viven en títulos Rajdhani, que carga el peso 700; el serif
    de Servicios usa salmon y no cambia. El `color` computado sigue siendo
-   --c-lime (text-fill lo tapa, no lo sustituye): el muestreo de color de
-   HeroTitleAssemble sigue leyendo lima para sus puntos. */
+   --c-lime (text-fill lo tapa, no lo sustituye). */
 .nxr-gradient-text-lime {
   font-weight: 700;
   background: linear-gradient(100deg, #a8f04a 0%, #e6ffc2 28%, #7ee83b 55%, #a8f04a 100%);
@@ -1295,34 +1294,6 @@ p.nxr-hero-mastery-line {
   transform-origin: 0 50%;
   transform: scaleX(0);
   transition: transform 0.25s linear;
-}
-
-/* ===== Hero H1 assemble (fragmentos que forman el título) =====
-   Ver HeroTitleAssemble.tsx. El texto real del h1 (SIEMPRE en el DOM, por
-   SEO) va oculto solo mientras los fragmentos del canvas lo forman — mismo
-   patrón CSS-oculta/JS-revela de .nxr-intro-texts. La clase .nxr-h1-on la
-   añade el componente al completar la formación (o su watchdog/fallbacks:
-   el título nunca puede quedarse invisible). Solo la rama animada lleva
-   .nxr-hero-h1-assemble; la estática (reduced motion) no oculta nada. */
-.nxr-hero-assemble-canvas {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  pointer-events: none;
-  transition: opacity 0.38s ease;
-}
-.nxr-hero-assemble-canvas.nxr-hero-assemble-out {
-  opacity: 0;
-}
-.nxr-hero-h1-assemble .nxr-hero-h1-in {
-  visibility: hidden;
-  opacity: 0;
-}
-.nxr-hero-h1-assemble.nxr-h1-on .nxr-hero-h1-in {
-  visibility: visible;
-  opacity: 1;
-  transition: opacity 0.38s ease;
 }
 
 .nxr-hero-sub {

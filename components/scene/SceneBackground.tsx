@@ -114,6 +114,8 @@ const fragmentShader = /* glsl */ `
   uniform vec2 uRes;       // drawing-buffer size, for the SCREEN-SPACE edge vignette
   uniform float uDim;      // atenuación global del muro (1 móvil, <1 desktop)
   uniform float uGridShift; // deriva vertical de la cuadrícula con el scroll (V17.5)
+  uniform float uPower;    // encendido de la pantalla (V17.10): 0 = apagada
+                           // (gris oscuro, sin vídeo ni glow), 1 = normal
 
   vec3 sampleSource(vec2 uv) {
     if (uHasVideo > 0.5) {
@@ -175,14 +177,17 @@ const fragmentShader = /* glsl */ `
       // Dim + tint toward the site's dark base so overlaid text stays legible.
       // (El "vídeo limpio en móvil" de V16.94 duró un día: V16.95 restaura
       // el sombreado completo también ahí, ya con el clip de montañas.)
-      fill = mix(uBase * 0.7, tv, 0.5);
+      // uPower (V17.10): con la pantalla apagada el vídeo desaparece y queda
+      // solo la base oscura — la textura física (paneles, biseles, rejilla
+      // tenue, viñetas) sigue, como un muro de monitores sin señal.
+      fill = mix(uBase * 0.7, tv, 0.5 * uPower);
     } else {
       fill = uBase;
     }
 
     vec3 col = fill * panelLum;
-    col += uGlowCol * glow * 0.10;
-    col += uLine * line * (0.05 + 0.28 * glow);
+    col += uGlowCol * glow * 0.10 * uPower;
+    col += uLine * line * (0.05 + 0.28 * glow * uPower);
     // Deep dark gaps between the monitor tiles — applied AFTER glow/grid so
     // the separators cut through everything, like real bezels.
     col = mix(col, col * 0.16, sep);
@@ -229,6 +234,12 @@ export default function SceneBackground({
   const target = useRef({ x: 0, y: 0 });
   const current = useRef({ x: 0, y: 0 });
   const scratchSize = useRef(new THREE.Vector2());
+  // Encendido de pantalla (V17.10): en la home el muro arranca APAGADO en
+  // la hero y se enciende al llegar la Intro. `null` = primer frame (se
+  // fija al target sin rampa, para no ver un flash de encendido/apagado al
+  // cargar en mitad de la página o en otra ruta).
+  const introElRef = useRef<HTMLElement | null>(null);
+  const powerRef = useRef<number | null>(null);
   // Live handle to the current <video> for the keep-alive interval below —
   // rendering must never depend on the video actually playing (phones can
   // refuse/delay autoplay, and in "demand" mode the video's rVFC is the
@@ -263,6 +274,7 @@ export default function SceneBackground({
       uRes: { value: new THREE.Vector2(1, 1) },
       uDim: { value: 1 },
       uGridShift: { value: 0 },
+      uPower: { value: 1 },
     }),
     // eslint-disable-next-line react-hooks/exhaustive-deps
     []
@@ -496,9 +508,36 @@ export default function SceneBackground({
       // el patrón hacia V creciente (arriba) cuando scrollY crece. Lectura
       // de window.scrollY sin coste de layout; se refresca en cada frame
       // renderizado (vídeo ~30fps / always al scrollear).
-      // 0.00009 (antes 0.00004, V17.6 "que se mueva un poco más rápido"):
-      // ~300px de deriva visual por cada 1000px de scroll.
-      matV.uniforms.uGridShift.value = window.scrollY * 0.00009;
+      // 0.00006 (V17.10 "más despacio"; historial: 0.00004 → 0.00009 en
+      // V17.6 → punto medio): ~200px de deriva visual por 1000px de scroll.
+      matV.uniforms.uGridShift.value = window.scrollY * 0.00006;
+
+      // ===== Pantalla apagada en la hero de la home (V17.10) =====
+      // "Al cargar la home no quiero que se vea el vídeo; que la pantalla
+      // se encienda al llegar a la Intro". El target sale del rect de
+      // #nxr-intro (medido en vivo, patrón de las capas — nunca st.start
+      // cacheado): 0 mientras la Intro está por debajo del 95% del viewport
+      // (toda la hero pineada incluida), rampa a 1 cuando su top alcanza el
+      // 55%. En rutas sin #nxr-intro el muro queda siempre encendido. El
+      // valor renderizado persigue al target con amortiguación (~medio
+      // segundo), así el encendido se ve como una TV encendiéndose y no
+      // como un corte, y es reversible al volver a subir.
+      let intro = introElRef.current;
+      if (!intro || !intro.isConnected) {
+        intro = introElRef.current = document.getElementById("nxr-intro");
+      }
+      let pTarget = 1;
+      if (intro) {
+        const vh = window.innerHeight;
+        const top = intro.getBoundingClientRect().top;
+        pTarget = Math.min(1, Math.max(0, (vh * 0.95 - top) / (vh * 0.4)));
+      }
+      const pPrev = powerRef.current;
+      const pNext = pPrev === null ? pTarget : pPrev + (pTarget - pPrev) * 0.1;
+      powerRef.current = pNext;
+      matV.uniforms.uPower.value = pNext;
+      // Sigue invalidando mientras la rampa no asiente (modo demand).
+      if (pPrev !== null && Math.abs(pTarget - pNext) > 0.002) invalidate();
     }
     const c = current.current;
     const t = target.current;

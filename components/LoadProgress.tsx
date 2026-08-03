@@ -27,9 +27,9 @@ declare global {
 // procedural de respaldo ya está pintando y la web es usable). El coste
 // asumido y pedido: el primer contenido pintado es la cortina, no el hero.
 //
-// Al abrirse deja window.__nxrCurtainOpen y emite `nxr:curtain-open`:
-// HeroTitleAssemble espera esa señal para arrancar la formación del h1
-// justo cuando la página se descubre — no en off bajo la cortina.
+// Al abrirse deja window.__nxrCurtainOpen y emite `nxr:curtain-open`, por
+// si algo necesita arrancar justo cuando la página se descubre (lo usaba la
+// formación del h1, eliminada en V17.10; hoy no tiene consumidores).
 //
 // Hitos (acumulados):
 //   0.15 montaje (bundle ejecutado + React hidratado)

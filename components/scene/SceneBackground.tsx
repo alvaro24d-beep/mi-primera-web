@@ -116,6 +116,7 @@ const fragmentShader = /* glsl */ `
   uniform float uGridShift; // deriva vertical de la cuadrícula con el scroll (V17.5)
   uniform float uPower;    // encendido de la pantalla (V17.10): 0 = apagada
                            // (gris oscuro, sin vídeo ni glow), 1 = normal
+  uniform float uTime;     // segundos, para el parpadeo de celdas en reposo
 
   vec3 sampleSource(vec2 uv) {
     if (uHasVideo > 0.5) {
@@ -211,6 +212,16 @@ const fragmentShader = /* glsl */ `
     // Apagada, la cuadrícula sube a 0.16 (V17.13, "que se vea que está
     // ahí") — sobre el fondo casi negro es lo único que dibuja la pantalla.
     col += uLine * line * (mix(0.16, 0.05, uPower) + 0.28 * glow * uPower);
+
+    // Parpadeo en reposo (V17.15, "que la pantalla apagada no esté
+    // estática"): ~8% de las celdas de la cuadrícula respiran un poco más
+    // claras, cada una con su fase y velocidad propias. Solo apagada
+    // (factor 1-uPower); mientras tanto el vídeo sigue decodificando detrás
+    // y su rVFC invalida ~30fps, así que la animación corre sola.
+    vec2 cid = floor(g);
+    float ch = fract(sin(dot(cid, vec2(419.2, 371.9))) * 833.7);
+    float tw = step(0.92, ch) * (0.5 + 0.5 * sin(uTime * (1.2 + ch * 2.5) + ch * 40.0));
+    col += uLine * tw * 0.16 * (1.0 - uPower);
     // Deep dark gaps between the monitor tiles — applied AFTER glow/grid so
     // the separators cut through everything, like real bezels.
     col = mix(col, col * 0.16, sep);
@@ -305,6 +316,7 @@ export default function SceneBackground({
       uDim: { value: 1 },
       uGridShift: { value: 0 },
       uPower: { value: 1 },
+      uTime: { value: 0 },
     }),
     // eslint-disable-next-line react-hooks/exhaustive-deps
     []
@@ -328,7 +340,9 @@ export default function SceneBackground({
     );
     // Desktop CASI NEGRO (petición V16.66: "quiero que se vea casi negro");
     // móvil sin cambio.
-    mat.uniforms.uDim.value = mode === WALL_MODES.portrait ? 1 : 0.32;
+    // 1.2 en móvil (V17.15, "en móvil se ve muy oscuro, un poco más de
+    // luz"): levanta el muro entero ~20% solo en portrait; desktop igual.
+    mat.uniforms.uDim.value = mode === WALL_MODES.portrait ? 1.2 : 0.32;
     invalidate();
   }, [mode, invalidate]);
 
@@ -525,13 +539,14 @@ export default function SceneBackground({
     return () => window.clearInterval(id);
   }, [tv, active, invalidate]);
 
-  useFrame(({ gl }) => {
+  useFrame(({ gl, clock }) => {
     // Drawing-buffer size for the screen-space vignette (scratch vector
     // reused — correct across resizes and DPR changes for free).
     const matV = matRef.current;
     if (matV) {
       gl.getDrawingBufferSize(scratchSize.current);
       (matV.uniforms.uRes.value as THREE.Vector2).copy(scratchSize.current);
+      matV.uniforms.uTime.value = clock.elapsedTime;
       // Deriva de la cuadrícula ligada al scroll REAL (Lenis conduce el
       // scroll nativo, ya suavizado): al bajar, la cuadrícula sube
       // lentamente y viceversa. Signo: restar el shift en el shader mueve

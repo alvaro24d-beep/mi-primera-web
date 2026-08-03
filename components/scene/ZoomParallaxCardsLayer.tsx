@@ -246,14 +246,19 @@ export default function ZoomParallaxCardsLayer({ isMobile }: { isMobile: boolean
           const slack = Math.max(0, size.height - stickyRect.height);
           const fueraArriba = Math.max(0, Math.min(visBottom, stickyRect.top) - visTop);
           const fueraAbajo = Math.max(0, visBottom - Math.max(stickyRect.bottom + slack, visTop));
-          // Tolerancia ampliada SOLO en la fase de ENTRADA móvil (V16.86):
-          // una card llegando al encuadre puede asomar unas decenas de px
-          // fuera del box sin ser el caso fantasma — los offsets extremos
-          // pre-pin (~±28vh ≈ 230px+) siguen fuera y ocultos. En la SALIDA
-          // (y siempre en desktop) se mantienen los 24px, donde vivía el
-          // bug de la card vacía sobre el reel/Proceso.
-          const clipTol = isMobile && sectionRect.bottom > size.height ? 96 : 24;
-          if (fueraArriba + fueraAbajo > clipTol) {
+          // Tolerancias ASIMÉTRICAS (V16.90, regresión "+40 sobre
+          // Servicios"): la holgura generosa de entrada solo es legítima
+          // por ABAJO — por donde asoman las cards inferiores llegando al
+          // encuadre. Por ARRIBA es exactamente donde viven los fantasmas
+          // históricos (una card superior asomando su borde inferior SOBRE
+          // la sección anterior durante el handoff): la tolerancia
+          // combinada de 96px de V16.86 dejó pasar una franja de la card
+          // "+40" sobre el reel en móvil. Arriba: 8px estrictos, siempre.
+          // Abajo: 96px en la fase de entrada móvil (sección aún
+          // extendiéndose bajo el viewport), 24px en salida y desktop —
+          // donde vivía el bug de la card vacía sobre Proceso.
+          const abajoTol = isMobile && sectionRect.bottom > size.height ? 96 : 24;
+          if (fueraArriba > 8 || fueraAbajo > abajoTol) {
             group.visible = false;
             continue;
           }

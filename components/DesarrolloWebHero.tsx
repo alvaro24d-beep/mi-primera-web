@@ -104,10 +104,15 @@ export default function DesarrolloWebHero() {
       });
       // Piezas de la web del teléfono: caen desde arriba en su franja
       // (construcción descendente, mismo lenguaje que tenía el Mac).
-      gsap.set(q(".nxr-ip-w-nav, .nxr-ip-w-stats, .nxr-ip-w-footer, .nxr-ip-w-hero > *, .nxr-ip-w-card"), {
-        opacity: 0,
-        y: -14,
-      });
+      gsap.set(
+        q(
+          ".nxr-ip-w-nav, .nxr-ip-w-stats, .nxr-ip-w-footer, .nxr-ip-w-hero > *, .nxr-ip-w-card, .nxr-ip-w-band, .nxr-ip-w-quote"
+        ),
+        {
+          opacity: 0,
+          y: -14,
+        }
+      );
       gsap.set(labels, { opacity: 0, filter: "blur(10px)" });
 
       // Reveal the containers CSS keeps `visibility:hidden` until here (stops
@@ -148,21 +153,45 @@ export default function DesarrolloWebHero() {
       // de las mismas propiedades no deben solaparse.)
       tl.to(rig ?? {}, { scale: mobile ? 1.03 : 1.08, rotationY: 5, duration: 3.1, ease: "sine.inOut" }, 2.65);
 
-      // ===== La web se CONSTRUYE de arriba hacia abajo en la pantalla =====
+      // El indicador de "haz scroll" se retira en cuanto el usuario scrollea
+      // (primer tramo del scrub) — y vuelve solo si regresa arriba del todo.
+      tl.to(q(".nxr-dwh-scrollcue"), { autoAlpha: 0, duration: 0.3 }, 0.1);
+
+      // ===== La web se CONSTRUYE de arriba hacia abajo Y SE SCROLLEA =====
+      // El viewport de Safari sigue la construcción hacia abajo (el mismo
+      // auto-scroll que tenía el Mac: la página es más alta que la pantalla
+      // del móvil) y el FONDO DE PANTALLA de la web parallaxea a ~1/3 de la
+      // velocidad del contenido — profundidad visible en cada tramo.
+      const wflow = q(".nxr-ip-wflow")[0] as HTMLElement | undefined;
+      const webView = q(".nxr-ip-web")[0] as HTMLElement | undefined;
+      const wbg = q(".nxr-ip-wbg")[0] as HTMLElement | undefined;
+      const maxShift = () => (wflow && webView ? Math.max(0, wflow.scrollHeight - webView.clientHeight) : 0);
+      const scrollWeb = (frac: number, at: number) => {
+        tl.to(wflow ?? {}, { y: () => -frac * maxShift(), duration: 0.5, ease: "power1.inOut" }, at);
+        tl.to(wbg ?? {}, { y: () => -frac * maxShift() * 0.35, duration: 0.5, ease: "power1.inOut" }, at);
+      };
+
       const reveal = (sel: string, at: number, stagger = 0) =>
         tl.to(q(sel), { opacity: 1, y: 0, duration: 0.5, stagger, ease: "power2.out" }, at);
 
       reveal(".nxr-ip-w-nav", 1.75);
       reveal(".nxr-ip-w-hero > *", 2.05, 0.09);
       crossfadeFacet(tl, labels, 0, 1, 2.7);
-      reveal(".nxr-ip-w-card", 2.95, 0.14);
+      scrollWeb(0.3, 2.85);
+      reveal(".nxr-ip-w-card", 3.0, 0.14);
+      reveal(".nxr-ip-w-band", 3.3);
       crossfadeFacet(tl, labels, 1, 2, 3.5);
+      scrollWeb(0.65, 3.55);
       reveal(".nxr-ip-w-stats", 3.75);
+      reveal(".nxr-ip-w-quote", 4.0);
       crossfadeFacet(tl, labels, 2, 3, 4.4);
-      reveal(".nxr-ip-w-footer", 4.55);
+      scrollWeb(1, 4.45);
+      reveal(".nxr-ip-w-footer", 4.6);
 
+      // Publicada: el viewport vuelve a la portada para cerrar el ciclo.
+      scrollWeb(0, 5.25);
       // Hold so the finished site is what's on screen at the pin end.
-      tl.to({}, { duration: 0.5 }, 5.1);
+      tl.to({}, { duration: 0.5 }, 5.9);
 
       // Navegación cliente: este efecto corre ANTES que el del template que
       // resetea el scroll a 0 (los efectos de React van de hijo a padre),
@@ -246,6 +275,14 @@ export default function DesarrolloWebHero() {
                 />
               </span>
             </h1>
+          </div>
+          {/* Indicador de scroll: visible en reposo, se funde con el primer
+              tramo del scrub (y reaparece si vuelves arriba del todo). */}
+          <div className="nxr-dwh-scrollcue">
+            <span className="nxr-dwh-scrollcue-wheel">
+              <i />
+            </span>
+            <span className="nxr-dwh-scrollcue-txt">Scroll</span>
           </div>
           <div className="nxr-dwh-layers-panel">
             <div className="nxr-dwh-layers-inner">

@@ -46,8 +46,12 @@ import { useReducedMotion } from "@/hooks/useReducedMotion";
 // repulsión del puntero del original: es una entrada one-shot de ~3s, no
 // una escena interactiva persistente. Al acabar: rAF cancelado y canvas a
 // display:none — coste residual CERO (playbook).
-const FLY_MS = 1250; // vuelo de un fragmento (su objetivo llega a casa)
-const STAGGER_MS = 520; // escalonado de salida entre fragmentos
+// V17.4 ("más rápido, agruparse más rápido y que el título salga al
+// hacerlo"): vuelo y escalonado recortados ~⅓, muelle más tenso para que
+// los puntos persigan el objetivo veloz sin arrastrarse, y el h1 real
+// emergiendo casi desde los primeros aterrizajes.
+const FLY_MS = 850; // vuelo de un fragmento (su objetivo llega a casa)
+const STAGGER_MS = 340; // escalonado de salida entre fragmentos
 // V16.80→V16.85 ("se quedan detrás del título unos milisegundos; que
 // desaparezcan difuminados más rápido y un poco antes"): el apagado
 // arranca ANTES de aterrizar (hold negativo — el fragmento se disuelve
@@ -57,15 +61,15 @@ const STAGGER_MS = 520; // escalonado de salida entre fragmentos
 const HOLD_MIN_MS = -140; // apagado desde 140ms ANTES de aterrizar…
 const HOLD_VAR_MS = 160; // …con dispersión corta (goteo orgánico, sin bloque)
 const FADE_MS = 260; // apagado individual de cada fragmento
-const TEXT_START = 0.12; // fracción de aterrizados con la que el h1 real asoma
-const TEXT_FULL = 0.75; // fracción con la que el h1 real llega a opacidad 1
+const TEXT_START = 0.06; // fracción de aterrizados con la que el h1 real asoma
+const TEXT_FULL = 0.6; // fracción con la que el h1 real llega a opacidad 1
 const DRIFT_AMP = 1.6; // px de micro-deriva en reposo (decae al disolverse)
 const SWAP_MS = 420; // fade del canvas en los caminos de FALLBACK (CSS .38s)
 const WATCHDOG_MS = 5000; // pase lo que pase, el título se revela
 const ALPHA_IN_MS = 140; // fade-in de cada fragmento al aparecer
-const STIFFNESS = 120;
-const DAMPING = 18;
-const MAX_SPEED = 2600;
+const STIFFNESS = 180;
+const DAMPING = 22;
+const MAX_SPEED = 3600;
 const INK_ALPHA = 40; // umbral de alpha para considerar un píxel "tinta"
 
 interface Frag {

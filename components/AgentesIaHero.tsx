@@ -233,26 +233,28 @@ export default function AgentesIaHero() {
       gsap.set(checks, { opacity: 0, scale: 0.5 });
       gsap.set(q(".nxr-aia-scene"), { visibility: "visible" });
 
-      // ---- SPLASH de entrada (V16.98): la onda Siri APARECE AGRANDÁNDOSE
-      // hasta su tamaño (V17.0) con fundido difuminado ~1s y da paso
-      // AUTOMÁTICAMENTE al titular; con el titular llega el indicador
-      // "Desliza" ("al salir la frase, el icono"). Timeline por TIEMPO (no
-      // scrubbeada), toca solo opacity/filter/scale — el scrub posee la y
-      // del head, sin conflicto. Al terminar, el estado React desmonta el
-      // canvas del splash y libera su contexto WebGL.
+      // ---- SPLASH de entrada (V17.1, "por la derecha… se para en el
+      // centro… se va por la izquierda"): la onda Siri ENTRA desde la
+      // derecha de la pantalla, se detiene en el centro ~1s y SALE por la
+      // izquierda; el titular llega entonces también DESDE LA DERECHA, y
+      // con él el indicador "Desliza". Timeline por TIEMPO (no scrubbeada);
+      // el scrub posee la y del head — aquí solo x/opacity/filter, sin
+      // conflicto. Al terminar, React desmonta el canvas del splash y
+      // libera su contexto WebGL.
       const splashEl = q(".nxr-aia-splash")[0] as HTMLElement | undefined;
       if (splashEl && head) {
-        gsap.set(head, { opacity: 0, filter: "blur(14px)" });
+        const vw = window.innerWidth;
+        gsap.set(head, { opacity: 0, x: vw * 0.18, filter: "blur(14px)" });
         const intro = gsap.timeline({ onComplete: () => setSplashDone(true) });
         intro
           .fromTo(
             splashEl,
-            { opacity: 0, filter: "blur(16px)", scale: 0.55 },
-            { opacity: 1, filter: "blur(0px)", scale: 1, duration: 0.55, ease: "power2.out" }
+            { opacity: 0, x: vw * 0.55, filter: "blur(14px)" },
+            { opacity: 1, x: 0, filter: "blur(0px)", duration: 0.6, ease: "power3.out" }
           )
-          .to(splashEl, { opacity: 0, filter: "blur(16px)", scale: 1.06, duration: 0.5, ease: "power2.in" }, 1.5)
-          .to(head, { opacity: 1, filter: "blur(0px)", duration: 0.6, ease: "power2.out" }, 1.75)
-          .to(q(".nxr-scrollcue"), { autoAlpha: 1, duration: 0.4 }, 1.95);
+          .to(splashEl, { opacity: 0, x: -vw * 0.55, filter: "blur(14px)", duration: 0.55, ease: "power3.in" }, 1.6)
+          .to(head, { opacity: 1, x: 0, filter: "blur(0px)", duration: 0.65, ease: "power3.out" }, 1.85)
+          .to(q(".nxr-scrollcue"), { autoAlpha: 1, duration: 0.4 }, 2.05);
       }
 
       const tl = gsap.timeline({

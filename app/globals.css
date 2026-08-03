@@ -6850,11 +6850,12 @@ input[type="range"].nxr-ms-range::-moz-range-thumb {
   .nxr-aia-h1 {
     font-size: clamp(26px, 7.4vw, 34px);
   }
-  /* Indicador "Desliza" en móvil: abajo a la derecha (V17.0, "no a media
-     altura") — en /agentes-ia el bajo está libre sin el panel de facetas. */
+  /* Indicador "Desliza" en móvil: abajo a la derecha, POR ENCIMA del nav
+     flotante inferior (V17.1 — a 16px lo tapaba: el nav ocupa ~83px +
+     safe-area). */
   .nxr-aia-stage .nxr-scrollcue {
     top: auto;
-    bottom: 16px;
+    bottom: calc(104px + env(safe-area-inset-bottom));
     right: 14px;
   }
 }

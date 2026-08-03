@@ -162,7 +162,9 @@ function CardSlot({ id, isMobile }: { id: number; isMobile: boolean }) {
         width={dims.width}
         height={dims.height}
         thickness={10}
-        radius={30}
+        // 14 (antes 30, V16.93 "menos redondeadas"): esquinas más rectas en
+        // las 5 cards del reel, a juego con el radio del stage interior.
+        radius={14}
         curveX={style.curveX}
         curveY={style.curveY}
         bend={SRV_BEND}

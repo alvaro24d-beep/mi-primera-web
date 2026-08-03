@@ -117,6 +117,10 @@ const fragmentShader = /* glsl */ `
   uniform float uPower;    // encendido de la pantalla (V17.10): 0 = apagada
                            // (gris oscuro, sin vídeo ni glow), 1 = normal
   uniform float uTime;     // segundos, para el parpadeo de celdas en reposo
+  uniform float uOffLift;  // luz extra del estado APAGADO (V17.16): 1 en
+                           // desktop; >1 en móvil, donde el casi-negro que
+                           // en monitor se lee bien desaparece en el panel
+                           // del teléfono
 
   vec3 sampleSource(vec2 uv) {
     if (uHasVideo > 0.5) {
@@ -203,7 +207,7 @@ const fragmentShader = /* glsl */ `
     // reposo, ver el coeficiente de uLine abajo) y los biseles. El paso
     // apagado→vídeo es POR PANEL (tileOn) y duro, con el destello
     // blanco-frío del fallo digital encima.
-    vec3 offCol = vec3(0.013, 0.014, 0.018);
+    vec3 offCol = vec3(0.013, 0.014, 0.018) * uOffLift;
     fill = mix(offCol, fill, tileOn);
     fill += vec3(0.55, 0.6, 0.7) * glitch * (0.35 + 0.45 * ph);
 
@@ -211,7 +215,9 @@ const fragmentShader = /* glsl */ `
     col += uGlowCol * glow * 0.10 * uPower;
     // Apagada, la cuadrícula sube a 0.16 (V17.13, "que se vea que está
     // ahí") — sobre el fondo casi negro es lo único que dibuja la pantalla.
-    col += uLine * line * (mix(0.16, 0.05, uPower) + 0.28 * glow * uPower);
+    // En móvil dobla vía uOffLift (con tope 2: la base puede necesitar x3
+    // pero unas líneas x3 ya serían protagonistas).
+    col += uLine * line * (mix(0.16 * min(uOffLift, 2.0), 0.05, uPower) + 0.28 * glow * uPower);
 
     // Parpadeo en reposo (V17.15, "que la pantalla apagada no esté
     // estática"): ~8% de las celdas de la cuadrícula respiran un poco más
@@ -221,7 +227,7 @@ const fragmentShader = /* glsl */ `
     vec2 cid = floor(g);
     float ch = fract(sin(dot(cid, vec2(419.2, 371.9))) * 833.7);
     float tw = step(0.92, ch) * (0.5 + 0.5 * sin(uTime * (1.2 + ch * 2.5) + ch * 40.0));
-    col += uLine * tw * 0.16 * (1.0 - uPower);
+    col += uLine * tw * 0.16 * min(uOffLift, 2.0) * (1.0 - uPower);
     // Deep dark gaps between the monitor tiles — applied AFTER glow/grid so
     // the separators cut through everything, like real bezels.
     col = mix(col, col * 0.16, sep);
@@ -317,6 +323,7 @@ export default function SceneBackground({
       uGridShift: { value: 0 },
       uPower: { value: 1 },
       uTime: { value: 0 },
+      uOffLift: { value: 1 },
     }),
     // eslint-disable-next-line react-hooks/exhaustive-deps
     []
@@ -340,9 +347,13 @@ export default function SceneBackground({
     );
     // Desktop CASI NEGRO (petición V16.66: "quiero que se vea casi negro");
     // móvil sin cambio.
-    // 1.2 en móvil (V17.15, "en móvil se ve muy oscuro, un poco más de
-    // luz"): levanta el muro entero ~20% solo en portrait; desktop igual.
-    mat.uniforms.uDim.value = mode === WALL_MODES.portrait ? 1.2 : 0.32;
+    // 1.35 en móvil (V17.15 subió a 1.2; V17.16 otro punto, "se ve super
+    // oscuro"): levanta el muro entero solo en portrait; desktop igual.
+    mat.uniforms.uDim.value = mode === WALL_MODES.portrait ? 1.35 : 0.32;
+    // Luz extra del estado APAGADO solo en móvil (V17.16, "la pantalla
+    // apagada se ve prácticamente negra"): x3.2 la base apagada, x2 (tope
+    // en shader) la cuadrícula y el parpadeo. En desktop 1 = sin cambio.
+    mat.uniforms.uOffLift.value = mode === WALL_MODES.portrait ? 3.2 : 1;
     invalidate();
   }, [mode, invalidate]);
 

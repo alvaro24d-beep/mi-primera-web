@@ -507,6 +507,36 @@ p.nxr-hero-mastery-line {
   font-style: normal;
 }
 
+/* Acentos LIMA de títulos (V17.7, sitewide): más grosor y GRADIENTE
+   ANIMADO en vez del lima plano. El clip a texto pinta el degradado solo
+   en los glifos — funciona con los spans de char del reveal porque el
+   fondo vive en este wrapper estático y el clip sigue al texto. (Los
+   gradientes animados se retiraron en su día por ghosting con el sistema
+   de curvatura per-char, extinto en V16.91 — pueden volver.) Todos los
+   acentos lima viven en títulos Rajdhani, que carga el peso 700; el serif
+   de Servicios usa salmon y no cambia. El `color` computado sigue siendo
+   --c-lime (text-fill lo tapa, no lo sustituye): el muestreo de color de
+   HeroTitleAssemble sigue leyendo lima para sus puntos. */
+.nxr-gradient-text-lime {
+  font-weight: 700;
+  background: linear-gradient(100deg, #a8f04a 0%, #e6ffc2 28%, #7ee83b 55%, #a8f04a 100%);
+  background-size: 220% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: nxr-lime-grad 5.5s linear infinite;
+}
+@keyframes nxr-lime-grad {
+  to {
+    background-position: -220% 0;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .nxr-gradient-text-lime {
+    animation: none;
+  }
+}
+
 @media (max-width: 768px) {
   :root {
     --pad-x: 20px;
@@ -6777,7 +6807,8 @@ input[type="range"].nxr-ms-range::-moz-range-thumb {
   right: var(--pad-x);
 }
 .nxr-aia-h1 {
-  font-size: clamp(30px, 4.6vw, 62px);
+  /* clamp bajado (V17.7, "reduce el tamaño del h1"): 30/4.6vw/62 → 25/3.8vw/50. */
+  font-size: clamp(25px, 3.8vw, 50px);
   line-height: 1.06;
   letter-spacing: 0.01em;
   color: var(--c-white);

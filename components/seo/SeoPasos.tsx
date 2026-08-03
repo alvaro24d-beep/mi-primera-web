@@ -7,7 +7,6 @@ import { useGSAP } from "@gsap/react";
 import { useReducedMotion } from "@/hooks/useReducedMotion";
 import { useGlassPanels } from "@/hooks/useGlassPanels";
 import { useTitleReveal } from "@/hooks/useTitleReveal";
-import { useCurvedWords } from "@/hooks/useCurvedWords";
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -52,12 +51,6 @@ export default function SeoPasos() {
   // de pasos (mismo puente de anclas que Intro/Proceso/Tech).
   useGlassPanels(sectionRef, ".nxr-seo-glass", "#12141c", [reducedMotion]);
 
-  // Título unificado con la home (V16.41): bow dinámico sobre los spans del
-  // reveal; el tilt vive en el tier wide-block de globals.css.
-  useCurvedWords(sectionRef, ".nxr-section-h2", "left", [reducedMotion], {
-    bowOnly: true,
-    useExistingWords: true,
-  });
 
   useGSAP(
     () => {

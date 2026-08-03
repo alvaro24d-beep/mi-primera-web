@@ -5,7 +5,6 @@ import gsap from "gsap";
 import { useGSAP } from "@gsap/react";
 import { useReducedMotion } from "@/hooks/useReducedMotion";
 import { useTitleReveal } from "@/hooks/useTitleReveal";
-import { useCurvedWords } from "@/hooks/useCurvedWords";
 import { useGlassPanels } from "@/hooks/useGlassPanels";
 
 const STEPS = [
@@ -68,10 +67,6 @@ export default function ProcesoReel() {
   // (the DOM card keeps layout/content + a legibility scrim only — see the
   // .nxr-dwh-step-card CSS) and the dynamic per-line bow on the title.
   useGlassPanels(sectionRef, ".nxr-dwh-step-card", "#12141c", [reducedMotion]);
-  useCurvedWords(sectionRef, ".nxr-section-h2", "left", [reducedMotion], {
-    bowOnly: true,
-    useExistingWords: true,
-  });
 
   useGSAP(
     () => {

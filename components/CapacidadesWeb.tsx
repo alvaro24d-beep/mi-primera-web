@@ -5,7 +5,6 @@ import gsap from "gsap";
 import { useGSAP } from "@gsap/react";
 import { useTitleReveal } from "@/hooks/useTitleReveal";
 import { useReducedMotion } from "@/hooks/useReducedMotion";
-import { useCurvedWords } from "@/hooks/useCurvedWords";
 import { useGlassPanels } from "@/hooks/useGlassPanels";
 
 const CAPACIDADES = [
@@ -148,10 +147,6 @@ export default function CapacidadesWeb() {
   const reducedMotion = useReducedMotion();
 
   useGlassPanels(sectionRef, ".nxr-dwh-cap-card", "#12141c", [reducedMotion]);
-  useCurvedWords(sectionRef, ".nxr-section-h2", "left", [reducedMotion], {
-    bowOnly: true,
-    useExistingWords: true,
-  });
 
   useGSAP(
     () => {

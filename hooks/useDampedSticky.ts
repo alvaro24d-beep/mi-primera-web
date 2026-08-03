@@ -35,7 +35,7 @@ import gsap from "gsap";
  *
  * The delta is written to the separate CSS `translate` PROPERTY, composing
  * BEFORE `transform` — it never fights the elements' own transforms (CSS
- * centering/tilt, GSAP opacity, useCurvedWords' inline transform).
+ * centering, GSAP opacity).
  */
 export const STICKY_EASE = 140; // px of scroll over which each corner is rounded
 

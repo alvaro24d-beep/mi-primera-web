@@ -3,7 +3,6 @@
 import { useRef, useState } from "react";
 import { useTitleReveal } from "@/hooks/useTitleReveal";
 import { useGlassPanels } from "@/hooks/useGlassPanels";
-import { useCurvedWords } from "@/hooks/useCurvedWords";
 import { useTextScramble } from "@/hooks/useTextScramble";
 
 const BUDGET_VALUES = [
@@ -47,28 +46,8 @@ export default function Contacto() {
   // the Servicios identity) — the DOM card keeps layout/content only.
   useGlassPanels(sectionRef, ".nxr-ms-card", "#100f16", []);
 
-  // Title, description paragraph AND the three reassurance items curve as
-  // ONE block (same wrapper pattern as Intro's textblock): everything
-  // deformed in a section must sit on the same curved screen — with the
-  // title on its own CSS plane it visibly "pointed" somewhere else than the
-  // paragraph right below it. splitIgnore keeps SplitText off the h2 (the
-  // reveal already split it — its word spans just join this block's bow),
-  // and alsoBow curves the non-text item icons with their rows. No separate
-  // bowOnly call for the h2 here, unlike Proceso/Tech: it would double-bow.
-  useCurvedWords(sectionRef, ".nxr-contacto-textblock", "left", [], {
-    alsoBow: ".nxr-contacto-item-icon",
-    splitIgnore: ".nxr-section-h2",
-    // 7° (vs the sitewide 12°) on desktop: this block is the widest hook
-    // plane on the site (~500px incl. the reassurance items), and at 12° its
-    // outer edge magnified ~1.25× — the copy read oversized despite the
-    // standard 15px, and the h2 inside the plane rasterized visibly blurry
-    // ("se ve borroso como si se estuviese ampliando"). At 7° the max
-    // magnification is ~1.13× and the average ~1.07 — true-size copy, crisp
-    // title, the curved identity intact.
-    tiltDesktop: 7,
-  });
   // Scramble entrance on the section paragraph (the Intro-paragraph effect,
-  // sitewide per request). AFTER the curved-words call: reuses its spans.
+  // sitewide per request).
   useTextScramble(sectionRef, ".nxr-contacto-desc");
   const [negocio, setNegocio] = useState<string | null>(null);
   const [servicios, setServicios] = useState<string[]>([]);

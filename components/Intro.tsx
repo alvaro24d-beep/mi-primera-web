@@ -5,7 +5,7 @@ import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { useGSAP } from "@gsap/react";
 import { useTitleReveal } from "@/hooks/useTitleReveal";
-import { scrambleElement } from "@/hooks/useTextScramble";
+import { scrambleElement, cancelScramble as cancelScrambleEl } from "@/hooks/useTextScramble";
 import { useReducedMotion } from "@/hooks/useReducedMotion";
 
 // (V16.31) Sección REHECHA en plano y simple tras varias iteraciones que la
@@ -48,63 +48,15 @@ export default function Intro() {
       // before this layout effect has a chance to run.
       gsap.set(texts, { visibility: "visible" });
 
-      // ---- Text scramble (adapted from the motion-primitives TextScramble
-      // reference, WITHOUT framer-motion — this codebase animates with GSAP
-      // and the effect is a plain interval anyway). It must mutate the
-      // `.nxr-cw-word` spans created by useCurvedWords rather than re-render
-      // the paragraph: replacing the DOM text wholesale would destroy the
-      // per-word curvature transforms. Each word's width is locked for the
-      // duration so random glyphs can't reflow the line wrapping mid-effect.
-      const SCRAMBLE_CHARS = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
-      let cancelScramble: (() => void) | null = null;
+      // ---- Text scramble: el scrambleElement compartido (useTextScramble)
+      // crea sus propios spans por palabra — la rama que reutilizaba los
+      // .nxr-cw-word de useCurvedWords se fue con el sistema de perspectiva
+      // (V16.91, textos planos en toda la web).
       const scramble = () => {
-        cancelScramble?.();
-        const words = Array.from(texts.querySelectorAll<HTMLElement>(".nxr-cw-word"));
-        // V16.21: en móvil NO hay .nxr-cw-word — useCurvedWords hace early
-        // return <901px desde "quita la perspectiva de los textos en
-        // móvil", así que este scramble llevaba MUDO en teléfono desde
-        // entonces ("no has cambiado la del párrafo de la intro"). Ahí se
-        // usa el MISMO scrambleElement de las captions del reel, que crea
-        // sus propios spans por palabra.
-        if (!words.length) {
-          texts.querySelectorAll<HTMLElement>(".nxr-intro-text").forEach((p) => scrambleElement(p));
-          return;
-        }
-        const originals = words.map((w) => w.textContent ?? "");
-        const total = originals.reduce((n, t) => n + t.length, 0);
-        words.forEach((w) => (w.style.width = `${w.offsetWidth}px`));
-        const restore = () => {
-          words.forEach((w, wi) => {
-            w.textContent = originals[wi];
-            w.style.width = "";
-          });
-        };
-        const SPEED = 40; // ms per step (reference component's 0.04s)
-        const steps = 900 / SPEED;
-        let step = 0;
-        const id = window.setInterval(() => {
-          const progress = step / steps;
-          let idx = 0;
-          words.forEach((w, wi) => {
-            const orig = originals[wi];
-            let out = "";
-            for (let c = 0; c < orig.length; c++, idx++) {
-              out += progress * total > idx ? orig[c] : SCRAMBLE_CHARS[(Math.random() * SCRAMBLE_CHARS.length) | 0];
-            }
-            w.textContent = out;
-          });
-          step++;
-          if (step > steps) {
-            window.clearInterval(id);
-            restore();
-            cancelScramble = null;
-          }
-        }, SPEED);
-        cancelScramble = () => {
-          window.clearInterval(id);
-          restore();
-          cancelScramble = null;
-        };
+        texts.querySelectorAll<HTMLElement>(".nxr-intro-text").forEach((p) => scrambleElement(p));
+      };
+      const cancelScramble = () => {
+        texts.querySelectorAll<HTMLElement>(".nxr-intro-text").forEach((p) => cancelScrambleEl(p));
       };
 
       // Entrada al aparecer (como el resto de reveals del sitio) — y nada

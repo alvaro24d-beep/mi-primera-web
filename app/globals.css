@@ -131,8 +131,7 @@ p.nxr-hero-mastery-line {
   font-weight: 500;
 }
 
-/* Word spans created by useTextScramble's own splitter (only where a
-   paragraph has no .nxr-cw-word spans to reuse): inline-block so the
+/* Word spans created by useTextScramble's splitter: inline-block so the
    per-word width-lock during the scramble actually applies. */
 .nxr-scr-word {
   display: inline-block;
@@ -290,187 +289,25 @@ p.nxr-hero-mastery-line {
   transition-delay: 0.56s;
 }
 
-/* ===== Perspective text planes =====
-   Text blocks read as turned in depth toward their anchored side: for
-   left-aligned text the LEFT half comes toward the viewer and the right half
-   recedes, mirrored for right-aligned. ONE transform per block — per-char 3D
-   was tried and reverted (glyph spacing broke apart and the animated
-   gradient-text titles, painted per element with background-clip, rendered
-   scrambled).
-
-   Pivot tuning (two rejected iterations before this): the origin sits at 70%
-   toward the block's INNER side — so the OUTER edge (the page-edge side the
-   text is aligned to) swings strongly toward the viewer, the centre of the
-   block sits slightly on the near side of the pivot (it only ever GROWS a
-   touch, never shrinks — explicit requirement), and the small inner stretch
-   behind the pivot barely recedes. A full far-edge origin threw the outer
-   edge's projection off-screen; a center origin shrank the whole far half.
-   26° at 460px (up from 16°/750px, "mucho más exagerado" round two) puts the
-   outer edge at ~1.7x — unmistakable.
-
-   The leading translateX in the media queries below is a SCREEN-SPACE shift
-   (leftmost in the chain = applied after projection): the enlarged outer
-   edge projects well past the block's own layout edge, which at 26° left the
-   frame-adjacent blocks visually glued to (or past) the viewport border
-   ("muy pegados a los marcos"). Percentages resolve against each block's own
-   width, so wider blocks (which jut proportionally further) get shifted
-   proportionally more. `.nxr-intro-text` gets no desktop shift: it lives in
-   the RIGHT grid column and its outer (left) edge juts into the centre
-   gutter, not into a frame.
-
-   The PLAIN-COLORED paragraphs (.nxr-intro-text, .nxr-contacto-textblock,
-   .nxr-tech-header-right, .nxr-proceso-header-right) are NOT here anymore:
-   they curve for real, per word on a concave arc matching the TV-wall
-   backdrop, via hooks/useCurvedWords.ts ("tienen que ser curvas como el
-   fondo"). The section titles additionally get the dynamic per-line bow via
-   useCurvedWords' bowOnly mode riding useTitleReveal's word spans (safe
-   everywhere since the title accents became SOLID color — the old animated
-   background-clip gradients were removed after chronic ghosting bugs).
-
-   Conflict rules: never on an element carrying `.nxr-reveal` (it owns
-   `transform` for its entrance — Intro's headline wrapper takes it instead,
-   composed with its sticky centering), safe on .nxr-section-h2 themselves
-   (useTitleReveal only animates char spans inside). */
-/* (The h2s of #nxr-contacto, #nxr-proceso, #nxr-tech and #nxr-aia-noche are
-   NOT in these groups: each lives inside its section's hook-planed textblock
-   (.nxr-contacto-textblock / .nxr-proceso-textblock / .nxr-tech-header /
-   .nxr-aia-nt-textblock) and shares that block's plane — title and
-   accompanying text must point at the same vanishing point, sitewide.) */
-/* (#nxr-dwh-proceso's h2 is also out: it rides its section's whole-reel
-   plane, .nxr-dwh-proceso-tilt.) */
-#nxr-dwh-capacidades .nxr-section-h2,
-#nxr-dwh-tech .nxr-section-h2,
-#nxr-aia-casos .nxr-section-h2,
-#nxr-aia-pasos .nxr-section-h2,
-.nxr-srv-caption-tilt {
-  transform: perspective(460px) rotateY(26deg);
-  transform-origin: 70% center;
-}
-
-/* Servicios heading is the one RIGHT-aligned title on desktop; the global
-   mobile rule left-aligns every title on phones. */
-@media (min-width: 901px) {
-  /* DESKTOP profile: transform-origin sits AT the inner edge (the
-     screen-centre side), which therefore stays exactly at z=0 — flat,
-     undeformed, "que no se vaya al fondo" — and depth/scale grow toward the
-     page edge with the perspective's naturally convex profile (slow near the
-     pivot, accelerating outward). Nothing recedes behind the screen plane.
-     Angles are gentler than the old mid-pivot 26° because the lever is now
-     the FULL block width; the translateX shifts keep the (much larger)
-     outer-edge projection ~40px+ off the viewport frame — measured at
-     1440px via scratchpad verify-perspective2.mjs; re-run it if these
-     selectors change width. */
-  /* Desktop-only: on phones these h2s live inside their section's unified
-     mobile textblock plane instead (no own transform there). */
-  /* UN SOLO tier (V16.42, "todos los títulos con el mismo formato que 'Un
-     proceso claro, sin sorpresas'"): los MISMOS valores de Proceso para
-     todos los títulos con perspectiva de todas las páginas — el antiguo
-     tier wide (translateX 48%) desplazaba y magnificaba distinto y los
-     títulos "se veían unos grandes y otros pequeños". */
-  #nxr-proceso .nxr-section-h2,
-  #nxr-tech .nxr-section-h2,
-  #nxr-dwh-capacidades .nxr-section-h2,
-  #nxr-dwh-tech .nxr-section-h2,
-  #nxr-aia-casos .nxr-section-h2,
-  #nxr-aia-pasos .nxr-section-h2,
-  #nxr-seo-pasos .nxr-section-h2,
-  #nxr-seo-resultados .nxr-section-h2,
-  #nxr-precios .nxr-section-h2 {
-    transform: translateX(20%) perspective(460px) rotateY(16deg);
-    transform-origin: 100% center;
-    /* Misma CAJA que los títulos de la home (Proceso 436px / Tech 546px):
-       fit-content encoge al texto y el cap de 540px hace que los títulos
-       largos partan línea como los de la home — sin él, sus líneas
-       llenaban los 600px del max-width base y la proyección sacaba el
-       borde izquierdo del marco (-117px medidos). */
-    width: fit-content;
-    max-width: 540px;
-  }
-  /* MISMA regla ≠ MISMO aspecto (V16.78, "los títulos de desarrollo web se
-     ven mucho más grandes que los de la home"): la magnificación del borde
-     cercano crece con el ANCHO de la caja — a perspective(460px), los
-     títulos largos de las páginas de servicio (llenan el cap de 540px, 3
-     líneas) proyectaban 1.42× donde los cortos de la home (357-424px)
-     proyectan 1.22× (medido: 767×295 vs 436×177 con el mismo font-size).
-     La perspectiva más larga iguala la magnificación proyectada (~1.25×
-     para una caja a ancho de cap) — mismo tamaño EN PANTALLA que la home,
-     mismo ángulo/lenguaje del plano. La home NO entra aquí: es la
-     referencia. */
-  #nxr-dwh-capacidades .nxr-section-h2,
-  #nxr-dwh-tech .nxr-section-h2,
-  #nxr-aia-casos .nxr-section-h2,
-  #nxr-aia-pasos .nxr-section-h2,
-  #nxr-seo-pasos .nxr-section-h2,
-  #nxr-seo-resultados .nxr-section-h2,
-  #nxr-precios .nxr-section-h2 {
-    transform: translateX(20%) perspective(750px) rotateY(16deg);
-  }
-  /* Compensación de POSICIÓN (no de formato): estas secciones van a sangre
-     completa (contenedor en pad-x 64) y la proyección del tier sacaba las
-     primeras letras del marco (-55px medidos); el margen las deja
-     arrancando como Proceso (~56px). Las de /seo (contenedor centrado de
-     1100px) ya caen en 51px sin ayuda. */
-  #nxr-dwh-capacidades .nxr-section-h2,
-  #nxr-dwh-tech .nxr-section-h2,
-  #nxr-aia-casos .nxr-section-h2,
-  #nxr-aia-pasos .nxr-section-h2,
-  #nxr-precios .nxr-section-h2 {
-    margin-left: 110px;
-  }
-  .nxr-srv-caption-tilt {
-    /* Vertical origin at the TOP (not center): rows lean DOWN toward the
-       near-left edge, so each line reads as ascending left→right — sitting
-       at the bottom of the screen it must point UP, not droop ("deberia
-       tender a apuntar mas hacia arriba"). 12° (was 14): the droop
-       complaint was also "se deforma un poco de más". */
-    transform: translateX(26%) perspective(460px) rotateY(12deg);
-    transform-origin: 100% 0%;
-  }
-}
+/* (El sistema de "perspective text planes" + curvatura dinámica por palabra
+   de hooks/useCurvedWords.ts se eliminó ENTERO en V16.91 a petición: todos
+   los textos y títulos quedan PLANOS en desktop y móvil, mismo estilo en
+   toda la web. Quedan solo los ajustes de LAYOUT que ya definían el aspecto
+   móvil aprobado — anchos, márgenes y paddings de los bloques.) */
 @media (max-width: 900px) {
-  /* Mobile titles: SAME inner-edge-pivot profile as desktop ("como en
-     ordenador pero bien hecho y afinado") — everything is left-aligned on
-     phones, so the LEFT side is the one that distorts: pivot at the RIGHT
-     edge (flat, screen-centre-ish side), gentler 14° for the narrow width,
-     and an inward shift that keeps the enlarged left edge ~28px off the
-     frame instead of glued to it. */
-  /* Mobile titles: SAME deformation plane as the paragraphs ("tienen que
-     verse en el mismo plano de deformación... para que sea coherente") —
-     same 10° right-edge pivot, same 64px right margin (so block widths and
-     therefore the left-edge magnification match), and a 16% shift that
-     lands the projected left edge at ~32px, aligned with the paragraphs'
-     hook-computed indent (frameMargin 34). */
-  /* SIN perspectiva en móvil ("solo en móvil quita el efecto perspectiva
-     de todos los textos", V16.1): los títulos y la caption del reel quedan
-     PLANOS en teléfonos — anula el 26° de la regla base. El hook
-     useCurvedWords hace lo propio (early-return < 901px), así que ningún
-     bloque de texto lleva plano en móvil. Desktop no cambia. */
-  #nxr-dwh-capacidades .nxr-section-h2,
-  #nxr-dwh-tech .nxr-section-h2,
-  #nxr-aia-casos .nxr-section-h2,
-  #nxr-aia-pasos .nxr-section-h2 {
-    transform: none;
-  }
   .nxr-srv-caption-tilt {
-    transform: none;
     padding-left: 12px;
     padding-right: 6px;
   }
   /* RIGHT padding (not left): narrows the explanation's line boxes so the
-     tilted text can't spill past the right side of the phone, while its
-     LEFT edge stays exactly on the block's shared alignment line — a left
-     padding here was what made the paragraph start further right than the
-     title ("el título está más a la izquierda que el resto"). Every part
-     of the caption now starts on the same line of the same tilted plane. */
+     text can't spill past the right side of the phone, while its LEFT edge
+     stays exactly on the block's shared alignment line. */
   .nxr-srv-caption-tilt .nxr-srv-desc {
     padding-right: 28px;
   }
 
-  /* The curved paragraphs must not span the full width — extra air on the
-     RIGHT ("que dejen un espacio mayor a la derecha"), which also gives the
-     left-side distortion room to breathe away from the frame. */
-  /* (.nxr-intro-textblock ya no está aquí: Intro perdió su tilt en V16.29
-     y no necesita el aire lateral del plano curvado.) */
+  /* Los párrafos no ocupan todo el ancho — aire extra a la DERECHA ("que
+     dejen un espacio mayor a la derecha"). */
   .nxr-tech-header,
   .nxr-proceso-textblock,
   .nxr-contacto-textblock,
@@ -478,9 +315,9 @@ p.nxr-hero-mastery-line {
     margin-right: 64px;
   }
 
-  /* Slightly smaller copy on phones so the tilted lines fit comfortably
-     inside the narrowed column ("reduce un poco el tamaño de los textos en
-     móvil para que quepa mejor"). */
+  /* Slightly smaller copy on phones so the lines fit comfortably inside the
+     narrowed column ("reduce un poco el tamaño de los textos en móvil para
+     que quepa mejor"). */
   .nxr-intro-text,
   .nxr-tech-header-right,
   .nxr-proceso-header-right,
@@ -489,13 +326,10 @@ p.nxr-hero-mastery-line {
   .nxr-contacto-item-desc {
     font-size: 13px;
   }
+}
 
-  }
-
-/* Layout for the Servicios caption text block (the tilt target above — NOT
-   the full-bleed caption container, whose projection would leave the
-   viewport; the CTA stays at normal depth). Width matches the 500px caps on
-   title/desc/pills in the desktop captions row. */
+/* Layout for the Servicios caption text block. Width matches the 500px caps
+   on title/desc/pills in the desktop captions row. */
 .nxr-srv-caption-tilt {
   display: flex;
   flex-direction: column;
@@ -4332,10 +4166,9 @@ p.nxr-hero-mastery-line {
   max-width: 500px;
 }
 
-/* Paragraph + reassurance items share ONE curved-words block (same wrapper
-   pattern as Intro's textblock): a single tilt plane + one bow field, so the
-   items sit on the same curved screen as the paragraph above them. The gap
-   reproduces the parent column's 32px rhythm they had as separate children. */
+/* Paragraph + reassurance items in one wrapper (same pattern as Intro's
+   textblock); the gap reproduces the parent column's 32px rhythm they had
+   as separate children. */
 .nxr-contacto-textblock {
   display: flex;
   flex-direction: column;
@@ -5380,11 +5213,9 @@ input[type="range"].nxr-ms-range::-moz-range-thumb {
    velocidad de página y se disuelve en movimiento ("que no se llegue a
    parar"). */
 
-/* Single wrapper for BOTH intro paragraphs: useCurvedWords tilts/curves THIS
-   element, so the pair deforms as one surface (and GSAP keeps sole ownership
-   of .nxr-intro-texts' transform for the y/opacity scroll tween). The
-   desktop max-width keeps a comfortable measure AND shrinks the edge-pivot
-   tilt's projected overhang. */
+/* Single wrapper for BOTH intro paragraphs (GSAP keeps sole ownership of
+   .nxr-intro-texts' transform for the y/opacity scroll tween). The desktop
+   max-width keeps a comfortable measure. */
 .nxr-intro-textblock {
   display: flex;
   flex-direction: column;
@@ -5665,38 +5496,22 @@ input[type="range"].nxr-ms-range::-moz-range-thumb {
 .nxr-dwh-proceso-content {
   display: flex;
   flex-direction: column;
-  /* Right padding deliberately smaller than left: the section plane below
-     recedes toward the right, so the projected content pulls inward on that
-     side — the reduced padding gives the far side that room back and the
-     REEL reads evenly spaced after projection ("que quede bien espaciado
-     porque los márgenes cambiarán"). */
-  padding: 0 calc(var(--pad-x) * 0.35) 0 var(--pad-x);
+  /* Simétrico desde V16.91: el padding derecho reducido compensaba la
+     proyección del plano del reel, eliminado con todo el sistema de
+     perspectiva de textos. */
+  padding: 0 var(--pad-x);
 }
 
-/* The whole reel (title + progress + track) on ONE flat perspective plane:
-   left side nearer, right side receding. Left-edge pivot so nothing grows
-   past the left frame; the track scrubs INSIDE the plane, so cards grow as
-   they travel toward the near side — a conveyor seen in perspective. The
-   step cards' glass meshes need no changes: GlassPanelsLayer re-docks each
-   mesh to its card's live projected rect every frame (position + x/y
-   scale). GSAP owns transforms on .nxr-dwh-proceso-content (entrance) and
-   .nxr-dwh-proceso-track (scrub) — this wrapper between them is never
-   animated, so the plane can't be clobbered. */
+/* (El plano de perspectiva del reel — perspective(1200px) rotateY(10deg) —
+   se eliminó en V16.91 con el resto del sistema; el wrapper queda solo
+   como columna de layout.) */
 .nxr-dwh-proceso-tilt {
   display: flex;
   flex-direction: column;
   gap: 40px;
-  transform: perspective(1200px) rotateY(10deg);
-  transform-origin: left center;
 }
 
-/* Reel plane FLAT on phones (V16.1: sin perspectiva de textos en móvil) —
-   this override must live AFTER the base rule (same specificity: source
-   order decides). */
 @media (max-width: 768px) {
-  .nxr-dwh-proceso-tilt {
-    transform: none;
-  }
   .nxr-dwh-proceso-content {
     padding: 0 8px 0 20px;
   }
@@ -7860,10 +7675,8 @@ input[type="range"].nxr-ms-range::-moz-range-thumb {
     transform: translate3d(calc(var(--drift-x, 0px) * 1.6), calc(var(--drift-y, 0px) * 1.6), 0);
   }
 
-  /* Compuesta con su plano CSS propio (la deriva primero, en espacio de
-     pantalla; luego la perspectiva del reel). */
   .nxr-dwh-proceso-tilt {
-    transform: translate3d(var(--drift-x, 0px), var(--drift-y, 0px), 0) perspective(1200px) rotateY(10deg);
+    transform: translate3d(var(--drift-x, 0px), var(--drift-y, 0px), 0);
   }
 }
 
@@ -7873,7 +7686,7 @@ input[type="range"].nxr-ms-range::-moz-range-thumb {
    inners, opacity+blur en captions) no tenían capa de compositor estable:
    cada escritura repintaba su área y re-layerizaba el árbol. Promocionarlos
    convierte esas escrituras en trabajo puro de compositor. Deliberadamente
-   NO se promocionan los cientos de .nxr-cw-word (memoria de capas). */
+   NO se promocionan los cientos de spans de palabra (memoria de capas). */
 /* Slide: transform ONLY. `will-change: opacity` is a GROUPING property —
    it flattens this element's `transform-style: preserve-3d`, so the
    inner's CSS rotation stopped projecting through the sticky's shared

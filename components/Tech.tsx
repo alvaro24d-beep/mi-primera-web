@@ -5,7 +5,6 @@ import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { useGSAP } from "@gsap/react";
 import { useTitleReveal } from "@/hooks/useTitleReveal";
-import { useCurvedWords } from "@/hooks/useCurvedWords";
 import { useGlassPanels } from "@/hooks/useGlassPanels";
 import { useTextScramble } from "@/hooks/useTextScramble";
 import { useReducedMotion } from "@/hooks/useReducedMotion";
@@ -251,21 +250,9 @@ export default function Tech() {
     { scope: sectionRef, dependencies: [reducedMotion] }
   );
 
-  // Split composition per breakpoint — see the twin comment in Proceso.tsx.
-  // Safe to plane the header directly: the reveal lives on .nxr-tech-inner.
-  useCurvedWords(sectionRef, ".nxr-tech-header", "left", [], {
-    onlyBelow: 901,
-    splitIgnore: ".nxr-section-h2",
-  });
-  useCurvedWords(sectionRef, ".nxr-tech-header-right", "right", [], { onlyAbove: 901 });
   // Scramble entrance on the section paragraph (the Intro-paragraph effect,
-  // sitewide per request). AFTER the curved-words calls: reuses their spans.
+  // sitewide per request).
   useTextScramble(sectionRef, ".nxr-tech-header-right");
-  useCurvedWords(sectionRef, ".nxr-section-h2", "left", [], {
-    onlyAbove: 901,
-    bowOnly: true,
-    useExistingWords: true,
-  });
 
   return (
     <section id="nxr-tech" ref={sectionRef}>

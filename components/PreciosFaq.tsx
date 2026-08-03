@@ -11,7 +11,6 @@ import { useRef } from "react";
 import { useGlassPanels } from "@/hooks/useGlassPanels";
 import { useReducedMotion } from "@/hooks/useReducedMotion";
 import { useTitleReveal } from "@/hooks/useTitleReveal";
-import { useCurvedWords } from "@/hooks/useCurvedWords";
 
 const FAQS = [
   {
@@ -45,10 +44,6 @@ export default function PreciosFaq() {
   // unificados"): mismo reveal por palabras (useTitleReveal), mismo bow
   // dinámico y mismo tilt (el tier wide-block de globals.css) — solo
   // cambian las letras.
-  useCurvedWords(sectionRef, ".nxr-section-h2", "left", [reducedMotion], {
-    bowOnly: true,
-    useExistingWords: true,
-  });
 
   // Cristal volumétrico del canvas global sobre cada card (las anclas DOM
   // son cáscaras transparentes; "nxr-precios" está en alwaysIds de

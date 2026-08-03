@@ -4,7 +4,6 @@ import { useRef } from "react";
 import gsap from "gsap";
 import { useGSAP } from "@gsap/react";
 import LogoLoop, { type LogoItem } from "./LogoLoop";
-import { useCurvedWords } from "@/hooks/useCurvedWords";
 import { useTitleReveal } from "@/hooks/useTitleReveal";
 import { useReducedMotion } from "@/hooks/useReducedMotion";
 
@@ -121,12 +120,6 @@ export default function DwhTechStack() {
   const sectionRef = useRef<HTMLElement>(null);
   const reducedMotion = useReducedMotion();
 
-  // Home-identity dynamic per-line bow on the title (rides the reveal's
-  // word spans; the CSS tilt lives in the perspective-planes rule groups).
-  useCurvedWords(sectionRef, ".nxr-section-h2", "left", [reducedMotion], {
-    bowOnly: true,
-    useExistingWords: true,
-  });
 
   useGSAP(
     () => {

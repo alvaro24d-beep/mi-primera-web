@@ -3,7 +3,6 @@
 import { useRef } from "react";
 import { useTitleReveal } from "@/hooks/useTitleReveal";
 import { useReducedMotion } from "@/hooks/useReducedMotion";
-import { useCurvedWords } from "@/hooks/useCurvedWords";
 import { useGlassPanels } from "@/hooks/useGlassPanels";
 
 const CASOS = [
@@ -93,10 +92,6 @@ export default function AgentesIaCasos() {
   const reducedMotion = useReducedMotion();
 
   useGlassPanels(sectionRef, ".nxr-aia-caso", "#12141c", [reducedMotion]);
-  useCurvedWords(sectionRef, ".nxr-section-h2", "left", [reducedMotion], {
-    bowOnly: true,
-    useExistingWords: true,
-  });
 
   return (
     <section id="nxr-aia-casos" className="nxr-aia-casos" ref={sectionRef}>

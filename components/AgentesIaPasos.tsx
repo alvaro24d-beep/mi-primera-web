@@ -6,7 +6,6 @@ import { useGSAP } from "@gsap/react";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { useTitleReveal } from "@/hooks/useTitleReveal";
 import { useReducedMotion } from "@/hooks/useReducedMotion";
-import { useCurvedWords } from "@/hooks/useCurvedWords";
 import { useGlassPanels } from "@/hooks/useGlassPanels";
 
 gsap.registerPlugin(ScrollTrigger);
@@ -77,10 +76,6 @@ export default function AgentesIaPasos() {
   const reducedMotion = useReducedMotion();
 
   useGlassPanels(sectionRef, ".nxr-aia-paso", "#11141b", [reducedMotion]);
-  useCurvedWords(sectionRef, ".nxr-section-h2", "left", [reducedMotion], {
-    bowOnly: true,
-    useExistingWords: true,
-  });
 
   useGSAP(
     () => {

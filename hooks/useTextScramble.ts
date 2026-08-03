@@ -13,13 +13,8 @@ gsap.registerPlugin(ScrollTrigger);
 // motion-primitives TextScramble reference, no framer-motion): random glyphs
 // resolving left-to-right across the whole block over ~900ms.
 //
-// Word targets: reuses the `.nxr-cw-word` spans useCurvedWords already
-// created whenever they exist (mutating them keeps the per-word curvature
-// transforms alive — replacing the DOM wholesale would destroy them, the
-// exact bug Intro's version documents). Where a paragraph has no curved
-// words (e.g. the desktop Servicios captions), it splits the text nodes into
-// its own `.nxr-scr-word` spans once, recursively, so inline children like
-// <strong> keep their styling.
+// Word targets: splits the text nodes into `.nxr-scr-word` spans once,
+// recursively, so inline children like <strong> keep their styling.
 const SCRAMBLE_CHARS = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
 const SPEED = 40; // ms per step (reference component's 0.04s)
 const DURATION = 900;
@@ -28,7 +23,7 @@ const DURATION = 900;
 const running = new WeakMap<HTMLElement, () => void>();
 
 function ensureWordSpans(el: HTMLElement): HTMLElement[] {
-  const existing = Array.from(el.querySelectorAll<HTMLElement>(".nxr-cw-word, .nxr-scr-word"));
+  const existing = Array.from(el.querySelectorAll<HTMLElement>(".nxr-scr-word"));
   if (existing.length) return existing;
   const walker = document.createTreeWalker(el, NodeFilter.SHOW_TEXT);
   const textNodes: Text[] = [];
@@ -105,9 +100,8 @@ export function cancelScramble(el: HTMLElement) {
 /**
  * Fires the scramble entrance on every `selector` match inside `rootRef`
  * when it scrolls into view (re-arming when it leaves back above, like
- * Intro's). Call AFTER any useCurvedWords affecting the same elements, so
- * their word spans exist and get reused. No-ops under reduced motion — the
- * paragraph just sits static, matching the sitewide pattern.
+ * Intro's). No-ops under reduced motion — the paragraph just sits static,
+ * matching the sitewide pattern.
  */
 export function useTextScramble(
   rootRef: RefObject<HTMLElement | null>,

@@ -6,7 +6,6 @@ import { useGSAP } from "@gsap/react";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { useTitleReveal } from "@/hooks/useTitleReveal";
 import { useReducedMotion } from "@/hooks/useReducedMotion";
-import { useCurvedWords } from "@/hooks/useCurvedWords";
 import { useGlassPanels } from "@/hooks/useGlassPanels";
 
 gsap.registerPlugin(ScrollTrigger);
@@ -63,15 +62,6 @@ export default function AgentesIaNoche() {
   const reducedMotion = useReducedMotion();
 
   useGlassPanels(sectionRef, ".nxr-aia-nt-card", "#0d1018", [reducedMotion]);
-  // Clock + title + counter share ONE plane (Contacto-textblock pattern) —
-  // a CSS-tilted h2 sandwiched between a flat clock and a flat counter read
-  // as three different distortions ("tiene que ser la misma"). The clock and
-  // counter are splitIgnore'd (their text is rewritten per tick, which would
-  // destroy SplitText spans) — they ride the block plane without a bow; the
-  // h2's reveal spans join the block's bow field.
-  useCurvedWords(sectionRef, ".nxr-aia-nt-textblock", "left", [reducedMotion], {
-    splitIgnore: ".nxr-section-h2, .nxr-aia-nt-clock, .nxr-aia-nt-counter",
-  });
 
   useGSAP(
     () => {

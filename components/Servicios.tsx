@@ -6,7 +6,6 @@ import { useGSAP } from "@gsap/react";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { useTitleReveal } from "@/hooks/useTitleReveal";
 import { useReducedMotion } from "@/hooks/useReducedMotion";
-import { useCurvedWords } from "@/hooks/useCurvedWords";
 import { scrambleElement } from "@/hooks/useTextScramble";
 import Link from "next/link";
 import { useServiciosCardsRegistry } from "@/store/useServiciosCardsRegistry";
@@ -530,22 +529,6 @@ export default function Servicios() {
   // ciclo o ya terminada).
   const demoRestartRef = useRef<Array<(() => void) | null>>([]);
 
-  // Mobile only: the per-service caption text curves like every other text
-  // block. The WHOLE tilt block is one geometry sheet — targeting
-  // tag/title/desc as separate elements gave each its own pivot/width and
-  // they visibly sat on DIFFERENT planes ("tiene que verse exactamente en
-  // el mismo plano de perspectiva cada parte"). The pills' words are split
-  // but excluded from the bow: bowing text inside a pill shifts it out of
-  // its rounded border. The block-level tilt stays with the CSS rule;
-  // desktop keeps its separately-tuned flat look.
-  useCurvedWords(sectionRef, ".nxr-srv-caption-tilt", "left", [reducedMotion], {
-    bowOnly: true,
-    onlyBelow: 901,
-    exclude: ".nxr-srv-pills",
-    // Keeps this section's tuned bow while the sitewide MOBILE profile was
-    // softened to 0.04 ("reduce la distorsión dinámica... excepto Servicios").
-    fan: 0.07,
-  });
 
   // ---- Registers each card's DOM anchor with the registry so its real R3F
   // mesh (rendered in the global SceneCanvas, mounted above {children} in

@@ -251,8 +251,10 @@ const fragmentShader = /* glsl */ `
     vec3 stuckCol = mix(vec3(0.12, 0.16, 0.22), vec3(0.10, 0.20, 0.14), step(0.5, fract(sp * 37.0)));
     col += stuckCol * step(0.994, sp) * offL * offAmt;
     // d) Grano sutil animado: la superficie respira vista de cerca.
-    float gr = fract(sin(dot(gl_FragCoord.xy + vec2(uTime * 60.0, 0.0), vec2(12.9898, 78.233))) * 43758.5453);
-    col += vec3((gr - 0.5) * 0.016 * offL) * offAmt;
+    // (grain, no "gr": gr ya existe arriba como vec2 de la rejilla — la
+    // redefinición rompía la compilación del programa entero, V17.19.)
+    float grain = fract(sin(dot(gl_FragCoord.xy + vec2(uTime * 60.0, 0.0), vec2(12.9898, 78.233))) * 43758.5453);
+    col += vec3((grain - 0.5) * 0.016 * offL) * offAmt;
     // Deep dark gaps between the monitor tiles — applied AFTER glow/grid so
     // the separators cut through everything, like real bezels.
     col = mix(col, col * 0.16, sep);

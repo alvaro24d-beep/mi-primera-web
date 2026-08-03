@@ -58,9 +58,25 @@ export function useTitleReveal<T extends HTMLElement = HTMLHeadingElement>() {
       // opacity + y (translate), with no overflow box involved anywhere, so
       // there is nothing for a descender to be cut off by, regardless of font
       // metrics. Same "rises into place" read, just without a hard mask edge.
-      const split = SplitText.create(el, { type: "words, chars" });
-      gsap.set(split.chars, { opacity: 0, yPercent: 40 });
-      gsap.to(split.chars, {
+      // Los acentos con gradiente NO se trocean en chars: `background-clip:
+      // text` pintado en el wrapper no alcanza glifos que viven en capas
+      // compuestas hijas (cada char de SplitText lleva su propio transform/
+      // opacity), y en Chromium el texto queda transparente/invisible. Con
+      // `ignore` el acento queda intacto y se anima como UNA unidad — un
+      // transform/opacity sobre el propio elemento clipado sí es seguro
+      // (misma capa de pintado).
+      const split = SplitText.create(el, {
+        type: "words, chars",
+        ignore: ".nxr-gradient-text-lime",
+      });
+      const accents = Array.from(
+        el.querySelectorAll<HTMLElement>(".nxr-gradient-text-lime")
+      );
+      const targets = [...split.chars, ...accents].sort((a, b) =>
+        a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING ? -1 : 1
+      );
+      gsap.set(targets, { opacity: 0, yPercent: 40 });
+      gsap.to(targets, {
         opacity: 1,
         yPercent: 0,
         duration: 0.5,

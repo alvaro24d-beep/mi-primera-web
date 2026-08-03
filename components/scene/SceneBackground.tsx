@@ -121,6 +121,8 @@ const fragmentShader = /* glsl */ `
                            // desktop; >1 en móvil, donde el casi-negro que
                            // en monitor se lee bien desaparece en el panel
                            // del teléfono
+  uniform float uFrameShade; // marco de sombra del viewport (V17.21):
+                             // 1 desktop, 0 móvil
 
   vec3 sampleSource(vec2 uv) {
     if (uHasVideo > 0.5) {
@@ -238,25 +240,25 @@ const fragmentShader = /* glsl */ `
     // interior por tile, volumen físico de cada pantalla.
     float inset = smoothstep(0.0, 0.18, tp.x) * smoothstep(1.0, 0.82, tp.x)
                 * smoothstep(0.0, 0.22, tp.y) * smoothstep(1.0, 0.78, tp.y);
-    // 0.55 → 0.72 (V17.20, "demasiada textura"): sombra más discreta.
-    col *= mix(1.0, mix(0.72, 1.0, inset), offAmt);
+    // 0.55 → 0.72 (V17.20) → 0.86 (V17.21): sombra apenas insinuada.
+    col *= mix(1.0, mix(0.86, 1.0, inset), offAmt);
     // b) Brillo de cristal: banda diagonal tenue por panel, cada uno con
     // posición e intensidad propias — luz ambiente reflejada en el vidrio.
     float sh = fract(sin(dot(pid, vec2(93.7, 211.3))) * 611.9);
     float bandPos = tp.x * 0.8 + tp.y * 0.5;
     float sheen = max(0.0, (1.0 - abs(bandPos - (0.35 + 0.5 * sh))) * 1.6 - 0.9);
-    col += vec3(0.06, 0.066, 0.085) * sheen * (0.4 + 0.6 * ph) * offL * offAmt;
+    col += vec3(0.032, 0.035, 0.045) * sheen * (0.4 + 0.6 * ph) * offL * offAmt;
     // c) Subpíxeles "atascados": celdas sueltas (~0.6%) tenuemente
     // encendidas en azulado o verdoso, fijas — detalle de muro real.
     float sp = fract(sin(dot(cid, vec2(741.3, 128.5))) * 397.1);
-    vec3 stuckCol = mix(vec3(0.08, 0.11, 0.15), vec3(0.07, 0.13, 0.10), step(0.5, fract(sp * 37.0)));
-    // 0.994 → 0.997 (V17.20): la mitad de subpíxeles, y más tenues.
-    col += stuckCol * step(0.997, sp) * offL * offAmt;
+    vec3 stuckCol = mix(vec3(0.05, 0.07, 0.10), vec3(0.045, 0.085, 0.065), step(0.5, fract(sp * 37.0)));
+    // 0.994 → 0.997 (V17.20) → 0.998 (V17.21): apenas unos subpíxeles.
+    col += stuckCol * step(0.998, sp) * offL * offAmt;
     // d) Grano sutil animado: la superficie respira vista de cerca.
     // (grain, no "gr": gr ya existe arriba como vec2 de la rejilla — la
     // redefinición rompía la compilación del programa entero, V17.19.)
     float grain = fract(sin(dot(gl_FragCoord.xy + vec2(uTime * 60.0, 0.0), vec2(12.9898, 78.233))) * 43758.5453);
-    col += vec3((grain - 0.5) * 0.010 * offL) * offAmt;
+    col += vec3((grain - 0.5) * 0.006 * offL) * offAmt;
     // Deep dark gaps between the monitor tiles — applied AFTER glow/grid so
     // the separators cut through everything, like real bezels.
     col = mix(col, col * 0.16, sep);
@@ -276,6 +278,14 @@ const fragmentShader = /* glsl */ `
     float rr = length(sd);
     float edge = 0.28 * smoothstep(0.38, 0.72, rr) + 0.30 * smoothstep(0.72, 1.0, rr);
     col *= (1.0 - min(edge, 0.58));
+
+    // Marco del viewport (V17.21, "sombreado fino pero intenso alrededor
+    // de la pantalla, solo en ordenador"): banda de ~90px de buffer pegada
+    // a los 4 bordes con caída cuadrática — intensa en el borde mismo,
+    // desaparece rápido hacia dentro. uFrameShade = 1 solo en desktop.
+    float ebp = min(min(gl_FragCoord.x, uRes.x - gl_FragCoord.x), min(gl_FragCoord.y, uRes.y - gl_FragCoord.y));
+    float frame = 1.0 - smoothstep(0.0, 90.0, ebp);
+    col *= 1.0 - frame * frame * 0.85 * uFrameShade;
 
     // Atenuación global del muro (petición: "oscurece un poco el fondo en
     // ordenador") — solo <1 en desktop, ver el efecto de orientación en JS.
@@ -353,6 +363,7 @@ export default function SceneBackground({
       uPower: { value: 1 },
       uTime: { value: 0 },
       uOffLift: { value: 1 },
+      uFrameShade: { value: 0 },
     }),
     // eslint-disable-next-line react-hooks/exhaustive-deps
     []
@@ -384,6 +395,8 @@ export default function SceneBackground({
     // la base apagada; la cuadrícula y el parpadeo van con tope en el
     // shader (x2.4). En desktop 1 = sin cambio.
     mat.uniforms.uOffLift.value = mode === WALL_MODES.portrait ? 4.8 : 1;
+    // Marco de sombra del viewport solo en desktop (V17.21).
+    mat.uniforms.uFrameShade.value = mode === WALL_MODES.portrait ? 0 : 1;
     invalidate();
   }, [mode, invalidate]);
 

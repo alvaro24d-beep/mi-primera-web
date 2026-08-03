@@ -238,23 +238,25 @@ const fragmentShader = /* glsl */ `
     // interior por tile, volumen físico de cada pantalla.
     float inset = smoothstep(0.0, 0.18, tp.x) * smoothstep(1.0, 0.82, tp.x)
                 * smoothstep(0.0, 0.22, tp.y) * smoothstep(1.0, 0.78, tp.y);
-    col *= mix(1.0, mix(0.55, 1.0, inset), offAmt);
+    // 0.55 → 0.72 (V17.20, "demasiada textura"): sombra más discreta.
+    col *= mix(1.0, mix(0.72, 1.0, inset), offAmt);
     // b) Brillo de cristal: banda diagonal tenue por panel, cada uno con
     // posición e intensidad propias — luz ambiente reflejada en el vidrio.
     float sh = fract(sin(dot(pid, vec2(93.7, 211.3))) * 611.9);
     float bandPos = tp.x * 0.8 + tp.y * 0.5;
     float sheen = max(0.0, (1.0 - abs(bandPos - (0.35 + 0.5 * sh))) * 1.6 - 0.9);
-    col += vec3(0.10, 0.11, 0.14) * sheen * (0.4 + 0.6 * ph) * offL * offAmt;
+    col += vec3(0.06, 0.066, 0.085) * sheen * (0.4 + 0.6 * ph) * offL * offAmt;
     // c) Subpíxeles "atascados": celdas sueltas (~0.6%) tenuemente
     // encendidas en azulado o verdoso, fijas — detalle de muro real.
     float sp = fract(sin(dot(cid, vec2(741.3, 128.5))) * 397.1);
-    vec3 stuckCol = mix(vec3(0.12, 0.16, 0.22), vec3(0.10, 0.20, 0.14), step(0.5, fract(sp * 37.0)));
-    col += stuckCol * step(0.994, sp) * offL * offAmt;
+    vec3 stuckCol = mix(vec3(0.08, 0.11, 0.15), vec3(0.07, 0.13, 0.10), step(0.5, fract(sp * 37.0)));
+    // 0.994 → 0.997 (V17.20): la mitad de subpíxeles, y más tenues.
+    col += stuckCol * step(0.997, sp) * offL * offAmt;
     // d) Grano sutil animado: la superficie respira vista de cerca.
     // (grain, no "gr": gr ya existe arriba como vec2 de la rejilla — la
     // redefinición rompía la compilación del programa entero, V17.19.)
     float grain = fract(sin(dot(gl_FragCoord.xy + vec2(uTime * 60.0, 0.0), vec2(12.9898, 78.233))) * 43758.5453);
-    col += vec3((grain - 0.5) * 0.016 * offL) * offAmt;
+    col += vec3((grain - 0.5) * 0.010 * offL) * offAmt;
     // Deep dark gaps between the monitor tiles — applied AFTER glow/grid so
     // the separators cut through everything, like real bezels.
     col = mix(col, col * 0.16, sep);

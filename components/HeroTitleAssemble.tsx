@@ -5,11 +5,10 @@ import { useReducedMotion } from "@/hooks/useReducedMotion";
 
 // ===== Formación del H1 por fragmentos =====
 // Concepto adaptado del "Emoji Particle" de Originkit (aprobado por Álvaro:
-// "fragmentos sueltos que se juntan para formar un texto", sin emojis): el
-// titular de la home se ensambla a partir de glifos monospace sueltos —
-// letras, dígitos y símbolos de código, la misma identidad del efecto
-// scramble de Intro/reel — que vuelan desde fuera del hero hasta ocupar la
-// silueta exacta del texto.
+// "fragmentos sueltos que se juntan para formar un texto"): el titular de
+// la home se ensambla a partir de PUNTOS (V16.96, "que sean todo puntos,
+// no letras") que vuelan desde fuera del hero hasta ocupar la silueta
+// exacta del texto — una nube puntillista que converge en el titular.
 //
 // TRANSICIÓN AL TEXTO REAL (V16.72 — "que quede más orgánico"): NO hay un
 // crossfade global de canvas→h1 (la primera versión lo tenía y el cambiazo
@@ -47,7 +46,6 @@ import { useReducedMotion } from "@/hooks/useReducedMotion";
 // repulsión del puntero del original: es una entrada one-shot de ~3s, no
 // una escena interactiva persistente. Al acabar: rAF cancelado y canvas a
 // display:none — coste residual CERO (playbook).
-const GLYPHS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789<>/{}[]#&+=";
 const FLY_MS = 1250; // vuelo de un fragmento (su objetivo llega a casa)
 const STAGGER_MS = 520; // escalonado de salida entre fragmentos
 // V16.80→V16.85 ("se quedan detrás del título unos milisegundos; que
@@ -79,8 +77,7 @@ interface Frag {
   startY: number;
   vx: number;
   vy: number;
-  glyph: string;
-  size: number;
+  r: number;
   color: string;
   delay: number;
   hold: number;
@@ -283,7 +280,8 @@ export default function HeroTitleAssemble({ h1Ref }: { h1Ref: RefObject<HTMLHead
       shuffle(pts);
       if (pts.length > maxFrags) pts.length = maxFrags;
 
-      const base = Math.max(9, Math.min(16, titlePx * 0.16));
+      // Radio de los puntos ∝ tamaño del título (≈2-3.6px con jitter).
+      const baseR = Math.max(2, Math.min(3.6, titlePx * 0.036));
       const frags: Frag[] = pts.map(([hx, hy, color]) => {
         const [sx, sy] = spawnFor(hx, hy, W, H);
         return {
@@ -295,16 +293,15 @@ export default function HeroTitleAssemble({ h1Ref }: { h1Ref: RefObject<HTMLHead
           startY: sy,
           vx: 0,
           vy: 0,
-          glyph: GLYPHS[(Math.random() * GLYPHS.length) | 0],
-          size: Math.round(base * (0.75 + Math.random() * 0.5)),
+          r: baseR * (0.7 + Math.random() * 0.6),
           color,
           delay: Math.random() * STAGGER_MS,
           hold: HOLD_MIN_MS + Math.random() * HOLD_VAR_MS,
         };
       });
-      // Orden por tamaño y color: el bucle de dibujo solo cambia ctx.font /
-      // fillStyle cuando cambian de verdad (mismo truco que Originkit).
-      frags.sort((a, b) => a.size - b.size || (a.color < b.color ? -1 : 1));
+      // Orden por color: el bucle de dibujo solo cambia fillStyle cuando
+      // cambia de verdad (mismo truco de batching que Originkit).
+      frags.sort((a, b) => (a.color < b.color ? -1 : 1));
 
       // ---- 3. Bucle de animación en el canvas visible ----
       const ctx = canvas.getContext("2d", { alpha: true });
@@ -312,10 +309,7 @@ export default function HeroTitleAssemble({ h1Ref }: { h1Ref: RefObject<HTMLHead
       const dpr = Math.min(window.devicePixelRatio || 1, isMobile ? 1.5 : 2);
       canvas.width = Math.round(W * dpr);
       canvas.height = Math.round(H * dpr);
-      const mono =
-        getComputedStyle(document.documentElement).getPropertyValue("--font-space-mono").trim() || "monospace";
-      ctx.textAlign = "center";
-      ctx.textBaseline = "middle";
+      const TAU = Math.PI * 2;
 
       const total = frags.length;
       const t0 = performance.now();
@@ -329,7 +323,6 @@ export default function HeroTitleAssemble({ h1Ref }: { h1Ref: RefObject<HTMLHead
 
         ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
         ctx.clearRect(0, 0, W, H);
-        let lastSize = -1;
         let lastColor = "";
         let landed = 0;
         let finished = 0;
@@ -370,18 +363,16 @@ export default function HeroTitleAssemble({ h1Ref }: { h1Ref: RefObject<HTMLHead
           }
           f.x += f.vx * dt;
           f.y += f.vy * dt;
-          if (f.size !== lastSize) {
-            lastSize = f.size;
-            ctx.font = `${f.size}px ${mono}`;
-          }
           if (f.color !== lastColor) {
             lastColor = f.color;
             ctx.fillStyle = f.color;
           }
-          // fadeT² en vez de lineal: el apagado arranca suave (el glifo
+          // fadeT² en vez de lineal: el apagado arranca suave (el punto
           // "se ablanda" antes de irse) — más melt, menos parpadeo.
           ctx.globalAlpha = (own < ALPHA_IN_MS ? own / ALPHA_IN_MS : 1) * (1 - fadeT * fadeT);
-          ctx.fillText(f.glyph, f.x, f.y);
+          ctx.beginPath();
+          ctx.arc(f.x, f.y, f.r, 0, TAU);
+          ctx.fill();
         }
         ctx.globalAlpha = 1;
 

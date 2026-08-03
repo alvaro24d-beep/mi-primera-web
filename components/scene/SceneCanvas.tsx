@@ -314,10 +314,7 @@ export default function SceneCanvas() {
             its ~30fps invalidation loop when the tab is hidden. */}
         <SceneBackground
           tv
-          // Portrait (V16.94): montañas con niebla, transcodificado a
-          // formato muro (640px/18fps/210KB), con el sombreado estándar del
-          // muro (V16.95 revirtió el "vídeo limpio" de V16.94).
-          videoSrc={isPortrait ? "/bg-video-montanas.mp4" : "/bg-video.mp4"}
+          videoSrc={isPortrait ? "/bg-video-vertical.mp4" : "/bg-video.mp4"}
           active={active}
           portrait={isPortrait}
         />

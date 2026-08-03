@@ -61,7 +61,7 @@ export default function RootLayout({
             media queries pick just the clip this device will actually play;
             React 19 hoists these <link>s into <head>. */}
         <link rel="preload" as="video" href="/bg-video.mp4" media="(orientation: landscape)" />
-        <link rel="preload" as="video" href="/bg-video-montanas.mp4" media="(orientation: portrait)" />
+        <link rel="preload" as="video" href="/bg-video-vertical.mp4" media="(orientation: portrait)" />
         <SmoothScroll />
         <ScrollProgress />
         {/* Cortina de carga: cubre la página desde el primer paint hasta que

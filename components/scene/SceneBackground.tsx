@@ -241,6 +241,28 @@ const fragmentShader = /* glsl */ `
     fill += vec3(0.55, 0.6, 0.7) * gAll * (0.35 + 0.45 * ph);
 
     vec3 col = fill * panelLum;
+
+    // ===== Detalle por CELDA pequeña, estado apagado (V17.34) =====
+    // Cada casilla de la cuadrícula fina (4x4 por monitor) con respuesta
+    // propia, como bloques de píxel reales: luminancia ligeramente
+    // distinta por celda, pocillo interior (bordes hundidos, centro con
+    // leve realce) y micro-tinte subpíxel por canal. Se aplica ANTES de
+    // sumar la rejilla para no ensuciar sus líneas, y desaparece al
+    // encender. (cid se declara aquí y lo reutiliza el parpadeo de abajo.)
+    vec2 cid = floor(g);
+    vec2 cf = fract(g);
+    float cl = fract(sin(dot(cid, vec2(213.7, 152.9))) * 641.3);
+    float well = smoothstep(0.0, 0.28, cf.x) * smoothstep(1.0, 0.72, cf.x)
+               * smoothstep(0.0, 0.34, cf.y) * smoothstep(1.0, 0.66, cf.y);
+    float cellShade = mix(0.82, 1.0, well) * (0.88 + 0.24 * cl);
+    col *= mix(1.0, cellShade, 1.0 - uPower);
+    vec3 subpx = vec3(
+      1.0 + 0.05 * (fract(cl * 7.3) - 0.5),
+      1.0 + 0.05 * (fract(cl * 13.7) - 0.5),
+      1.0 + 0.08 * (fract(cl * 29.1) - 0.5)
+    );
+    col *= mix(vec3(1.0), subpx, 1.0 - uPower);
+
     col += uGlowCol * glow * 0.10 * uPower;
     // Apagada, la cuadrícula sube a 0.16 (V17.13, "que se vea que está
     // ahí") — sobre el fondo casi negro es lo único que dibuja la pantalla.
@@ -253,7 +275,6 @@ const fragmentShader = /* glsl */ `
     // claras, cada una con su fase y velocidad propias. Solo apagada
     // (factor 1-uPower); mientras tanto el vídeo sigue decodificando detrás
     // y su rVFC invalida ~30fps, así que la animación corre sola.
-    vec2 cid = floor(g);
     float ch = fract(sin(dot(cid, vec2(419.2, 371.9))) * 833.7);
     float tw = step(0.92, ch) * (0.5 + 0.5 * sin(uTime * (1.2 + ch * 2.5) + ch * 40.0));
     col += uLine * tw * 0.16 * min(uOffLift, 2.4) * (1.0 - uPower);

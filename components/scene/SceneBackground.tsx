@@ -126,6 +126,9 @@ const fragmentShader = /* glsl */ `
   uniform vec2 uCoverScaleB;  // cover-crop del clip entrante
   uniform float uHasVideoB;   // 1 = uSourceB listo (ya reproduciendo)
   uniform float uSwitch;      // progreso 0→1 del cambio de vídeo POR PANEL
+  uniform float uVidGamma;    // contraste del vídeo (V17.31): >1 solo en
+                              // desktop, hunde los negros que el mix con la
+                              // base + uDim 0.32 dejaban en gris azulado
 
   vec3 sampleSource(vec2 uv) {
     if (uHasVideo > 0.5) {
@@ -216,6 +219,9 @@ const fragmentShader = /* glsl */ `
       float gg = sampleActive(puv, useB).g;
       float b = sampleActive(puv - vec2(o, 0.0), useB).b;
       vec3 tv = vec3(r, gg, b);
+      // Contraste del clip (V17.31, "en ordenador se ven grisáceos"):
+      // gamma >1 solo desktop — móvil (uDim 1.35) ya estira el contraste.
+      tv = pow(tv, vec3(uVidGamma));
       tv *= 0.78 + 0.22 * sin(vUv.y * uPixel.y * 6.28318);
       // Dim + tint toward the site's dark base so overlaid text stays legible.
       // (El "vídeo limpio en móvil" de V16.94 duró un día: V16.95 restaura
@@ -398,6 +404,7 @@ export default function SceneBackground({
       uCoverScaleB: { value: new THREE.Vector2(1, 1) },
       uHasVideoB: { value: 0 },
       uSwitch: { value: 0 },
+      uVidGamma: { value: 1 },
     }),
     // eslint-disable-next-line react-hooks/exhaustive-deps
     []
@@ -434,6 +441,9 @@ export default function SceneBackground({
     mat.uniforms.uOffLift.value = mode === WALL_MODES.portrait ? 4.8 : 1;
     // Marco de sombra del viewport solo en desktop (V17.21).
     mat.uniforms.uFrameShade.value = mode === WALL_MODES.portrait ? 0 : 1;
+    // Contraste del vídeo solo en desktop (V17.31, "se ven grisáceos"):
+    // gamma 1.45 hunde los negros del clip; móvil neutro.
+    mat.uniforms.uVidGamma.value = mode === WALL_MODES.portrait ? 1 : 1.45;
     invalidate();
   }, [mode, invalidate]);
 

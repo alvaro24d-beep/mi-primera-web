@@ -378,7 +378,9 @@ export default function SceneBackground({
 
   const uniforms = useMemo(
     () => ({
-      uCells: { value: new THREE.Vector2(52, 40) },
+      // Valor inicial nominal — el efecto de orientación lo re-deriva de
+      // uPanels en el primer mount (4x4 celdas por monitor, V17.23).
+      uCells: { value: new THREE.Vector2(60, 40) },
       uBase: { value: new THREE.Color("#070b13") },
       uLine: { value: new THREE.Color("#33445f") },
       uGlowCol: { value: new THREE.Color("#1b2942") },
@@ -420,10 +422,13 @@ export default function SceneBackground({
     if (!mat) return;
     const a = wallAspect(mode);
     (mat.uniforms.uPixel.value as THREE.Vector2).set(180, Math.round(180 / a));
-    (mat.uniforms.uPanels.value as THREE.Vector2).set(
-      mode.PANELS_X,
-      Math.max(2, Math.round(mode.PANELS_X / a))
-    );
+    const panelsY = Math.max(2, Math.round(mode.PANELS_X / a));
+    (mat.uniforms.uPanels.value as THREE.Vector2).set(mode.PANELS_X, panelsY);
+    // Cuadrícula fina ANIDADA en los monitores (V17.23, "que encaje"): 4x4
+    // celdas exactas por panel, derivadas de uPanels — cada 4ª línea fina
+    // coincide con un bisel. El (52,40) fijo de antes no era múltiplo y los
+    // cuadros pequeños se cortaban contra las líneas gruesas.
+    (mat.uniforms.uCells.value as THREE.Vector2).set(mode.PANELS_X * 4, panelsY * 4);
     // Desktop CASI NEGRO (petición V16.66: "quiero que se vea casi negro");
     // móvil sin cambio.
     // 1.35 en móvil (V17.15 subió a 1.2; V17.16 otro punto, "se ve super

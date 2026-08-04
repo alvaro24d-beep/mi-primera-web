@@ -1819,7 +1819,10 @@ p.nxr-hero-mastery-line {
 
 .nxr-srv-title {
   font-size: 30px;
-  font-weight: 700;
+  /* !important (V17.32, "ponlos en negrita"): la regla global h1-h6 fuerza
+     500 !important en todos los títulos; entre dos !important gana esta
+     clase por especificidad. Rajdhani 700 está cargada. */
+  font-weight: 700 !important;
   color: var(--c-white);
   letter-spacing: -0.02em;
   line-height: 1.15;

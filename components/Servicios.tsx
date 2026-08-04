@@ -393,6 +393,24 @@ function AppAnim() {
   );
 }
 
+// Vídeo de fondo del muro POR SERVICIO (V17.22): al enfocar cada card, la
+// pantalla del fondo transiciona a su clip con la cascada de paneles (ver
+// SceneBackground, evento nxr:wall-video). Los archivos van en public/ con
+// estos nombres exactos; si alguno falta, la transición se aborta sola y el
+// muro conserva el clip que tuviera — se pueden ir soltando de uno en uno.
+// Mismos clips (landscape) en móvil: el cover-crop del shader los encuadra.
+const SERVICE_VIDEOS: (string | null)[] = [
+  "/bg-servicio-web.mp4",
+  "/bg-servicio-ia.mp4",
+  "/bg-servicio-auto.mp4",
+  "/bg-servicio-seo.mp4",
+  "/bg-servicio-apps.mp4",
+];
+
+const setWallVideo = (src: string | null) => {
+  window.dispatchEvent(new CustomEvent("nxr:wall-video", { detail: { src } }));
+};
+
 const CARDS = [
   {
     tag: "Desarrollo web",
@@ -1012,6 +1030,9 @@ export default function Servicios() {
               // La demo ilustrativa de la card se reinicia desde cero en el
               // mismo instante (V16.21, "que se reproduzcan").
               demoRestartRef.current[i]?.();
+              // Y el muro del fondo transiciona al clip de este servicio
+              // (V17.22) con la cascada de paneles.
+              setWallVideo(SERVICE_VIDEOS[i] ?? null);
             }
             lastCapVis[i] = vis;
             // Quantized to 2% steps and only written on change: the blur()
@@ -1652,6 +1673,10 @@ export default function Servicios() {
       ([entry]) => {
         visRef.current = entry.isIntersecting;
         section.classList.toggle("nxr-anims-live", entry.isIntersecting);
+        // Fuera de la sección, el muro vuelve a su clip por defecto con la
+        // misma cascada (V17.22). Emitir null con el defecto ya puesto es
+        // un no-op en SceneBackground.
+        if (!entry.isIntersecting) setWallVideo(null);
       },
       { rootMargin: "150px 0px" }
     );
@@ -2433,6 +2458,8 @@ export default function Servicios() {
       io.disconnect();
       perCard.forEach((_, i) => clearCard(i));
       demoRestartRef.current = [];
+      // Al desmontar (nav a otra ruta), el muro global recupera su clip.
+      setWallVideo(null);
     };
   }, []);
 

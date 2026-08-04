@@ -123,6 +123,10 @@ const fragmentShader = /* glsl */ `
                            // del teléfono
   uniform float uFrameShade; // marco de sombra del viewport (V17.21):
                              // 1 desktop, 0 móvil
+  uniform sampler2D uSourceB; // clip ENTRANTE del cambio de vídeo (V17.22)
+  uniform vec2 uCoverScaleB;  // cover-crop del clip entrante
+  uniform float uHasVideoB;   // 1 = uSourceB listo (ya reproduciendo)
+  uniform float uSwitch;      // progreso 0→1 del cambio de vídeo POR PANEL
 
   vec3 sampleSource(vec2 uv) {
     if (uHasVideo > 0.5) {
@@ -138,6 +142,17 @@ const fragmentShader = /* glsl */ `
     // colour-bars placeholder flashed before every video start and was
     // removed on request.)
     return uBase;
+  }
+
+  // Muestreo del vídeo ACTIVO por panel (V17.22): los paneles que ya
+  // saltaron al clip entrante (useB) leen uSourceB con su propio cover;
+  // el resto sigue en el pipeline A (con su fallback procedural).
+  vec3 sampleActive(vec2 uv, float useB) {
+    if (useB > 0.5 && uHasVideoB > 0.5) {
+      vec2 cuv = vec2(0.5) + (uv - vec2(0.5)) * uCoverScaleB;
+      return texture2D(uSourceB, cuv).rgb;
+    }
+    return sampleSource(uv);
   }
 
   void main() {
@@ -177,6 +192,17 @@ const fragmentShader = /* glsl */ `
     float tileOn = step(thr, uPower);
     float glitch = tileOn * (1.0 - smoothstep(0.0, 0.09, uPower - thr));
 
+    // Cambio de VÍDEO por paneles (V17.22): mismo lenguaje que el
+    // encendido, pero DIRECTO de clip a clip (sin apagado intermedio) —
+    // cada monitor salta al vídeo entrante en orden aleatorio (hash
+    // propio, distinto del de power) con su destello de fallo. Cuando la
+    // cascada completa, el finalize de JS mueve el clip al slot frontal y
+    // devuelve uSwitch a 0 en el mismo frame: ningún píxel cambia.
+    float thrB = fract(sin(dot(pid, vec2(157.9, 421.7))) * 723.417) * 0.85;
+    float useB = step(thrB, uSwitch);
+    float glitchB = useB * (1.0 - smoothstep(0.0, 0.09, uSwitch - thrB));
+    float gAll = max(glitch, glitchB);
+
     // Depth: light pooling toward uFocus + outward vignette.
     float d = distance(vUv, uFocus);
     float glow = smoothstep(0.85, 0.0, d);
@@ -188,12 +214,13 @@ const fragmentShader = /* glsl */ `
       // concave deformation) + RGB split + scanlines = CRT screen.
       vec2 puv = (floor(vUv * uPixel) + 0.5) / uPixel;
       // Desgarro horizontal del arranque (V17.12): mientras el panel está
-      // en su banda de fallo, su vídeo entra desplazado en X y recoloca.
-      puv.x += (ph - 0.5) * 0.14 * glitch;
+      // en su banda de fallo (de encendido O de cambio de clip), su vídeo
+      // entra desplazado en X y recoloca.
+      puv.x += (ph - 0.5) * 0.14 * gAll;
       float o = 1.3 / uPixel.x;
-      float r = sampleSource(puv + vec2(o, 0.0)).r;
-      float gg = sampleSource(puv).g;
-      float b = sampleSource(puv - vec2(o, 0.0)).b;
+      float r = sampleActive(puv + vec2(o, 0.0), useB).r;
+      float gg = sampleActive(puv, useB).g;
+      float b = sampleActive(puv - vec2(o, 0.0), useB).b;
       vec3 tv = vec3(r, gg, b);
       tv *= 0.78 + 0.22 * sin(vUv.y * uPixel.y * 6.28318);
       // Dim + tint toward the site's dark base so overlaid text stays legible.
@@ -211,7 +238,7 @@ const fragmentShader = /* glsl */ `
     // blanco-frío del fallo digital encima.
     vec3 offCol = vec3(0.013, 0.014, 0.018) * uOffLift;
     fill = mix(offCol, fill, tileOn);
-    fill += vec3(0.55, 0.6, 0.7) * glitch * (0.35 + 0.45 * ph);
+    fill += vec3(0.55, 0.6, 0.7) * gAll * (0.35 + 0.45 * ph);
 
     vec3 col = fill * panelLum;
     col += uGlowCol * glow * 0.10 * uPower;
@@ -326,6 +353,14 @@ export default function SceneBackground({
   // cargar en mitad de la página o en otra ruta).
   const introElRef = useRef<HTMLElement | null>(null);
   const powerRef = useRef<number | null>(null);
+  // Cambio de vídeo por paneles (V17.22): valor renderizado y target de
+  // uSwitch, el finalize que registra el efecto gestor (lo llama useFrame
+  // al completarse la cascada) y el vídeo override activo (para que el
+  // keep-alive y los guards del pipeline por defecto sepan quién manda).
+  const switchRef = useRef(0);
+  const switchTargetRef = useRef(0);
+  const finalizeSwitchRef = useRef<(() => void) | null>(null);
+  const overrideVideoRef = useRef<HTMLVideoElement | null>(null);
   // Live handle to the current <video> for the keep-alive interval below —
   // rendering must never depend on the video actually playing (phones can
   // refuse/delay autoplay, and in "demand" mode the video's rVFC is the
@@ -364,6 +399,10 @@ export default function SceneBackground({
       uTime: { value: 0 },
       uOffLift: { value: 1 },
       uFrameShade: { value: 0 },
+      uSourceB: { value: blankTex as THREE.Texture },
+      uCoverScaleB: { value: new THREE.Vector2(1, 1) },
+      uHasVideoB: { value: 0 },
+      uSwitch: { value: 0 },
     }),
     // eslint-disable-next-line react-hooks/exhaustive-deps
     []
@@ -514,7 +553,9 @@ export default function SceneBackground({
     const onVisibility = () => {
       if (document.hidden) {
         video.pause();
-      } else {
+      } else if (!overrideVideoRef.current) {
+        // Con un override por servicio delante (V17.22) el clip por
+        // defecto se queda en pausa: reanudarlo sería decodificar en balde.
         video.play().catch(() => {});
         if (supportsRVFC) rvfcId = video.requestVideoFrameCallback(onFrame);
       }
@@ -525,7 +566,7 @@ export default function SceneBackground({
     // browser quirks) — retry on any real user gesture, which always
     // satisfies autoplay policies. Cheap no-op once playing.
     const kick = () => {
-      if (video.paused && !document.hidden) video.play().catch(() => {});
+      if (video.paused && !document.hidden && !overrideVideoRef.current) video.play().catch(() => {});
     };
     window.addEventListener("touchstart", kick, { passive: true });
     window.addEventListener("pointerdown", kick, { passive: true });
@@ -562,6 +603,202 @@ export default function SceneBackground({
     };
   }, [tv, videoSrc, blankTex, invalidate, portrait]);
 
+  // ===== Cambio de vídeo del muro POR SERVICIO (V17.22) =====
+  // Escucha `nxr:wall-video` (detail.src: string | null; null = clip por
+  // defecto de la orientación — lo emite Servicios.tsx al cambiar la card
+  // enfocada y al salir de la sección). La transición es DIRECTA de clip a
+  // clip con la cascada de paneles (uSwitch), sin apagado intermedio: el
+  // clip entrante carga en un slot B propio, la cascada solo arranca cuando
+  // YA reproduce (la carga queda enmascarada: hasta entonces sigue el clip
+  // actual), y al completarse el finalize mueve el clip al slot frontal
+  // (uSource) y devuelve uSwitch a 0 en el mismo frame — ningún píxel
+  // cambia. También en móvil: mismos clips landscape, el cover-crop del
+  // shader los encuadra. Un clip inexistente (404/decode) aborta la
+  // transición sin tocar el muro actual.
+  useEffect(() => {
+    if (!tv || !videoSrc) return;
+    const mat = matRef.current;
+    if (!mat) return;
+
+    type Slot = { key: string | null; video: HTMLVideoElement; tex: THREE.VideoTexture; dispose: () => void };
+    let front: Slot | null = null; // override visible (null = pipeline por defecto)
+    let incoming: Slot | null = null; // slot B cargando / en cascada
+    let currentKey: string | null = null; // null = clip por defecto
+    let pending: string | null | undefined; // undefined = nada en cola
+
+    const setCover = (video: HTMLVideoElement, cover: THREE.Vector2) => {
+      // Mismo cover-crop + zoom-out que el pipeline por defecto (ver onReady
+      // del efecto de arriba).
+      const va = video.videoWidth / video.videoHeight || 1;
+      const wa = wallAspect(portrait ? WALL_MODES.portrait : WALL_MODES.landscape);
+      const zoom = va > 1 ? 1.3 : 1;
+      if (va > wa) cover.set((wa / va) * zoom, zoom);
+      else cover.set(zoom, (va / wa) * zoom);
+    };
+
+    const retireIncoming = () => {
+      if (!incoming) return;
+      const s = incoming;
+      incoming = null;
+      s.dispose();
+      mat.uniforms.uHasVideoB.value = 0;
+      mat.uniforms.uSourceB.value = blankTex;
+    };
+
+    const startTransition = (key: string | null) => {
+      retireIncoming();
+      const src = key ?? videoSrc;
+      const video = document.createElement("video");
+      video.setAttribute("muted", "");
+      video.setAttribute("playsinline", "");
+      video.setAttribute("autoplay", "");
+      video.muted = true;
+      video.playsInline = true;
+      video.autoplay = true;
+      video.loop = true;
+      video.preload = "auto";
+      video.src = src;
+      video.play().catch(() => {});
+      const tex = new THREE.VideoTexture(video);
+      tex.colorSpace = THREE.SRGBColorSpace;
+      tex.magFilter = THREE.NearestFilter;
+      tex.minFilter = THREE.LinearFilter;
+      tex.wrapS = THREE.MirroredRepeatWrapping;
+      tex.wrapT = THREE.MirroredRepeatWrapping;
+      const supportsRVFC = typeof video.requestVideoFrameCallback === "function";
+      let rvfcId: number | null = null;
+      const onFrame = () => {
+        invalidate();
+        if (!document.hidden) rvfcId = video.requestVideoFrameCallback(onFrame);
+      };
+      const onReady = () => {
+        if (incoming?.video !== video) return;
+        setCover(video, mat.uniforms.uCoverScaleB.value as THREE.Vector2);
+        mat.uniforms.uSourceB.value = tex;
+        mat.uniforms.uHasVideoB.value = 1;
+        if (supportsRVFC) rvfcId = video.requestVideoFrameCallback(onFrame);
+        // La cascada arranca SOLO con el clip ya reproduciendo.
+        switchTargetRef.current = 1;
+        invalidate();
+      };
+      const onError = () => {
+        if (incoming?.video !== video) return;
+        retireIncoming();
+        switchTargetRef.current = 0;
+        pending = undefined;
+        invalidate();
+      };
+      video.addEventListener("loadeddata", onReady);
+      video.addEventListener("error", onError);
+      incoming = {
+        key,
+        video,
+        tex,
+        dispose: () => {
+          video.removeEventListener("loadeddata", onReady);
+          video.removeEventListener("error", onError);
+          if (rvfcId !== null && supportsRVFC) video.cancelVideoFrameCallback(rvfcId);
+          video.pause();
+          video.src = "";
+          tex.dispose();
+        },
+      };
+    };
+
+    finalizeSwitchRef.current = () => {
+      if (!incoming) {
+        // Transición abortada a mitad: solo resetear el mando.
+        switchTargetRef.current = 0;
+        switchRef.current = 0;
+        mat.uniforms.uSwitch.value = 0;
+        return;
+      }
+      // Swap ATÓMICO: el frontal pasa a ser el clip entrante y uSwitch
+      // vuelve a 0 en el mismo frame — visualmente idéntico.
+      mat.uniforms.uSource.value = incoming.tex;
+      (mat.uniforms.uCoverScale.value as THREE.Vector2).copy(mat.uniforms.uCoverScaleB.value as THREE.Vector2);
+      mat.uniforms.uHasVideo.value = 1;
+      mat.uniforms.uSourceB.value = blankTex;
+      mat.uniforms.uHasVideoB.value = 0;
+      switchTargetRef.current = 0;
+      switchRef.current = 0;
+      mat.uniforms.uSwitch.value = 0;
+      const old = front;
+      front = incoming;
+      incoming = null;
+      currentKey = front.key;
+      overrideVideoRef.current = front.video;
+      if (old) old.dispose();
+      else videoElRef.current?.pause(); // el defecto duerme mientras haya override
+      invalidate();
+      // Cola: si llegó otro cambio durante la cascada, encadenarlo.
+      if (pending !== undefined && pending !== currentKey) {
+        const p = pending;
+        pending = undefined;
+        startTransition(p);
+      } else {
+        pending = undefined;
+      }
+    };
+
+    const onSetVideo = (e: Event) => {
+      const key = ((e as CustomEvent).detail?.src ?? null) as string | null;
+      if (key === currentKey) {
+        // Ya se muestra: descarta cola y cualquier cascada a medias.
+        pending = undefined;
+        if (incoming) {
+          retireIncoming();
+          switchTargetRef.current = 0;
+          invalidate();
+        }
+        return;
+      }
+      if (incoming) {
+        pending = key;
+        return;
+      }
+      startTransition(key);
+    };
+    window.addEventListener("nxr:wall-video", onSetVideo);
+
+    // Pausa/reanuda los vídeos propios con la visibilidad de la pestaña, y
+    // reintento por gesto (mismas políticas de autoplay que el defecto).
+    const onVisibility = () => {
+      const vids = [front?.video, incoming?.video];
+      vids.forEach((v) => {
+        if (!v) return;
+        if (document.hidden) v.pause();
+        else v.play().catch(() => {});
+      });
+    };
+    document.addEventListener("visibilitychange", onVisibility);
+    const kick = () => {
+      [front?.video, incoming?.video].forEach((v) => {
+        if (v && v.paused && !document.hidden) v.play().catch(() => {});
+      });
+    };
+    window.addEventListener("touchstart", kick, { passive: true });
+    window.addEventListener("pointerdown", kick, { passive: true });
+
+    return () => {
+      window.removeEventListener("nxr:wall-video", onSetVideo);
+      document.removeEventListener("visibilitychange", onVisibility);
+      window.removeEventListener("touchstart", kick);
+      window.removeEventListener("pointerdown", kick);
+      retireIncoming();
+      if (front) front.dispose();
+      front = null;
+      overrideVideoRef.current = null;
+      finalizeSwitchRef.current = null;
+      switchTargetRef.current = 0;
+      switchRef.current = 0;
+      mat.uniforms.uSwitch.value = 0;
+      mat.uniforms.uHasVideoB.value = 0;
+      mat.uniforms.uSourceB.value = blankTex;
+      // uSource lo restaura el cleanup/re-run del pipeline por defecto.
+    };
+  }, [tv, videoSrc, blankTex, invalidate, portrait]);
+
   // Cursor parallax. Each mousemove kicks a render (the canvas runs
   // "demand" off the card sections), and the ease-out below re-invalidates
   // itself until it settles.
@@ -586,7 +823,9 @@ export default function SceneBackground({
   useEffect(() => {
     if (!tv || !active) return;
     const id = window.setInterval(() => {
-      const v = videoElRef.current;
+      // Con override por servicio (V17.22), el vídeo que debe estar
+      // produciendo frames es el override, no el clip por defecto pausado.
+      const v = overrideVideoRef.current ?? videoElRef.current;
       const videoPlaying = v && !v.paused && v.readyState >= 3;
       if (!document.hidden && !videoPlaying) invalidate();
     }, 33);
@@ -639,6 +878,20 @@ export default function SceneBackground({
       matV.uniforms.uPower.value = pNext;
       // Sigue invalidando mientras la rampa no asiente (modo demand).
       if (pPrev !== null && Math.abs(pTarget - pNext) > 0.002) invalidate();
+
+      // ===== Cambio de vídeo por paneles (V17.22): rampa de uSwitch =====
+      // Misma amortiguación que el power; al asentar en 1 dispara el
+      // finalize del efecto gestor (swap atómico y uSwitch de vuelta a 0).
+      const sTarget = switchTargetRef.current;
+      const sPrev = switchRef.current;
+      if (sPrev !== sTarget) {
+        let sNext = sPrev + (sTarget - sPrev) * 0.07;
+        if (Math.abs(sTarget - sNext) <= 0.002) sNext = sTarget;
+        switchRef.current = sNext;
+        matV.uniforms.uSwitch.value = sNext;
+        if (sNext !== sTarget) invalidate();
+        else if (sTarget === 1) finalizeSwitchRef.current?.();
+      }
     }
     const c = current.current;
     const t = target.current;

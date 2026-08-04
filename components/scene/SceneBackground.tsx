@@ -692,6 +692,11 @@ export default function SceneBackground({
         switchTargetRef.current = 0;
         pending = undefined;
         invalidate();
+        // Clip del servicio inexistente/roto (V17.25, "solo cuando está
+        // seleccionada esa card"): el fallback es volver al clip por
+        // DEFECTO, no quedarse con el del servicio anterior. Sin reintento
+        // si lo que falló era justamente el defecto (evita el bucle).
+        if (key !== null && currentKey !== null) startTransition(null);
       };
       video.addEventListener("loadeddata", onReady);
       video.addEventListener("error", onError);

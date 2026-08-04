@@ -5276,6 +5276,13 @@ input[type="range"].nxr-ms-range::-moz-range-thumb {
     text-shadow: calc(var(--zpg, 0) * -10px) 0 rgba(239, 61, 13, 0.9),
       calc(var(--zpg, 0) * 10px) 0 rgba(168, 240, 74, 0.9);
   }
+  /* El acento con degradado NO hereda la sombra del glitch (V17.30): su
+     text-fill es transparente (background-clip: text) y el text-shadow
+     pinta ENTRE el fondo clipado y el relleno — con offset 0 en reposo, la
+     capa roja se veía a través de los glifos y el texto salía rojo fijo. */
+  .nxr-zp-layer:nth-child(1) .nxr-zp-hero-text .nxr-gradient-text-lime {
+    text-shadow: none;
+  }
   .nxr-zp-layer:nth-child(1) .nxr-zp-img {
     --zp-max: 2.2;
     width: 85vw;

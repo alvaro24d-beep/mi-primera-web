@@ -277,7 +277,8 @@ const fragmentShader = /* glsl */ `
     // y su rVFC invalida ~30fps, así que la animación corre sola.
     float ch = fract(sin(dot(cid, vec2(419.2, 371.9))) * 833.7);
     float tw = step(0.92, ch) * (0.5 + 0.5 * sin(uTime * (1.2 + ch * 2.5) + ch * 40.0));
-    col += uLine * tw * 0.16 * min(uOffLift, 2.4) * (1.0 - uPower);
+    // 0.16 → 0.24 (V17.35, "aumenta un poco lo que se iluminan").
+    col += uLine * tw * 0.24 * min(uOffLift, 2.4) * (1.0 - uPower);
 
     // ===== Textura extra del estado APAGADO (V17.18, "más detalle y
     // textura") — todo escala con (1-uPower): desaparece al encender. =====
@@ -296,12 +297,14 @@ const fragmentShader = /* glsl */ `
     float bandPos = tp.x * 0.8 + tp.y * 0.5;
     float sheen = max(0.0, (1.0 - abs(bandPos - (0.35 + 0.5 * sh))) * 1.6 - 0.9);
     col += vec3(0.032, 0.035, 0.045) * sheen * (0.4 + 0.6 * ph) * offL * offAmt;
-    // c) Subpíxeles "atascados": celdas sueltas (~0.6%) tenuemente
-    // encendidas en azulado o verdoso, fijas — detalle de muro real.
+    // c) Subpíxeles "atascados": celdas sueltas (~0.2%) tenuemente
+    // encendidas en azulado o verdoso. Ya NO fijas (V17.35, "que no se
+    // quede fijo ninguno"): respiran lento, cada una con fase y velocidad
+    // propias — entre el 25% y el 100% de su brillo.
     float sp = fract(sin(dot(cid, vec2(741.3, 128.5))) * 397.1);
     vec3 stuckCol = mix(vec3(0.05, 0.07, 0.10), vec3(0.045, 0.085, 0.065), step(0.5, fract(sp * 37.0)));
-    // 0.994 → 0.997 (V17.20) → 0.998 (V17.21): apenas unos subpíxeles.
-    col += stuckCol * step(0.998, sp) * offL * offAmt;
+    float stuckPulse = 0.25 + 0.75 * (0.5 + 0.5 * sin(uTime * (0.6 + sp * 1.4) + sp * 60.0));
+    col += stuckCol * step(0.998, sp) * stuckPulse * offL * offAmt;
     // d) Grano sutil animado: la superficie respira vista de cerca.
     // (grain, no "gr": gr ya existe arriba como vec2 de la rejilla — la
     // redefinición rompía la compilación del programa entero, V17.19.)

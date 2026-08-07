@@ -8,6 +8,7 @@ import SmoothScroll from "@/components/SmoothScroll";
 import ScrollProgress from "@/components/ScrollProgress";
 import LoadProgress from "@/components/LoadProgress";
 import CursorDrift from "@/components/CursorDrift";
+import InvertCursor from "@/components/InvertCursor";
 import GradualBlur from "@/components/GradualBlur";
 
 const manrope = Manrope({
@@ -71,6 +72,9 @@ export default function RootLayout({
         {/* Deriva global de contenido con el cursor (vars CSS en :root; la
             lista curada de contenedores vive en globals.css). */}
         <CursorDrift />
+        {/* Cursor circular que invierte el fondo (sustituye a la flecha del
+            sistema en desktop; en táctil ni se monta). */}
+        <InvertCursor />
         {/* WebGL backdrop deferred off the load's critical path — see
             SceneCanvasLazy (dynamic import + idle mount + fade-in). */}
         <SceneCanvasLazy />

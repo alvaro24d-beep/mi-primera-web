@@ -28,9 +28,13 @@ import { useEffect, useRef } from "react";
 //  - Solo `pointer: fine` (mismo criterio que CursorDrift): un teléfono no
 //    tiene cursor que sustituir y se ahorra la capa de composición.
 
-// Factor de persecución por frame. 0.28 ≈ el 95% del recorrido en ~9 frames
-// (~150ms): se nota la estela, no el retardo.
-const EASE = 0.28;
+// Factor de persecución por frame: cuanto MÁS alto, MENOS amortiguación.
+// 0.42 (V17.41, "reduce la amortiguación"; antes 0.28) ≈ el 95% del recorrido
+// en ~6 frames (~100ms) frente a los ~10 (~167ms) de antes — el suavizado se
+// sigue notando en los cambios de dirección, pero el disco va bastante más
+// pegado al puntero. Referencia por si hay que reajustar: 0.35 ≈ 117ms,
+// 0.5 ≈ 84ms (ahí el suavizado ya casi no se aprecia).
+const EASE = 0.42;
 export default function InvertCursor() {
   const dotRef = useRef<HTMLDivElement>(null);
 

@@ -1060,7 +1060,17 @@ p.nxr-hero-mastery-line {
   background: rgba(239, 61, 13, 0.85);
   backdrop-filter: blur(8px);
   transition: opacity 0.2s, transform 0.15s;
-  margin-left: 4px;
+  /* `auto`, no un valor fijo (V17.42): empuja el CTA hasta el final de la fila
+     para que su margen DERECHO sea el padding de 6px del pill, idéntico al de
+     arriba, al de abajo y al que deja el botón de Inicio en el otro extremo.
+     Antes quedaban 18,9px en desktop y 55,6px en móvil, y no por este margen:
+     el ancho del nav lo dicta #nxr-nav-services (el desplegable, que sigue
+     midiendo ~605px aunque esté a altura 0) y, con `align-items: stretch`,
+     #nxr-nav-row se estira hasta ahí mientras sus botones se agrupaban a la
+     izquierda, dejando el sobrante muerto justo detrás del CTA. El hueco no
+     desaparece, se recoloca ANTES del botón — que es donde separa el CTA del
+     resto de enlaces, como ya pretendían los 4px que había aquí. */
+  margin-left: auto;
   cursor: pointer;
   text-decoration: none;
   box-shadow: var(--glass-shine);

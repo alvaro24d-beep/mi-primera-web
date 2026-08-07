@@ -325,7 +325,12 @@ export default function AgentesIaHero() {
 
   if (reducedMotion) {
     return (
-      <section key="static" id="nxr-aia-hero" className="nxr-aia-hero nxr-aia-static">
+      // ref OBLIGATORIO también aquí: useGlassPanels arranca desde
+      // sectionRef y hace `if (!root) return`. Sin él, la rama de
+      // reduced-motion dejaba el chat y las tools sin NINGUNA malla de
+      // cristal (solo su scrim), que es el fallo "mesh apuntando a una rama
+      // desmontada" que avisa CLAUDE.md. SeoHero/SeoPasos ya lo hacían bien.
+      <section key="static" id="nxr-aia-hero" className="nxr-aia-hero nxr-aia-static" ref={sectionRef}>
         <div className="nxr-aia-head">
           <h1 className="nxr-aia-h1">
             Agentes que trabajan por ti,

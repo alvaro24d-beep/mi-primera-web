@@ -105,22 +105,38 @@ export default function Header() {
 
     let ticking = false;
     const THRESHOLD = 80;
+    // Elemento cacheado + últimos valores emitidos: este callback corre en
+    // CADA frame de scroll de TODAS las rutas, así que antes pagaba un
+    // getElementById por frame y dos setState con el mismo booleano (React
+    // los descarta, pero solo después de entrar en el reconciliador). El
+    // `isConnected` revalida el caché tras una navegación cliente, donde el
+    // layout persiste pero el #nxr-intro de la ruta anterior ya no está en
+    // el documento — mismo patrón que usa SceneBackground con su introElRef.
+    let introEl: HTMLElement | null = null;
+    let lastHidden: boolean | null = null;
+    let lastVisible: boolean | null = null;
     const onScroll = () => {
       if (ticking) return;
       ticking = true;
       requestAnimationFrame(() => {
         const y = window.scrollY;
-        setNavHidden(y > THRESHOLD);
+        const hidden = y > THRESHOLD;
+        if (hidden !== lastHidden) {
+          lastHidden = hidden;
+          setNavHidden(hidden);
+        }
         // On the home page the floating bottom nav waits for the Intro
         // section to enter the viewport (the hero stays chrome-free);
         // everywhere else it appears after the usual small scroll. Measured
         // live each tick because pinned sections above can shift the
         // intro's document offset.
-        const intro = document.getElementById("nxr-intro");
-        if (intro) {
-          setNavVisible(intro.getBoundingClientRect().top <= window.innerHeight * 0.7);
-        } else {
-          setNavVisible(y > THRESHOLD);
+        if (!introEl || !introEl.isConnected) introEl = document.getElementById("nxr-intro");
+        const visible = introEl
+          ? introEl.getBoundingClientRect().top <= window.innerHeight * 0.7
+          : hidden;
+        if (visible !== lastVisible) {
+          lastVisible = visible;
+          setNavVisible(visible);
         }
         ticking = false;
       });

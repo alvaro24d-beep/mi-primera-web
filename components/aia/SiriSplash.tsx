@@ -170,7 +170,19 @@ export default function SiriSplash() {
     };
     frame();
 
+    // Pestaña oculta = cero dibujo (mismo criterio que el vídeo del muro en
+    // SceneBackground). Sin esto, cambiar de pestaña durante el splash dejaba
+    // este shader dibujando a 60fps en un canvas que nadie ve. `iTime` sigue
+    // derivándose de `start`, así que al volver la onda retoma su fase real
+    // en vez de saltar hacia atrás.
+    const onVisibility = () => {
+      cancelAnimationFrame(raf);
+      if (!document.hidden) raf = requestAnimationFrame(frame);
+    };
+    document.addEventListener("visibilitychange", onVisibility);
+
     return () => {
+      document.removeEventListener("visibilitychange", onVisibility);
       cancelAnimationFrame(raf);
       gl.deleteProgram(program);
       gl.deleteShader(vs);

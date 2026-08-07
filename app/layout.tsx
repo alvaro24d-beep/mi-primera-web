@@ -72,9 +72,7 @@ export default function RootLayout({
             lista curada de contenedores vive en globals.css). */}
         <CursorDrift />
         {/* WebGL backdrop deferred off the load's critical path — see
-            SceneCanvasLazy (dynamic import + idle mount + fade-in). La estela
-            de humo fluido del cursor vive DENTRO de esa escena
-            (components/scene/FluidTrailLayer.tsx). */}
+            SceneCanvasLazy (dynamic import + idle mount + fade-in). */}
         <SceneCanvasLazy />
         <RevealInit />
         {/* Fixed to the viewport (`target="page"`), sitting above page content

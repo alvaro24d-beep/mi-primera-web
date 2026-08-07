@@ -80,7 +80,14 @@ export default function SeoHero() {
     const set = () => document.documentElement.style.setProperty("--seo-vh", `${window.innerHeight}px`);
     set();
     window.addEventListener("resize", set, { passive: true });
-    return () => window.removeEventListener("resize", set);
+    return () => {
+      window.removeEventListener("resize", set);
+      // La variable se escribe en <html>, que PERSISTE entre rutas (el layout
+      // no se remonta): sin este removeProperty seguía viva en la home y en
+      // el resto de páginas mucho después de salir de /seo, con el valor
+      // congelado del último resize aquí.
+      document.documentElement.style.removeProperty("--seo-vh");
+    };
   }, []);
 
   useGSAP(

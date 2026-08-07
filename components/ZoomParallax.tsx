@@ -230,6 +230,31 @@ export default function ZoomParallax() {
       twChars.forEach((c) => c.classList.remove("nxr-zp-tw-on"));
     };
 
+    // Deshace TODO lo que escribe el glitch de la card central: los clones de
+    // banda, la base y los caracteres corrompidos. Extraído porque ahora hace
+    // falta desde dos sitios — al salir de la banda de glitch (uso de
+    // siempre) y al pasar a desktop, donde el bloque del glitch deja de
+    // ejecutarse por completo (ver la rama `else if` en onScroll).
+    const clearHeroGlitch = (img: HTMLElement) => {
+      if (!img.classList.contains("nxr-zp-glitching")) return;
+      img.classList.remove("nxr-zp-glitching");
+      if (heroBase) heroBase.style.opacity = "";
+      for (const sl of heroSlices) {
+        sl.style.opacity = "";
+        sl.style.transform = "";
+        sl.style.clipPath = "";
+      }
+      // Restaura cualquier carácter corrompido por el glitch.
+      for (const list of [twChars, ...sliceCharLists]) {
+        for (const c of list) {
+          if (c.dataset.o !== undefined) {
+            c.textContent = c.dataset.o;
+            delete c.dataset.o;
+          }
+        }
+      }
+    };
+
     // Sticky del reel de Servicios (fade de handoff, ver onScroll):
     // undefined = aún no buscado; null = no existe en esta página.
     let reelSticky: HTMLElement | null | undefined;
@@ -390,24 +415,7 @@ export default function ZoomParallax() {
             const fade = 1 - t * t * (3 - 2 * t);
             img.style.opacity = fade.toFixed(3);
             img.style.setProperty("--zpg", "0");
-            if (img.classList.contains("nxr-zp-glitching")) {
-              img.classList.remove("nxr-zp-glitching");
-              if (heroBase) heroBase.style.opacity = "";
-              for (const sl of heroSlices) {
-                sl.style.opacity = "";
-                sl.style.transform = "";
-                sl.style.clipPath = "";
-              }
-              // Restaura cualquier carácter corrompido por el glitch.
-              for (const list of [twChars, ...sliceCharLists]) {
-                for (const c of list) {
-                  if (c.dataset.o !== undefined) {
-                    c.textContent = c.dataset.o;
-                    delete c.dataset.o;
-                  }
-                }
-              }
-            }
+            clearHeroGlitch(img);
           } else {
             // Slice-glitch death (After-Effects style): the intact text is
             // replaced almost immediately by 5 horizontal BANDS of the card
@@ -461,12 +469,44 @@ export default function ZoomParallax() {
             corrupt(twChars);
             sliceCharLists.forEach(corrupt);
           }
+        } else if (i === 0 && (img.style.opacity || img.classList.contains("nxr-zp-glitching"))) {
+          // DESKTOP: la card central no se disuelve, así que el bloque de
+          // arriba no corre y nada retira lo que dejó escrito. Si el usuario
+          // rota el teléfono o ensancha la ventana con la frase a medio
+          // glitch, sin esto la card se quedaba clavada semitransparente,
+          // con --zpg congelado y con glifos corruptos que ya nadie restaura
+          // (el mismo caso que la rama `else if` del handoff del reel más
+          // arriba). Solo toca estilos INLINE que escribió el propio glitch.
+          //
+          // La GUARDA de la condición es deliberada: sin ella esto correría en
+          // cada frame de scroll de desktop ensuciando el CSSOM para nada.
+          // En desktop puro la card 0 nunca tiene opacity inline ni la clase,
+          // así que el coste es una comprobación de cadena vacía y se acabó.
+          img.style.opacity = "";
+          img.style.removeProperty("--zpg");
+          clearHeroGlitch(img);
         }
-        // Real on-screen height AFTER the transform above — comparable
-        // across cards despite their different base CSS sizes/max values,
-        // and the SAME metric components/scene/ZoomParallaxCardsLayer.tsx
-        // ranks the glass meshes by, so the DOM text below stacks in the
-        // same order the glass does.
+      });
+
+      // ---- PASADA DE LECTURA, separada de las escrituras de arriba ----
+      // Real on-screen height AFTER the transform above — comparable
+      // across cards despite their different base CSS sizes/max values,
+      // and the SAME metric components/scene/ZoomParallaxCardsLayer.tsx
+      // ranks the glass meshes by, so the DOM text below stacks in the
+      // same order the glass does.
+      //
+      // POR QUÉ EN SU PROPIO BUCLE: leer getBoundingClientRect() dentro del
+      // forEach anterior forzaba un reflow SÍNCRONO por card (7 por evento de
+      // scroll, y en la card 0 justo después de escribirle transform,
+      // clip-path y opacity a 5 clones). Con las escrituras ya todas hechas,
+      // el primer rect paga UN layout y los otros seis salen de él gratis.
+      // Es la misma lección que Servicios.tsx documenta en updateSpiral
+      // ("one layout per SLIDE per frame instead of one per frame, the top
+      // main-thread cost"). El resultado es idéntico: las cards están
+      // posicionadas de forma independiente, así que el transform de una
+      // nunca altera la altura medida de otra.
+      imgs.forEach((img, i) => {
+        if (!img) return;
         const h = img.getBoundingClientRect().height;
         if (h > dominantHeight) {
           dominantHeight = h;

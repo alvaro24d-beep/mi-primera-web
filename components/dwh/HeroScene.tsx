@@ -9,7 +9,7 @@ import * as THREE from "three";
 // 3D. This is thematic on purpose (code = web development) instead of the
 // abstract crystal it replaces, and it stays a *backdrop* — the actual
 // representational storytelling (the site building itself) happens in the
-// crisp DOM MacBook/Safari layered on top (see MacbookBuild.tsx).
+// crisp DOM iPhone layered on top (see dwh/IphoneMock.tsx).
 const TOKENS: { text: string; color: string }[] = [
   { text: "</>", color: "#a8f04a" },
   { text: "{ }", color: "#ff9d7d" },

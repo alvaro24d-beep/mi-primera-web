@@ -129,6 +129,10 @@ const fragmentShader = /* glsl */ `
   uniform float uVidGamma;    // contraste del vídeo (V17.31): >1 solo en
                               // desktop, hunde los negros que el mix con la
                               // base + uDim 0.32 dejaban en gris azulado
+  uniform float uVidSat;      // saturación del vídeo (V17.43): 1 = sin tocar,
+                              // >1 expande el color. Más alto en desktop, que
+                              // pasa por gamma 1.45 + uDim 0.32 y pierde más
+                              // color percibido al hundirse la luminancia
 
   vec3 sampleSource(vec2 uv) {
     if (uHasVideo > 0.5) {
@@ -222,6 +226,18 @@ const fragmentShader = /* glsl */ `
       // Contraste del clip (V17.31, "en ordenador se ven grisáceos"):
       // gamma >1 solo desktop — móvil (uDim 1.35) ya estira el contraste.
       tv = pow(tv, vec3(uVidGamma));
+      // Saturación del clip (V17.43, "se ven muy apagados"). Se aplica AQUÍ,
+      // sobre el vídeo puro y ANTES del mix con la base: lo que de verdad
+      // apaga el color es el mix(uBase * 0.7, tv, 0.5) de abajo — mezclar
+      // al 50% con un azul-gris plano —, pero ese mix es justo lo que
+      // (OJO: nada de backticks en este bloque; el shader entero vive dentro
+      // de un template literal de JS y uno solo lo cierra a media cadena.)
+      // mantiene legible el texto que va encima, así que no se toca. Entrando
+      // el vídeo más saturado a la mezcla se recupera el color sin alterar ni
+      // la luminancia ni el contraste que ya estaban afinados.
+      // Separar el gris de su desviación cromática: >1 la expande.
+      tv = mix(vec3(dot(tv, vec3(0.2126, 0.7152, 0.0722))), tv, uVidSat);
+      tv = max(tv, 0.0); // saturar puede empujar un canal por debajo de 0
       tv *= 0.78 + 0.22 * sin(vUv.y * uPixel.y * 6.28318);
       // Dim + tint toward the site's dark base so overlaid text stays legible.
       // (El "vídeo limpio en móvil" de V16.94 duró un día: V16.95 restaura
@@ -441,6 +457,7 @@ export default function SceneBackground({
       uHasVideoB: { value: 0 },
       uSwitch: { value: 0 },
       uVidGamma: { value: 1 },
+      uVidSat: { value: 1 },
     }),
     // eslint-disable-next-line react-hooks/exhaustive-deps
     []
@@ -480,6 +497,12 @@ export default function SceneBackground({
     // Contraste del vídeo solo en desktop (V17.31, "se ven grisáceos"):
     // gamma 1.45 hunde los negros del clip; móvil neutro.
     mat.uniforms.uVidGamma.value = mode === WALL_MODES.portrait ? 1 : 1.45;
+    // Saturación del vídeo (V17.43, "se ven muy apagados"). Desktop pide más
+    // que móvil: allí el clip pasa por gamma 1.45 y uDim 0.32, y al hundirse
+    // la luminancia el ojo percibe menos color (efecto Hunt); móvil va con
+    // uDim 1.35 y sin gamma, así que con menos ya llega. El mix con la base
+    // (0.5) se lleva por delante ~la mitad de lo que se aplique aquí.
+    mat.uniforms.uVidSat.value = mode === WALL_MODES.portrait ? 1.5 : 1.85;
     invalidate();
   }, [mode, invalidate]);
 

@@ -218,7 +218,16 @@ const fragmentShader = /* glsl */ `
       // en su banda de fallo (de encendido O de cambio de clip), su vídeo
       // entra desplazado en X y recoloca.
       puv.x += (ph - 0.5) * 0.14 * gAll;
-      float o = 1.3 / uPixel.x;
+      // Separación del RGB split, en fracción de celda de píxel CRT.
+      // 1.3 -> 0.5 (V17.44, "no quiero que esté tan distorsionado"): el
+      // desdoblamiento rojo/azul se nota ahora menos de la mitad y el clip se
+      // lee limpio, pero sigue habiendo franja de color en los bordes de alto
+      // contraste, que es lo que da la lectura de CRT. Se retoca JUSTO después
+      // de subir uVidSat a 1.85 (V17.43) y no es casualidad: saturar amplifica
+      // precisamente las franjas de color que crea este split, así que el
+      // mismo 1.3 de siempre pasó a leerse mucho más agresivo. A 0 el efecto
+      // desaparece del todo.
+      float o = 0.5 / uPixel.x;
       float r = sampleActive(puv + vec2(o, 0.0), useB).r;
       float gg = sampleActive(puv, useB).g;
       float b = sampleActive(puv - vec2(o, 0.0), useB).b;

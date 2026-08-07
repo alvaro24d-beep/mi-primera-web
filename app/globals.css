@@ -1119,7 +1119,7 @@ p.nxr-hero-mastery-line {
   /* Restringido a la FILA (V16.8): un selector a nivel de #nxr-nav
      ocultaba también el tile móvil de Nosotros (mismo href). */
   #nxr-nav-row a[href="/nosotros"],
-  #nxr-nav-row a[href="/casos"] {
+  #nxr-nav-row a[href="/precios"] {
     display: none;
   }
 

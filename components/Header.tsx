@@ -10,7 +10,7 @@ const NAV_LINKS = [
   { href: "/", label: "Inicio" },
   { href: "/servicios", label: "Servicios" },
   { href: "/nosotros", label: "Nosotros" },
-  { href: "/casos", label: "Casos" },
+  { href: "/precios", label: "Precios" },
 ];
 
 const SERVICIOS = [
@@ -345,11 +345,15 @@ export default function Header() {
             </svg>
             <span>Nosotros</span>
           </Link>
-          <Link href="/casos" className={`nxr-nav-link${isActive("/casos") ? " active" : ""}`}>
+          <Link href="/precios" className={`nxr-nav-link${isActive("/precios") ? " active" : ""}`}>
+            {/* Etiqueta de precio: sustituye a la línea de gráfica de "Casos"
+                (V17.39). /casos nunca se llegó a construir y daba 404, mientras
+                que /precios existía sin un solo enlace que llegara a ella. */}
             <svg viewBox="0 0 24 24">
-              <path d="M3 17l4-8 4 5 3-3 4 6" />
+              <path d="M20.6 13.4l-7.2 7.2a2 2 0 01-2.8 0l-7.2-7.2A2 2 0 013 12V5a2 2 0 012-2h7a2 2 0 011.4.6l7.2 7.2a2 2 0 010 2.8z" />
+              <circle cx="7.5" cy="7.5" r="1.5" />
             </svg>
-            <span>Casos</span>
+            <span>Precios</span>
           </Link>
           {/* aria-label for the same reason as the home link: the text span
               hides in the icon-only mobile pill. */}

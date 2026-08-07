@@ -7197,8 +7197,9 @@ input[type="range"].nxr-ms-range::-moz-range-thumb {
   position: fixed;
   top: 0;
   left: 0;
-  width: 32px;
-  height: 32px;
+  /* 24px (antes 32): "un poco más pequeño". */
+  width: 24px;
+  height: 24px;
   border-radius: 50%;
   background: #fff;
   mix-blend-mode: difference;

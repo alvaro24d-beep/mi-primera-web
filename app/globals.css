@@ -5552,9 +5552,26 @@ input[type="range"].nxr-ms-range::-moz-range-thumb {
 #nxr-intro {
   position: relative;
   z-index: 1;
-  /* (V16.31) Espaciado simétrico normal otra vez: sin fundido de salida no
-     hace falta la pista de 60vh de V16.30. */
-  padding: calc(var(--section-pad) + 24px) 0;
+  /* (V17.51) La sección vuelve a ser alta: el tramo que sobra por debajo del
+     sticky es el recorrido con el que los textos cruzan la pantalla. Sin esta
+     altura no hay scroll que "gastar" con el bloque quieto, que es justo lo
+     que hacía que en V17.50 los textos viajaran con la página. */
+  height: 190vh;
+  padding: 0;
+}
+
+/* El bloque queda clavado mientras la sección pasa: su punto de anclaje no se
+   mueve, así que el único movimiento visible es el del texto dentro de su
+   máscara. `--vh-100` (que Hero mantiene vivo) evita el salto de la barra de
+   direcciones en móvil. */
+.nxr-intro-sticky {
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  height: var(--vh-100, 100vh);
+  display: flex;
+  align-items: center;
+  overflow: hidden;
 }
 
 .nxr-intro-inner {
@@ -5598,8 +5615,8 @@ input[type="range"].nxr-ms-range::-moz-range-thumb {
    descuenta del layout, para que la sección siga midiendo lo mismo que antes
    y no empuje a Servicios hacia abajo. */
 .nxr-intro-mask {
-  padding-block: 22vh;
-  margin-block: -22vh;
+  padding-block: 36vh;
+  margin-block: -36vh;
   -webkit-mask-image: linear-gradient(
     to bottom,
     transparent 0%,
@@ -5686,11 +5703,18 @@ input[type="range"].nxr-ms-range::-moz-range-thumb {
      revés), así que la máscara gira 90°: la pista de viaje y el degradado
      pasan al eje X. El desbordamiento lateral que provoca el margen negativo
      lo recorta el `overflow-x: hidden` del body. */
+  /* El párrafo alineado a la derecha SOLO en móvil (petición V17.51): cierra
+     la simetría con el titular, que queda a la izquierda, y refuerza que cada
+     uno entra por un lado distinto. */
+  .nxr-intro-textblock {
+    text-align: right;
+  }
+
   .nxr-intro-mask {
     padding-block: 0;
     margin-block: 0;
-    padding-inline: 30vw;
-    margin-inline: -30vw;
+    padding-inline: 75vw;
+    margin-inline: -75vw;
     -webkit-mask-image: linear-gradient(
       to right,
       transparent 0%,

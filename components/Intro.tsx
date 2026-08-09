@@ -9,59 +9,33 @@ import { useReducedMotion } from "@/hooks/useReducedMotion";
 
 gsap.registerPlugin(ScrollTrigger);
 
-// (V17.50) La sección vuelve a tener movimiento scrubbed, esta vez pedido al
-// detalle: el titular ENTRA POR ARRIBA emergiendo de un difuminado (primero se
-// ve su parte inferior y luego la superior), se RALENTIZA a media pantalla y
-// sigue saliendo por abajo con el mismo difuminado y el mismo margen que dejó
-// arriba. El párrafo hace lo mismo en espejo (entra por abajo, sale por
-// arriba). En móvil el eje es horizontal: titular de derecha a izquierda y
-// párrafo al revés.
+// (V17.51) El bloque queda CLAVADO en pantalla (sticky) mientras los dos
+// textos lo cruzan. Esto es lo que corrige el intento de V17.50: allí el
+// transform era un desplazamiento pequeño SUMADO al viaje natural de la
+// página, así que los dos textos seguían subiendo con el scroll (y el párrafo,
+// yendo en sentido contrario, se leía "un poco más rápido") en vez de entrar
+// por un lado y salir por el otro. Con el sticky, el punto de anclaje no se
+// mueve y el ÚNICO movimiento es el del propio texto dentro de su máscara.
 //
-// Ojo al historial: en V16.31 la sección se rehízo "en plano y simple" tras
-// varias iteraciones con sticky/amortiguación que quedaron mal. Lo que se
-// reintroduce aquí NO es aquello: no hay pin, ni sticky, ni el plano de
-// perspectiva que se retiró en V16.91 (los textos siguen PLANOS). Es solo un
-// desplazamiento sobre un eje + una máscara de difuminado en el contenedor.
+//   Escritorio → eje VERTICAL. El titular entra por arriba y sale por abajo;
+//                el párrafo entra por abajo y sale por arriba. No desde el
+//                borde de la pantalla: desde una distancia media (TRAVEL_VH).
+//   Móvil      → eje HORIZONTAL puro. La ALTURA NO CAMBIA en ningún momento:
+//                cada texto entra por un lado y se va por el opuesto (titular
+//                de derecha a izquierda, párrafo al revés), y el párrafo se
+//                alinea a la derecha (solo en móvil).
 //
-// Cómo se consigue el "difuminado": la máscara (mask-image con un degradado)
-// vive en el WRAPPER y es estática; lo que se mueve es el texto por debajo.
-// Al cruzar la banda transparente del borde, el texto se desvanece por partes
-// — de ahí que primero asome su parte de abajo.
+// El difuminado lo pone una máscara ESTÁTICA en el wrapper (mask-image con
+// degradado): el texto se disuelve al acercarse a los extremos de su pista.
 
-// Recorrido a cada lado del centro, en fracción del viewport. Sale de la nada
-// (borde de la máscara) y vuelve a la nada por el lado opuesto.
-const TRAVEL_VH = 0.17;
-const TRAVEL_VW = 0.4;
-// Cuánto se frena en el centro. La curva es p + k·sin(2πp)/2π, cuya derivada
-// es 1 + k·cos(2πp): en p=0.5 vale 1-k, así que con 0.72 el texto cruza el
-// centro al 28% de su velocidad — el "se ralentiza a media pantalla" pedido —
-// y recupera hacia los extremos. Con k=1 se pararía del todo y se sentiría
-// enganchado.
+// Distancia media, no el borde: la máscara ya lo ha disuelto del todo antes de
+// llegar al final de la pista.
+const TRAVEL_VH = 0.3;
+const TRAVEL_VW = 0.62;
+// Frenada en el centro. La curva es p + k·sin(2πp)/2π y su derivada
+// 1 + k·cos(2πp), que en p=0.5 vale 1-k: con 0.72 cruza el medio al 28% de su
+// velocidad y recupera hacia los extremos.
 const SLOW_K = 0.72;
-
-const HEADLINE = (
-  <>
-    Hacemos que
-    <br />
-    la tecnología
-    <br />
-    <span className="nxr-gradient-text-lime">trabaje por ti.</span>
-  </>
-);
-
-const PARRAFOS = (
-  <>
-    <p className="nxr-intro-text">
-      Somos una agencia de <strong>software e inteligencia artificial</strong> especializada en construir sistemas
-      digitales que automatizan tareas, captan clientes y hacen crecer negocios — sin que tengas que entender de
-      tecnología.
-    </p>
-    <p className="nxr-intro-text">
-      Trabajamos con <strong>empresas de cualquier sector</strong> que saben que pueden ir más rápido pero no tienen el
-      equipo técnico para hacerlo. Nosotros somos ese equipo.
-    </p>
-  </>
-);
 
 export default function Intro() {
   const sectionRef = useRef<HTMLElement>(null);
@@ -71,9 +45,6 @@ export default function Intro() {
 
   useGSAP(
     () => {
-      // Misma red de seguridad que useTitleReveal: en el primer render del
-      // cliente `reducedMotion` aún puede leer false para un usuario que sí la
-      // prefiere (getServerSnapshot devuelve false por diseño).
       const prefersReduced = reducedMotion || window.matchMedia("(prefers-reduced-motion: reduce)").matches;
       const section = sectionRef.current;
       const title = titleRef.current;
@@ -102,42 +73,34 @@ export default function Intro() {
 
       const st = ScrollTrigger.create({
         trigger: section,
-        // Todo el cruce de la sección por la pantalla: entra por un borde y
-        // sale por el contrario.
-        start: "top bottom",
-        end: "bottom top",
-        // El scrub temporal es lo que da el tacto amortiguado; la frenada del
-        // centro la pone la curva de abajo, no esto.
-        scrub: 0.7,
+        // Exactamente el tramo en que el sticky está pegado: desde que su
+        // techo toca el del viewport hasta que la sección se acaba.
+        start: "top top",
+        end: "bottom bottom",
+        scrub: 0.6,
         onUpdate: (self) => {
           const p = self.progress;
-          // Reparametrización que frena en el centro (ver SLOW_K).
           const eased = p + (SLOW_K * Math.sin(2 * Math.PI * p)) / (2 * Math.PI);
-          // -1 en el borde de entrada, 0 en el centro, +1 en el de salida.
+          // −1 en el lado de entrada, 0 centrado y legible, +1 en el de salida.
           const d = (eased - 0.5) * 2;
           if (horizontal) {
             const travel = window.innerWidth * TRAVEL_VW;
-            // Titular: entra por la DERECHA (+) y sale por la izquierda (−).
+            // y SIEMPRE 0: "la altura a la que salen los textos no debe
+            // cambiar". Titular de derecha a izquierda; párrafo al revés.
             gsap.set(title, { x: -d * travel, y: 0 });
-            // Párrafo en espejo.
             gsap.set(texts, { x: d * travel, y: 0 });
           } else {
             const travel = window.innerHeight * TRAVEL_VH;
-            // Titular: arranca por ENCIMA de su sitio y baja cruzando la banda
-            // nítida, así lo primero que se lee es su parte inferior.
+            // Titular arriba → abajo; párrafo abajo → arriba. x fija.
             gsap.set(title, { y: d * travel, x: 0 });
-            // Párrafo: entra desde abajo y se va por arriba.
             gsap.set(texts, { y: -d * travel, x: 0 });
           }
         },
       });
 
-      // El scramble sigue siendo la firma de los párrafos del sitio; se dispara
-      // una vez al entrar y no compite con el desplazamiento (uno cambia los
-      // glifos, el otro la posición).
       const stScramble = ScrollTrigger.create({
-        trigger: texts,
-        start: "top 90%",
+        trigger: section,
+        start: "top 80%",
         onEnter: scramble,
         onLeaveBack: cancelScramble,
       });
@@ -154,21 +117,38 @@ export default function Intro() {
 
   return (
     <section id="nxr-intro" ref={sectionRef}>
-      <div className="nxr-intro-inner">
-        <div className="nxr-intro-left">
-          {/* El wrapper es quien lleva la máscara de difuminado; el h2 se mueve
-              dentro de ella. */}
-          <div className="nxr-intro-mask">
-            <h2 className="nxr-intro-headline" ref={titleRef}>
-              {HEADLINE}
-            </h2>
+      {/* El sticky es lo que fija el punto de anclaje: sin él, el texto viaja
+          con la página y "entrar por un lado y salir por el otro" es
+          imposible de leer. */}
+      <div className="nxr-intro-sticky">
+        <div className="nxr-intro-inner">
+          <div className="nxr-intro-left">
+            <div className="nxr-intro-mask">
+              <h2 className="nxr-intro-headline" ref={titleRef}>
+                Hacemos que
+                <br />
+                la tecnología
+                <br />
+                <span className="nxr-gradient-text-lime">trabaje por ti.</span>
+              </h2>
+            </div>
           </div>
-        </div>
 
-        <div className="nxr-intro-cards">
-          <div className="nxr-intro-mask nxr-intro-mask-texts">
-            <div className="nxr-intro-texts" ref={textsRef}>
-              <div className="nxr-intro-textblock">{PARRAFOS}</div>
+          <div className="nxr-intro-cards">
+            <div className="nxr-intro-mask">
+              <div className="nxr-intro-texts" ref={textsRef}>
+                <div className="nxr-intro-textblock">
+                  <p className="nxr-intro-text">
+                    Somos una agencia de <strong>software e inteligencia artificial</strong> especializada en construir
+                    sistemas digitales que automatizan tareas, captan clientes y hacen crecer negocios — sin que tengas
+                    que entender de tecnología.
+                  </p>
+                  <p className="nxr-intro-text">
+                    Trabajamos con <strong>empresas de cualquier sector</strong> que saben que pueden ir más rápido pero
+                    no tienen el equipo técnico para hacerlo. Nosotros somos ese equipo.
+                  </p>
+                </div>
+              </div>
             </div>
           </div>
         </div>

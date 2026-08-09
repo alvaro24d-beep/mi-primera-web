@@ -34,13 +34,7 @@ gsap.registerPlugin(ScrollTrigger);
 // viaje. A esta distancia el texto ya es invisible.
 const TRAVEL_Y = 72; // px, escritorio
 const TRAVEL_X = 96; // px, móvil
-const MAX_BLUR = 9; // px en los extremos
-// Tramos del recorrido: entrada, meseta legible, salida.
-const ENTER_END = 0.3;
-const EXIT_START = 0.7;
-
-// Suaviza los extremos para que ni la entrada ni la salida arranquen de golpe.
-const easeInOut = (t: number) => (t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2);
+const MAX_BLUR = 9; // px, fuera de pantalla
 
 export default function Intro() {
   const sectionRef = useRef<HTMLElement>(null);
@@ -76,32 +70,55 @@ export default function Intro() {
       };
       window.addEventListener("resize", onResize, { passive: true });
 
+      // Offset de partida/salida de cada texto, según eje y sentido.
+      const off = (el: HTMLElement, k: number) =>
+        horizontal
+          ? { x: (el === title ? -1 : 1) * k * TRAVEL_X, y: 0 }
+          : { x: 0, y: (el === title ? 1 : -1) * k * TRAVEL_Y };
+
+      const oculto = (el: HTMLElement, k: number) => ({
+        ...off(el, k),
+        opacity: 0,
+        filter: `blur(${MAX_BLUR}px)`,
+      });
+      const visible = (el: HTMLElement) => ({
+        ...off(el, 0),
+        opacity: 1,
+        filter: "blur(0px)",
+        duration: 0.85,
+        ease: "power2.out",
+        overwrite: "auto" as const,
+      });
+
+      gsap.set(title, oculto(title, -1));
+      gsap.set(texts, oculto(texts, -1));
+
+      // POR TIEMPO, no atado al scroll (V17.53). Con scrub, mientras el texto
+      // se desplazaba sus ~70px la página lo subía ~500: el movimiento del
+      // scroll DOMINABA y por eso los dos seguían "apareciendo por abajo".
+      // Disparada por tiempo, la animación dura 0.85s y en ese rato la página
+      // apenas se mueve, así que lo único que se ve es el texto entrando desde
+      // su lado. Se re-arma al salir para que funcione en los dos sentidos.
       const st = ScrollTrigger.create({
         trigger: section,
-        // Ceñido a cuando la sección está de verdad en pantalla: la entrada
-        // ocurre al asomar y la salida al marcharse, sin un scrub eterno.
-        start: "top 85%",
-        end: "bottom 15%",
-        scrub: 0.5,
-        onUpdate: (self) => {
-          const p = self.progress;
-          // k: −1 entrando · 0 quieto y legible · +1 saliendo.
-          let k: number;
-          if (p < ENTER_END) k = -(1 - easeInOut(p / ENTER_END));
-          else if (p > EXIT_START) k = easeInOut((p - EXIT_START) / (1 - EXIT_START));
-          else k = 0;
-
-          const away = Math.abs(k);
-          const vis = { opacity: 1 - away, filter: `blur(${(away * MAX_BLUR).toFixed(2)}px)` };
-
-          if (horizontal) {
-            // y a 0 SIEMPRE: la altura de cada texto no se mueve nunca.
-            gsap.set(title, { x: -k * TRAVEL_X, y: 0, ...vis });
-            gsap.set(texts, { x: k * TRAVEL_X, y: 0, ...vis });
-          } else {
-            gsap.set(title, { y: k * TRAVEL_Y, x: 0, ...vis });
-            gsap.set(texts, { y: -k * TRAVEL_Y, x: 0, ...vis });
-          }
+        start: "top 78%",
+        end: "bottom 22%",
+        onEnter: () => {
+          gsap.to(title, visible(title));
+          gsap.to(texts, visible(texts));
+        },
+        onEnterBack: () => {
+          gsap.to(title, visible(title));
+          gsap.to(texts, visible(texts));
+        },
+        // Sale hacia el lado CONTRARIO al de entrada.
+        onLeave: () => {
+          gsap.to(title, { ...oculto(title, 1), duration: 0.6, ease: "power2.in", overwrite: "auto" });
+          gsap.to(texts, { ...oculto(texts, 1), duration: 0.6, ease: "power2.in", overwrite: "auto" });
+        },
+        onLeaveBack: () => {
+          gsap.to(title, { ...oculto(title, -1), duration: 0.6, ease: "power2.in", overwrite: "auto" });
+          gsap.to(texts, { ...oculto(texts, -1), duration: 0.6, ease: "power2.in", overwrite: "auto" });
         },
       });
 

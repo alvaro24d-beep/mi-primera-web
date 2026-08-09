@@ -4,13 +4,14 @@ import { useEffect, useRef } from "react";
 import gsap from "gsap";
 import { useGSAP } from "@gsap/react";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
+import { SplitText } from "gsap/SplitText";
 import { useTitleReveal } from "@/hooks/useTitleReveal";
 import { useReducedMotion } from "@/hooks/useReducedMotion";
 import { scrambleElement } from "@/hooks/useTextScramble";
 import Link from "next/link";
 import { useServiciosCardsRegistry } from "@/store/useServiciosCardsRegistry";
 
-gsap.registerPlugin(ScrollTrigger);
+gsap.registerPlugin(ScrollTrigger, SplitText);
 
 // V16.27 — Las 5 demos renovadas como PANTALLAS: cada una llena la card
 // entera (position absolute inset 0, layouts fluidos en % — cero tamaños
@@ -632,6 +633,12 @@ export default function Servicios() {
       const cards = q(".nxr-srv-card") as HTMLElement[];
       const captions = q(".nxr-servicios-captions .nxr-srv-caption") as HTMLElement[];
 
+      // Troceado de la frase de sección (ver más abajo): se declara aquí
+      // porque lo consumen DOS sitios — el scrub de aproximación y el prólogo
+      // del pin, que se reconstruye en cada refresh y no debe re-trocear.
+      let headSplit: SplitText | null = null;
+      let headChars: HTMLElement[] = [];
+
       // ---- Section-title moment, split across TWO drivers on one
       // viewport-FIXED element (see .nxr-servicios-head CSS):
       //  1) APPROACH scrub (below): fades the phrase in while the sticky is
@@ -646,7 +653,18 @@ export default function Servicios() {
       // opacity before its fade-out — whatever the approach wrote (1) just
       // persists.
       const headTitle = q(".nxr-servicios-head .nxr-section-h2")[0] as HTMLElement | undefined;
-      if (headTitle) {
+      // Caracteres de la frase, troceados UNA vez y compartidos por la entrada
+      // (aquí) y la salida (en buildTl): el desenfoque ya no se aplica al
+      // bloque entero de golpe, sino carácter a carácter con retardo — así el
+      // foco BARRE la frase de izquierda a derecha conforme se scrollea, y al
+      // irse vuelve a difuminarse empezando por el principio.
+      // El acento .nxr-gradient-text-salmon se puede trocear sin miedo: es un
+      // `color` plano, no un background-clip como el lime (que sí se rompería).
+      if (headTitle && !headSplit) {
+        headSplit = SplitText.create(headTitle, { type: "words, chars" });
+        headChars = headSplit.chars as HTMLElement[];
+      }
+      if (headTitle && headChars.length) {
         gsap
           .timeline({
             scrollTrigger: {
@@ -660,9 +678,18 @@ export default function Servicios() {
             },
           })
           .fromTo(
-            headTitle,
+            headChars,
             { opacity: 0, filter: "blur(18px)" },
-            { opacity: 1, filter: "blur(0px)", ease: "none" }
+            {
+              opacity: 1,
+              filter: "blur(0px)",
+              ease: "none",
+              // `amount` reparte el retardo TOTAL entre los caracteres, así
+              // que el barrido dura lo mismo tenga la frase las letras que
+              // tenga. 0.75 de 1 deja que el último arranque cuando el primero
+              // ya casi ha resuelto: se lee como una ola, no como un goteo.
+              stagger: { amount: 0.75, from: "start" },
+            }
           );
       }
 
@@ -1313,9 +1340,18 @@ export default function Servicios() {
           // constante que las guardas de trySnap/touchend (umbrales de
           // momentos solapados comparten constante) y el clamp del ticker
           // (1.3·snapPro) cubre el final del fade.
+          // Salida con el MISMO barrido que la entrada: el desenfoque empieza
+          // por el principio de la frase y avanza hacia la derecha, en vez de
+          // apagarse toda a la vez.
           t.to(
-            headTitle,
-            { opacity: 0, filter: "blur(18px)", ease: "none", duration: pro * 0.55 },
+            headChars,
+            {
+              opacity: 0,
+              filter: "blur(18px)",
+              ease: "none",
+              duration: pro * 0.55,
+              stagger: { amount: pro * 0.32, from: "start" },
+            },
             pro * 0.65
           );
         }
@@ -1653,7 +1689,12 @@ export default function Servicios() {
         });
       });
 
-      return () => cleanups.forEach((fn) => fn());
+      return () => {
+        // El SplitText hay que revertirlo a mano: useGSAP limpia sus
+        // animaciones, no el DOM que este plugin reescribe.
+        headSplit?.revert();
+        cleanups.forEach((fn) => fn());
+      };
     },
     { scope: sectionRef, dependencies: [reducedMotion] }
   );

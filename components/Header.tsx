@@ -82,6 +82,41 @@ const SERVICIOS = [
   },
 ];
 
+// Enlaces que en ESCRITORIO viven en la fila del nav flotante pero que en
+// MÓVIL no caben ahí (la fila se queda en Inicio · Menú · Hablemos). En vez de
+// quedar inaccesibles, bajan al desplegable junto a los servicios — por eso el
+// botón pasa a llamarse "Menú" en móvil: ya no abre solo servicios, abre la
+// navegación entera. Se renderizan siempre y es el CSS quien los oculta en
+// escritorio, donde el desplegable debe seguir siendo solo de servicios.
+const EXTRA_MOVIL = [
+  {
+    href: "/nosotros",
+    title: "Nosotros",
+    desc: "El equipo detrás",
+    bg: "rgba(255,157,125,.12)",
+    color: "var(--c-salmon)",
+    icon: (
+      <svg viewBox="0 0 24 24">
+        <circle cx="12" cy="8" r="4" />
+        <path d="M4 20c0-4 3.6-7 8-7s8 3 8 7" />
+      </svg>
+    ),
+  },
+  {
+    href: "/precios",
+    title: "Precios",
+    desc: "Cómo presupuestamos",
+    bg: "rgba(168,240,74,.12)",
+    color: "var(--c-lime)",
+    icon: (
+      <svg viewBox="0 0 24 24">
+        <path d="M20.6 13.4l-7.2 7.2a2 2 0 01-2.8 0l-7.2-7.2A2 2 0 013 12V5a2 2 0 012-2h7a2 2 0 011.4.6l7.2 7.2a2 2 0 010 2.8z" />
+        <circle cx="7.5" cy="7.5" r="1.5" />
+      </svg>
+    ),
+  },
+];
+
 export default function Header() {
   const pathname = usePathname();
   const [hamburgerOpen, setHamburgerOpen] = useState(false);
@@ -333,7 +368,12 @@ export default function Header() {
               <rect x="3" y="13" width="8" height="8" rx="1.5" />
               <rect x="13" y="13" width="8" height="8" rx="1.5" />
             </svg>
-            <span>Servicios</span>
+            {/* En móvil el desplegable ya no es solo de servicios (baja ahí la
+                navegación que no cabe en la fila), así que el botón se llama
+                "Menú". Dos etiquetas alternadas por CSS en vez de por JS: sin
+                estado, sin re-render y sin riesgo de desajuste de hidratación. */}
+            <span className="nxr-srv-btn-txt">Servicios</span>
+            <span className="nxr-srv-btn-txt-movil">Menú</span>
             <svg className={`nxr-srv-chevron${srvOpen ? " nxr-open" : ""}`} viewBox="0 0 24 24">
               <path d="M6 9l6 6 6-6" />
             </svg>
@@ -370,6 +410,22 @@ export default function Header() {
         <div id="nxr-nav-services" className={srvOpen ? "nxr-open" : ""}>
           {SERVICIOS.map((s) => (
             <Link key={s.href} href={s.href} className="nxr-nav-srv-item" onClick={closeDD}>
+              <div className="nxr-nav-srv-icon" style={{ background: s.bg, color: s.color }}>
+                {s.icon}
+              </div>
+              <div>
+                <div className="nxr-nav-srv-title">{s.title}</div>
+                <div className="nxr-nav-srv-desc">{s.desc}</div>
+              </div>
+            </Link>
+          ))}
+          {EXTRA_MOVIL.map((s) => (
+            <Link
+              key={s.href}
+              href={s.href}
+              className="nxr-nav-srv-item nxr-nav-srv-extra"
+              onClick={closeDD}
+            >
               <div className="nxr-nav-srv-icon" style={{ background: s.bg, color: s.color }}>
                 {s.icon}
               </div>

@@ -939,6 +939,17 @@ p.nxr-hero-mastery-line {
   padding: 4px 2px 2px;
 }
 
+/* Escritorio: el botón dice "Servicios" y el desplegable SOLO lista servicios
+   — Nosotros y Precios tienen su propio sitio en la fila. En móvil se invierte
+   (ver el media query de 768px): la fila no da para tantos botones, así que
+   esos dos enlaces bajan aquí y el botón pasa a llamarse "Menú". */
+.nxr-srv-btn-txt-movil {
+  display: none;
+}
+.nxr-nav-srv-extra {
+  display: none;
+}
+
 .nxr-nav-srv-item {
   display: flex;
   align-items: center;
@@ -1167,14 +1178,35 @@ p.nxr-hero-mastery-line {
     flex: 0;
     justify-content: center;
   }
-  #nxr-nav #nxr-srv-btn span {
+  /* "Servicios" -> "Menú": aquí el botón abre la navegación entera. */
+  #nxr-nav #nxr-srv-btn .nxr-srv-btn-txt {
+    display: none;
+  }
+  #nxr-nav #nxr-srv-btn .nxr-srv-btn-txt-movil {
     display: inline;
+  }
+
+  /* Nosotros y Precios, que en la fila están ocultos por falta de sitio,
+     aparecen dentro del desplegable con la misma pinta que los servicios. */
+  #nxr-nav-services .nxr-nav-srv-extra {
+    display: flex;
+  }
+  /* 7 items en una sola columna no caben en los 500px de escritorio: se
+     quedaban cortados por el max-height que anima la apertura. */
+  #nxr-nav-services.nxr-open {
+    max-height: 620px;
   }
 
   .nxr-nav-cta {
     padding: 13px 16px;
     font-size: 14px;
     flex-shrink: 0;
+    /* Anula el `margin-left: auto` de escritorio (V17.42). Aquí la fila usa
+       `justify-content: space-between` y ese auto se comía TODO el espacio
+       libre: Inicio y Menú quedaban pegados a la izquierda y el CTA solo a la
+       derecha — el "botón de servicios descentrado". En móvil el reparto lo
+       hace el space-between, que ya deja el CTA pegado al borde. */
+    margin-left: 0;
   }
   .nxr-nav-cta span {
     display: none;
@@ -1320,7 +1352,29 @@ p.nxr-hero-mastery-line {
   gap: 12px;
   flex-wrap: wrap;
   justify-content: center;
-  margin-top: 24px;
+  /* 24px -> 8px (V17.45, "súbelo un poco"): el CTA se acerca al párrafo y deja
+     sitio bajo él para el indicador de deslizar. */
+  margin-top: 8px;
+}
+
+/* Indicador de deslizar bajo el CTA del hero (V17.45). Reutiliza
+   .nxr-scrollcue-wheel / .nxr-scrollcue-txt (definidos con el resto del
+   scrollcue más abajo), pero con su propio contenedor: el .nxr-scrollcue de
+   las páginas de servicio es `position: absolute` contra una esquina, y aquí
+   el indicador tiene que ir en flujo, centrado y separado del botón. */
+.nxr-hero-cue {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  margin-top: 44px;
+}
+@media (max-width: 768px), (max-height: 760px) {
+  /* Pantallas bajas: el hero ya va justo de alto (ver --vh-100), así que el
+     indicador se acerca al CTA en vez de empujar el bloque fuera de la caja. */
+  .nxr-hero-cue {
+    margin-top: 26px;
+  }
 }
 
 /* Tipografía de títulos en el CTA ("en tipografía de los títulos con
@@ -1440,7 +1494,11 @@ p.nxr-hero-mastery-line {
        left the button TOO low ("está muy bajo, súbelo un poco") — -36px
        brings it back into the comfortable thumb band. The glass mesh
        follows the live rect per frame. */
-    margin-top: 116px;
+    /* 116 -> 72 (V17.45, misma petición que aquella: "súbelo un poco"). Los
+       44px liberados son además el sitio que necesita el nuevo indicador de
+       deslizar que va debajo (26px de margen + ~45px de alto), así que el
+       bloque entero no baja respecto a como estaba. */
+    margin-top: 72px;
     padding: 0 16px;
   }
 
@@ -1840,7 +1898,8 @@ p.nxr-hero-mastery-line {
 
 .nxr-srv-desc {
   font-size: 15px;
-  color: var(--c-salmon);
+  /* Blanco (V17.45): el salmón de marca se leía apagado sobre el muro. */
+  color: var(--c-white);
   line-height: 1.65;
   flex: 1;
 }
@@ -3768,12 +3827,15 @@ p.nxr-hero-mastery-line {
   cursor: default;
 }
 
+/* SOLO EL NÚMERO (V17.45, "quita esos fondos rojos y transparentes"): se
+   retiran el disco de cristal (background + backdrop-filter + box-shadow), el
+   aro degradado del ::after y el relleno rojo del estado activo. La caja de
+   56px se mantiene porque es la que reserva el sitio del número en la columna
+   del paso — sin ella el texto de la card saltaría hacia arriba. El estado
+   activo se sigue distinguiendo por el COLOR del propio número. */
 .nxr-paso-num {
   width: 56px;
   height: 56px;
-  border-radius: 50%;
-  background: var(--glass-bg);
-  backdrop-filter: var(--glass-blur);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -3781,25 +3843,9 @@ p.nxr-hero-mastery-line {
   font-weight: 700;
   color: rgba(255, 255, 255, 0.3);
   margin-bottom: 28px;
-  transition: background 0.4s, color 0.4s, transform 0.3s;
+  transition: color 0.4s, transform 0.3s;
   position: relative;
   z-index: 2;
-  box-shadow: inset 0 0 4px 1px rgba(255, 255, 255, 0.28);
-}
-
-.nxr-paso-num::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  border-radius: 50%;
-  padding: 1px;
-  background: var(--glass-border-gradient);
-  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
-  -webkit-mask-composite: xor;
-  mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
-  mask-composite: exclude;
-  pointer-events: none;
-  z-index: 1;
 }
 
 .nxr-paso-num span {
@@ -3808,7 +3854,6 @@ p.nxr-hero-mastery-line {
 }
 
 .nxr-paso.nxr-paso-active .nxr-paso-num {
-  background: var(--c-red);
   color: var(--c-white);
 }
 
@@ -5000,20 +5045,30 @@ input[type="range"].nxr-ms-range::-moz-range-thumb {
 /* ===== Zoom parallax ===== */
 #nxr-zoom-parallax {
   position: relative;
-  /* 240vh — RESTAURADO (V16.16): el recorte a 200 (V16.11) cambió la
-     sensibilidad del scroll de TODA la sección sin que Álvaro lo pidiera
-     ("el scroll de la sección parallax ha cambiado por completo... nunca
-     cambies algo que no te haya pedido"). 240/190 es el último estado que
-     dio por bueno. NO tocar estas alturas: la duración de la frase se
-     gestiona con su propio fade, no con la sección. */
-  height: 240vh;
+  /* 240vh -> 300vh (V17.45). OJO, esto NO contradice el aviso de V16.16 de no
+     tocar las alturas: aquel recorte a 200vh cambiaba la SENSIBILIDAD del
+     scroll de toda la sección (menos recorrido para el mismo zoom = todo más
+     rápido), y por eso se revirtió. Aquí los 60vh añadidos son una PAUSA DE
+     LECTURA al entrar, durante la cual el progress se queda congelado en 0
+     (ver el `hold` en ZoomParallax.tsx): el tramo de zoom conserva sus 140vh
+     exactos y, con ellos, su velocidad px a px. Petición explícita: "quiero
+     que haya que hacer más scroll por la parte de la frase para que dé tiempo
+     a leerla con un scroll normal".
+     Sigue vigente lo demás: no recortar, y el reparto 240/190 de zoom real
+     (ahora 300/235 con la pausa) es el que se dio por bueno. */
+  height: 300vh;
   z-index: 1;
 }
 
 @media (max-width: 768px) {
   #nxr-zoom-parallax {
-    /* 160vh (V16.11): tercer recorte, en proporción con desktop. */
-    height: 190vh;
+    /* 190vh -> 235vh (V17.45): los 45vh extra son la PAUSA DE LECTURA de la
+       frase, con el progress congelado (ver el `hold` en ZoomParallax.tsx).
+       El zoom conserva sus 90vh de recorrido y su velocidad; solo cambia
+       dónde TERMINA la sección, no dónde empieza, así que el handoff con el
+       reel y el margin-top de aquí abajo (ambos atados a rect.top) siguen
+       cayendo exactamente igual. */
+    height: 235vh;
     /* -150px (V16.23, tras dos intentos con -750): el margen agresivo era
        px FIJOS contra una cola/transición del reel proporcional al vh —
        en el teléfono real (vh menor que el harness) se comía la

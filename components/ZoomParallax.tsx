@@ -340,7 +340,25 @@ export default function ZoomParallax() {
         }
       }
 
-      const raw = Math.max(0, Math.min(1, scrolled / total));
+      // ===== PAUSA DE LECTURA al entrar (V17.45) =====
+      // Petición: "quiero que haya que hacer más scroll por la parte de la
+      // frase para que dé tiempo a leerla con un scroll normal". Los primeros
+      // `hold` píxeles de la sección NO mueven nada: el progress se queda
+      // clavado en 0, así que la frase "Los números hablan por nosotros" se
+      // sostiene entera y a tamaño completo mientras el usuario la lee.
+      //
+      // La clave de por qué esto es seguro donde el recorte de V16.11 no lo
+      // fue: la altura extra que acompaña a este hold en globals.css (240→300
+      // desktop, 190→235 móvil) es EXACTAMENTE la del hold, así que el
+      // denominador de abajo — el recorrido real del zoom — sigue valiendo
+      // 1.4·vh en desktop y 0.9·vh en móvil, los mismos de siempre. El zoom no
+      // se acelera ni se ralentiza: solo empieza más tarde.
+      //
+      // Antes de esto la frase se rompía habiendo recorrido 17,7vh en móvil y
+      // encogía al 80% a los 48vh en desktop, contra los ~60vh / ~80-90vh que
+      // pide la regla de legibilidad de la casa.
+      const hold = vh * (isMobile ? 0.45 : 0.6);
+      const raw = Math.max(0, Math.min(1, (scrolled - hold) / Math.max(1, total - hold)));
       // (La rampa de entrada móvil de V16.4 se eliminó en V16.6: su causa —
       // el remonte -160px bajo el reel — ya no existe (margin-top: 0 en
       // globals.css), así que la sección aparece COMO EN ORDENADOR.)
@@ -406,8 +424,18 @@ export default function ZoomParallax() {
         // horizontal slices (clip-path) and RGB-splits its text via the
         // --zpg* custom properties consumed in globals.css.
         if (i === 0 && isMobile) {
-          // Banda original 0.55-0.9 sobre el progress compartido (V16.16).
-          const t = Math.min(1, Math.max(0, (p - 0.55) / 0.35));
+          // Banda de disolución sobre el progress compartido. 0.55 -> 0.80
+          // (V17.45, "se pasa sin querer y no da tiempo a leerla"): la frase
+          // empezaba a romperse habiendo recorrido solo el 19,7% de la sección
+          // — 17,7vh de lectura a brillo pleno, cuando la regla de la casa pide
+          // ~60vh en móvil para una frase-momento. Retrasando el arranque de la
+          // banda sube a ~31,9vh (+80%) SIN tocar la altura de la sección ni la
+          // curva de progress: es justo el mecanismo que pide el comentario de
+          // #nxr-zoom-parallax en globals.css ("la duración de la frase se
+          // gestiona con su propio fade, no con la sección"). La disolución
+          // sigue terminando en progress 1, así que ocupa menos progress pero
+          // MÁS scroll real, porque la curva ya va aplanada en ese tramo.
+          const t = Math.min(1, Math.max(0, (p - 0.8) / 0.2));
           const glitching = !rmMql.matches && t > 0 && t < 1;
           if (!glitching) {
             // Reduced motion keeps the plain smoothstep fade; outside the

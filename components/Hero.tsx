@@ -45,6 +45,19 @@ function HeroCopy() {
           {ARROW}
         </Link>
       </div>
+
+      {/* Indicador de deslizar, reutilizando las piezas del .nxr-scrollcue de
+          /desarrollo-web y /agentes-ia (misma rueda y misma tipografía) pero
+          en FLUJO bajo el CTA en vez de anclado a una esquina. Vive dentro de
+          HeroCopy a propósito: así lo envuelve .nxr-hero-fade y se desvanece
+          con el resto del hero en la fase 1 del scrub, sin necesitar su propia
+          animación. */}
+      <div className="nxr-hero-cue nxr-reveal nxr-reveal-delay-5" aria-hidden="true">
+        <span className="nxr-scrollcue-wheel">
+          <i />
+        </span>
+        <span className="nxr-scrollcue-txt">Desliza</span>
+      </div>
     </div>
   );
 }

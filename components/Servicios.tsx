@@ -689,11 +689,15 @@ export default function Servicios() {
               opacity: 1,
               filter: "blur(0px)",
               ease: "none",
-              // `amount` reparte el retardo TOTAL entre los caracteres, así
-              // que el barrido dura lo mismo tenga la frase las letras que
-              // tenga. 0.75 de 1 deja que el último arranque cuando el primero
-              // ya casi ha resuelto: se lee como una ola, no como un goteo.
-              stagger: { amount: 0.75, from: "start" },
+              // Lo que hace el barrido PROGRESIVO no es la duración total sino
+              // la proporción entre el retardo repartido (`amount`) y lo que
+              // tarda cada carácter (`duration`). Antes 0.75 sobre 1: el
+              // escalonado era solo el 43% de la timeline y el conjunto se
+              // resolvía casi de golpe. Ahora 2.4 sobre 0.5 → el 83%, así que
+              // la ola recorre la frase durante casi todo el scroll disponible
+              // en vez de concentrarse al principio. (V17.57)
+              duration: 0.5,
+              stagger: { amount: 2.4, from: "start" },
             }
           );
       }
@@ -1354,8 +1358,13 @@ export default function Servicios() {
               opacity: 0,
               filter: "blur(18px)",
               ease: "none",
-              duration: pro * 0.55,
-              stagger: { amount: pro * 0.32, from: "start" },
+              // Misma lógica que la entrada: el escalonado pasa a llevarse el
+              // grueso del tramo (0.14 de duración por carácter frente a 0.62
+              // repartidos) para que la salida también se lea progresiva y no
+              // como un apagón. La suma sigue cabiendo en el prólogo, así que
+              // el handoff con la primera card no se mueve.
+              duration: pro * 0.14,
+              stagger: { amount: pro * 0.62, from: "start" },
             },
             pro * 0.65
           );

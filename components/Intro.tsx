@@ -94,11 +94,22 @@ export default function Intro() {
       // viewport) y onSplit vuelve a capturarlas.
       let titleLines: HTMLElement[] = [];
       let textLines: HTMLElement[] = [];
+      // El TITULAR va letra a letra (V17.57). Es corto (~26 unidades), así que
+      // el coste de un blur por trozo es asumible; el párrafo se queda por
+      // líneas porque ahí serían ~90.
+      // El acento .nxr-gradient-text-lime va en `ignore` y se reinyecta ENTERO:
+      // pinta con background-clip: text, y trocearlo en chars lo dejaría
+      // transparente (mismo motivo documentado en useTitleReveal). Se anima
+      // como una unidad, que además es justo el final de la frase.
       const titleSplit = SplitText.create(title, {
-        type: "lines",
+        type: "words, chars",
+        ignore: ".nxr-gradient-text-lime",
         autoSplit: true,
         onSplit: (self) => {
-          titleLines = self.lines as HTMLElement[];
+          const acentos = Array.from(title.querySelectorAll<HTMLElement>(".nxr-gradient-text-lime"));
+          titleLines = [...(self.chars as HTMLElement[]), ...acentos].sort((a, b) =>
+            a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING ? -1 : 1
+          );
         },
       });
       const textsSplit = SplitText.create(texts.querySelectorAll<HTMLElement>(".nxr-intro-text"), {

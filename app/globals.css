@@ -5588,13 +5588,39 @@ input[type="range"].nxr-ms-range::-moz-range-thumb {
   color: var(--c-white);
 }
 
+/* ===== Máscara de difuminado de la Intro (V17.50) =====
+   El wrapper NO se mueve: lleva un degradado en `mask-image` que deja el
+   centro nítido y disuelve los dos extremos. Lo que viaja por debajo es el
+   texto (transform scrubbed en Intro.tsx), así que al cruzar la banda
+   transparente se desvanece POR PARTES — por eso del titular, que baja desde
+   arriba, se lee primero su borde inferior.
+   El padding abre la pista por la que viaja el texto y el margen negativo la
+   descuenta del layout, para que la sección siga midiendo lo mismo que antes
+   y no empuje a Servicios hacia abajo. */
+.nxr-intro-mask {
+  padding-block: 22vh;
+  margin-block: -22vh;
+  -webkit-mask-image: linear-gradient(
+    to bottom,
+    transparent 0%,
+    #000 30%,
+    #000 70%,
+    transparent 100%
+  );
+  mask-image: linear-gradient(to bottom, transparent 0%, #000 30%, #000 70%, transparent 100%);
+}
+
 /* Hidden until Intro.tsx's layout effect sets the initial scroll-sequence
-   state (opacity/y) and flips this back to visible — otherwise it'd flash
-   fully visible for a frame on first paint. */
+   state and flips this back to visible — otherwise it'd flash fully visible
+   for a frame on first paint. */
 .nxr-intro-texts {
   display: flex;
   flex-direction: column;
   gap: 20px;
+  visibility: hidden;
+}
+/* Mismo motivo para el titular, que ahora también arranca desplazado. */
+.nxr-intro-headline {
   visibility: hidden;
 }
 
@@ -5654,6 +5680,25 @@ input[type="range"].nxr-ms-range::-moz-range-thumb {
   .nxr-intro-headline {
     /* Igual que el .nxr-section-h2 móvil (V16.28). */
     font-size: clamp(30px, 8vw, 42px);
+  }
+
+  /* En móvil el eje es HORIZONTAL (titular de derecha a izquierda, párrafo al
+     revés), así que la máscara gira 90°: la pista de viaje y el degradado
+     pasan al eje X. El desbordamiento lateral que provoca el margen negativo
+     lo recorta el `overflow-x: hidden` del body. */
+  .nxr-intro-mask {
+    padding-block: 0;
+    margin-block: 0;
+    padding-inline: 30vw;
+    margin-inline: -30vw;
+    -webkit-mask-image: linear-gradient(
+      to right,
+      transparent 0%,
+      #000 28%,
+      #000 72%,
+      transparent 100%
+    );
+    mask-image: linear-gradient(to right, transparent 0%, #000 28%, #000 72%, transparent 100%);
   }
 }
 

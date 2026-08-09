@@ -873,7 +873,12 @@ p.nxr-hero-mastery-line {
   flex-direction: column-reverse;
   align-items: stretch;
   gap: 0;
-  padding: 6px;
+  /* 6px -> 5px (V17.48, "más fina"). Este padding es el marco del pill y sale
+     DUPLICADO en la altura (arriba + abajo), así que cada píxel cuenta el
+     doble; el grueso del adelgazamiento viene del padding vertical de los
+     botones, más abajo. Sigue siendo el mismo valor por los cuatro lados, que
+     es lo que mantiene el CTA y el botón de Inicio simétricos (V17.42). */
+  padding: 5px;
   background: linear-gradient(165deg, rgba(255, 255, 255, 0.13), rgba(255, 255, 255, 0.04) 55%),
     rgba(10, 16, 24, 0.22);
   backdrop-filter: blur(18px) saturate(1.25);
@@ -1059,7 +1064,10 @@ p.nxr-hero-mastery-line {
   display: flex;
   align-items: center;
   gap: 6px;
-  padding: 9px 18px;
+  /* 9px -> 6px de padding vertical (V17.48, "más fina"): el horizontal no se
+     toca, así que la barra adelgaza sin encogerse a lo ancho ni apretar el
+     texto contra los bordes de cada pastilla. */
+  padding: 6px 18px;
   border-radius: 100px;
   font-size: 14px;
   font-weight: 500;
@@ -1114,7 +1122,9 @@ p.nxr-hero-mastery-line {
   display: flex;
   align-items: center;
   gap: 6px;
-  padding: 9px 20px;
+  /* Mismo padding vertical que .nxr-nav-link: si difieren, el CTA marca una
+     altura distinta y rompe la simetría de 5px del pill. */
+  padding: 6px 20px;
   border-radius: 100px;
   font-size: 14px;
   font-weight: 700;
@@ -1202,7 +1212,10 @@ p.nxr-hero-mastery-line {
     width: auto;
     transform: translateY(calc(-20px - env(safe-area-inset-bottom))) translateY(100px);
     border-radius: 24px;
-    padding: 8px;
+    /* 8px -> 6px (V17.48, "más fina"). En móvil se adelgaza MENOS que en
+       escritorio a propósito: aquí los botones son el objetivo de un dedo, no
+       de un cursor, y su alto acaba en ~43px — el mínimo cómodo. */
+    padding: 6px;
   }
 
   #nxr-nav.nxr-visible {
@@ -1214,7 +1227,7 @@ p.nxr-hero-mastery-line {
   }
 
   #nxr-nav a[href="/"] {
-    padding: 13px 20px;
+    padding: 11px 20px;
     font-size: 14px;
     flex-shrink: 0;
     justify-content: center;
@@ -1224,7 +1237,7 @@ p.nxr-hero-mastery-line {
   }
 
   #nxr-nav #nxr-srv-btn {
-    padding: 13px 20px;
+    padding: 11px 20px;
     font-size: 14px;
     flex: 0;
     justify-content: center;
@@ -1253,7 +1266,7 @@ p.nxr-hero-mastery-line {
   }
 
   .nxr-nav-cta {
-    padding: 13px 16px;
+    padding: 11px 16px;
     font-size: 14px;
     flex-shrink: 0;
     /* Anula el `margin-left: auto` de escritorio (V17.42). Aquí la fila usa
@@ -1268,7 +1281,7 @@ p.nxr-hero-mastery-line {
   }
 
   .nxr-nav-link {
-    padding: 13px 16px;
+    padding: 11px 16px;
     font-size: 13px;
   }
   .nxr-nav-link span {

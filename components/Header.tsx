@@ -92,8 +92,6 @@ const EXTRA_MOVIL = [
   {
     href: "/nosotros",
     title: "Nosotros",
-    desc: "El equipo detrás",
-    bg: "rgba(255,157,125,.12)",
     color: "var(--c-salmon)",
     icon: (
       <svg viewBox="0 0 24 24">
@@ -105,8 +103,6 @@ const EXTRA_MOVIL = [
   {
     href: "/precios",
     title: "Precios",
-    desc: "Cómo presupuestamos",
-    bg: "rgba(168,240,74,.12)",
     color: "var(--c-lime)",
     icon: (
       <svg viewBox="0 0 24 24">
@@ -408,6 +404,11 @@ export default function Header() {
         <div id="nxr-nav-sep" className={srvOpen ? "nxr-open" : ""}></div>
 
         <div id="nxr-nav-services" className={srvOpen ? "nxr-open" : ""}>
+          {/* Cabeceras de grupo: SOLO móvil, donde este desplegable deja de ser
+              una lista de servicios y pasa a ser el menú entero. Sin ellas, las
+              páginas de abajo se leían como dos servicios más. En escritorio
+              siguen ocultas (aquí solo hay servicios, no hace falta rotular). */}
+          <div className="nxr-nav-srv-group">Servicios</div>
           {SERVICIOS.map((s) => (
             <Link key={s.href} href={s.href} className="nxr-nav-srv-item" onClick={closeDD}>
               <div className="nxr-nav-srv-icon" style={{ background: s.bg, color: s.color }}>
@@ -419,6 +420,11 @@ export default function Header() {
               </div>
             </Link>
           ))}
+          <div className="nxr-nav-srv-group nxr-nav-srv-group-sec">La agencia</div>
+          {/* Formato deliberadamente MÁS LIGERO que el de un servicio: icono
+              pequeño y sin pastilla de color, sin descripción y una sola línea.
+              Un servicio es la oferta (tarjeta completa); esto son páginas de
+              apoyo, y la jerarquía tiene que verse de un vistazo. */}
           {EXTRA_MOVIL.map((s) => (
             <Link
               key={s.href}
@@ -426,13 +432,10 @@ export default function Header() {
               className="nxr-nav-srv-item nxr-nav-srv-extra"
               onClick={closeDD}
             >
-              <div className="nxr-nav-srv-icon" style={{ background: s.bg, color: s.color }}>
+              <div className="nxr-nav-srv-extra-ico" style={{ color: s.color }}>
                 {s.icon}
               </div>
-              <div>
-                <div className="nxr-nav-srv-title">{s.title}</div>
-                <div className="nxr-nav-srv-desc">{s.desc}</div>
-              </div>
+              <div className="nxr-nav-srv-title">{s.title}</div>
             </Link>
           ))}
         </div>

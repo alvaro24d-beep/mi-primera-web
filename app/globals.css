@@ -946,8 +946,59 @@ p.nxr-hero-mastery-line {
 .nxr-srv-btn-txt-movil {
   display: none;
 }
-.nxr-nav-srv-extra {
+.nxr-nav-srv-extra,
+.nxr-nav-srv-group {
   display: none;
+}
+
+/* Cabecera de grupo del menú móvil. Mismo lenguaje que el rótulo "Servicios"
+   del menú hamburguesa (.nxr-mm-srv-label): Space Mono en versalitas anchas,
+   para que las dos navegaciones del sitio se lean como el mismo sistema. */
+.nxr-nav-srv-group {
+  font-family: var(--font-space-mono), ui-monospace, monospace;
+  font-size: 10px;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.42);
+  padding: 2px 14px 6px;
+}
+/* El segundo grupo abre con una línea: es el corte entre "lo que vendemos" y
+   "el resto del sitio". */
+.nxr-nav-srv-group-sec {
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  margin-top: 6px;
+  padding-top: 12px;
+}
+
+/* Página de apoyo, NO servicio: una sola línea, icono pequeño y desnudo (sin
+   la pastilla de color que llevan los servicios) y tipografía de menos peso.
+   La diferencia de altura y de densidad entre ambos bloques es lo que hace
+   legible la estructura de un vistazo. */
+.nxr-nav-srv-extra {
+  padding: 9px 14px;
+  gap: 12px;
+}
+.nxr-nav-srv-extra .nxr-nav-srv-title {
+  font-size: 13.5px;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.82);
+}
+.nxr-nav-srv-extra-ico {
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.nxr-nav-srv-extra-ico svg {
+  width: 17px;
+  height: 17px;
+  stroke: currentColor;
+  fill: none;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
 }
 
 .nxr-nav-srv-item {
@@ -1186,10 +1237,14 @@ p.nxr-hero-mastery-line {
     display: inline;
   }
 
-  /* Nosotros y Precios, que en la fila están ocultos por falta de sitio,
-     aparecen dentro del desplegable con la misma pinta que los servicios. */
+  /* Nosotros y Precios, ocultos en la fila por falta de sitio, aparecen aquí
+     bajo su propia cabecera y con el formato ligero de "página", para que no
+     se confundan con los servicios. */
   #nxr-nav-services .nxr-nav-srv-extra {
     display: flex;
+  }
+  #nxr-nav-services .nxr-nav-srv-group {
+    display: block;
   }
   /* 7 items en una sola columna no caben en los 500px de escritorio: se
      quedaban cortados por el max-height que anima la apertura. */

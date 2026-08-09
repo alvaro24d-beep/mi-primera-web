@@ -56,12 +56,16 @@ const SLOW_K = 0.7;
 // Banda alrededor del centro en la que el texto se lee a plena opacidad. Es lo
 // que sustituye a la antigua meseta: el texto sigue moviéndose (despacio)
 // mientras tanto, en vez de estar parado.
-// 0.4 -> 0.26 (V17.58, "se van demasiado rápido"). Esta banda es el tramo
-// central en el que todo se lee a pleno; TODO lo que queda fuera es el
-// fundido. Estrecharla no acelera nada: reparte MÁS scroll entre la entrada y
-// la salida, que es donde vive la animación del difuminado y lo que se quería
-// poder ver. El tramo de salida pasa de ~54vh a ~73vh.
-const READ_BAND = 0.26;
+// Banda central en la que todo se lee a pleno; lo que queda fuera es fundido.
+// Estrecharla no acelera nada — al revés: reparte MÁS scroll al difuminado,
+// que es lo que se quiere poder apreciar.
+const READ_IN = 0.26;
+// ASIMÉTRICA en la salida y solo en escritorio (V17.60, "que desaparezcan más
+// lentamente… solo en ordenador"): arrancando el fundido casi desde el centro,
+// la desaparición dispone de ~86vh de scroll en lugar de ~40. No la vuelve
+// prematura: al ser gradual y escalonada, el texto sigue perfectamente legible
+// durante buena parte de ese tramo. En móvil se mantiene simétrica.
+const READ_OUT_DESKTOP = 0.08;
 
 const smoothstep = (t: number) => t * t * (3 - 2 * t);
 
@@ -195,13 +199,16 @@ export default function Intro() {
           const k = (eased - 0.5) * 2;
 
           // El fundido va por LÍNEAS y desacoplado de la posición: dentro de
-          // READ_BAND todo se lee a pleno mientras el bloque sigue
+          // la banda de lectura todo se ve a pleno mientras el bloque sigue
           // deslizándose despacio.
           const away = Math.abs(k);
-          const base = away <= READ_BAND ? 0 : (away - READ_BAND) / (1 - READ_BAND);
+          const saliendo = k > 0;
+          // La salida de escritorio usa una banda más estrecha: mismo fundido,
+          // repartido en mucho más scroll.
+          const band = saliendo && !horizontal ? READ_OUT_DESKTOP : READ_IN;
+          const base = away <= band ? 0 : (away - band) / (1 - band);
           // Titular: manda su ÚLTIMA línea ("trabaje por ti.") — es la primera
           // en mostrarse y la primera en irse. Párrafo: manda la PRIMERA.
-          const saliendo = k > 0;
           aplicar(titleLines, base, saliendo, true);
           aplicar(textLines, base, saliendo, false);
 

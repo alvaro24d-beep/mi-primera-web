@@ -5555,10 +5555,12 @@ input[type="range"].nxr-ms-range::-moz-range-thumb {
   /* (V17.54) La sección solo aporta RECORRIDO de scroll: su contenido vive en
      un contenedor fijo al viewport (abajo), así que aquí no hay nada que
      maquetar.
-     170 -> 200vh (V17.58): más pista para que el fundido de entrada y salida
-     se pueda ver, sin tocar su ritmo. Como el contenido es fijo, esta altura
-     no maqueta nada — solo es scroll disponible. */
-  height: 200vh;
+     170 -> 200 -> 240vh: más pista para que el fundido de entrada y salida se
+     pueda ver, sin tocar su ritmo. Como el contenido es fijo, esta altura no
+     maqueta nada — solo es scroll disponible. El último tramo (V17.60) es para
+     que la DESAPARICIÓN se aprecie en escritorio; móvil se queda en 200 (ver
+     el media query). */
+  height: 240vh;
   padding: 0;
 }
 
@@ -5705,6 +5707,12 @@ input[type="range"].nxr-ms-range::-moz-range-thumb {
      stacked below, scrolling normally. Tighter gap than desktop's 80px so the
      presentation text (top of .nxr-intro-cards) reads as following on
      directly from the headline, not a separate, distant block. */
+  /* El alargue de escritorio (240vh) es solo para que allí se aprecie la
+     desaparición; en móvil habría sido scroll de más sin motivo. */
+  #nxr-intro {
+    height: 200vh;
+  }
+
   .nxr-intro-inner {
     grid-template-columns: 1fr;
     gap: 14px;

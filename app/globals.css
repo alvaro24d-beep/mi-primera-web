@@ -5552,26 +5552,12 @@ input[type="range"].nxr-ms-range::-moz-range-thumb {
 #nxr-intro {
   position: relative;
   z-index: 1;
-  /* (V17.51) La sección vuelve a ser alta: el tramo que sobra por debajo del
-     sticky es el recorrido con el que los textos cruzan la pantalla. Sin esta
-     altura no hay scroll que "gastar" con el bloque quieto, que es justo lo
-     que hacía que en V17.50 los textos viajaran con la página. */
-  height: 190vh;
-  padding: 0;
-}
-
-/* El bloque queda clavado mientras la sección pasa: su punto de anclaje no se
-   mueve, así que el único movimiento visible es el del texto dentro de su
-   máscara. `--vh-100` (que Hero mantiene vivo) evita el salto de la barra de
-   direcciones en móvil. */
-.nxr-intro-sticky {
-  position: sticky;
-  top: 0;
-  height: 100vh;
-  height: var(--vh-100, 100vh);
-  display: flex;
-  align-items: center;
-  overflow: hidden;
+  /* (V17.52) Sección NORMAL otra vez. La altura de 190vh + sticky de V17.51 es
+     justo lo que había que quitar: hacía que el bloque entero apareciera por
+     abajo, se quedara y se fuera por arriba, con los textos cruzando de marco
+     a marco. Ahora la animación es un deslizamiento CORTO con fundido dentro
+     de la propia sección, que scrollea como cualquier otra. */
+  padding: calc(var(--section-pad) + 24px) 0;
 }
 
 .nxr-intro-inner {
@@ -5605,27 +5591,10 @@ input[type="range"].nxr-ms-range::-moz-range-thumb {
   color: var(--c-white);
 }
 
-/* ===== Máscara de difuminado de la Intro (V17.50) =====
-   El wrapper NO se mueve: lleva un degradado en `mask-image` que deja el
-   centro nítido y disuelve los dos extremos. Lo que viaja por debajo es el
-   texto (transform scrubbed en Intro.tsx), así que al cruzar la banda
-   transparente se desvanece POR PARTES — por eso del titular, que baja desde
-   arriba, se lee primero su borde inferior.
-   El padding abre la pista por la que viaja el texto y el margen negativo la
-   descuenta del layout, para que la sección siga midiendo lo mismo que antes
-   y no empuje a Servicios hacia abajo. */
-.nxr-intro-mask {
-  padding-block: 36vh;
-  margin-block: -36vh;
-  -webkit-mask-image: linear-gradient(
-    to bottom,
-    transparent 0%,
-    #000 30%,
-    #000 70%,
-    transparent 100%
-  );
-  mask-image: linear-gradient(to bottom, transparent 0%, #000 30%, #000 70%, transparent 100%);
-}
+/* (La máscara de degradado .nxr-intro-mask de V17.50 se eliminó en V17.52: el
+   difuminado lo hace ahora un `filter: blur()` sobre el propio texto, que es
+   lo que corresponde a un fundido de diapositiva. La máscara servía para un
+   texto que ATRAVESABA una pista larga, estructura ya retirada.) */
 
 /* Hidden until Intro.tsx's layout effect sets the initial scroll-sequence
    state and flips this back to visible — otherwise it'd flash fully visible
@@ -5708,21 +5677,6 @@ input[type="range"].nxr-ms-range::-moz-range-thumb {
      uno entra por un lado distinto. */
   .nxr-intro-textblock {
     text-align: right;
-  }
-
-  .nxr-intro-mask {
-    padding-block: 0;
-    margin-block: 0;
-    padding-inline: 75vw;
-    margin-inline: -75vw;
-    -webkit-mask-image: linear-gradient(
-      to right,
-      transparent 0%,
-      #000 28%,
-      #000 72%,
-      transparent 100%
-    );
-    mask-image: linear-gradient(to right, transparent 0%, #000 28%, #000 72%, transparent 100%);
   }
 }
 

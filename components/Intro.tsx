@@ -9,33 +9,38 @@ import { useReducedMotion } from "@/hooks/useReducedMotion";
 
 gsap.registerPlugin(ScrollTrigger);
 
-// (V17.51) El bloque queda CLAVADO en pantalla (sticky) mientras los dos
-// textos lo cruzan. Esto es lo que corrige el intento de V17.50: allí el
-// transform era un desplazamiento pequeño SUMADO al viaje natural de la
-// página, así que los dos textos seguían subiendo con el scroll (y el párrafo,
-// yendo en sentido contrario, se leía "un poco más rápido") en vez de entrar
-// por un lado y salir por el otro. Con el sticky, el punto de anclaje no se
-// mueve y el ÚNICO movimiento es el del propio texto dentro de su máscara.
+// (V17.52) "Diapositiva difuminada": cada texto ENTRA deslizándose desde su
+// lado mientras se enfoca, se queda QUIETO y legible en su sitio de siempre, y
+// SALE deslizándose hacia el lado contrario mientras se desenfoca.
 //
-//   Escritorio → eje VERTICAL. El titular entra por arriba y sale por abajo;
-//                el párrafo entra por abajo y sale por arriba. No desde el
-//                borde de la pantalla: desde una distancia media (TRAVEL_VH).
-//   Móvil      → eje HORIZONTAL puro. La ALTURA NO CAMBIA en ningún momento:
-//                cada texto entra por un lado y se va por el opuesto (titular
-//                de derecha a izquierda, párrafo al revés), y el párrafo se
-//                alinea a la derecha (solo en móvil).
+//   Escritorio → titular entra desde ARRIBA y sale por ABAJO;
+//                párrafo entra desde ABAJO y sale por ARRIBA.
+//   Móvil      → eje horizontal y la ALTURA NO CAMBIA NUNCA: titular entra por
+//                la DERECHA y sale por la IZQUIERDA; párrafo al revés (y
+//                alineado a la derecha, solo aquí).
 //
-// El difuminado lo pone una máscara ESTÁTICA en el wrapper (mask-image con
-// degradado): el texto se disuelve al acercarse a los extremos de su pista.
+// Lo que se eliminó de los dos intentos anteriores y POR QUÉ:
+//  · V17.50 sumaba un desplazamiento al viaje natural de la página, así que
+//    los textos seguían subiendo con el scroll en vez de entrar y salir.
+//  · V17.51 lo metió en un sticky dentro de una sección de 190vh: el bloque
+//    entero aparecía por abajo, hacía el movimiento y se iba por arriba, y los
+//    textos cruzaban la pantalla de marco a marco.
+// Aquí NO hay sección alta, ni sticky, ni máscara con pista larga. La sección
+// mide lo que siempre midió y scrollea como cualquier otra; el recorrido es
+// CORTO y la opacidad llega a 0 mucho antes de que el texto se acerque a
+// ningún borde.
 
-// Distancia media, no el borde: la máscara ya lo ha disuelto del todo antes de
-// llegar al final de la pista.
-const TRAVEL_VH = 0.3;
-const TRAVEL_VW = 0.62;
-// Frenada en el centro. La curva es p + k·sin(2πp)/2π y su derivada
-// 1 + k·cos(2πp), que en p=0.5 vale 1-k: con 0.72 cruza el medio al 28% de su
-// velocidad y recupera hacia los extremos.
-const SLOW_K = 0.72;
+// Recorrido, corto a propósito: es un deslizamiento de apoyo al fundido, no un
+// viaje. A esta distancia el texto ya es invisible.
+const TRAVEL_Y = 72; // px, escritorio
+const TRAVEL_X = 96; // px, móvil
+const MAX_BLUR = 9; // px en los extremos
+// Tramos del recorrido: entrada, meseta legible, salida.
+const ENTER_END = 0.3;
+const EXIT_START = 0.7;
+
+// Suaviza los extremos para que ni la entrada ni la salida arranquen de golpe.
+const easeInOut = (t: number) => (t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2);
 
 export default function Intro() {
   const sectionRef = useRef<HTMLElement>(null);
@@ -52,7 +57,7 @@ export default function Intro() {
       if (!section || !title || !texts) return;
 
       if (prefersReduced) {
-        gsap.set([title, texts], { clearProps: "transform", visibility: "visible" });
+        gsap.set([title, texts], { clearProps: "transform,filter,opacity", visibility: "visible" });
         return;
       }
 
@@ -73,34 +78,36 @@ export default function Intro() {
 
       const st = ScrollTrigger.create({
         trigger: section,
-        // Exactamente el tramo en que el sticky está pegado: desde que su
-        // techo toca el del viewport hasta que la sección se acaba.
-        start: "top top",
-        end: "bottom bottom",
-        scrub: 0.6,
+        // Ceñido a cuando la sección está de verdad en pantalla: la entrada
+        // ocurre al asomar y la salida al marcharse, sin un scrub eterno.
+        start: "top 85%",
+        end: "bottom 15%",
+        scrub: 0.5,
         onUpdate: (self) => {
           const p = self.progress;
-          const eased = p + (SLOW_K * Math.sin(2 * Math.PI * p)) / (2 * Math.PI);
-          // −1 en el lado de entrada, 0 centrado y legible, +1 en el de salida.
-          const d = (eased - 0.5) * 2;
+          // k: −1 entrando · 0 quieto y legible · +1 saliendo.
+          let k: number;
+          if (p < ENTER_END) k = -(1 - easeInOut(p / ENTER_END));
+          else if (p > EXIT_START) k = easeInOut((p - EXIT_START) / (1 - EXIT_START));
+          else k = 0;
+
+          const away = Math.abs(k);
+          const vis = { opacity: 1 - away, filter: `blur(${(away * MAX_BLUR).toFixed(2)}px)` };
+
           if (horizontal) {
-            const travel = window.innerWidth * TRAVEL_VW;
-            // y SIEMPRE 0: "la altura a la que salen los textos no debe
-            // cambiar". Titular de derecha a izquierda; párrafo al revés.
-            gsap.set(title, { x: -d * travel, y: 0 });
-            gsap.set(texts, { x: d * travel, y: 0 });
+            // y a 0 SIEMPRE: la altura de cada texto no se mueve nunca.
+            gsap.set(title, { x: -k * TRAVEL_X, y: 0, ...vis });
+            gsap.set(texts, { x: k * TRAVEL_X, y: 0, ...vis });
           } else {
-            const travel = window.innerHeight * TRAVEL_VH;
-            // Titular arriba → abajo; párrafo abajo → arriba. x fija.
-            gsap.set(title, { y: d * travel, x: 0 });
-            gsap.set(texts, { y: -d * travel, x: 0 });
+            gsap.set(title, { y: k * TRAVEL_Y, x: 0, ...vis });
+            gsap.set(texts, { y: -k * TRAVEL_Y, x: 0, ...vis });
           }
         },
       });
 
       const stScramble = ScrollTrigger.create({
         trigger: section,
-        start: "top 80%",
+        start: "top 70%",
         onEnter: scramble,
         onLeaveBack: cancelScramble,
       });
@@ -117,38 +124,29 @@ export default function Intro() {
 
   return (
     <section id="nxr-intro" ref={sectionRef}>
-      {/* El sticky es lo que fija el punto de anclaje: sin él, el texto viaja
-          con la página y "entrar por un lado y salir por el otro" es
-          imposible de leer. */}
-      <div className="nxr-intro-sticky">
-        <div className="nxr-intro-inner">
-          <div className="nxr-intro-left">
-            <div className="nxr-intro-mask">
-              <h2 className="nxr-intro-headline" ref={titleRef}>
-                Hacemos que
-                <br />
-                la tecnología
-                <br />
-                <span className="nxr-gradient-text-lime">trabaje por ti.</span>
-              </h2>
-            </div>
-          </div>
+      <div className="nxr-intro-inner">
+        <div className="nxr-intro-left">
+          <h2 className="nxr-intro-headline" ref={titleRef}>
+            Hacemos que
+            <br />
+            la tecnología
+            <br />
+            <span className="nxr-gradient-text-lime">trabaje por ti.</span>
+          </h2>
+        </div>
 
-          <div className="nxr-intro-cards">
-            <div className="nxr-intro-mask">
-              <div className="nxr-intro-texts" ref={textsRef}>
-                <div className="nxr-intro-textblock">
-                  <p className="nxr-intro-text">
-                    Somos una agencia de <strong>software e inteligencia artificial</strong> especializada en construir
-                    sistemas digitales que automatizan tareas, captan clientes y hacen crecer negocios — sin que tengas
-                    que entender de tecnología.
-                  </p>
-                  <p className="nxr-intro-text">
-                    Trabajamos con <strong>empresas de cualquier sector</strong> que saben que pueden ir más rápido pero
-                    no tienen el equipo técnico para hacerlo. Nosotros somos ese equipo.
-                  </p>
-                </div>
-              </div>
+        <div className="nxr-intro-cards">
+          <div className="nxr-intro-texts" ref={textsRef}>
+            <div className="nxr-intro-textblock">
+              <p className="nxr-intro-text">
+                Somos una agencia de <strong>software e inteligencia artificial</strong> especializada en construir
+                sistemas digitales que automatizan tareas, captan clientes y hacen crecer negocios — sin que tengas que
+                entender de tecnología.
+              </p>
+              <p className="nxr-intro-text">
+                Trabajamos con <strong>empresas de cualquier sector</strong> que saben que pueden ir más rápido pero no
+                tienen el equipo técnico para hacerlo. Nosotros somos ese equipo.
+              </p>
             </div>
           </div>
         </div>

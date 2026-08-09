@@ -26,3 +26,15 @@ export const nearSections = new Set<string>();
 // textarea se sale por abajo"). Mismo patrón singleton mutable que arriba:
 // se lee en cada useFrame y no debe costar nunca un render de React.
 export const canvasBox = { x: 0, y: 0 };
+
+// AMANECER DEL MURO (V17.62): 0 = noche (la pantalla de siempre), 1 = día (la
+// misma pantalla, con sus monitores, su cuadrícula y su vídeo, pero virada a
+// gris claro). Lo escribe Proceso.tsx conforme se scrollea y lo lee el
+// useFrame de SceneBackground para mover su uniform.
+//
+// Puente por módulo mutable y no por estado de React, igual que los de arriba:
+// el canvas vive en otro árbol (está en el layout, no bajo la página) y esto
+// se lee en cada frame, así que no puede costar un render. La alternativa que
+// ya usa el proyecto para cruzar esa frontera —un CustomEvent, como
+// `nxr:wall-video`— sirve para hitos sueltos, no para un valor continuo.
+export const wallDay = { value: 0 };

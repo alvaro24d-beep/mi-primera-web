@@ -6,6 +6,7 @@ import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { useGSAP } from "@gsap/react";
 import { useGlassPanels } from "@/hooks/useGlassPanels";
 import { useReducedMotion } from "@/hooks/useReducedMotion";
+import { wallDay } from "@/store/sceneActivity";
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -90,7 +91,6 @@ const PASOS = [
 // the effect rather than gate it.)
 export default function Proceso() {
   const titleRef = useRef<HTMLHeadingElement>(null);
-  const veloRef = useRef<HTMLDivElement>(null);
   const openingRef = useRef<HTMLDivElement>(null);
   const leadRef = useRef<HTMLParagraphElement>(null);
   const sectionRef = useRef<HTMLElement>(null);
@@ -110,50 +110,58 @@ export default function Proceso() {
 
   // ===== AMANECER (V17.61) =====
   // La sección abre con el titular SOLO, grande y centrado, sobre el fondo
-  // oscuro de siempre. Al scrollear, un velo fijo lleva la página a gris casi
-  // blanco mientras el titular vira de blanco a negro para mantener el
-  // contraste; cuando el viraje termina, entra el párrafo debajo. El fondo
-  // claro se queda ya hasta el final de la página.
+  // oscuro de siempre. Al scrollear, LA PANTALLA DEL FONDO vira a gris claro
+  // —sigue siendo ella, con sus monitores y su vídeo, en clave alta— mientras
+  // el titular pasa de blanco a negro AL MISMO RITMO; cuando el viraje
+  // termina, entra el párrafo debajo. El día se queda hasta el final.
   //
-  // El velo va FIJO y por debajo de todo el contenido: así el cambio de luz
-  // alcanza a las secciones siguientes (Tech, Contacto) sin que ninguna tenga
-  // que saber nada de él. La legibilidad de esas secciones se resuelve
-  // redefiniendo los tokens de color bajo .nxr-day (ver globals.css), no
-  // tocando sus reglas una a una.
+  // El viraje vive en el shader del muro (uniform uDay, ver SceneBackground) y
+  // se controla desde aquí con el módulo `wallDay`. La legibilidad de las
+  // secciones siguientes se resuelve redefiniendo los tokens de color bajo
+  // .nxr-day, no tocando sus reglas una a una — y sin tocar el cristal.
   useGSAP(
     () => {
       const section = sectionRef.current;
-      const velo = veloRef.current;
       const title = titleRef.current;
       const lead = leadRef.current;
-      if (!section || !velo || !title || !lead) return;
+      if (!section || !title || !lead) return;
 
       const root = document.documentElement;
+      // Blanco -> casi negro, interpolado A LA PAR que el fondo (no con una
+      // transición CSS aparte, que iba por libre y saltaba a mitad).
+      const tinte = gsap.utils.interpolate("#ffffff", "#14161c");
+
       if (reducedMotion) {
-        // Sin scrubs: se entrega el estado final (día + contraste invertido).
-        gsap.set(velo, { opacity: 1 });
-        gsap.set([title, lead], { opacity: 1, y: 0 });
+        wallDay.value = 1;
+        gsap.set(title, { color: "#14161c" });
+        gsap.set(lead, { opacity: 1, y: 0 });
         root.classList.add("nxr-day");
-        return () => root.classList.remove("nxr-day");
+        return () => {
+          wallDay.value = 0;
+          root.classList.remove("nxr-day");
+        };
       }
 
-      gsap.set(velo, { opacity: 0 });
       gsap.set(lead, { opacity: 0, y: 26 });
 
       const st = ScrollTrigger.create({
         trigger: section,
         start: "top 80%",
-        // El amanecer se consuma en poco menos de una pantalla de scroll: es
-        // un cambio de estado, no una animación para recrearse.
         end: "top 5%",
         scrub: 0.8,
         onUpdate: (self) => {
           const p = self.progress;
-          gsap.set(velo, { opacity: p });
-          // La clase de día entra a mitad del viraje, que es donde el fondo ya
-          // pesa más que el texto claro; de ahí en adelante manda la paleta
-          // clara en toda la página.
-          if (p > 0.5) root.classList.add("nxr-day");
+          // El MURO es quien vira (ver el uniform uDay en SceneBackground): la
+          // pantalla del fondo sigue ahí con sus monitores y su vídeo, solo que
+          // en clave alta. Nada de velos por encima.
+          wallDay.value = p;
+          // El titular acompaña al fondo píxel a píxel: mismo progreso, misma
+          // curva. Antes cambiaba de golpe al cruzar la mitad.
+          gsap.set(title, { color: tinte(p) });
+          // La paleta del resto de la página (Tech, Contacto) sí es un salto:
+          // no hay forma de interpolar tokens, y a esta altura el fondo ya
+          // está lo bastante claro como para que el cambio no cante.
+          if (p > 0.55) root.classList.add("nxr-day");
           else root.classList.remove("nxr-day");
           // El párrafo entra DESPUÉS del viraje, no a la vez.
           const t = Math.min(1, Math.max(0, (p - 0.72) / 0.28));
@@ -163,6 +171,7 @@ export default function Proceso() {
 
       return () => {
         st.kill();
+        wallDay.value = 0;
         root.classList.remove("nxr-day");
       };
     },
@@ -237,12 +246,10 @@ export default function Proceso() {
 
   return (
     <section id="nxr-proceso" ref={sectionRef}>
-      {/* VELO DE DÍA. Fijo a pantalla completa y por debajo de todo el
-          contenido (pero por encima del canvas), su opacidad la lleva el
-          scroll: la página pasa de noche a día justo aquí y se queda así hasta
-          el final. No es opaco del todo — el muro se sigue intuyendo detrás,
-          como se pidió. */}
-      <div className="nxr-daybreak" ref={veloRef} aria-hidden="true" />
+      {/* (Sin velo: en V17.62 se retiró el overlay gris. Quien vira es la
+          PANTALLA del fondo — el shader del muro, vía el uniform uDay —, así
+          que se sigue viendo con sus monitores, su cuadrícula y su vídeo, solo
+          que en clave alta.) */}
 
       {/* Momento de apertura: el titular solo, grande y centrado, mientras el
           fondo amanece; el párrafo entra después, ya con el contraste

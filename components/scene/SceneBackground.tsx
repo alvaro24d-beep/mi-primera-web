@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef } from "react";
 import { useFrame, useThree } from "@react-three/fiber";
 import * as THREE from "three";
+import { wallDay } from "@/store/sceneActivity";
 
 // ---- Concave "inside a cylinder" backdrop, now a TV wall ------------------
 // A large vertical-axis cylindrical wall section behind everything in the
@@ -133,6 +134,8 @@ const fragmentShader = /* glsl */ `
                               // >1 expande el color. Más alto en desktop, que
                               // pasa por gamma 1.45 + uDim 0.32 y pierde más
                               // color percibido al hundirse la luminancia
+  uniform float uDay;         // amanecer (V17.62): 0 = pantalla de noche,
+                              // 1 = la MISMA pantalla virada a gris claro
 
   vec3 sampleSource(vec2 uv) {
     if (uHasVideo > 0.5) {
@@ -387,6 +390,23 @@ const fragmentShader = /* glsl */ `
     // sí y los LEDs/rejilla deben seguir leyéndose (V17.12).
     col *= mix(0.9, uDim, uPower);
 
+    // ===== AMANECER (V17.62) =====
+    // La pantalla NO se tapa con un velo: es ella la que vira. Se invierte el
+    // "camino a negro" de cada píxel — los negros suben a gris claro y lo que
+    // ya brillaba se queda arriba —, así que monitores, biseles, cuadrícula y
+    // vídeo siguen todos ahí, solo que en clave alta. Un mix plano contra un
+    // gris habría aplastado justamente ese relieve.
+    // El factor es cuánto RELIEVE sobrevive: con 0.22 el rango entero se
+    // comprimía a [0.78, 1] y la pantalla se leía casi como un gris plano.
+    // 0.34 la deja en [0.66, 1] — bastante claro, pero con los biseles de los
+    // monitores y la cuadrícula todavía presentes, que es lo que se pidió
+    // ("se tiene que seguir viendo la pantalla").
+    vec3 dia = 1.0 - (1.0 - col) * 0.34;
+    // Un punto de desaturación: en clave alta los tintes del vídeo se vuelven
+    // chillones, y lo que se pidió es un gris claro.
+    dia = mix(vec3(dot(dia, vec3(0.2126, 0.7152, 0.0722))), dia, 0.72);
+    col = mix(col, dia, clamp(uDay, 0.0, 1.0));
+
     gl_FragColor = vec4(col, 1.0);
   }
 `;
@@ -472,6 +492,7 @@ export default function SceneBackground({
       uSwitch: { value: 0 },
       uVidGamma: { value: 1 },
       uVidSat: { value: 1 },
+      uDay: { value: 0 },
     }),
     // eslint-disable-next-line react-hooks/exhaustive-deps
     []
@@ -926,6 +947,14 @@ export default function SceneBackground({
       gl.getDrawingBufferSize(scratchSize.current);
       (matV.uniforms.uRes.value as THREE.Vector2).copy(scratchSize.current);
       matV.uniforms.uTime.value = clock.elapsedTime;
+
+      // Amanecer: valor continuo que escribe Proceso.tsx (ver store). Se
+      // invalida solo cuando cambia, para no despertar el modo demand por
+      // nada mientras la página está lejos de esa sección.
+      if (matV.uniforms.uDay.value !== wallDay.value) {
+        matV.uniforms.uDay.value = wallDay.value;
+        invalidate();
+      }
 
       // ===== Pantalla apagada en la hero de la home (V17.10) =====
       // "Al cargar la home no quiero que se vea el vídeo; que la pantalla

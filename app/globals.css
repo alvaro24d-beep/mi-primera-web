@@ -5552,12 +5552,48 @@ input[type="range"].nxr-ms-range::-moz-range-thumb {
 #nxr-intro {
   position: relative;
   z-index: 1;
-  /* (V17.52) Sección NORMAL otra vez. La altura de 190vh + sticky de V17.51 es
-     justo lo que había que quitar: hacía que el bloque entero apareciera por
-     abajo, se quedara y se fuera por arriba, con los textos cruzando de marco
-     a marco. Ahora la animación es un deslizamiento CORTO con fundido dentro
-     de la propia sección, que scrollea como cualquier otra. */
+  /* (V17.54) La sección solo aporta RECORRIDO de scroll: su contenido vive en
+     un contenedor fijo al viewport (abajo), así que aquí no hay nada que
+     maquetar. 170vh da un tramo cómodo de entrada + lectura + salida. */
+  height: 170vh;
+  padding: 0;
+}
+
+/* Contenido FIJO AL VIEWPORT — mismo patrón que .nxr-servicios-head y por el
+   mismo motivo: mientras el texto viva en el flujo, viaja con la página (entra
+   por abajo y sale por arriba, que es lo que hace el scroll) y el
+   desplazamiento propio queda enterrado debajo. Fijado, no se mueve NI UN
+   PÍXEL por su cuenta, y el único movimiento visible es el que le da
+   Intro.tsx: vertical en escritorio, horizontal puro en móvil.
+   `--vh-100` es el innerHeight vivo que mantiene Hero.tsx: centra en el
+   viewport VISUAL, no en el lvh con la toolbar plegada. */
+.nxr-intro-fixed {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: var(--vh-100, 100lvh);
+  display: flex;
+  align-items: center;
+  /* No intercepta el ratón: es un overlay que cubre toda la pantalla mientras
+     la sección pasa. */
+  pointer-events: none;
+  /* Dentro del stacking context de la sección (z-index 1). Por encima del muro
+     y muy por debajo del nav flotante y GradualBlur (9998+). */
+  z-index: 5;
+}
+
+/* Reduced motion: sin fijar ni animar, contenido en flujo normal. */
+.nxr-intro-fixed-static {
+  position: relative;
+  height: auto;
+  pointer-events: auto;
   padding: calc(var(--section-pad) + 24px) 0;
+}
+/* ...y entonces la sección no necesita el recorrido: sin esto quedaría un
+   hueco de 170vh debajo del texto. */
+#nxr-intro:has(.nxr-intro-fixed-static) {
+  height: auto;
 }
 
 .nxr-intro-inner {
@@ -5603,11 +5639,18 @@ input[type="range"].nxr-ms-range::-moz-range-thumb {
   display: flex;
   flex-direction: column;
   gap: 20px;
-  visibility: hidden;
 }
-/* Mismo motivo para el titular, que ahora también arranca desplazado. */
-.nxr-intro-headline {
-  visibility: hidden;
+/* Ambos arrancan invisibles y es Intro.tsx quien lleva su opacidad en cada
+   update del scroll. Con el contenedor FIJO cubriendo la pantalla entera, un
+   solo frame a opacidad 1 antes del primer update se vería como un destello
+   del texto a media pantalla. */
+.nxr-intro-headline,
+.nxr-intro-texts {
+  opacity: 0;
+}
+.nxr-intro-fixed-static .nxr-intro-headline,
+.nxr-intro-fixed-static .nxr-intro-texts {
+  opacity: 1;
 }
 
 /* (V16.30) El bloque de párrafos ya NO es sticky en desktop — viaja a

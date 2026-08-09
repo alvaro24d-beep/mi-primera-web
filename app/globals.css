@@ -1346,51 +1346,136 @@ p.nxr-hero-mastery-line {
   max-width: 800px;
 }
 
-/* ===== Cortina de carga (el fondo sale ya cargado) =====
-   Ver LoadProgress.tsx. Cubre TODO desde el primer paint (visible por
-   defecto — el div viene en el SSR, sin hueco pre-hidratación) hasta que
-   el muro de vídeo está pintando; mismo #050810 que html para que la
-   transición pre/post hidratación sea invisible. transform/opacity solo;
-   display:none al completar (coste residual cero). */
+/* ===== Cortina de entrada (V17.47) =====
+   Ver LoadProgress.tsx. Ya NO es una barra de progreso: es una pantalla
+   apagada que se retira en columnas desescalonadas, el mismo lenguaje con el
+   que el muro se enciende monitor a monitor. Cubre desde el PRIMER PAINT (el
+   div viene en el SSR y son las columnas las que tapan, con el mismo #050810
+   que html, así que la transición pre/post hidratación es invisible).
+   Solo transform y opacity; display:none al terminar. */
 .nxr-curtain {
   position: fixed;
   inset: 0;
   z-index: 10002;
-  background: #050810;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 18px;
-  transition: opacity 0.55s ease;
 }
-.nxr-curtain.nxr-curtain-open {
-  opacity: 0;
+.nxr-curtain-cols {
+  position: absolute;
+  inset: 0;
+  display: flex;
+}
+.nxr-curtain-col {
+  flex: 1;
+  background: #050810;
+  /* Un pelo de tinte alterno: los monitores del muro tampoco tienen todos la
+     misma luminancia (ver panelLum en el shader). */
+  box-shadow: inset -1px 0 0 rgba(255, 255, 255, 0.028);
+  transform: translateY(0);
+  transition: transform 0.52s cubic-bezier(0.65, 0, 0.35, 1);
+  will-change: transform;
+}
+.nxr-curtain-col:nth-child(2n) {
+  background: #060a12;
+}
+/* Scanlines finas sobre cada columna: es lo que la hace leer como PANTALLA y
+   no como un rectángulo negro cualquiera. */
+.nxr-curtain-col::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(
+    to bottom,
+    rgba(255, 255, 255, 0.022) 0 1px,
+    transparent 1px 3px
+  );
   pointer-events: none;
 }
+.nxr-curtain-open .nxr-curtain-col {
+  /* 101% y no 100%: a ciertos zooms el redondeo dejaba una línea de 1px. */
+  transform: translateY(-101%);
+}
+
+/* Línea de escaneo en bucle: el movimiento continuo que sustituye a la barra.
+   No mide nada — solo dice "esto está vivo" mientras el muro termina. */
+.nxr-curtain-scan {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(168, 240, 74, 0.5) 35%,
+    rgba(255, 255, 255, 0.75) 50%,
+    rgba(168, 240, 74, 0.5) 65%,
+    transparent
+  );
+  filter: blur(0.5px);
+  animation: nxr-curtain-scan 1.9s cubic-bezier(0.6, 0, 0.4, 1) infinite;
+  pointer-events: none;
+}
+@keyframes nxr-curtain-scan {
+  0% {
+    top: -2%;
+    opacity: 0;
+  }
+  12% {
+    opacity: 1;
+  }
+  88% {
+    opacity: 1;
+  }
+  100% {
+    top: 102%;
+    opacity: 0;
+  }
+}
+.nxr-curtain-open .nxr-curtain-scan {
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
 .nxr-curtain-logo {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
   font-size: 26px;
   font-weight: 700;
   letter-spacing: -0.02em;
   color: var(--c-white);
+  /* Respiración muy contenida: da vida sin convertirse en un "loader". */
+  animation: nxr-curtain-logo 2.4s ease-in-out infinite;
 }
 .nxr-curtain-logo span {
   color: var(--c-lime);
 }
-.nxr-curtain-track {
-  width: min(220px, 56vw);
-  height: 2px;
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.12);
-  overflow: hidden;
+@keyframes nxr-curtain-logo {
+  0%,
+  100% {
+    opacity: 0.72;
+  }
+  50% {
+    opacity: 1;
+  }
 }
-.nxr-curtain-bar {
-  width: 100%;
-  height: 100%;
-  background: linear-gradient(90deg, var(--c-red), var(--c-salmon));
-  transform-origin: 0 50%;
-  transform: scaleX(0);
-  transition: transform 0.25s linear;
+/* El logo se va ANTES que las columnas: si se fuera con ellas, se le vería
+   trepar hacia arriba montado en la cascada. */
+.nxr-curtain-open .nxr-curtain-logo {
+  opacity: 0;
+  animation: none;
+  transition: opacity 0.22s ease;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .nxr-curtain-scan,
+  .nxr-curtain-logo {
+    animation: none;
+  }
+  /* Sin cascada: las columnas se van todas a la vez y sin retardo. */
+  .nxr-curtain-col {
+    transition-duration: 0.3s;
+    transition-delay: 0ms !important;
+  }
 }
 
 .nxr-hero-sub {

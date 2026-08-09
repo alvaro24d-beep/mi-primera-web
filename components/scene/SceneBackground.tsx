@@ -307,10 +307,15 @@ const fragmentShader = /* glsl */ `
     // conjunto leía como brillo cuasi-fijo. chd las reparte por todo [0,1):
     // periodos de ~1.8 a 7s y fases 0..2π de verdad.
     float chd = fract(ch * 913.37);
-    float tw = step(0.92, ch) * (0.5 + 0.5 * sin(uTime * (0.9 + chd * 2.6) + chd * 6.2832));
-    // 0.24 → 0.45 plano (V17.36): el factor de móvil dejaba desktop igual;
-    // ahora mismo brillo absoluto en ambos.
-    col += uLine * tw * 0.45 * (1.0 - uPower);
+    // Velocidad (V17.47, "mucho más brillante y rápido"): 0.9 + chd*2.6 daba
+    // periodos de ~1.8 a 7s, que a simple vista era un respirar lento. Ahora
+    // 3.2 + chd*6.4 → periodos de ~0.65 a 2s: parpadeo de verdad, y sigue
+    // repartido para que no vayan todos a una.
+    float tw = step(0.92, ch) * (0.5 + 0.5 * sin(uTime * (3.2 + chd * 6.4) + chd * 6.2832));
+    // Brillo 0.45 → 1.15 (V17.47). Es el término dominante del estado apagado:
+    // la rejilla base va a 0.16 y estas celdas ahora la superan con holgura,
+    // que es justo lo que se pedía — que destaquen sobre la cuadrícula.
+    col += uLine * tw * 1.15 * (1.0 - uPower);
 
     // ===== Textura extra del estado APAGADO (V17.18, "más detalle y
     // textura") — todo escala con (1-uPower): desaparece al encender. =====

@@ -56,7 +56,12 @@ const SLOW_K = 0.7;
 // Banda alrededor del centro en la que el texto se lee a plena opacidad. Es lo
 // que sustituye a la antigua meseta: el texto sigue moviéndose (despacio)
 // mientras tanto, en vez de estar parado.
-const READ_BAND = 0.4;
+// 0.4 -> 0.26 (V17.58, "se van demasiado rápido"). Esta banda es el tramo
+// central en el que todo se lee a pleno; TODO lo que queda fuera es el
+// fundido. Estrecharla no acelera nada: reparte MÁS scroll entre la entrada y
+// la salida, que es donde vive la animación del difuminado y lo que se quería
+// poder ver. El tramo de salida pasa de ~54vh a ~73vh.
+const READ_BAND = 0.26;
 
 const smoothstep = (t: number) => t * t * (3 - 2 * t);
 

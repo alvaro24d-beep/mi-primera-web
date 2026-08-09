@@ -1489,6 +1489,15 @@ export default function Servicios() {
         let clamping = false;
         let healing = false;
         let spacer: HTMLElement | null = null;
+        // Sondas baratas para el ticker: el barrido deja el primer y el último
+        // carácter en extremos opuestos, así que con esos dos basta para saber
+        // si queda algo encendido o si falta algo por encender. Nada de
+        // recorrer los ~50 en cada frame.
+        const opDe = (el?: HTMLElement) => (el ? parseFloat(el.style.opacity || "1") : 0);
+        const visibleAlgo = () =>
+          Math.max(opDe(headChars[0]), opDe(headChars[headChars.length - 1])) > 0.01;
+        const todoVisible = () =>
+          Math.min(opDe(headChars[0]), opDe(headChars[headChars.length - 1])) > 0.98;
         const clampTitle = () => {
           const st = tl.scrollTrigger;
           if (!st) return;
@@ -1508,10 +1517,18 @@ export default function Servicios() {
           // final de su fade-out DENTRO del pin (el fade termina a 1.2·pro).
           const outside = y < start - window.innerHeight || y > end || y > start + snapPro * 1.3;
           if (outside) {
-            const op = parseFloat(headTitle.style.opacity || "1");
-            if (op > 0.01 && !clamping) {
+            // BUG V17.57 → V17.58: el clamp leía y escribía en headTitle (el
+            // contenedor), pero desde que el barrido va por CARACTERES son
+            // ellos quienes llevan opacity/filter. El apagado de emergencia no
+            // alcanzaba a lo que se ve, así que al volver atrás deprisa la
+            // frase se quedaba pintada sobre la Intro — es fixed, no la tapa
+            // nadie. Ahora clamp y healing operan sobre los MISMOS targets que
+            // los scrubs, y `overwrite: auto` mata de paso su tween rezagado.
+            // Se leen el primero y el último porque el barrido los deja en
+            // extremos opuestos: si ambos están apagados, no queda nada visible.
+            if (visibleAlgo() && !clamping) {
               clamping = true;
-              gsap.to(headTitle, {
+              gsap.to(headChars, {
                 opacity: 0,
                 filter: "blur(18px)",
                 duration: 0.25,
@@ -1531,10 +1548,9 @@ export default function Servicios() {
           // reenciende. Complementa al clamp (que solo apagaba) y hace la frase
           // auto-sanable pase lo que pase con los drivers scrubbeados/refresh.
           if (y >= start && y <= start + snapPro * 0.6) {
-            const op = parseFloat(headTitle.style.opacity || "1");
-            if (op < 0.98 && !healing) {
+            if (!todoVisible() && !healing) {
               healing = true;
-              gsap.to(headTitle, {
+              gsap.to(headChars, {
                 opacity: 1,
                 filter: "blur(0px)",
                 duration: 0.3,

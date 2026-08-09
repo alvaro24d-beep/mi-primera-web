@@ -5554,8 +5554,11 @@ input[type="range"].nxr-ms-range::-moz-range-thumb {
   z-index: 1;
   /* (V17.54) La sección solo aporta RECORRIDO de scroll: su contenido vive en
      un contenedor fijo al viewport (abajo), así que aquí no hay nada que
-     maquetar. 170vh da un tramo cómodo de entrada + lectura + salida. */
-  height: 170vh;
+     maquetar.
+     170 -> 200vh (V17.58): más pista para que el fundido de entrada y salida
+     se pueda ver, sin tocar su ritmo. Como el contenido es fijo, esta altura
+     no maqueta nada — solo es scroll disponible. */
+  height: 200vh;
   padding: 0;
 }
 

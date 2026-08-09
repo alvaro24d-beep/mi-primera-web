@@ -951,8 +951,12 @@ p.nxr-hero-mastery-line {
 .nxr-srv-btn-txt-movil {
   display: none;
 }
-.nxr-nav-srv-extra,
-.nxr-nav-srv-group {
+/* El id delante NO es decorativo (V17.49): con solo la clase, esta regla y la
+   `.nxr-nav-srv-item { display: flex }` de más abajo empatan en especificidad
+   y gana la última por orden — Nosotros y Precios se colaban en el
+   desplegable de ESCRITORIO, donde ya tienen su sitio en la fila del nav. */
+#nxr-nav-services .nxr-nav-srv-extra,
+#nxr-nav-services .nxr-nav-srv-group {
   display: none;
 }
 
@@ -1004,6 +1008,13 @@ p.nxr-hero-mastery-line {
   stroke-width: 1.8;
   stroke-linecap: round;
   stroke-linejoin: round;
+}
+
+/* Quinto servicio a lo ancho: 5 tarjetas en 2 columnas dejaban la última fila
+   con un hueco. Ocupando las dos, el desplegable cierra en rectángulo. (En la
+   columna única de móvil el grid lo recorta solo a 1: no hay que anularlo.) */
+.nxr-nav-srv-wide {
+  grid-column: span 2;
 }
 
 .nxr-nav-srv-item {
@@ -1407,45 +1418,10 @@ p.nxr-hero-mastery-line {
   transform: translateY(-101%);
 }
 
-/* Línea de escaneo en bucle: el movimiento continuo que sustituye a la barra.
-   No mide nada — solo dice "esto está vivo" mientras el muro termina. */
-.nxr-curtain-scan {
-  position: absolute;
-  left: 0;
-  right: 0;
-  height: 2px;
-  background: linear-gradient(
-    90deg,
-    transparent,
-    rgba(168, 240, 74, 0.5) 35%,
-    rgba(255, 255, 255, 0.75) 50%,
-    rgba(168, 240, 74, 0.5) 65%,
-    transparent
-  );
-  filter: blur(0.5px);
-  animation: nxr-curtain-scan 1.9s cubic-bezier(0.6, 0, 0.4, 1) infinite;
-  pointer-events: none;
-}
-@keyframes nxr-curtain-scan {
-  0% {
-    top: -2%;
-    opacity: 0;
-  }
-  12% {
-    opacity: 1;
-  }
-  88% {
-    opacity: 1;
-  }
-  100% {
-    top: 102%;
-    opacity: 0;
-  }
-}
-.nxr-curtain-open .nxr-curtain-scan {
-  opacity: 0;
-  transition: opacity 0.2s ease;
-}
+/* (La línea de escaneo verde que recorría la cortina se retiró en V17.49 a
+   petición. El movimiento durante la espera lo lleva ahora solo la
+   respiración del logo; el momento de la cascada de columnas al abrirse
+   sigue intacto.) */
 
 .nxr-curtain-logo {
   position: absolute;
@@ -1480,7 +1456,6 @@ p.nxr-hero-mastery-line {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .nxr-curtain-scan,
   .nxr-curtain-logo {
     animation: none;
   }

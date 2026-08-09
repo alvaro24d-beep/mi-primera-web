@@ -409,8 +409,16 @@ export default function Header() {
               páginas de abajo se leían como dos servicios más. En escritorio
               siguen ocultas (aquí solo hay servicios, no hace falta rotular). */}
           <div className="nxr-nav-srv-group">Servicios</div>
-          {SERVICIOS.map((s) => (
-            <Link key={s.href} href={s.href} className="nxr-nav-srv-item" onClick={closeDD}>
+          {SERVICIOS.map((s, i) => (
+            <Link
+              key={s.href}
+              href={s.href}
+              // Son 5 en una rejilla de 2 columnas: sin esto la última fila
+              // quedaba coja (3+2 con un hueco a la derecha). El quinto ocupa
+              // el ancho completo y el bloque cierra en rectángulo.
+              className={`nxr-nav-srv-item${i === SERVICIOS.length - 1 ? " nxr-nav-srv-wide" : ""}`}
+              onClick={closeDD}
+            >
               <div className="nxr-nav-srv-icon" style={{ background: s.bg, color: s.color }}>
                 {s.icon}
               </div>

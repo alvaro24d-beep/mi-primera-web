@@ -91,7 +91,6 @@ export default function LoadProgress() {
           />
         ))}
       </div>
-      <div className="nxr-curtain-scan" />
       <div className="nxr-curtain-logo">
         Nexora<span>.</span>
       </div>

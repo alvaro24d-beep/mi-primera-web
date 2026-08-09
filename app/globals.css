@@ -3857,6 +3857,96 @@ p.nxr-hero-mastery-line {
   flex: none;
 }
 
+/* ===== AMANECER: la página pasa de noche a día en Proceso (V17.61) =====
+   Velo fijo a pantalla completa, por encima del canvas (z-index -1000) pero
+   por DEBAJO de todo el contenido, así que aclara la escena sin tapar nada.
+   Su opacidad la lleva el scroll desde Proceso.tsx.
+   No es opaco del todo (0.94): el muro de monitores se sigue intuyendo detrás,
+   que es lo que se pidió — "manteniendo la pantalla del fondo". */
+.nxr-daybreak {
+  position: fixed;
+  inset: 0;
+  z-index: -999;
+  pointer-events: none;
+  background: #eceae5;
+  opacity: 0;
+  will-change: opacity;
+}
+
+/* Apertura de la sección: el titular solo, grande y centrado; el párrafo
+   entra debajo cuando el viraje de color ha terminado. */
+.nxr-proceso-opening {
+  min-height: 100vh;
+  min-height: var(--vh-100, 100vh);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  gap: 28px;
+  padding: 0 var(--pad-x);
+  position: relative;
+  z-index: 1;
+}
+
+.nxr-proceso-big {
+  font-size: clamp(40px, 7vw, 92px);
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  line-height: 1.04;
+  margin: 0;
+  /* Vira de blanco a casi negro con la paleta (ver .nxr-day): la transición
+     acompaña al velo para que el contraste no se pierda en ningún momento. */
+  color: var(--c-white);
+  transition: color 0.45s ease;
+}
+
+.nxr-proceso-lead {
+  max-width: 620px;
+  font-size: clamp(14px, 1.5vw, 16px);
+  line-height: 1.7;
+  color: var(--c-salmon);
+  margin: 0;
+}
+
+@media (max-width: 900px) {
+  .nxr-proceso-opening {
+    gap: 22px;
+  }
+}
+
+/* ---- Paleta de DÍA. En vez de reescribir sección por sección, se redefinen
+   los tokens: todo lo que pinta con var(--c-white) / var(--c-salmon) vira
+   solo. Se aplica en <html> y se queda hasta el final de la página. ---- */
+.nxr-day {
+  --c-white: #14161c;
+  --c-salmon: #7a4632;
+  --c-lime: #4d7a12;
+  --c-red: #c4330b;
+  --glass-bg: rgba(20, 22, 28, 0.05);
+  --glass-border: rgba(20, 22, 28, 0.12);
+}
+/* El h1/h2 con degradado lima sobre claro necesita su propio tono: el
+   gradiente animado original está calibrado para fondo oscuro. */
+.nxr-day .nxr-gradient-text-lime {
+  background: none;
+  -webkit-text-fill-color: currentColor;
+  color: #4d7a12;
+}
+/* El nav flotante y el header viven POR ENCIMA del velo (z-index 9998+) y no
+   deben virar con la página: conservan su cristal oscuro. */
+.nxr-day #nxr-nav,
+.nxr-day #nxr-header,
+.nxr-day #nxr-mobile-menu,
+.nxr-day .nxr-curtain {
+  --c-white: #ffffff;
+  --c-salmon: #ff9d7d;
+  --c-lime: #a8f04a;
+  --c-red: #ef3d0d;
+  --glass-bg: rgba(255, 255, 255, 0.06);
+  --glass-border: rgba(255, 255, 255, 0.12);
+}
+
 /* ===== Cómo trabajamos ===== */
 #nxr-proceso {
   position: relative;

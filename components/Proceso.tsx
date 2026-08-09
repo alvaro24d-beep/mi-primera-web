@@ -1,9 +1,13 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { useTitleReveal } from "@/hooks/useTitleReveal";
+import gsap from "gsap";
+import { ScrollTrigger } from "gsap/ScrollTrigger";
+import { useGSAP } from "@gsap/react";
 import { useGlassPanels } from "@/hooks/useGlassPanels";
-import { useTextScramble } from "@/hooks/useTextScramble";
+import { useReducedMotion } from "@/hooks/useReducedMotion";
+
+gsap.registerPlugin(ScrollTrigger);
 
 const PASOS = [
   {
@@ -85,13 +89,17 @@ const PASOS = [
 // whole session even with the section off-screen, and the user chose to drop
 // the effect rather than gate it.)
 export default function Proceso() {
-  const titleRef = useTitleReveal<HTMLHeadingElement>();
+  const titleRef = useRef<HTMLHeadingElement>(null);
+  const veloRef = useRef<HTMLDivElement>(null);
+  const openingRef = useRef<HTMLDivElement>(null);
+  const leadRef = useRef<HTMLParagraphElement>(null);
   const sectionRef = useRef<HTMLElement>(null);
   const trackRef = useRef<HTMLDivElement>(null);
   const progressRef = useRef<HTMLDivElement>(null);
   const pasoRefs = useRef<(HTMLDivElement | null)[]>([]);
   const tiltRefs = useRef<(HTMLButtonElement | null)[]>([]);
   const [expanded, setExpanded] = useState<number | null>(null);
+  const reducedMotion = useReducedMotion();
 
   // Volumetric fluid-glass behind each step card (flat variant of the
   // Servicios identity). The anchors are the buttons themselves — which is
@@ -100,17 +108,66 @@ export default function Proceso() {
   // under the cursor while the glass stayed unrotated.
   useGlassPanels(sectionRef, ".nxr-paso-card", "#141018", []);
 
-  // Split composition per breakpoint (petición: "en ordenador el párrafo a
-  // la derecha como estaba antes; en móvil debajo del título"):
-  // — Desktop (≥901): original layout/planes — title left on its CSS tier
-  //   (see the min-901 tilt group) + dynamic bow riding the reveal's word
-  //   spans; paragraph right on its own right-edge hook plane.
-  // — Mobile (<901): both stacked inside ONE unified block/plane
-  //   (Contacto-textblock pattern; the h2 keeps useTitleReveal's split via
-  //   splitIgnore and its spans join this block's bow field).
-  // Scramble entrance on the section paragraph (the Intro-paragraph effect,
-  // sitewide per request).
-  useTextScramble(sectionRef, ".nxr-proceso-header-right");
+  // ===== AMANECER (V17.61) =====
+  // La sección abre con el titular SOLO, grande y centrado, sobre el fondo
+  // oscuro de siempre. Al scrollear, un velo fijo lleva la página a gris casi
+  // blanco mientras el titular vira de blanco a negro para mantener el
+  // contraste; cuando el viraje termina, entra el párrafo debajo. El fondo
+  // claro se queda ya hasta el final de la página.
+  //
+  // El velo va FIJO y por debajo de todo el contenido: así el cambio de luz
+  // alcanza a las secciones siguientes (Tech, Contacto) sin que ninguna tenga
+  // que saber nada de él. La legibilidad de esas secciones se resuelve
+  // redefiniendo los tokens de color bajo .nxr-day (ver globals.css), no
+  // tocando sus reglas una a una.
+  useGSAP(
+    () => {
+      const section = sectionRef.current;
+      const velo = veloRef.current;
+      const title = titleRef.current;
+      const lead = leadRef.current;
+      if (!section || !velo || !title || !lead) return;
+
+      const root = document.documentElement;
+      if (reducedMotion) {
+        // Sin scrubs: se entrega el estado final (día + contraste invertido).
+        gsap.set(velo, { opacity: 1 });
+        gsap.set([title, lead], { opacity: 1, y: 0 });
+        root.classList.add("nxr-day");
+        return () => root.classList.remove("nxr-day");
+      }
+
+      gsap.set(velo, { opacity: 0 });
+      gsap.set(lead, { opacity: 0, y: 26 });
+
+      const st = ScrollTrigger.create({
+        trigger: section,
+        start: "top 80%",
+        // El amanecer se consuma en poco menos de una pantalla de scroll: es
+        // un cambio de estado, no una animación para recrearse.
+        end: "top 5%",
+        scrub: 0.8,
+        onUpdate: (self) => {
+          const p = self.progress;
+          gsap.set(velo, { opacity: p });
+          // La clase de día entra a mitad del viraje, que es donde el fondo ya
+          // pesa más que el texto claro; de ahí en adelante manda la paleta
+          // clara en toda la página.
+          if (p > 0.5) root.classList.add("nxr-day");
+          else root.classList.remove("nxr-day");
+          // El párrafo entra DESPUÉS del viraje, no a la vez.
+          const t = Math.min(1, Math.max(0, (p - 0.72) / 0.28));
+          gsap.set(lead, { opacity: t, y: 26 * (1 - t) });
+        },
+      });
+
+      return () => {
+        st.kill();
+        root.classList.remove("nxr-day");
+      };
+    },
+    { scope: sectionRef, dependencies: [reducedMotion] }
+  );
 
   useEffect(() => {
     const track = trackRef.current;
@@ -180,25 +237,29 @@ export default function Proceso() {
 
   return (
     <section id="nxr-proceso" ref={sectionRef}>
+      {/* VELO DE DÍA. Fijo a pantalla completa y por debajo de todo el
+          contenido (pero por encima del canvas), su opacidad la lleva el
+          scroll: la página pasa de noche a día justo aquí y se queda así hasta
+          el final. No es opaco del todo — el muro se sigue intuyendo detrás,
+          como se pidió. */}
+      <div className="nxr-daybreak" ref={veloRef} aria-hidden="true" />
+
+      {/* Momento de apertura: el titular solo, grande y centrado, mientras el
+          fondo amanece; el párrafo entra después, ya con el contraste
+          invertido. */}
+      <div className="nxr-proceso-opening" ref={openingRef}>
+        <h2 className="nxr-proceso-big" ref={titleRef}>
+          Un proceso claro,
+          <br />
+          <span className="nxr-gradient-text-lime">sin sorpresas.</span>
+        </h2>
+        <p className="nxr-proceso-lead" ref={leadRef}>
+          Cada proyecto sigue la misma metodología: entender bien antes de construir, construir rápido y mejorar
+          siempre. Sin reuniones infinitas, sin presupuestos que se disparan. Toca cada paso para ver el detalle.
+        </p>
+      </div>
+
       <div className="nxr-proceso-inner">
-        <div className="nxr-proceso-header nxr-reveal">
-          {/* The plane can't live on the reveal element (it owns `transform`
-              for its entrance) — this inner block carries the flex layout AND
-              the hook-applied plane instead. */}
-          <div className="nxr-proceso-textblock">
-            <div>
-              <h2 className="nxr-section-h2" ref={titleRef}>
-                Un proceso claro,
-                <br />
-                <span className="nxr-gradient-text-lime">sin sorpresas.</span>
-              </h2>
-            </div>
-            <p className="nxr-proceso-header-right">
-              Cada proyecto sigue la misma metodología: entender bien antes de construir, construir rápido y mejorar
-              siempre. Sin reuniones infinitas, sin presupuestos que se disparan. Toca cada paso para ver el detalle.
-            </p>
-          </div>
-        </div>
 
         <div className="nxr-proceso-track" ref={trackRef}>
           <div id="nxr-proceso-progress" ref={progressRef}></div>

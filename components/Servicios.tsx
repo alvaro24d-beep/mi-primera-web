@@ -663,6 +663,16 @@ export default function Servicios() {
       if (headTitle && !headSplit) {
         headSplit = SplitText.create(headTitle, { type: "words, chars" });
         headChars = headSplit.chars as HTMLElement[];
+        // ESTADO BASE EXPLÍCITO — sin esto la frase se ve desde el primer
+        // frame de la página, encima de todo (es position: fixed). Con
+        // `fromTo` + `stagger` + `scrub`, GSAP aplica el `from` a cada
+        // carácter SOLO cuando llega su turno dentro del escalonado; los que
+        // aún no han empezado se quedan en su estado natural del CSS, es
+        // decir, opacidad 1 y sin desenfoque. Con 2.4 de retardo repartido,
+        // eso son casi todos durante casi todo el recorrido: era el origen
+        // real del "se solapan e interfieren entre sí", y también de los
+        // caracteres finales que medían blur 0 cuando debían estar borrosos.
+        gsap.set(headChars, { opacity: 0, filter: "blur(18px)" });
       }
       if (headTitle && headChars.length) {
         gsap
@@ -1515,7 +1525,14 @@ export default function Servicios() {
           const end = start + (st.end - st.start);
           // Fuera del rango completo del momento-frase, O ya pasado el
           // final de su fade-out DENTRO del pin (el fade termina a 1.2·pro).
-          const outside = y < start - window.innerHeight || y > end || y > start + snapPro * 1.3;
+          // El margen de cabeza TIENE que cubrir el arranque del scrub de
+          // aproximación. Al adelantarlo a "top 135%" (V17.55) sin tocar este
+          // 1·vh, quedó una franja de 0.35·vh en la que el clamp declaraba la
+          // frase "fuera" y la apagaba MIENTRAS el scrub la encendía: los dos
+          // escribiendo la misma propiedad en direcciones opuestas. 1.45 deja
+          // holgura por delante del 1.35 real.
+          const head = window.innerHeight * (window.innerWidth > 900 ? 1.45 : 0.85);
+          const outside = y < start - head || y > end || y > start + snapPro * 1.3;
           if (outside) {
             // BUG V17.57 → V17.58: el clamp leía y escribía en headTitle (el
             // contenedor), pero desde que el barrido va por CARACTERES son

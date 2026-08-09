@@ -164,14 +164,28 @@ export default function Intro() {
       };
       window.addEventListener("resize", onResize, { passive: true });
 
+      // Estado "todo apagado", forzado sin esperar al scrub.
+      const forzarOculto = () => {
+        aplicar(titleLines, 1, false, true);
+        aplicar(textLines, 1, false, false);
+      };
+
       const st = ScrollTrigger.create({
         trigger: section,
-        // Todo el paso de la sección por la pantalla. Al estar el contenido
-        // FIJO, este rango no arrastra el texto: solo dice en qué punto del
-        // recorrido va su entrada/meseta/salida.
+        // El rango NO puede llegar hasta "bottom top" (V17.59): la frase de
+        // Servicios es otro elemento FIJO a pantalla completa y arranca 1.35·vh
+        // antes de su pin — que cae justo detrás del final de esta sección. Con
+        // el rango largo, los dos overlays se solapaban ~1.35·vh y se veían
+        // encima el uno del otro. Terminando en "bottom 150%" esta sección se
+        // ha apagado del todo antes de que aquella empiece.
         start: "top bottom",
-        end: "bottom top",
+        end: "bottom 150%",
         scrub: 0.6,
+        // El scrub deja el último valor al salir, y con 0.6s de lag una salida
+        // rápida puede dejarlo a medias — justo lo que deja un overlay fijo
+        // medio encendido sobre la sección siguiente.
+        onLeave: forzarOculto,
+        onLeaveBack: forzarOculto,
         onUpdate: (self) => {
           const p = self.progress;
           // Una sola curva continua, sin tramos: −1 entrando · 0 centrado ·

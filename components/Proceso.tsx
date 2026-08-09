@@ -122,9 +122,10 @@ export default function Proceso() {
   useGSAP(
     () => {
       const section = sectionRef.current;
+      const opening = openingRef.current;
       const title = titleRef.current;
       const lead = leadRef.current;
-      if (!section || !title || !lead) return;
+      if (!section || !opening || !title || !lead) return;
 
       const root = document.documentElement;
       // Blanco -> casi negro, interpolado A LA PAR que el fondo (no con una
@@ -145,9 +146,19 @@ export default function Proceso() {
       gsap.set(lead, { opacity: 0, y: 26 });
 
       const st = ScrollTrigger.create({
-        trigger: section,
-        start: "top 80%",
-        end: "top 5%",
+        // Se PINEA la apertura, no la sección (V17.63): "que primero salga
+        // normal y al llegar al centro de la pantalla se quede sticky
+        // suavemente, y ahí ya se hace el cambio de fondo". Así el bloque
+        // entra scrolleando como cualquier otro, se queda quieto al centrarse
+        // y solo entonces empieza el amanecer.
+        trigger: opening,
+        start: "center center",
+        // Lo que dura el momento: ~90vh de scroll con el bloque parado.
+        end: "+=90%",
+        pin: opening,
+        // Evita el salto de un frame al enganchar el pin.
+        anticipatePin: 1,
+        invalidateOnRefresh: true,
         scrub: 0.8,
         onUpdate: (self) => {
           const p = self.progress;

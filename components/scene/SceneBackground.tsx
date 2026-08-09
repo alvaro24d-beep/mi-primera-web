@@ -390,22 +390,15 @@ const fragmentShader = /* glsl */ `
     // sí y los LEDs/rejilla deben seguir leyéndose (V17.12).
     col *= mix(0.9, uDim, uPower);
 
-    // ===== AMANECER (V17.62) =====
-    // La pantalla NO se tapa con un velo: es ella la que vira. Se invierte el
-    // "camino a negro" de cada píxel — los negros suben a gris claro y lo que
-    // ya brillaba se queda arriba —, así que monitores, biseles, cuadrícula y
-    // vídeo siguen todos ahí, solo que en clave alta. Un mix plano contra un
-    // gris habría aplastado justamente ese relieve.
-    // El factor es cuánto RELIEVE sobrevive: con 0.22 el rango entero se
-    // comprimía a [0.78, 1] y la pantalla se leía casi como un gris plano.
-    // 0.34 la deja en [0.66, 1] — bastante claro, pero con los biseles de los
-    // monitores y la cuadrícula todavía presentes, que es lo que se pidió
-    // ("se tiene que seguir viendo la pantalla").
-    vec3 dia = 1.0 - (1.0 - col) * 0.34;
-    // Un punto de desaturación: en clave alta los tintes del vídeo se vuelven
-    // chillones, y lo que se pidió es un gris claro.
-    dia = mix(vec3(dot(dia, vec3(0.2126, 0.7152, 0.0722))), dia, 0.72);
-    col = mix(col, dia, clamp(uDay, 0.0, 1.0));
+    // ===== FONDO BLANCO (V17.63) =====
+    // "Quita el fondo directamente y pon un fondo blanco, como si pusieras un
+    // vídeo con el fondo blanco". Literal: la pantalla entera va a BLANCO
+    // PLANO, sin relieve que conservar. Va al final del todo, así que se lleva
+    // por delante la viñeta, el marco y el atenuado — si no, los bordes se
+    // quedarían sucios sobre el blanco.
+    // (El aclarado con textura de V17.62 se descartó: era lo contrario de lo
+    // pedido.)
+    col = mix(col, vec3(1.0), clamp(uDay, 0.0, 1.0));
 
     gl_FragColor = vec4(col, 1.0);
   }

@@ -686,7 +686,11 @@ export default function Servicios() {
               // de scroll para el mismo barrido, sin tocar ni el PROLOGUE ni
               // ninguna otra cota del reel. Móvil se queda como estaba: allí
               // la pantalla es más corta y adelantarlo la solaparía con Intro.
-              start: () => (window.innerWidth > 900 ? "top 135%" : "top 70%"),
+              // Móvil 0.7 -> 1.25·vh (V17.63): tras la Intro quedaba un tramo
+              // largo de scroll con la pantalla vacía hasta que la frase
+              // asomaba. Adelantando su arranque, el hueco se llena con la
+              // propia frase apareciendo.
+              start: () => (window.innerWidth > 900 ? "top 135%" : "top 125%"),
               end: "top top",
               scrub: 0.5,
               invalidateOnRefresh: true,
@@ -1531,7 +1535,10 @@ export default function Servicios() {
           // frase "fuera" y la apagaba MIENTRAS el scrub la encendía: los dos
           // escribiendo la misma propiedad en direcciones opuestas. 1.45 deja
           // holgura por delante del 1.35 real.
-          const head = window.innerHeight * (window.innerWidth > 900 ? 1.45 : 0.85);
+          // El margen sigue al start del scrub en CADA breakpoint: si se
+          // queda corto, el clamp apaga la frase mientras el scrub la
+          // enciende (ver V17.59).
+          const head = window.innerHeight * (window.innerWidth > 900 ? 1.45 : 1.35);
           const outside = y < start - head || y > end || y > start + snapPro * 1.3;
           if (outside) {
             // BUG V17.57 → V17.58: el clamp leía y escribía en headTitle (el

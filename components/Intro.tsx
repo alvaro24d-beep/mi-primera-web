@@ -103,6 +103,49 @@ export default function Intro() {
       // viewport) y onSplit vuelve a capturarlas.
       let titleLines: HTMLElement[] = [];
       let textLines: HTMLElement[] = [];
+      // Último estado pintado. autoSplit REHACE los trozos cuando cambia el
+      // ancho o el layout (p. ej. al aparecer el pin de Proceso), y los nuevos
+      // nacen SIN los estilos que llevaban los viejos: el texto se quedaba a
+      // opacidad 1 y reaparecía encima de la sección siguiente. Guardando el
+      // estado se puede repintar en cuanto hay trozos nuevos.
+      let ultimaBase = 1;
+      let ultimoSaliendo = false;
+
+      // Reparte el fundido entre los trozos. `base` es 0 con el texto centrado
+      // y 1 en el extremo; cada trozo arranca su transición desplazado según su
+      // turno, así que el difuminado BARRE en vez de aplicarse de golpe.
+      // `mandaElFinal`: qué extremo lleva la voz — el último trozo (titular) o
+      // el primero (párrafo). Ese extremo es el PRIMERO EN APARECER y también
+      // el PRIMERO EN IRSE, que es lo pedido; y como con una fórmula simétrica
+      // el que se va antes sería justo el que aparece después, el orden se
+      // INVIERTE entre entrada y salida (de ahí el flag `saliendo`).
+      // Declarada ANTES de los splits a propósito: sus onSplit la necesitan
+      // para repintar los trozos recién creados.
+      const aplicar = (lineas: HTMLElement[], base: number, saliendo: boolean, mandaElFinal: boolean) => {
+        const n = lineas.length;
+        for (let i = 0; i < n; i++) {
+          // prio 0 = el trozo que manda.
+          const prio = n === 1 ? 0 : (mandaElFinal ? n - 1 - i : i) / (n - 1);
+          // turno 0 = el más oculto en este instante. Saliendo, el que manda
+          // debe ser el primero en apagarse; entrando, el último en quedar
+          // oculto (o sea, el primero en verse).
+          const turno = saliendo ? prio : 1 - prio;
+          const local = Math.min(1, Math.max(0, (base - turno * SPREAD) / (1 - SPREAD)));
+          const f = smoothstep(local);
+          const el = lineas[i];
+          el.style.opacity = (1 - f).toFixed(3);
+          el.style.filter = f > 0.001 ? `blur(${(f * MAX_BLUR).toFixed(2)}px)` : "none";
+        }
+      };
+
+      // Repinta con el último estado conocido. Se llama en cada onSplit: sin
+      // esto, los trozos que autoSplit rehace nacen a opacidad 1 y el texto
+      // reaparece entero sobre la sección siguiente.
+      const reaplicar = () => {
+        aplicar(titleLines, ultimaBase, ultimoSaliendo, true);
+        aplicar(textLines, ultimaBase, ultimoSaliendo, false);
+      };
+
       // El TITULAR va letra a letra (V17.57). Es corto (~26 unidades), así que
       // el coste de un blur por trozo es asumible; el párrafo se queda por
       // líneas porque ahí serían ~90.
@@ -119,6 +162,7 @@ export default function Intro() {
           titleLines = [...(self.chars as HTMLElement[]), ...acentos].sort((a, b) =>
             a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING ? -1 : 1
           );
+          reaplicar();
         },
       });
       const textsSplit = SplitText.create(texts.querySelectorAll<HTMLElement>(".nxr-intro-text"), {
@@ -126,33 +170,9 @@ export default function Intro() {
         autoSplit: true,
         onSplit: (self) => {
           textLines = self.lines as HTMLElement[];
+          reaplicar();
         },
       });
-
-      // Reparte el fundido entre las líneas. `base` es 0 con el texto centrado
-      // y 1 en el extremo; cada línea arranca su transición desplazada según
-      // su turno, así que el difuminado BARRE en vez de aplicarse de golpe.
-      // `mandaElFinal`: qué extremo lleva la voz — la última línea (titular) o
-      // la primera (párrafo). Ese extremo es el PRIMERO EN APARECER y también
-      // el PRIMERO EN IRSE, que es lo pedido; y como con una fórmula simétrica
-      // el que se va antes sería justo el que aparece después, el orden se
-      // INVIERTE entre entrada y salida (de ahí el flag `saliendo`).
-      const aplicar = (lineas: HTMLElement[], base: number, saliendo: boolean, mandaElFinal: boolean) => {
-        const n = lineas.length;
-        for (let i = 0; i < n; i++) {
-          // prio 0 = la línea que manda.
-          const prio = n === 1 ? 0 : (mandaElFinal ? n - 1 - i : i) / (n - 1);
-          // turno 0 = la más oculta en este instante. Saliendo, la que manda
-          // debe ser la primera en apagarse; entrando, la última en quedar
-          // oculta (o sea, la primera en verse).
-          const turno = saliendo ? prio : 1 - prio;
-          const local = Math.min(1, Math.max(0, (base - turno * SPREAD) / (1 - SPREAD)));
-          const f = smoothstep(local);
-          const el = lineas[i];
-          el.style.opacity = (1 - f).toFixed(3);
-          el.style.filter = f > 0.001 ? `blur(${(f * MAX_BLUR).toFixed(2)}px)` : "none";
-        }
-      };
 
       // Estado de partida (todo oculto) ANTES de destapar los contenedores: el
       // CSS los mantiene a opacidad 0 justamente hasta aquí, así que no hay un
@@ -207,6 +227,9 @@ export default function Intro() {
           // repartido en mucho más scroll.
           const band = saliendo && !horizontal ? READ_OUT_DESKTOP : READ_IN;
           const base = away <= band ? 0 : (away - band) / (1 - band);
+          // Se recuerda para poder repintar si autoSplit rehace los trozos.
+          ultimaBase = base;
+          ultimoSaliendo = saliendo;
           // Titular: manda su ÚLTIMA línea ("trabaje por ti.") — es la primera
           // en mostrarse y la primera en irse. Párrafo: manda la PRIMERA.
           aplicar(titleLines, base, saliendo, true);

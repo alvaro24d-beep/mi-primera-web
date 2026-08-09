@@ -669,12 +669,17 @@ export default function Servicios() {
           .timeline({
             scrollTrigger: {
               trigger: sticky,
-              // Starts while the previous section's cards still occupy the
-              // upper ~70% of the screen; fully bright the moment the pin
-              // engages.
-              start: "top 70%",
+              // El final está clavado donde arranca el pin, así que para que la
+              // frase DURE MÁS solo se puede adelantar el principio. En
+              // escritorio pasa de 0.7·vh a 1.35·vh de recorrido (V17.55, "se
+              // pasa demasiado rápido y no da tiempo a verla"): casi el doble
+              // de scroll para el mismo barrido, sin tocar ni el PROLOGUE ni
+              // ninguna otra cota del reel. Móvil se queda como estaba: allí
+              // la pantalla es más corta y adelantarlo la solaparía con Intro.
+              start: () => (window.innerWidth > 900 ? "top 135%" : "top 70%"),
               end: "top top",
               scrub: 0.5,
+              invalidateOnRefresh: true,
             },
           })
           .fromTo(

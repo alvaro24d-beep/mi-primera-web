@@ -32,11 +32,26 @@ gsap.registerPlugin(ScrollTrigger);
 const TRAVEL_Y = 90; // px, escritorio
 const TRAVEL_X = 150; // px, móvil
 const MAX_BLUR = 10;
-// Tramos: entrada, meseta legible, salida.
-const ENTER_END = 0.28;
-const EXIT_START = 0.72;
 
-const easeInOut = (t: number) => (t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2);
+// (V17.55) Movimiento CONTINUO: los textos ya no se paran en el centro.
+// Antes había una meseta explícita (k = 0 entre dos umbrales) y el texto se
+// quedaba literalmente clavado. Ahora la posición es una única curva sin
+// tramos: p + k·sin(2πp)/2π, cuya derivada es 1 + k·cos(2πp). En el centro
+// vale 1-k, así que con 0.85 el texto cruza el medio al 15% de su velocidad
+// —frena de verdad— pero NUNCA llega a cero, y acelera simétricamente al
+// salir.
+// 0.7 y no más alto: con 0.85 la velocidad del centro caía al 15% y el texto
+// recorría ~7px en el 20% central del scroll — técnicamente en movimiento,
+// pero a simple vista indistinguible de estar parado, que es justo lo que
+// había que evitar. A 0.7 el mínimo es el 30% y el centro se mueve el doble,
+// sin perder la frenada (los extremos van al 170%).
+const SLOW_K = 0.7;
+// Banda alrededor del centro en la que el texto se lee a plena opacidad. Es lo
+// que sustituye a la antigua meseta: el texto sigue moviéndose (despacio)
+// mientras tanto, en vez de estar parado.
+const READ_BAND = 0.4;
+
+const smoothstep = (t: number) => t * t * (3 - 2 * t);
 
 export default function Intro() {
   const sectionRef = useRef<HTMLElement>(null);
@@ -84,14 +99,19 @@ export default function Intro() {
         scrub: 0.6,
         onUpdate: (self) => {
           const p = self.progress;
-          // k: −1 entrando · 0 quieto y legible · +1 saliendo.
-          let k: number;
-          if (p < ENTER_END) k = -(1 - easeInOut(p / ENTER_END));
-          else if (p > EXIT_START) k = easeInOut((p - EXIT_START) / (1 - EXIT_START));
-          else k = 0;
+          // Una sola curva continua, sin tramos: −1 entrando · 0 centrado ·
+          // +1 saliendo. Frena al acercarse al centro y acelera al alejarse,
+          // pero el valor cambia SIEMPRE (nunca hay dos frames iguales).
+          const eased = p + (SLOW_K * Math.sin(2 * Math.PI * p)) / (2 * Math.PI);
+          const k = (eased - 0.5) * 2;
 
+          // Opacidad y desenfoque a plena lectura dentro de READ_BAND y
+          // resolviéndose hacia fuera. Van por su cuenta, desacopladas de la
+          // posición: así el texto puede seguir deslizándose despacio mientras
+          // está perfectamente legible.
           const away = Math.abs(k);
-          const vis = { opacity: 1 - away, filter: `blur(${(away * MAX_BLUR).toFixed(2)}px)` };
+          const fade = away <= READ_BAND ? 0 : smoothstep((away - READ_BAND) / (1 - READ_BAND));
+          const vis = { opacity: 1 - fade, filter: `blur(${(fade * MAX_BLUR).toFixed(2)}px)` };
 
           if (horizontal) {
             // SOLO horizontal. y a 0 explícito: no puede haber ni un píxel de

@@ -28,5 +28,32 @@ export default function RevealInit() {
     // every .nxr-reveal of the next page permanently hidden.
   }, [pathname]);
 
+  // Acentos lima fuera de pantalla: animación PAUSADA (V17.76). El degradado
+  // de .nxr-gradient-text-lime anima `background-position`, que no es una
+  // propiedad componible: el navegador tiene que RE-RASTERIZAR el texto en
+  // cada frame, y con background-clip: text eso es rasterizar glifos, lo más
+  // caro que hay. Cada página tiene varios (hero, Intro, Proceso, Contacto…)
+  // y todos animaban a la vez, todo el rato, estuvieran donde estuvieran.
+  // Pausarlos fuera del viewport no cambia nada visualmente — cuando el
+  // usuario llega, la animación ya está corriendo (margen de 200px) — y deja
+  // como mucho uno o dos vivos en vez de la página entera.
+  useEffect(() => {
+    const els = document.querySelectorAll<HTMLElement>(".nxr-gradient-text-lime");
+    if (!els.length) return;
+    const io = new IntersectionObserver(
+      (entries) => {
+        for (const e of entries) {
+          (e.target as HTMLElement).style.animationPlayState = e.isIntersecting ? "" : "paused";
+        }
+      },
+      { rootMargin: "200px 0px" }
+    );
+    els.forEach((el) => io.observe(el));
+    return () => {
+      io.disconnect();
+      els.forEach((el) => (el.style.animationPlayState = ""));
+    };
+  }, [pathname]);
+
   return null;
 }

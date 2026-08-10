@@ -111,7 +111,6 @@ function toLogoItems(items: typeof STACK_ROW_1, colorOffset: number): LogoItem[]
         </span>
       </span>
     ),
-    ariaLabel: t.name,
   }));
 }
 

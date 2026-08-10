@@ -261,7 +261,17 @@ const fragmentShader = /* glsl */ `
     float vig = smoothstep(1.2, 0.1, d);
 
     vec3 fill;
-    if (uTv > 0.5) {
+    // uPower > 0 en la condición (V17.76, perf): con la pantalla APAGADA del
+    // todo —la hero de la home— tileOn vale 0 en todos los paneles y el
+    // resultado de este bloque lo descarta entero el mix(offCol, fill, tileOn)
+    // (OJO: ni un backtick en este bloque — el shader entero vive dentro de un
+    // template literal de JS y uno solo lo cierra a media cadena.)
+    // de más abajo. Calcularlo igualmente costaba los 3 texture fetch del
+    // split RGB + gamma + saturación por píxel de pantalla, a ~30fps, en la
+    // primera sección que ve el visitante. La condición es UNIFORME (los dos
+    // uniformes valen lo mismo para todos los fragmentos), así que el salto es
+    // coherente para todo el warp y prácticamente gratis.
+    if (uTv > 0.5 && uPower > 0.0) {
       // Chunky pixelation (in the curved UV, so the pixels follow the
       // concave deformation) + RGB split + scanlines = CRT screen.
       vec2 puv = (floor(uvW * uPixel) + 0.5) / uPixel;
@@ -331,19 +341,33 @@ const fragmentShader = /* glsl */ `
     // leve realce) y micro-tinte subpíxel por canal. Se aplica ANTES de
     // sumar la rejilla para no ensuciar sus líneas, y desaparece al
     // encender. (cid se declara aquí y lo reutiliza el parpadeo de abajo.)
+    //
+    // TODO el estado apagado va bajo uPower < 1.0 (V17.76, perf). No es una
+    // aproximación: con la pantalla encendida cada uno de estos términos ya
+    // valía exactamente su neutro (mix(x, y, 0) = x, y las sumas van
+    // multiplicadas por 1.0 - uPower = 0), así que el píxel sale idéntico —
+    // lo único que cambia es que deja de calcularse. Son ~6 hashes
+    // sin/fract, 8 smoothsteps y un grano por píxel de pantalla, a ~30fps,
+    // en TODA la web salvo la hero. La condición es uniforme (mismo valor
+    // para todos los fragmentos), no divergente.
+    // OJO: depende de que uPower llegue a 1.0 EXACTO — su rampa amortiguada
+    // en useFrame hace snap al target por ese motivo; si se quita el snap,
+    // esto se queda encendido para siempre en 0.998 y el ahorro desaparece.
     vec2 cid = floor(g);
-    vec2 cf = fract(g);
-    float cl = fract(sin(dot(cid, vec2(213.7, 152.9))) * 641.3);
-    float well = smoothstep(0.0, 0.28, cf.x) * smoothstep(1.0, 0.72, cf.x)
-               * smoothstep(0.0, 0.34, cf.y) * smoothstep(1.0, 0.66, cf.y);
-    float cellShade = mix(0.82, 1.0, well) * (0.88 + 0.24 * cl);
-    col *= mix(1.0, cellShade, 1.0 - uPower);
-    vec3 subpx = vec3(
-      1.0 + 0.05 * (fract(cl * 7.3) - 0.5),
-      1.0 + 0.05 * (fract(cl * 13.7) - 0.5),
-      1.0 + 0.08 * (fract(cl * 29.1) - 0.5)
-    );
-    col *= mix(vec3(1.0), subpx, 1.0 - uPower);
+    if (uPower < 1.0) {
+      vec2 cf = fract(g);
+      float cl = fract(sin(dot(cid, vec2(213.7, 152.9))) * 641.3);
+      float well = smoothstep(0.0, 0.28, cf.x) * smoothstep(1.0, 0.72, cf.x)
+                 * smoothstep(0.0, 0.34, cf.y) * smoothstep(1.0, 0.66, cf.y);
+      float cellShade = mix(0.82, 1.0, well) * (0.88 + 0.24 * cl);
+      col *= mix(1.0, cellShade, 1.0 - uPower);
+      vec3 subpx = vec3(
+        1.0 + 0.05 * (fract(cl * 7.3) - 0.5),
+        1.0 + 0.05 * (fract(cl * 13.7) - 0.5),
+        1.0 + 0.08 * (fract(cl * 29.1) - 0.5)
+      );
+      col *= mix(vec3(1.0), subpx, 1.0 - uPower);
+    }
 
     col += uGlowCol * glow * 0.10 * uPower;
     // Apagada, la cuadrícula sube a 0.16 (V17.13, "que se vea que está
@@ -357,6 +381,7 @@ const fragmentShader = /* glsl */ `
     // claras, cada una con su fase y velocidad propias. Solo apagada
     // (factor 1-uPower); mientras tanto el vídeo sigue decodificando detrás
     // y su rVFC invalida ~30fps, así que la animación corre sola.
+    if (uPower < 1.0) {
     float ch = fract(sin(dot(cid, vec2(419.2, 371.9))) * 833.7);
     // chd (V17.36): hash RE-ESPARCIDO para velocidad/fase. El propio ch no
     // sirve — las celdas elegidas viven en [0.92,1) por construcción, así
@@ -409,6 +434,7 @@ const fragmentShader = /* glsl */ `
     // redefinición rompía la compilación del programa entero, V17.19.)
     float grain = fract(sin(dot(gl_FragCoord.xy + vec2(uTime * 60.0, 0.0), vec2(12.9898, 78.233))) * 43758.5453);
     col += vec3((grain - 0.5) * 0.006 * offL) * offAmt;
+    }
     // Deep dark gaps between the monitor tiles — applied AFTER glow/grid so
     // the separators cut through everything, like real bezels.
     col = mix(col, col * 0.16, sep);
@@ -1071,11 +1097,19 @@ export default function SceneBackground({
       const pPrev = powerRef.current;
       // 0.07 (V17.12): rampa algo más larga (~0.8s) para que la cascada de
       // paneles encendiéndose con su fallo digital se pueda LEER.
-      const pNext = pPrev === null ? pTarget : pPrev + (pTarget - pPrev) * 0.07;
+      let pNext = pPrev === null ? pTarget : pPrev + (pTarget - pPrev) * 0.07;
+      // SNAP al target (V17.76). Una amortiguación así es asintótica: se
+      // quedaba clavada en ~0.998 y nunca alcanzaba el 1.0. Da igual a la
+      // vista, pero el shader ahora se salta TODO el bloque de pantalla
+      // apagada con `uPower < 1.0`, y ese salto solo ocurre con el valor
+      // EXACTO — sin esto, la web entera seguiría calculando por píxel un
+      // estado apagado que ya no se ve. Mismo patrón que la rampa de
+      // uSwitch de más abajo.
+      if (Math.abs(pTarget - pNext) <= 0.002) pNext = pTarget;
       powerRef.current = pNext;
       matV.uniforms.uPower.value = pNext;
       // Sigue invalidando mientras la rampa no asiente (modo demand).
-      if (pPrev !== null && Math.abs(pTarget - pNext) > 0.002) invalidate();
+      if (pPrev !== null && pNext !== pTarget) invalidate();
 
       // ===== Cambio de vídeo por paneles (V17.22): rampa de uSwitch =====
       // Misma amortiguación que el power; al asentar en 1 dispara el

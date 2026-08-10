@@ -35,7 +35,7 @@ const DEG2RAD = Math.PI / 180;
 // under wherever Servicios.tsx's matching anchor div currently sits on
 // screen. Width/height/style change rarely (resize, or once at mount), so
 // those go through real React state instead of being read every frame.
-function CardSlot({ id, isMobile }: { id: number; isMobile: boolean }) {
+function CardSlot({ id }: { id: number }) {
   const groupRef = useRef<THREE.Group>(null);
   const { size } = useThree();
   const [dims, setDims] = useState({ width: 560, height: 373 });
@@ -181,11 +181,14 @@ function CardSlot({ id, isMobile }: { id: number; isMobile: boolean }) {
   );
 }
 
-export default function ServiciosCardsLayer({ isMobile }: { isMobile: boolean }) {
+// Sin prop `isMobile` (V17.76): la diferencia móvil/escritorio de estas cards
+// vive en constantes del módulo (SRV_TRANSMISSION, samples), no en la prop —
+// que llegaba desde SceneCanvas sin que nadie la leyera.
+export default function ServiciosCardsLayer() {
   return (
     <>
       {Array.from({ length: MAX_CARDS }, (_, i) => (
-        <CardSlot key={i} id={i} isMobile={isMobile} />
+        <CardSlot key={i} id={i} />
       ))}
     </>
   );

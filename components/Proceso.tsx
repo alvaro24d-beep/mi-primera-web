@@ -120,9 +120,21 @@ export default function Proceso() {
     const pasos = pasoRefs.current.filter(Boolean) as HTMLDivElement[];
     const totalPasos = pasos.length;
     let isMobile = window.innerWidth <= 900;
+    // Ancho de la pista cacheado (V17.76). `offsetWidth` es una LECTURA DE
+    // LAYOUT y estaba dentro del handler de scroll: en esta sección el DOM
+    // llega sucio a cada frame (Lenis mueve el scroll, GSAP anima arriba),
+    // así que leerlo obligaba a recalcular el layout ANTES de poder
+    // responder — y justo después se escribía la barra, ensuciándolo otra
+    // vez. Solo cambia con el tamaño de la ventana, que es cuando se relee.
+    let trackW = track.offsetWidth;
+    // Último ancho pintado: la barra es un elemento absoluto de 1px de alto,
+    // pero escribir el mismo valor 60 veces por segundo sigue invalidando su
+    // estilo y su pintado para nada.
+    let lastW = -1;
 
     function onWindowResize() {
       isMobile = window.innerWidth <= 900;
+      trackW = track!.offsetWidth;
     }
     window.addEventListener("resize", onWindowResize, { passive: true });
 
@@ -140,8 +152,31 @@ export default function Proceso() {
       pasos.forEach((paso) => io!.observe(paso));
     }
 
+    // Puerta de proximidad (V17.76). Este handler está enganchado al scroll
+    // GLOBAL, así que corría en cada frame de scroll de TODA la página —
+    // incluida la hero, ZoomParallax o Contacto, donde no hay nada que
+    // actualizar— y su primera línea era un getBoundingClientRect, es decir,
+    // un recálculo de layout forzado contra un DOM que GSAP y Lenis acababan
+    // de ensuciar. Con el observador, fuera de la sección el handler cuesta
+    // una comparación booleana. El margen de 400px garantiza que al entrar ya
+    // esté actualizado (y el propio callback dispara un onScroll).
+    let cerca = false;
+    let ioNear: IntersectionObserver | undefined;
+    if ("IntersectionObserver" in window) {
+      ioNear = new IntersectionObserver(
+        ([entry]) => {
+          cerca = entry.isIntersecting;
+          if (cerca) onScroll();
+        },
+        { rootMargin: "400px 0px" }
+      );
+      ioNear.observe(track);
+    } else {
+      cerca = true;
+    }
+
     function onScroll() {
-      if (isMobile) return;
+      if (isMobile || !cerca) return;
 
       const rect = track!.getBoundingClientRect();
       const vh = window.innerHeight;
@@ -149,9 +184,12 @@ export default function Proceso() {
       const end = vh * 0.3;
       const p = Math.max(0, Math.min(1, (start - rect.top) / (start - end + rect.height * 0.2)));
 
-      const maxW = track!.offsetWidth * 0.8 - 8;
-      const calculatedWidth = p * maxW;
-      progress!.style.width = `${calculatedWidth}px`;
+      const maxW = trackW * 0.8 - 8;
+      const calculatedWidth = Math.round(p * maxW);
+      if (calculatedWidth !== lastW) {
+        lastW = calculatedWidth;
+        progress!.style.width = `${calculatedWidth}px`;
+      }
 
       pasos.forEach((paso, i) => {
         const threshold = (i / (totalPasos - 1)) * 0.9;
@@ -175,6 +213,7 @@ export default function Proceso() {
       window.removeEventListener("scroll", onScroll);
       window.removeEventListener("resize", onScroll);
       io?.disconnect();
+      ioNear?.disconnect();
     };
   }, []);
 

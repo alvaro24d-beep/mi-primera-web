@@ -400,9 +400,17 @@ function AppAnim() {
 // estos nombres exactos; si alguno falta, la transición se aborta sola y el
 // muro conserva el clip que tuviera — se pueden ir soltando de uno en uno.
 // Mismos clips (landscape) en móvil: el cover-crop del shader los encuadra.
+// `null` = sin clip propio: el muro vuelve a su vídeo por defecto (ya
+// descargado y decodificándose) en vez de pedir un archivo que no existe.
+// Agentes IA está así a propósito (V17.76):
+// su /bg-servicio-ia.mp4 nunca se subió, y apuntar a él salía CARO — el
+// gestor de SceneBackground creaba un <video>, esperaba el 404, abortaba la
+// cascada y ARRANCABA UNA SEGUNDA transición de vuelta al clip por defecto,
+// con su descarga incluida, cada vez que la card tomaba el centro. Cuando el
+// archivo exista, basta con volver a poner su ruta aquí.
 const SERVICE_VIDEOS: (string | null)[] = [
   "/bg-servicio-web.mp4",
-  "/bg-servicio-ia.mp4",
+  null,
   "/bg-servicio-auto.mp4",
   "/bg-servicio-seo.mp4",
   "/bg-servicio-apps.mp4",
@@ -412,18 +420,17 @@ const setWallVideo = (src: string | null) => {
   window.dispatchEvent(new CustomEvent("nxr:wall-video", { detail: { src } }));
 };
 
+// (V17.76: cada entrada tenía además un `icon` con su SVG inline. La card del
+// reel es una PANTALLA desde el rediseño — solo muestra su mini-animación —,
+// así que ni GlassCard ni Caption lo renderizaban: cinco árboles de elementos
+// React construidos al evaluar el módulo y retenidos para nada. Los iconos de
+// servicio siguen donde sí se ven: el desplegable del nav, en Header.tsx.)
 const CARDS = [
   {
     tag: "Desarrollo web",
     title: "Web experiencial.",
     desc: "Diseñamos y desarrollamos sitios web a medida con rendimiento real, experiencia de usuario cuidada y arquitectura pensada para escalar. Sin plantillas. Sin límites.",
     pills: ["Landing", "Portales corporativos", "E-com", "SaaS"],
-    icon: (
-      <svg viewBox="0 0 24 24">
-        <rect x="3" y="3" width="18" height="18" rx="3" />
-        <path d="M3 9h18M9 21V9" />
-      </svg>
-    ),
     anim: <Web3DAnim />,
     cta: "Quiero mi web",
     href: "/desarrollo-web/",
@@ -433,12 +440,6 @@ const CARDS = [
     title: "Agentes que trabajan por ti, 24/7.",
     desc: "Asistentes inteligentes conectados a tus herramientas que atienden clientes, gestionan citas y ejecutan tareas sin intervención humana.",
     pills: ["WhatsApp", "Web chat", "Email", "CRM"],
-    icon: (
-      <svg viewBox="0 0 24 24">
-        <circle cx="12" cy="12" r="3" />
-        <path d="M12 3v2M12 19v2M3 12h2M19 12h2M5.6 5.6l1.4 1.4M16.9 16.9l1.5 1.5M5.6 18.4l1.4-1.4M16.9 7.1l1.5-1.5" />
-      </svg>
-    ),
     anim: <ChatAnim />,
     cta: "Activar mi agente",
     href: "/agentes-ia/",
@@ -448,12 +449,6 @@ const CARDS = [
     title: "Flujos que eliminan el trabajo repetitivo.",
     desc: "Conectamos tus apps y automatizamos procesos con n8n para que tu equipo dedique su tiempo a lo que importa.",
     pills: ["n8n", "CRM", "Facturación", "Reportes"],
-    icon: (
-      <svg viewBox="0 0 24 24">
-        <path d="M12 3L3 8.5v7L12 21l9-5.5v-7L12 3z" />
-        <path d="M12 12l9-3.5M12 12L3 8.5M12 12v9" />
-      </svg>
-    ),
     anim: <FlowAnim />,
     cta: "Automatizar ahora",
     href: "/automatizaciones/",
@@ -463,13 +458,6 @@ const CARDS = [
     title: "Visibilidad real en Google.",
     desc: "Estrategia SEO técnica y de contenido para que tus clientes te encuentren cuando te necesitan.",
     pills: ["SEO técnico", "Contenido", "Local SEO", "Auditorías"],
-    icon: (
-      <svg viewBox="0 0 24 24">
-        <circle cx="11" cy="11" r="7" />
-        <path d="M16.5 16.5L21 21" />
-        <path d="M11 8v6M8 11h6" />
-      </svg>
-    ),
     anim: <SeoAnim />,
     cta: "Subir posiciones",
     href: "/seo-posicionamiento/",
@@ -479,12 +467,6 @@ const CARDS = [
     title: "Software a medida para tu negocio.",
     desc: "Desarrollamos aplicaciones web y móviles que resuelven el problema exacto de tu empresa, integradas con tu ecosistema actual.",
     pills: ["Web apps", "APIs REST", "Integraciones", "Dashboards"],
-    icon: (
-      <svg viewBox="0 0 24 24">
-        <rect x="5" y="2" width="14" height="20" rx="2" />
-        <path d="M12 18h.01" />
-      </svg>
-    ),
     anim: <AppAnim />,
     cta: "Crear mi app",
     href: "/apps-software/",
@@ -1695,15 +1677,70 @@ export default function Servicios() {
           sectionVisible = self.isActive;
         },
       });
+      // Estado del frame anterior para saber si algo se movió DE VERDAD
+      // (V17.76). Las dos lecturas son baratas: la x del track sale de la
+      // caché de GSAP (no toca el DOM) y scrollY lo lee Lenis en este mismo
+      // frame de todos modos.
+      let lastTrackX = NaN;
+      let lastScrollY = NaN;
+      let idleFrames = 0;
       const idleTick = () => {
         if (!sectionVisible) return;
+        // ¿Se ha movido el reel o la página desde el frame anterior? Si no,
+        // los rects de las 5 slides son EXACTAMENTE los mismos que ya se
+        // leyeron, y updateSpiral solo puede llegar a las mismas
+        // conclusiones: 6 getBoundingClientRect por frame para nada. Cubre
+        // los dos motores que sí mueven el reel — el scroll y la cola del
+        // scrub (0.5s de lag), que sigue escribiendo la x del track después
+        // del último evento de scroll.
+        const trackX = Number(gsap.getProperty(track, "x")) || 0;
+        const scrollY = window.scrollY;
+        // Dos preguntas distintas: `layoutMovido` decide si hay que releer
+        // los rects (lo caro), `enMovimiento` decide si este frame se pinta.
+        const layoutMovido = trackX !== lastTrackX || scrollY !== lastScrollY;
+        let enMovimiento = layoutMovido;
+        lastTrackX = trackX;
+        lastScrollY = scrollY;
+        // Los easings del cursor también cuentan como movimiento: el tilt de
+        // hover y la inclinación ambiente responden al ratón sin que la
+        // página se mueva ni un píxel, y a media cadencia tardarían el doble
+        // en asentar (se leería como un seguimiento blando). Comparar cinco
+        // pares de números es gratis al lado de lo que evita.
+        if (!enMovimiento) {
+          if (
+            Math.abs(mouseTarget.nx - mouseCurrent.nx) > 0.001 ||
+            Math.abs(mouseTarget.ny - mouseCurrent.ny) > 0.001
+          ) {
+            enMovimiento = true;
+          } else {
+            for (let i = 0; i < cards.length; i++) {
+              if (
+                Math.abs(hoverTarget[i].rotX - live[i].rotationX) > 0.01 ||
+                Math.abs(hoverTarget[i].rotY - live[i].rotationY) > 0.01 ||
+                Math.abs(hoverTarget[i].z - live[i].z) > 0.05
+              ) {
+                enMovimiento = true;
+                break;
+              }
+            }
+          }
+        }
+        // Parado, la ÚNICA animación viva es la microderiva de abajo (±2° de
+        // yaw con periodo de ~11s) más el easing del hover: a media cadencia
+        // son indistinguibles, y se ahorra la mitad de los gsap.set 3D y de
+        // las escrituras al registro. En cuanto algo se mueve se vuelve a
+        // 60fps, que es donde importa — ahí el cristal WebGL tiene que ir
+        // pegado a su ancla el mismo frame.
+        if (!enMovimiento && (idleFrames++ & 1)) return;
         // Keep the drum values glued to the LIVE rects even when the scroll
         // itself is idle — the pin's scrub tween (and a paging glide's
         // settling tail) keeps moving the track after the last scroll
         // event, and this is what makes that tail animate smoothly instead
         // of freezing and then jumping (see updateSpiral's comment). The
         // loop below pushes every card afterwards, so no double-push.
-        updateSpiral();
+        // Esa cola ENTRA por `layoutMovido`: mientras el scrub siga escribiendo
+        // la x del track, el rect se relee cada frame igual que antes.
+        if (layoutMovido) updateSpiral();
         mouseCurrent.nx += (mouseTarget.nx - mouseCurrent.nx) * 0.06;
         mouseCurrent.ny += (mouseTarget.ny - mouseCurrent.ny) * 0.06;
         const t = gsap.ticker.time;

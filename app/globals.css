@@ -149,30 +149,13 @@ p.nxr-hero-mastery-line {
   font-weight: 400;
 }
 
-.nxr-container,
-.nxr-inner {
-  width: 100%;
-  max-width: var(--max-w);
-  margin: 0 auto;
-  padding: 0 var(--pad-x);
-}
-
-/* Glass base */
-.nxr-glass {
-  background: var(--glass-bg);
-  border: 1px solid var(--glass-border);
-  backdrop-filter: var(--glass-blur);
-  border-radius: var(--radius-lg);
-  box-shadow: var(--glass-shine);
-}
-
-.nxr-glass-border {
-  border: 1px solid transparent;
-  background-image: linear-gradient(var(--glass-bg), var(--glass-bg)),
-    var(--glass-border-gradient);
-  background-origin: border-box;
-  background-clip: padding-box, border-box;
-}
+/* (V17.76 — limpieza. Aquí vivían `.nxr-container`/`.nxr-inner` (contenedores
+   genéricos: cada sección acabó definiendo el suyo, `.nxr-*-inner`), `.nxr-glass`
+   (la base de cristal CSS: las superficies grandes son mallas WebGL desde la
+   migración a la escena R3F, y el chrome pequeño usa `.nxr-glass-edge`) y
+   `.nxr-glass-border` (sustituida por el borde con máscara de `.nxr-glass-edge`).
+   Ninguna tenía un solo consumidor en el TSX. Las variables --glass-* siguen
+   vivas: las usa `.nxr-glass-edge` y varias secciones.) */
 
 /* Borde degradado glass reutilizable: agregar a cualquier elemento con
    su propio border-radius. Si el contenido debe quedar sobre el borde,
@@ -202,17 +185,9 @@ p.nxr-hero-mastery-line {
   z-index: 2;
 }
 
-.nxr-section-label {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 11px;
-  font-weight: 600;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  color: var(--c-lime);
-  margin-bottom: 16px;
-}
+/* (V17.76: `.nxr-section-label` eliminada — era el sobretítulo de sección, y
+   la directiva de diseño de la casa es CERO sobretítulos, así que ninguna
+   sección la usaba ya.) */
 
 .nxr-section-h2 {
   font-size: clamp(32px, 4.5vw, 56px);
@@ -269,8 +244,8 @@ p.nxr-hero-mastery-line {
    son ms enteros. Apagado hasta que RevealInit añade .nxr-visible; el
    cambio es instantáneo (backdrop-filter no está en la transición) y ocurre
    con el elemento todavía a opacity 0, así que nunca se ve. */
-.nxr-reveal:not(.nxr-visible) :is(.nxr-glass, .nxr-glass-edge, .nxr-ms-step-dot, .nxr-ms-next, .nxr-paso-num, .nxr-tech-card),
-.nxr-reveal:not(.nxr-visible):is(.nxr-glass, .nxr-glass-edge) {
+.nxr-reveal:not(.nxr-visible) :is(.nxr-glass-edge, .nxr-ms-step-dot, .nxr-ms-next, .nxr-paso-num, .nxr-tech-card),
+.nxr-reveal:not(.nxr-visible):is(.nxr-glass-edge) {
   backdrop-filter: none;
 }
 .nxr-reveal-delay-1 {
@@ -475,11 +450,8 @@ p.nxr-hero-mastery-line {
    SplitText. Plain `color` has none of those failure modes: the reveal, the
    bow and the perspective planes all compose freely. Class names are kept so
    no JSX changes anywhere. */
-.nxr-gradient-text {
-  display: inline-block;
-  padding-bottom: 0.32em;
-  color: var(--c-salmon);
-}
+/* (V17.76: la variante sin sufijo, `.nxr-gradient-text`, se eliminó — todos
+   los acentos del sitio son -lime o -salmon.) */
 
 .nxr-gradient-text-lime {
   display: inline-block;
@@ -497,7 +469,6 @@ p.nxr-hero-mastery-line {
    (see the `h1, h2, h3` rule below) since they're always nested inside a
    heading — declared explicitly too so they're correct even if ever used
    outside one. */
-.nxr-gradient-text,
 .nxr-gradient-text-lime,
 .nxr-gradient-text-salmon {
   /* Follow the PARENT heading's family/weight: Rajdhani in normal titles,
@@ -542,7 +513,6 @@ p.nxr-hero-mastery-line {
     --section-pad: 40px;
   }
 
-  .nxr-section-label,
   .nxr-section-h2 {
     text-align: left !important;
   }
@@ -568,10 +538,6 @@ p.nxr-hero-mastery-line {
   .nxr-proceso-header-right,
   .nxr-tech-header-right {
     max-width: 100%;
-    text-align: left !important;
-  }
-
-  .nxr-resultados-inner > .nxr-reveal {
     text-align: left !important;
   }
 }
@@ -2005,46 +1971,12 @@ p.nxr-hero-mastery-line {
   }
 }
 
-.nxr-srv-icon {
-  width: 48px;
-  height: 48px;
-  border-radius: 14px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-}
-
-.nxr-srv-icon svg {
-  width: 22px;
-  height: 22px;
-  stroke: currentColor;
-  fill: none;
-  stroke-width: 1.8;
-  stroke-linecap: round;
-  stroke-linejoin: round;
-}
-
-.nxr-srv-card:nth-child(1) .nxr-srv-icon {
-  background: rgba(239, 61, 13, 0.15);
-  color: var(--c-red);
-}
-.nxr-srv-card:nth-child(2) .nxr-srv-icon {
-  background: rgba(168, 240, 74, 0.12);
-  color: var(--c-lime);
-}
-.nxr-srv-card:nth-child(3) .nxr-srv-icon {
-  background: rgba(255, 157, 125, 0.12);
-  color: var(--c-salmon);
-}
-.nxr-srv-card:nth-child(4) .nxr-srv-icon {
-  background: rgba(168, 240, 74, 0.12);
-  color: var(--c-lime);
-}
-.nxr-srv-card:nth-child(5) .nxr-srv-icon {
-  background: rgba(239, 61, 13, 0.15);
-  color: var(--c-red);
-}
+/* (V17.76: las 7 reglas de `.nxr-srv-icon` — pastilla del icono por card, su
+   svg y los cinco acentos por nth-child — eliminadas. La card del reel muestra
+   SOLO su mini-animación desde que se rediseñó como "pantalla" (V16.x); el
+   icono del servicio dejó de renderizarse entonces y el `icon` de CARDS en
+   Servicios.tsx tampoco se pinta. Los colores de acento siguen en las tarjetas
+   del nav y en el resto de secciones.) */
 
 .nxr-srv-tag {
   font-size: 13px;
@@ -5883,30 +5815,10 @@ input[type="range"].nxr-ms-range::-moz-range-thumb {
   color: rgba(255, 255, 255, 0.6);
 }
 
-.nxr-dwh-scrollhint {
-  position: absolute;
-  bottom: 22px;
-  left: 0;
-  right: 0;
-  text-align: center;
-  font-size: 12px;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: rgba(255, 255, 255, 0.35);
-  animation: nxr-dwh-bounce 2s ease-in-out infinite;
-}
-
-@keyframes nxr-dwh-bounce {
-  0%,
-  100% {
-    transform: translateY(0);
-    opacity: 0.35;
-  }
-  50% {
-    transform: translateY(6px);
-    opacity: 0.7;
-  }
-}
+/* (V17.76: `.nxr-dwh-scrollhint` y su @keyframes `nxr-dwh-bounce` eliminados.
+   Era el indicador de scroll propio de /desarrollo-web, sustituido en V16.85
+   por el `.nxr-scrollcue` compartido con /agentes-ia; se quedó sin markup pero
+   con una animación infinita declarada.) */
 
 /* prefers-reduced-motion fallback: static grid, no pinned scroll/WebGL/GSAP. */
 .nxr-dwh-static {
@@ -7473,11 +7385,31 @@ input[type="range"].nxr-ms-range::-moz-range-thumb {
    cristal siguen los rects vivos del DOM, así que acompañan la deriva solas.
    Solo puntero fino (desktop); con reduced motion el driver no escribe las
    vars y el translate queda en 0. */
+
+/* Registrar las dos variables (V17.76, perf). Una custom property sin
+   @property es un token de TEXTO sin tipo: al reescribirla en :root —y aquí
+   se reescribe en cada frame en que el ratón se mueve— el navegador tiene que
+   invalidar el estilo de todo lo que pueda heredarla, o sea el documento
+   entero. Declarándola como <length> tipada, el motor sabe que es un valor
+   computable e independiente y puede acotar la invalidación a quienes de
+   verdad la usan (los contenedores de aquí abajo). El initial-value además
+   hace innecesarios los fallbacks `var(--drift-x, 0px)`, que se dejan por si
+   el navegador no soporta @property. */
+@property --drift-x {
+  syntax: "<length>";
+  inherits: true;
+  initial-value: 0px;
+}
+@property --drift-y {
+  syntax: "<length>";
+  inherits: true;
+  initial-value: 0px;
+}
+
 @media (pointer: fine) {
   .nxr-hero-center,
   .nxr-hero-mastery,
   .nxr-intro-inner,
-  .nxr-zp-layers,
   .nxr-proceso-inner,
   .nxr-tech-inner,
   .nxr-contacto-inner,

@@ -83,13 +83,22 @@ export default function RootLayout({
             but below Header/the floating nav (z-index 9998/9999) — content
             scrolling underneath fades/blurs progressively instead of being
             clipped abruptly by that fixed chrome. */}
-        {/* divCount 3 (component default is 5): each div is a full-width
-            backdrop-filter layer the compositor re-blurs on EVERY canvas
-            frame — 10 permanent blur passes total were a measurable
-            steady-state GPU cost. 3 bands across 2.5rem are visually
-            indistinguishable from 5. */}
-        <GradualBlur position="top" height="2.5rem" strength={1.5} divCount={3} target="page" />
-        <GradualBlur position="bottom" height="2.5rem" strength={1.4} divCount={3} target="page" />
+        {/* divCount 2 (component default is 5; aquí fue 3 hasta V17.76): cada
+            div es una capa con backdrop-filter que el compositor rehace en
+            CADA frame del canvas — y el canvas repinta ~30 veces por segundo
+            en toda la web, así que estas bandas son coste permanente, no
+            ocasional. Lo caro de un backdrop-filter no son sus píxeles (son
+            40px de alto) sino el readback y la capa extra por div, de modo
+            que el ahorro va con el NÚMERO de capas: 6 → 4. Sobre 2.5rem, dos
+            escalones de desenfoque siguen leyéndose como un degradado. */}
+        {/* strength recalibrado al bajar de 3 capas a 2 (1.5→2 y 1.4→1.87):
+            el desenfoque de la capa más externa es 0.0625·(divCount+1)·strength
+            rem, así que sin tocarlo el borde habría quedado MENOS difuminado
+            que antes. Con estos valores el máximo sigue siendo exactamente el
+            mismo (0.375rem arriba, 0.35rem abajo) y lo único que cambia es que
+            se llega a él en dos escalones en vez de tres. */}
+        <GradualBlur position="top" height="2.5rem" strength={2} divCount={2} />
+        <GradualBlur position="bottom" height="2.5rem" strength={1.87} divCount={2} />
         <Header />
         {children}
       </body>

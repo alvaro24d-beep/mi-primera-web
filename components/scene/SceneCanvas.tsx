@@ -318,9 +318,9 @@ export default function SceneCanvas() {
           active={active}
           portrait={isPortrait}
         />
-        <ServiciosCardsLayer isMobile={isMobile} />
+        <ServiciosCardsLayer />
         <ZoomParallaxCardsLayer isMobile={isMobile} />
-        <GlassPanelsLayer isMobile={isMobile} />
+        <GlassPanelsLayer />
         {!isMobile && (
           // multisampling 0 (library default: 8, then 2): MSAA on a
           // fullscreen 1.25-DPR buffer was the single most expensive setting
@@ -330,7 +330,17 @@ export default function SceneCanvas() {
           // last 2x unlocked the 60fps budget in the Servicios stretch
           // (p50 33.3ms → 16.7ms measured).
           <EffectComposer multisampling={0}>
-            <Bloom mipmapBlur luminanceThreshold={0.6} luminanceSmoothing={0.3} intensity={0.35} />
+            {/* resolutionScale 0.5 (V17.76): el bloom es el único efecto con
+                cadena de pases PROPIA — Vignette se fusiona en el EffectPass
+                final y sale casi gratis, pero mipmapBlur baja y sube una
+                pirámide de mipmaps, así que su coste va con el área del
+                buffer de partida. A media resolución esa pirámide cuesta la
+                CUARTA parte y el resultado es indistinguible: lo que produce
+                es un halo difuso de varios píxeles de radio, que es
+                exactamente lo que sobrevive a un reescalado. Es el ahorro de
+                GPU más grande disponible sin tocar dpr (y sin tocar dpr, la
+                silueta de las cards de cristal se mantiene igual de limpia). */}
+            <Bloom mipmapBlur resolutionScale={0.5} luminanceThreshold={0.6} luminanceSmoothing={0.3} intensity={0.35} />
             <Vignette eskil={false} offset={0.25} darkness={0.55} />
           </EffectComposer>
         )}

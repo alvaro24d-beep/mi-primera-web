@@ -15,7 +15,7 @@ import { nearSections, canvasBox } from "@/store/sceneActivity";
 // useFrame: a first version updated dims that way and the state update was
 // silently dropped, leaving the mesh frozen at its default size while a
 // ref-based gate prevented any retry.
-function PanelSlot({ panel, isMobile }: { panel: GlassPanel; isMobile: boolean }) {
+function PanelSlot({ panel }: { panel: GlassPanel }) {
   const groupRef = useRef<THREE.Group>(null);
   const { size } = useThree();
   const lastOpacity = useRef(1);
@@ -108,14 +108,16 @@ function PanelSlot({ panel, isMobile }: { panel: GlassPanel; isMobile: boolean }
   );
 }
 
-export default function GlassPanelsLayer({ isMobile }: { isMobile: boolean }) {
+// Sin prop `isMobile` (V17.76): se pasaba desde SceneCanvas y no la leía
+// nadie — estos paneles usan los mismos ajustes en móvil y escritorio.
+export default function GlassPanelsLayer() {
   // Reactive subscription is fine here: the list only changes on section
   // mount/unmount, not per frame.
   const panels = useGlassPanelsRegistry((s) => s.panels);
   return (
     <>
       {panels.map((p) => (
-        <PanelSlot key={p.id} panel={p} isMobile={isMobile} />
+        <PanelSlot key={p.id} panel={p} />
       ))}
     </>
   );

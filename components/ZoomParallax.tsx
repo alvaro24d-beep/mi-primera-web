@@ -260,7 +260,29 @@ export default function ZoomParallax() {
     let reelSticky: HTMLElement | null | undefined;
     let lastReelFade = "__";
 
+    // Puerta de proximidad (V17.76): igual que en Proceso. Este handler está
+    // enganchado al scroll global y arrancaba con un getBoundingClientRect de
+    // la sección + hasta 7 rects de las cards en CADA frame de scroll de la
+    // página entera, también estando a cuatro pantallas de distancia. El
+    // margen de una pantalla completa cubre de sobra el handoff del reel
+    // (empieza con rect.top ≈ 0.95·vh) y el disparo del typewriter.
+    let cerca = false;
+    let ioNear: IntersectionObserver | undefined;
+    if ("IntersectionObserver" in window) {
+      ioNear = new IntersectionObserver(
+        ([entry]) => {
+          cerca = entry.isIntersecting;
+          if (cerca) onScroll();
+        },
+        { rootMargin: `${Math.round(window.innerHeight)}px 0px` }
+      );
+      ioNear.observe(section);
+    } else {
+      cerca = true;
+    }
+
     function onScroll() {
+      if (!cerca) return;
       const vh = window.innerHeight;
       const isMobile = window.innerWidth <= 768;
 
@@ -561,6 +583,7 @@ export default function ZoomParallax() {
     return () => {
       window.removeEventListener("scroll", onScroll);
       window.removeEventListener("resize", onScroll);
+      ioNear?.disconnect();
       window.clearInterval(twTimer);
       caret.remove();
       if (reelSticky) reelSticky.style.opacity = "";

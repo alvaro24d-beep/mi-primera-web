@@ -1,14 +1,9 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import gsap from "gsap";
-import { ScrollTrigger } from "gsap/ScrollTrigger";
-import { useGSAP } from "@gsap/react";
+import { useTitleReveal } from "@/hooks/useTitleReveal";
 import { useGlassPanels } from "@/hooks/useGlassPanels";
-import { useReducedMotion } from "@/hooks/useReducedMotion";
-import { wallDay } from "@/store/sceneActivity";
-
-gsap.registerPlugin(ScrollTrigger);
+import { useTextScramble } from "@/hooks/useTextScramble";
 
 const PASOS = [
   {
@@ -90,16 +85,13 @@ const PASOS = [
 // whole session even with the section off-screen, and the user chose to drop
 // the effect rather than gate it.)
 export default function Proceso() {
-  const titleRef = useRef<HTMLHeadingElement>(null);
-  const openingRef = useRef<HTMLDivElement>(null);
-  const leadRef = useRef<HTMLParagraphElement>(null);
+  const titleRef = useTitleReveal<HTMLHeadingElement>();
   const sectionRef = useRef<HTMLElement>(null);
   const trackRef = useRef<HTMLDivElement>(null);
   const progressRef = useRef<HTMLDivElement>(null);
   const pasoRefs = useRef<(HTMLDivElement | null)[]>([]);
   const tiltRefs = useRef<(HTMLButtonElement | null)[]>([]);
   const [expanded, setExpanded] = useState<number | null>(null);
-  const reducedMotion = useReducedMotion();
 
   // Volumetric fluid-glass behind each step card (flat variant of the
   // Servicios identity). The anchors are the buttons themselves — which is
@@ -108,86 +100,17 @@ export default function Proceso() {
   // under the cursor while the glass stayed unrotated.
   useGlassPanels(sectionRef, ".nxr-paso-card", "#141018", []);
 
-  // ===== AMANECER (V17.61) =====
-  // La sección abre con el titular SOLO, grande y centrado, sobre el fondo
-  // oscuro de siempre. Al scrollear, LA PANTALLA DEL FONDO vira a gris claro
-  // —sigue siendo ella, con sus monitores y su vídeo, en clave alta— mientras
-  // el titular pasa de blanco a negro AL MISMO RITMO; cuando el viraje
-  // termina, entra el párrafo debajo. El día se queda hasta el final.
-  //
-  // El viraje vive en el shader del muro (uniform uDay, ver SceneBackground) y
-  // se controla desde aquí con el módulo `wallDay`. La legibilidad de las
-  // secciones siguientes se resuelve redefiniendo los tokens de color bajo
-  // .nxr-day, no tocando sus reglas una a una — y sin tocar el cristal.
-  useGSAP(
-    () => {
-      const section = sectionRef.current;
-      const opening = openingRef.current;
-      const title = titleRef.current;
-      const lead = leadRef.current;
-      if (!section || !opening || !title || !lead) return;
-
-      const root = document.documentElement;
-      // Blanco -> casi negro, interpolado A LA PAR que el fondo (no con una
-      // transición CSS aparte, que iba por libre y saltaba a mitad).
-      const tinte = gsap.utils.interpolate("#ffffff", "#14161c");
-
-      if (reducedMotion) {
-        wallDay.value = 1;
-        gsap.set(title, { color: "#14161c" });
-        gsap.set(lead, { opacity: 1, y: 0 });
-        root.classList.add("nxr-day");
-        return () => {
-          wallDay.value = 0;
-          root.classList.remove("nxr-day");
-        };
-      }
-
-      gsap.set(lead, { opacity: 0, y: 26 });
-
-      const st = ScrollTrigger.create({
-        // Se PINEA la apertura, no la sección (V17.63): "que primero salga
-        // normal y al llegar al centro de la pantalla se quede sticky
-        // suavemente, y ahí ya se hace el cambio de fondo". Así el bloque
-        // entra scrolleando como cualquier otro, se queda quieto al centrarse
-        // y solo entonces empieza el amanecer.
-        trigger: opening,
-        start: "center center",
-        // Lo que dura el momento: ~90vh de scroll con el bloque parado.
-        end: "+=90%",
-        pin: opening,
-        // Evita el salto de un frame al enganchar el pin.
-        anticipatePin: 1,
-        invalidateOnRefresh: true,
-        scrub: 0.8,
-        onUpdate: (self) => {
-          const p = self.progress;
-          // El MURO es quien vira (ver el uniform uDay en SceneBackground): la
-          // pantalla del fondo sigue ahí con sus monitores y su vídeo, solo que
-          // en clave alta. Nada de velos por encima.
-          wallDay.value = p;
-          // El titular acompaña al fondo píxel a píxel: mismo progreso, misma
-          // curva. Antes cambiaba de golpe al cruzar la mitad.
-          gsap.set(title, { color: tinte(p) });
-          // La paleta del resto de la página (Tech, Contacto) sí es un salto:
-          // no hay forma de interpolar tokens, y a esta altura el fondo ya
-          // está lo bastante claro como para que el cambio no cante.
-          if (p > 0.55) root.classList.add("nxr-day");
-          else root.classList.remove("nxr-day");
-          // El párrafo entra DESPUÉS del viraje, no a la vez.
-          const t = Math.min(1, Math.max(0, (p - 0.72) / 0.28));
-          gsap.set(lead, { opacity: t, y: 26 * (1 - t) });
-        },
-      });
-
-      return () => {
-        st.kill();
-        wallDay.value = 0;
-        root.classList.remove("nxr-day");
-      };
-    },
-    { scope: sectionRef, dependencies: [reducedMotion] }
-  );
+  // Split composition per breakpoint (petición: "en ordenador el párrafo a
+  // la derecha como estaba antes; en móvil debajo del título"):
+  // — Desktop (≥901): original layout/planes — title left on its CSS tier
+  //   (see the min-901 tilt group) + dynamic bow riding the reveal's word
+  //   spans; paragraph right on its own right-edge hook plane.
+  // — Mobile (<901): both stacked inside ONE unified block/plane
+  //   (Contacto-textblock pattern; the h2 keeps useTitleReveal's split via
+  //   splitIgnore and its spans join this block's bow field).
+  // Scramble entrance on the section paragraph (the Intro-paragraph effect,
+  // sitewide per request).
+  useTextScramble(sectionRef, ".nxr-proceso-header-right");
 
   useEffect(() => {
     const track = trackRef.current;
@@ -257,27 +180,25 @@ export default function Proceso() {
 
   return (
     <section id="nxr-proceso" ref={sectionRef}>
-      {/* (Sin velo: en V17.62 se retiró el overlay gris. Quien vira es la
-          PANTALLA del fondo — el shader del muro, vía el uniform uDay —, así
-          que se sigue viendo con sus monitores, su cuadrícula y su vídeo, solo
-          que en clave alta.) */}
-
-      {/* Momento de apertura: el titular solo, grande y centrado, mientras el
-          fondo amanece; el párrafo entra después, ya con el contraste
-          invertido. */}
-      <div className="nxr-proceso-opening" ref={openingRef}>
-        <h2 className="nxr-proceso-big" ref={titleRef}>
-          Un proceso claro,
-          <br />
-          <span className="nxr-gradient-text-lime">sin sorpresas.</span>
-        </h2>
-        <p className="nxr-proceso-lead" ref={leadRef}>
-          Cada proyecto sigue la misma metodología: entender bien antes de construir, construir rápido y mejorar
-          siempre. Sin reuniones infinitas, sin presupuestos que se disparan. Toca cada paso para ver el detalle.
-        </p>
-      </div>
-
       <div className="nxr-proceso-inner">
+        <div className="nxr-proceso-header nxr-reveal">
+          {/* The plane can't live on the reveal element (it owns `transform`
+              for its entrance) — this inner block carries the flex layout AND
+              the hook-applied plane instead. */}
+          <div className="nxr-proceso-textblock">
+            <div>
+              <h2 className="nxr-section-h2" ref={titleRef}>
+                Un proceso claro,
+                <br />
+                <span className="nxr-gradient-text-lime">sin sorpresas.</span>
+              </h2>
+            </div>
+            <p className="nxr-proceso-header-right">
+              Cada proyecto sigue la misma metodología: entender bien antes de construir, construir rápido y mejorar
+              siempre. Sin reuniones infinitas, sin presupuestos que se disparan. Toca cada paso para ver el detalle.
+            </p>
+          </div>
+        </div>
 
         <div className="nxr-proceso-track" ref={trackRef}>
           <div id="nxr-proceso-progress" ref={progressRef}></div>

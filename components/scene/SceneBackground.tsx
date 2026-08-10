@@ -42,6 +42,18 @@ const WALL_MODES: { landscape: WallMode; portrait: WallMode } = {
 // cover/pixel/panel math, since u parameterizes angle (≈ arc length), not
 // the chord. Videos must be "cover"-mapped against THIS or they stretch.
 const wallAspect = (m: WallMode) => (2 * m.R * m.PHI) / m.H;
+
+// Celdas del pixelado CRT a lo ancho del arco. 180 -> 240 (V17.69, "reduce un
+// poco el pixelado de los vídeos"): el arco mide 2*R*PHI = 4480 unidades, así
+// que cada bloque pasa de ~24.9 a ~18.7 unidades — y como el muro está a
+// z=-1900 con la cámara a 1000, en pantalla eso son ~8.6px -> ~6.4px.
+// El techo lo pone el CLIP, no el shader: los vídeos son de 640x360 y 432x768
+// y el recorte "cover" deja ~474 y ~432 téxeles a lo ancho del muro, o sea
+// ~2 téxeles por celda a 240. Subir mucho más solo replicaría téxeles (el
+// bloque lo acabaría marcando el propio vídeo, y encima irregular por el
+// NearestFilter). El split RGB y las scanlines NO siguen a este número: van
+// ancladas a la rejilla de 180 dentro del shader (ver refPixel).
+const PIXEL_X = 240;
 const COLS = 220;
 const ROWS = 72;
 
@@ -214,6 +226,12 @@ const fragmentShader = /* glsl */ `
       // Chunky pixelation (in the curved UV, so the pixels follow the
       // concave deformation) + RGB split + scanlines = CRT screen.
       vec2 puv = (floor(vUv * uPixel) + 0.5) / uPixel;
+      // Rejilla de REFERENCIA (las 180 celdas de siempre). El split RGB y las
+      // scanlines de abajo se calibraron contra ella y se anclan aquí a
+      // propósito: al afinar uPixel para reducir el pixelado encogerían con
+      // él, y son dos efectos aparte que ya estaban ajustados (el split, a
+      // mano en V17.44). Así lo único que cambia es el tamaño del bloque.
+      vec2 refPixel = uPixel * (180.0 / uPixel.x);
       // Desgarro horizontal del arranque (V17.12): mientras el panel está
       // en su banda de fallo (de encendido O de cambio de clip), su vídeo
       // entra desplazado en X y recoloca.
@@ -227,7 +245,7 @@ const fragmentShader = /* glsl */ `
       // precisamente las franjas de color que crea este split, así que el
       // mismo 1.3 de siempre pasó a leerse mucho más agresivo. A 0 el efecto
       // desaparece del todo.
-      float o = 0.5 / uPixel.x;
+      float o = 0.5 / refPixel.x;
       float r = sampleActive(puv + vec2(o, 0.0), useB).r;
       float gg = sampleActive(puv, useB).g;
       float b = sampleActive(puv - vec2(o, 0.0), useB).b;
@@ -247,7 +265,7 @@ const fragmentShader = /* glsl */ `
       // Separar el gris de su desviación cromática: >1 la expande.
       tv = mix(vec3(dot(tv, vec3(0.2126, 0.7152, 0.0722))), tv, uVidSat);
       tv = max(tv, 0.0); // saturar puede empujar un canal por debajo de 0
-      tv *= 0.78 + 0.22 * sin(vUv.y * uPixel.y * 6.28318);
+      tv *= 0.78 + 0.22 * sin(vUv.y * refPixel.y * 6.28318);
       // Dim + tint toward the site's dark base so overlaid text stays legible.
       // (El "vídeo limpio en móvil" de V16.94 duró un día: V16.95 restaura
       // el sombreado completo también ahí, ya con el clip de montañas.)
@@ -457,7 +475,9 @@ export default function SceneBackground({
       // Square CRT pixels / square-ish monitor tiles: initialized for
       // landscape; the [mode] effect below re-derives both from the ACTIVE
       // wall's unrolled aspect (portrait wall has its own).
-      uPixel: { value: new THREE.Vector2(180, Math.round(180 / wallAspect(WALL_MODES.landscape))) },
+      uPixel: {
+        value: new THREE.Vector2(PIXEL_X, Math.round(PIXEL_X / wallAspect(WALL_MODES.landscape))),
+      },
       uCoverScale: { value: new THREE.Vector2(1, 1) },
       uPanels: { value: new THREE.Vector2(15, Math.round(15 / wallAspect(WALL_MODES.landscape))) },
       uRes: { value: new THREE.Vector2(1, 1) },
@@ -488,7 +508,7 @@ export default function SceneBackground({
     const mat = matRef.current;
     if (!mat) return;
     const a = wallAspect(mode);
-    (mat.uniforms.uPixel.value as THREE.Vector2).set(180, Math.round(180 / a));
+    (mat.uniforms.uPixel.value as THREE.Vector2).set(PIXEL_X, Math.round(PIXEL_X / a));
     const panelsY = Math.max(2, Math.round(mode.PANELS_X / a));
     (mat.uniforms.uPanels.value as THREE.Vector2).set(mode.PANELS_X, panelsY);
     // Cuadrícula fina ANIDADA en los monitores (V17.23, "que encaje"): 4x4

@@ -653,6 +653,12 @@ export default function Servicios() {
       // opacity before its fade-out — whatever the approach wrote (1) just
       // persists.
       const headTitle = q(".nxr-servicios-head .nxr-section-h2")[0] as HTMLElement | undefined;
+      // El WRAPPER fijo. Es la capa sobre la que actúa el clamp del ticker, y
+      // NO puede ser la misma que anima el scrub (ver el bloque del clamp más
+      // abajo): con las dos escribiendo los mismos targets, el `overwrite` de
+      // una mataba el tween de la otra y había caracteres que ya no volvían a
+      // revelarse nunca.
+      const headWrap = q(".nxr-servicios-head")[0] as HTMLElement | undefined;
       // Caracteres de la frase, troceados UNA vez y compartidos por la entrada
       // (aquí) y la salida (en buildTl): el desenfoque ya no se aplica al
       // bloque entero de golpe, sino carácter a carácter con retardo — así el
@@ -686,13 +692,13 @@ export default function Servicios() {
               // de scroll para el mismo barrido, sin tocar ni el PROLOGUE ni
               // ninguna otra cota del reel. Móvil se queda como estaba: allí
               // la pantalla es más corta y adelantarlo la solaparía con Intro.
-              // Móvil 0.7 -> 1.25 -> 1.50·vh. El 1.25 aún dejaba 25vh muertos:
-              // la Intro deja de pintar cuando su bottom está a 150vh y el
-              // sticky de Servicios cae justo detrás de ese bottom, así que
-              // arrancando la frase también a 150% las dos se encadenan sin
-              // hueco — la frase empieza a nacer en el instante en que la
-              // Intro termina de irse.
-              start: () => (window.innerWidth > 900 ? "top 135%" : "top 150%"),
+              // Móvil a 115% (V17.66): el recorrido de la frase baja de 150 a
+              // 115vh — un 23% menos de scroll para pasarla. El hueco NO
+              // reaparece porque la Intro se acorta en el mismo número (su
+              // trigger termina ahora en "bottom 115%", ver Intro.tsx): el
+              // sticky de Servicios cae justo detrás del bottom de la Intro,
+              // así que ambas cifras se miden en la misma escala y encadenan.
+              start: () => (window.innerWidth > 900 ? "top 135%" : "top 115%"),
               end: "top top",
               scrub: 0.5,
               invalidateOnRefresh: true,
@@ -1495,7 +1501,7 @@ export default function Servicios() {
       // outside the whole phrase-moment range, the title must be OFF —
       // enforced every ticker frame (cost: two property reads + a string
       // compare; the gsap.set only fires while a stray catch-up is writing).
-      if (headTitle) {
+      if (headTitle && headWrap) {
         // V16.40 ("a veces desaparece de golpe"): el clamp ya no corta con
         // un set seco — en un flick rápido el scroll real cruza 1.3·pro
         // mientras el scrub (lag 0.5s) aún pinta la frase a media
@@ -1505,15 +1511,17 @@ export default function Servicios() {
         let clamping = false;
         let healing = false;
         let spacer: HTMLElement | null = null;
-        // Sondas baratas para el ticker: el barrido deja el primer y el último
-        // carácter en extremos opuestos, así que con esos dos basta para saber
-        // si queda algo encendido o si falta algo por encender. Nada de
-        // recorrer los ~50 en cada frame.
-        const opDe = (el?: HTMLElement) => (el ? parseFloat(el.style.opacity || "1") : 0);
-        const visibleAlgo = () =>
-          Math.max(opDe(headChars[0]), opDe(headChars[headChars.length - 1])) > 0.01;
-        const todoVisible = () =>
-          Math.min(opDe(headChars[0]), opDe(headChars[headChars.length - 1])) > 0.98;
+        // DOS CAPAS SEPARADAS (V17.66), y esto es lo que arregla el bug de
+        // "algunas palabras desaparecen":
+        //   · los CARACTERES los anima el scrub (barrido de blur+opacidad);
+        //   · el WRAPPER lo anima este clamp, con su propia opacidad.
+        // Antes ambos escribían los caracteres, y como el clamp usa
+        // `overwrite: auto` —necesario para matar un catch-up rezagado—
+        // liquidaba también el tween del scrub. A partir de ahí esos
+        // caracteres se quedaban clavados donde el clamp los dejó y no
+        // volvían a revelarse: ni al pasar de nuevo, ni al volver desde otra
+        // sección o página. Con capas distintas no pueden pisarse.
+        const opWrap = () => parseFloat(headWrap?.style.opacity || "1");
         const clampTitle = () => {
           const st = tl.scrollTrigger;
           if (!st) return;
@@ -1540,7 +1548,7 @@ export default function Servicios() {
           // El margen sigue al start del scrub en CADA breakpoint: si se
           // queda corto, el clamp apaga la frase mientras el scrub la
           // enciende (ver V17.59).
-          const head = window.innerHeight * (window.innerWidth > 900 ? 1.45 : 1.6);
+          const head = window.innerHeight * (window.innerWidth > 900 ? 1.45 : 1.25);
           const outside = y < start - head || y > end || y > start + snapPro * 1.3;
           if (outside) {
             // BUG V17.57 → V17.58: el clamp leía y escribía en headTitle (el
@@ -1552,11 +1560,10 @@ export default function Servicios() {
             // los scrubs, y `overwrite: auto` mata de paso su tween rezagado.
             // Se leen el primero y el último porque el barrido los deja en
             // extremos opuestos: si ambos están apagados, no queda nada visible.
-            if (visibleAlgo() && !clamping) {
+            if (opWrap() > 0.01 && !clamping) {
               clamping = true;
-              gsap.to(headChars, {
+              gsap.to(headWrap!, {
                 opacity: 0,
-                filter: "blur(18px)",
                 duration: 0.25,
                 ease: "power1.in",
                 overwrite: "auto",
@@ -1568,25 +1575,25 @@ export default function Servicios() {
             return;
           }
           clamping = false;
-          // AUTO-RECUPERADO en la zona de HOLD (V16.55): si por cualquier
-          // carrera la frase quedó apagada cuando DEBE estar a plena luz (justo
-          // al entrar el pin, antes de su fade-out en snapPro·0.65), se
-          // reenciende. Complementa al clamp (que solo apagaba) y hace la frase
-          // auto-sanable pase lo que pase con los drivers scrubbeados/refresh.
-          if (y >= start && y <= start + snapPro * 0.6) {
-            if (!todoVisible() && !healing) {
-              healing = true;
-              gsap.to(headChars, {
-                opacity: 1,
-                filter: "blur(0px)",
-                duration: 0.3,
-                ease: "power1.out",
-                overwrite: "auto",
-                onComplete: () => {
-                  healing = false;
-                },
-              });
-            }
+          // DENTRO del rango, el wrapper SIEMPRE encendido. Antes esto era un
+          // "auto-recuperado" limitado a la ventana de HOLD (y >= start &&
+          // y <= start + snapPro·0.6), y con el clamp actuando ya sobre el
+          // wrapper eso dejaba un agujero: al volver a entrar por un tramo
+          // intermedio, nada lo reencendía y la frase no reaparecía nunca.
+          // Como master switch la regla es binaria — fuera apagado, dentro
+          // encendido — y quien module la aparición es el scrub sobre los
+          // caracteres, que es su trabajo.
+          if (opWrap() < 0.99 && !healing) {
+            healing = true;
+            gsap.to(headWrap!, {
+              opacity: 1,
+              duration: 0.3,
+              ease: "power1.out",
+              overwrite: "auto",
+              onComplete: () => {
+                healing = false;
+              },
+            });
           }
         };
         gsap.ticker.add(clampTitle);

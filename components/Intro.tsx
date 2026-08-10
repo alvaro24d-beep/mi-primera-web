@@ -203,7 +203,12 @@ export default function Intro() {
         // encima el uno del otro. Terminando en "bottom 150%" esta sección se
         // ha apagado del todo antes de que aquella empiece.
         start: "top bottom",
-        end: "bottom 150%",
+        // En MÓVIL termina antes (115% en vez de 150%) para que la frase de
+        // Servicios pueda arrancar antes y su recorrido se acorte, sin dejar
+        // hueco entre las dos: ambas cifras se miden contra la misma
+        // referencia (el sticky de Servicios cae justo tras este bottom).
+        end: () => (window.innerWidth <= 900 ? "bottom 115%" : "bottom 150%"),
+        invalidateOnRefresh: true,
         scrub: 0.6,
         // El scrub deja el último valor al salir, y con 0.6s de lag una salida
         // rápida puede dejarlo a medias — justo lo que deja un overlay fijo

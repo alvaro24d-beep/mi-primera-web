@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef } from "react";
 import { useFrame, useThree } from "@react-three/fiber";
 import * as THREE from "three";
+import { RIPPLE } from "./rippleParams";
 
 // ---- Concave "inside a cylinder" backdrop, now a TV wall ------------------
 // A large vertical-axis cylindrical wall section behind everything in the
@@ -55,11 +56,7 @@ const wallAspect = (m: WallMode) => (2 * m.R * m.PHI) / m.H;
 // ancladas a la rejilla de 180 dentro del shader (ver refPixel).
 const PIXEL_X = 240;
 
-// Vida de la onda de impacto, en segundos. El frente sale del encuadre a ~1.65s
-// (ver la velocidad en el shader) y la amortiguación exp(-0.8t) deja la estela
-// por debajo del 10% a 2.9s: a partir de ahí no queda nada que renderizar, y
-// cada frame de más es un frame que la onda se auto-invalida para nada.
-const RIPPLE_DUR = 2.9;
+const RIPPLE_DUR = RIPPLE.DUR;
 const COLS = 220;
 const ROWS = 72;
 
@@ -115,6 +112,10 @@ const vertexShader = /* glsl */ `
   }
 `;
 
+// Los números de la onda se INTERPOLAN en el GLSL desde rippleParams para que
+// muro y textos no puedan desincronizarse. toFixed obliga a escribirlos con
+// decimales: en GLSL un "46" pelado es un int y no compila contra un float.
+const R = RIPPLE;
 const fragmentShader = /* glsl */ `
   precision highp float;
   varying vec2 vUv;
@@ -201,26 +202,19 @@ const fragmentShader = /* glsl */ `
       // onda saldría elíptica en pantallas anchas.
       vec2 dv = (gl_FragCoord.xy / uRes - vec2(0.5)) * vec2(uRes.x / uRes.y, 1.0);
       float r = length(dv);
-      // V17.71 ("se ve muy rápido, casi ni se aprecia"): el frente baja de 1.35
-      // a 0.62 unidades/s. La esquina de una 16:9 queda a r≈1.02, así que la
-      // cresta tarda ahora ~1.65s en salir del encuadre en vez de ~0.76s. Va
-      // emparejado con el revelado de la cortina, que a 3s lineales hasta el
-      // 179% alcanza esa misma esquina (100%) a ~1.68s: el borde del hueco y la
-      // cresta viajan juntos, que es lo que vende que la web la descubre el
-      // propio golpe de agua.
-      float dr = r - uRipT * 0.62;
-      // Tren de crestas dentro de una campana que viaja con el frente, y
-      // amortiguación global: la primera cresta es la fuerte y el resto se apaga
-      // detrás, como el agua de verdad. La campana se ensancha (46 -> 18) y las
-      // crestas se separan (34 -> 22) para que la ondulación ocupe una franja
-      // ancha de pantalla y no un aro fino que pasa desapercibido; la
-      // amortiguación se relaja (2.1 -> 0.8) para que la estela sobreviva al
-      // recorrido entero ahora que dura más del doble.
-      ripW = sin(dr * 22.0) * exp(-dr * dr * 18.0) * exp(-uRipT * 0.8);
-      // Empuje radial. 0.009 -> 0.020 en UV del muro ≈ 90 unidades de arco ≈
-      // 31px en pantalla en la cresta: la deformación se lee de lejos, que es
-      // lo pedido, sin llegar a despegar los biseles de su sitio.
-      uvW += (r > 0.0001 ? dv / r : vec2(0.0)) * ripW * 0.020;
+      // Todos estos números salen de rippleParams (ver allí el porqué de cada
+      // uno); se interpolan para que el chapoteo de los textos de la hero,
+      // que corre en JS, evalúe EXACTAMENTE la misma onda.
+      float dr = r - uRipT * ${R.VEL.toFixed(3)};
+      // Tren de crestas dentro de una campana que viaja con el frente, más
+      // amortiguación global: la primera cresta es la fuerte y las de detrás se
+      // van apagando, como el agua de verdad.
+      ripW = sin(dr * ${R.FREQ.toFixed(1)}) * exp(-dr * dr * ${R.BELL.toFixed(1)}) * exp(-uRipT * ${R.DECAY.toFixed(2)});
+      // Empuje radial. 0.016 en UV del muro ≈ 72 unidades de arco ≈ 25px en
+      // pantalla en la cresta. Baja desde el 0.020 de V17.71 porque al partir
+      // la longitud de onda por dos, la MISMA amplitud duplicaría la pendiente
+      // de cada cresta y el muro se rompería en escalones.
+      uvW += (r > 0.0001 ? dv / r : vec2(0.0)) * ripW * 0.016;
     }
 
     // (La deriva de la cuadrícula con el scroll — uGridShift, V17.5 — se

@@ -1385,16 +1385,17 @@ p.nxr-hero-mastery-line {
   max-width: 800px;
 }
 
-/* ===== Cortina de entrada — piedra en el agua (V17.70) =====
-   Ver LoadProgress.tsx. No es una barra de progreso: es una pantalla apagada
-   que se retira. Hasta V17.69 se iba en columnas desescalonadas; ahora se
-   abre como el agua — cae una piedra en el centro y el círculo que deja
-   descubre la web, mientras el muro del fondo ondula de verdad (la onda vive
-   en el shader, uniform uRipT en SceneBackground.tsx, disparada por el mismo
-   evento `nxr:curtain-open` que abre esto).
-   Cubre desde el PRIMER PAINT (el div viene en el SSR y son las columnas las
-   que tapan, con el mismo #050810 que html, así que la transición pre/post
-   hidratación es invisible). */
+/* ===== Cortina de entrada — piedra en el agua (V17.70, V17.72) =====
+   Ver LoadProgress.tsx. Dos tiempos: primero una pantalla de carga PLANA con
+   el nombre y luego cae la piedra — el círculo que deja descubre la web
+   mientras el muro del fondo ondula de verdad (la onda vive en el shader,
+   uniform uRipT en SceneBackground.tsx, disparada por el mismo evento
+   `nxr:curtain-open` que abre esto).
+   El fondo es liso a propósito (V17.72): las 10 columnas de tinte alterno y las
+   scanlines que lo vestían de "pantalla apagada" se retiraron a petición, para
+   que la espera sea solo el nombre sobre plano.
+   Cubre desde el PRIMER PAINT: el div viene en el SSR con el mismo #050810 que
+   html, así que la transición pre/post hidratación es invisible. */
 
 /* El radio del hueco. Registrarlo es lo que permite TRANSICIONARLO: una
    custom property sin @property es un token de texto y salta de golpe. Si el
@@ -1410,6 +1411,7 @@ p.nxr-hero-mastery-line {
   position: fixed;
   inset: 0;
   z-index: 10002;
+  background: #050810;
   --nxr-cr: 0%;
   /* Hueco circular creciente, con 9% de degradado para que el borde no sea un
      recorte de tijera sino la lámina de agua que se abre.
@@ -1439,48 +1441,11 @@ p.nxr-hero-mastery-line {
   --nxr-cr: 179%;
 }
 
-/* Portador del filtro de chapoteo (ver LoadProgress.tsx). Solo aloja un <defs>
-   de facto: no debe ocupar sitio ni capturar nada, pero tampoco puede llevar
-   display:none — un filtro dentro de un subárbol oculto deja de resolverse. */
-.nxr-splash-def {
-  position: absolute;
-  width: 0;
-  height: 0;
-  overflow: hidden;
-  pointer-events: none;
-}
-
-.nxr-curtain-cols {
-  position: absolute;
-  inset: 0;
-  display: flex;
-}
-.nxr-curtain-col {
-  flex: 1;
-  background: #050810;
-  /* Un pelo de tinte alterno: los monitores del muro tampoco tienen todos la
-     misma luminancia (ver panelLum en el shader). */
-  box-shadow: inset -1px 0 0 rgba(255, 255, 255, 0.028);
-}
-.nxr-curtain-col:nth-child(2n) {
-  background: #060a12;
-}
-/* Scanlines finas sobre cada columna: es lo que la hace leer como PANTALLA y
-   no como un rectángulo negro cualquiera. */
-.nxr-curtain-col::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  background: repeating-linear-gradient(
-    to bottom,
-    rgba(255, 255, 255, 0.022) 0 1px,
-    transparent 1px 3px
-  );
-  pointer-events: none;
-}
-/* (La línea de escaneo verde que recorría la cortina se retiró en V17.49 a
-   petición. El movimiento durante la espera lo lleva la respiración del logo;
-   el momento de la apertura lo lleva ahora el círculo de agua.) */
+/* (La línea de escaneo verde se retiró en V17.49, y las columnas de tinte +
+   scanlines en V17.72: el fondo de la espera es liso. El movimiento durante la
+   espera lo lleva la respiración del logo; el de la apertura, el círculo de
+   agua. El chapoteo de los textos de la hero ya no usa filtro SVG —ver
+   LoadProgress.tsx—, así que tampoco queda portador que declarar aquí.) */
 
 .nxr-curtain-logo {
   position: absolute;

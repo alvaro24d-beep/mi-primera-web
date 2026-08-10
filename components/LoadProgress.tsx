@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
+import { RIPPLE } from "./scene/rippleParams";
 
 declare global {
   interface Window {
@@ -15,57 +16,105 @@ declare global {
 // profesional"): la cortina no informa de nada, es una pantalla apagada que se
 // RETIRA, y la gracia está en cómo se va.
 //
-// V17.70 cambia ese "cómo": las columnas desescalonadas dejan paso a una
-// PIEDRA EN EL AGUA. Cae en el centro justo cuando la web está lista, el
-// círculo que abre descubre la página (máscara radial, ver globals.css) y el
-// muro del fondo ondula de verdad —vídeo, cuadrícula y monitores— con un
-// frente circular amortiguado que vive en el shader (uniform uRipT en
-// SceneBackground.tsx). Los dos lados se enganchan al MISMO hito,
-// `nxr:curtain-open`, así que impacto y apertura son un solo gesto y ninguno
-// de los dos componentes necesita conocer al otro.
+// V17.70 cambió ese "cómo": las columnas desescalonadas dejaron paso a una
+// PIEDRA EN EL AGUA. El círculo que abre descubre la página (máscara radial,
+// ver globals.css) y el muro del fondo ondula de verdad —vídeo, cuadrícula y
+// monitores— con un frente circular amortiguado que vive en el shader (uniform
+// uRipT en SceneBackground.tsx).
 //
-// Las columnas se quedan, pero ya solo como TEXTURA: el tinte alterno y las
-// scanlines son lo que hace que la cortina se lea como una pantalla apagada
-// —el mismo lenguaje del muro— en vez de como un rectángulo negro. Ya no se
-// mueven.
+// V17.72 la parte en DOS TIEMPOS, que es como se pidió: primero una pantalla
+// de carga PLANA con el nombre —fondo liso, sin columnas ni scanlines, y un
+// mínimo de exhibición para que se llegue a leer aunque la carga sea
+// instantánea— y solo después cae la piedra. Antes la cortina se abría en el
+// mismo instante en que el muro asentaba, así que en cargas calientes el nombre
+// pasaba de largo sin verse.
+//
+// Los dos lados de la onda se enganchan al MISMO hito, `nxr:curtain-open`, así
+// que impacto y apertura son un solo gesto y ninguno de los dos componentes
+// necesita conocer al otro.
 //
 // Se mantiene lo que ya funcionaba: cubre desde el PRIMER PAINT (el div viene
-// en el SSR y las columnas tapan por CSS, sin hueco pre-hidratación), se abre
-// EN CUANTO el muro asienta (señal real `nxr:wall-settled`, en cargas
-// calientes es una fracción de segundo) y un failsafe la levanta a los 8s si
-// la red falla — el muro procedural de respaldo ya pinta y la web es usable.
+// en el SSR y tapa por CSS, sin hueco pre-hidratación), espera al muro (señal
+// real `nxr:wall-settled`) y un failsafe la levanta a los 8s si la red falla —
+// el muro procedural de respaldo ya pinta y la web es usable.
 //
 // Al abrirse deja window.__nxrCurtainOpen y emite `nxr:curtain-open`.
 
-// Columnas de textura. Sin orden de salida ya (no se van una a una), pero
-// siguen siendo 10 para conservar el mismo grano de tinte/scanlines.
-const COLS = 10;
+// Tiempo mínimo que la pantalla de carga se deja ver antes de romperse, aunque
+// el muro asiente antes. Sin esto, en carga caliente el nombre aparecía y
+// desaparecía en el mismo frame.
+const MIN_SHOW_MS = 900;
 // Retirada del árbol de pintado. Cubre el revelado completo (3s de máscara) con
 // margen: mientras siga montada, su capa a pantalla completa se recompone sobre
 // un canvas que invalida a ~30fps.
 const LIFT_MS = 3200;
 const FAILSAFE_MS = 8000;
 
-// ---- Chapoteo del CONTENIDO de la hero (V17.71) ----
-// "Que las ondas afecten a todo, incluido el h1 y los textos". El muro es
-// WebGL y ondula en su shader, pero el h1, el párrafo y los botones son DOM
-// normal: ahí la única forma de deformar de verdad los glifos es un filtro
-// SVG (feTurbulence + feDisplacementMap). Se le da vida animando SOLO el
-// `scale` del displacement — la turbulencia se deja con parámetros fijos a
-// propósito, porque tocar baseFrequency o seed obliga a regenerar el ruido en
-// cada frame y eso sí es caro.
-// El scale oscila y cambia de signo, así que el texto se estira y se comprime
-// en direcciones alternas: se lee como ondulación y no como un temblor. La
-// envolvente está amortiguada y arranca fuerte porque el texto vive en el
-// CENTRO, que es justo donde cae la piedra.
-const SPLASH_DUR = 2.6;
-// Calibrado a ojo contra el h1 real: a 26px la deformación no se apreciaba
-// (con la baseFrequency de abajo, ~85px de longitud de onda, el ruido apenas
-// varía dentro de un glifo) y a 200 el texto se vuelve ilegible. 58 ondula de
-// forma inequívoca y todavía se lee.
-const SPLASH_MAX = 58;
-const SPLASH_FREQ = 7.2; // rad/s: ~3 ondulaciones antes de apagarse
-const SPLASH_DECAY = 1.15;
+// ---- Chapoteo del CONTENIDO de la hero ----
+// "Los textos se ondulan como si fuese un flan pero no siguen la animación de
+// las ondas del fondo; tienen que seguir el efecto de ondas del centro hacia el
+// exterior" (V17.72).
+//
+// La V17.71 usaba un filtro SVG (feTurbulence + feDisplacementMap) y el
+// problema era de raíz, no de calibración: feTurbulence genera RUIDO, un campo
+// aleatorio sin centro ni dirección. Puede licuar un texto —de ahí el flan—
+// pero no sabe nada de dónde cayó la piedra, así que jamás iba a producir
+// anillos que salieran del centro. Y no hay forma barata de alimentar el
+// displacement con un mapa radial animado: habría que regenerar la imagen del
+// mapa en cada frame.
+//
+// Así que se cambia de técnica. Los textos se parten en caracteres y cada uno
+// se desplaza RADIALMENTE evaluando la misma fórmula que el shader (ver
+// rippleParams, de donde salen los dos), con su propia distancia al centro de
+// pantalla. Resultado: los glifos del centro se mueven primero y la ondulación
+// se propaga hacia fuera, en fase con el muro. Además es más barato que el
+// filtro — son transforms compuestos en GPU, sin recalcular ruido por frame.
+const AMP_PX = 24;
+// Los caracteres se parten solo en estos dos: los botones y el indicador de
+// scroll se mueven como bloques (partir un <Link> obliga a tocar su interior, y
+// aquí se restaura por innerHTML al terminar).
+const SEL_CHARS = ".nxr-hero-h1, .nxr-hero-sub";
+const SEL_BLOQUES = ".nxr-hero-actions, .nxr-hero-cue";
+
+type Pieza = { el: HTMLElement; dx: number; dy: number; r: number };
+
+// Envuelve cada carácter en un span sin tocar el markup que ya hubiera dentro
+// (el <span> del degradado lima del h1 sigue siendo el padre de SUS letras).
+// Las palabras van en su propio inline-block para que el salto de línea siga
+// cayendo entre palabras y no entre letras.
+function partirEnCaracteres(raiz: HTMLElement): HTMLElement[] {
+  const chars: HTMLElement[] = [];
+  const textos: Text[] = [];
+  const walker = document.createTreeWalker(raiz, NodeFilter.SHOW_TEXT);
+  let n: Node | null;
+  while ((n = walker.nextNode())) textos.push(n as Text);
+
+  for (const t of textos) {
+    if (!t.data.trim()) continue;
+    const frag = document.createDocumentFragment();
+    for (const trozo of t.data.split(/(\s+)/)) {
+      if (!trozo) continue;
+      if (/^\s+$/.test(trozo)) {
+        frag.appendChild(document.createTextNode(trozo));
+        continue;
+      }
+      const palabra = document.createElement("span");
+      palabra.style.display = "inline-block";
+      palabra.style.whiteSpace = "pre";
+      for (const c of Array.from(trozo)) {
+        const s = document.createElement("span");
+        s.textContent = c;
+        s.style.display = "inline-block";
+        s.style.willChange = "transform";
+        palabra.appendChild(s);
+        chars.push(s);
+      }
+      frag.appendChild(palabra);
+    }
+    t.parentNode?.replaceChild(frag, t);
+  }
+  return chars;
+}
 
 export default function LoadProgress() {
   const rootRef = useRef<HTMLDivElement>(null);
@@ -77,47 +126,76 @@ export default function LoadProgress() {
     let done = false;
     let raf = 0;
     const timers: number[] = [];
+    const montado = performance.now();
 
-    // El licuado del contenido de la hero. Solo existe en la home: en el resto
-    // de rutas no hay `.nxr-hero-center` y esto no hace nada, que es lo
-    // correcto —- la piedra cae sobre la hero de la portada.
     const chapotear = () => {
       if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
-      const destino = document.querySelector<HTMLElement>(".nxr-hero-center");
-      const mapa = document.getElementById("nxr-splash-dm");
-      if (!destino || !mapa) return;
 
-      // Quitar el filtro al acabar no es cosmético: dejarlo puesto mantiene la
-      // hero en su propia capa filtrada el resto de la sesión, y cada repintado
-      // volvería a pasar por el displacement.
-      const limpiar = () => {
-        destino.style.filter = "";
-        mapa.setAttribute("scale", "0");
+      // Solo la home tiene hero con estos textos; en el resto de rutas esto no
+      // encuentra nada y no hace nada, que es lo correcto.
+      const fuentes = Array.from(document.querySelectorAll<HTMLElement>(SEL_CHARS));
+      const bloques = Array.from(document.querySelectorAll<HTMLElement>(SEL_BLOQUES));
+      if (!fuentes.length && !bloques.length) return;
+
+      // Se guarda el HTML de partida para devolverlo tal cual: es más seguro
+      // que intentar desenvolver span a span.
+      const original = fuentes.map((el) => ({ el, html: el.innerHTML }));
+      const piezas: Pieza[] = [];
+
+      const cx = window.innerWidth / 2;
+      const cy = window.innerHeight / 2;
+      const H = window.innerHeight;
+
+      const registrar = (el: HTMLElement) => {
+        const b = el.getBoundingClientRect();
+        if (!b.width && !b.height) return;
+        // MISMA métrica que el shader: distancia al centro dividida por la
+        // altura del viewport (ver rippleParams).
+        const dx = (b.left + b.width / 2 - cx) / H;
+        const dy = (b.top + b.height / 2 - cy) / H;
+        piezas.push({ el, dx, dy, r: Math.hypot(dx, dy) });
       };
 
-      destino.style.filter = "url(#nxr-splash)";
+      for (const el of fuentes) partirEnCaracteres(el).forEach(registrar);
+      bloques.forEach(registrar);
+      if (!piezas.length) return;
+
+      const limpiar = () => {
+        for (const p of piezas) {
+          p.el.style.transform = "";
+          p.el.style.willChange = "";
+        }
+        // Devolver el markup original deshace de un golpe los inline-block de
+        // los caracteres, que alteran mínimamente el kerning mientras duran.
+        for (const o of original) o.el.innerHTML = o.html;
+      };
+
       const t0 = performance.now();
       const tick = (ahora: number) => {
         const t = (ahora - t0) / 1000;
-        if (t >= SPLASH_DUR) {
+        if (t >= RIPPLE.DUR) {
           limpiar();
           return;
         }
-        const env = Math.sin(t * SPLASH_FREQ) * Math.exp(-t * SPLASH_DECAY);
-        mapa.setAttribute("scale", (SPLASH_MAX * env).toFixed(2));
+        const decae = Math.exp(-t * RIPPLE.DECAY);
+        const frente = t * RIPPLE.VEL;
+        for (const p of piezas) {
+          const dr = p.r - frente;
+          const w = Math.sin(dr * RIPPLE.FREQ) * Math.exp(-dr * dr * RIPPLE.BELL) * decae;
+          const k = (w * AMP_PX) / (p.r > 0.0001 ? p.r : 1);
+          p.el.style.transform = `translate(${(p.dx * k).toFixed(2)}px, ${(p.dy * k).toFixed(2)}px)`;
+        }
         raf = requestAnimationFrame(tick);
       };
       raf = requestAnimationFrame(tick);
       // Red de seguridad, no redundancia: si la pestaña pasa a segundo plano el
       // rAF se para en seco y el tick nunca alcanza su rama de salida, así que
-      // el filtro se quedaría puesto para siempre (comprobado). El timer corre
-      // igual con la pestaña oculta y deja la hero limpia pase lo que pase.
-      timers.push(window.setTimeout(limpiar, SPLASH_DUR * 1000 + 400));
+      // los textos se quedarían desplazados para siempre (comprobado con el
+      // filtro de V17.71). El timer corre igual con la pestaña oculta.
+      timers.push(window.setTimeout(limpiar, RIPPLE.DUR * 1000 + 400));
     };
 
-    const open = () => {
-      if (done) return;
-      done = true;
+    const romper = () => {
       root.classList.add("nxr-curtain-open");
       if (!window.__nxrCurtainOpen) {
         window.__nxrCurtainOpen = true;
@@ -134,6 +212,15 @@ export default function LoadProgress() {
       );
     };
 
+    const open = () => {
+      if (done) return;
+      done = true;
+      // La pantalla de carga se cobra su mínimo aunque el muro ya esté listo.
+      const falta = MIN_SHOW_MS - (performance.now() - montado);
+      if (falta > 0) timers.push(window.setTimeout(romper, falta));
+      else romper();
+    };
+
     if (window.__nxrWallSettled) open();
     else window.addEventListener("nxr:wall-settled", open, { once: true });
 
@@ -147,45 +234,10 @@ export default function LoadProgress() {
   }, []);
 
   return (
-    <>
-      {/* Definición del filtro. Va FUERA de la cortina a propósito: la cortina
-          acaba en display:none y un <filter> dentro de un subárbol oculto deja
-          de estar disponible para quien lo referencia. */}
-      <svg className="nxr-splash-def" aria-hidden="true" focusable="false">
-        <filter id="nxr-splash" x="-25%" y="-25%" width="150%" height="150%">
-          {/* Frecuencia baja = ondas largas (~85px), que es lo que se lee como
-              agua; subirla convierte el licuado en un rizado sucio sobre los
-              glifos. Una sola octava a propósito: basta para la forma y evita
-              el coste de las demás en un filtro que corre a 60fps. */}
-          <feTurbulence
-            type="fractalNoise"
-            baseFrequency="0.011 0.017"
-            numOctaves="1"
-            seed="7"
-            result="ruido"
-          />
-          {/* scale lo escribe el rAF de arriba; 0 = sin deformar. */}
-          <feDisplacementMap
-            id="nxr-splash-dm"
-            in="SourceGraphic"
-            in2="ruido"
-            scale="0"
-            xChannelSelector="R"
-            yChannelSelector="G"
-          />
-        </filter>
-      </svg>
-
-      <div ref={rootRef} className="nxr-curtain" aria-hidden="true">
-        <div className="nxr-curtain-cols">
-          {Array.from({ length: COLS }, (_, i) => (
-            <div key={i} className="nxr-curtain-col" />
-          ))}
-        </div>
-        <div className="nxr-curtain-logo">
-          Nexora<span>.</span>
-        </div>
+    <div ref={rootRef} className="nxr-curtain" aria-hidden="true">
+      <div className="nxr-curtain-logo">
+        Nexora<span>.</span>
       </div>
-    </>
+    </div>
   );
 }

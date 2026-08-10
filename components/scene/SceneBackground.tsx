@@ -55,11 +55,11 @@ const wallAspect = (m: WallMode) => (2 * m.R * m.PHI) / m.H;
 // ancladas a la rejilla de 180 dentro del shader (ver refPixel).
 const PIXEL_X = 240;
 
-// Vida de la onda de impacto, en segundos. El frente sale del encuadre a ~0.76s
-// (ver la velocidad en el shader) y la amortiguación exp(-2.1t) deja la estela
-// en el 8% a 1.2s: a partir de ahí no queda nada que renderizar, y cada frame
-// de más es un frame que la onda se auto-invalida para nada.
-const RIPPLE_DUR = 1.25;
+// Vida de la onda de impacto, en segundos. El frente sale del encuadre a ~1.65s
+// (ver la velocidad en el shader) y la amortiguación exp(-0.8t) deja la estela
+// por debajo del 10% a 2.9s: a partir de ahí no queda nada que renderizar, y
+// cada frame de más es un frame que la onda se auto-invalida para nada.
+const RIPPLE_DUR = 2.9;
 const COLS = 220;
 const ROWS = 72;
 
@@ -201,21 +201,26 @@ const fragmentShader = /* glsl */ `
       // onda saldría elíptica en pantallas anchas.
       vec2 dv = (gl_FragCoord.xy / uRes - vec2(0.5)) * vec2(uRes.x / uRes.y, 1.0);
       float r = length(dv);
-      // El frente avanza a 1.35 unidades/s y la esquina de una 16:9 queda a
-      // r≈1.02, así que la cresta sale del encuadre a ~0.76s. Va emparejado
-      // con el revelado de la cortina, que a 1.3s lineales hasta el 170%
-      // alcanza esa misma esquina (100%) a ~0.76s: el borde del hueco y la
+      // V17.71 ("se ve muy rápido, casi ni se aprecia"): el frente baja de 1.35
+      // a 0.62 unidades/s. La esquina de una 16:9 queda a r≈1.02, así que la
+      // cresta tarda ahora ~1.65s en salir del encuadre en vez de ~0.76s. Va
+      // emparejado con el revelado de la cortina, que a 3s lineales hasta el
+      // 179% alcanza esa misma esquina (100%) a ~1.68s: el borde del hueco y la
       // cresta viajan juntos, que es lo que vende que la web la descubre el
       // propio golpe de agua.
-      float dr = r - uRipT * 1.35;
-      // Tren de 3-4 crestas dentro de una campana estrecha que viaja con el
-      // frente, y amortiguación global: la primera cresta es la fuerte y el
-      // resto se apaga detrás, como el agua de verdad.
-      ripW = sin(dr * 34.0) * exp(-dr * dr * 46.0) * exp(-uRipT * 2.1);
-      // Empuje radial. 0.009 en UV del muro ≈ 40 unidades de arco ≈ 14px en
-      // pantalla en la cresta: se ve claramente sin despegar los biseles de
-      // su sitio ni romper la lectura de "monitores".
-      uvW += (r > 0.0001 ? dv / r : vec2(0.0)) * ripW * 0.009;
+      float dr = r - uRipT * 0.62;
+      // Tren de crestas dentro de una campana que viaja con el frente, y
+      // amortiguación global: la primera cresta es la fuerte y el resto se apaga
+      // detrás, como el agua de verdad. La campana se ensancha (46 -> 18) y las
+      // crestas se separan (34 -> 22) para que la ondulación ocupe una franja
+      // ancha de pantalla y no un aro fino que pasa desapercibido; la
+      // amortiguación se relaja (2.1 -> 0.8) para que la estela sobreviva al
+      // recorrido entero ahora que dura más del doble.
+      ripW = sin(dr * 22.0) * exp(-dr * dr * 18.0) * exp(-uRipT * 0.8);
+      // Empuje radial. 0.009 -> 0.020 en UV del muro ≈ 90 unidades de arco ≈
+      // 31px en pantalla en la cresta: la deformación se lee de lejos, que es
+      // lo pedido, sin llegar a despegar los biseles de su sitio.
+      uvW += (r > 0.0001 ? dv / r : vec2(0.0)) * ripW * 0.020;
     }
 
     // (La deriva de la cuadrícula con el scroll — uGridShift, V17.5 — se

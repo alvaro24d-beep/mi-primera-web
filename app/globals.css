@@ -1411,27 +1411,43 @@ p.nxr-hero-mastery-line {
   inset: 0;
   z-index: 10002;
   --nxr-cr: 0%;
-  /* Hueco circular creciente: transparente hasta --nxr-cr y opaco a partir de
-     ahí, con 9% de degradado para que el borde no sea un recorte de tijera
-     sino la lámina de agua que se abre. 100% = esquina más lejana (radial
-     farthest-corner), así que hace falta pasarse hasta 170% para limpiar toda
-     la pantalla. LINEAL a propósito: el frente de la onda del shader avanza a
-     velocidad constante y una curva ease dejaría el borde del revelado
-     adelantándose o quedándose atrás respecto a la cresta. */
+  /* Hueco circular creciente, con 9% de degradado para que el borde no sea un
+     recorte de tijera sino la lámina de agua que se abre.
+     El degradado va DETRÁS del radio (de --nxr-cr - 9% a --nxr-cr), no delante:
+     puesto delante, en reposo (--nxr-cr: 0%) la máscara era "transparent 0%,
+     #000 9%" y dejaba el centro medio translúcido desde el primer frame — se
+     veía el h1 y el párrafo de la hero por detrás del logo. Así, a 0% el primer
+     tope cae en -9% y la capa tapa del todo.
+     100% = esquina más lejana (radial farthest-corner), de ahí el 179% final:
+     170 para limpiar la pantalla + los 9 del degradado.
+     LINEAL a propósito: el frente de la onda del shader avanza a velocidad
+     constante y una curva ease dejaría el borde del revelado adelantándose o
+     quedándose atrás respecto a la cresta. */
   -webkit-mask-image: radial-gradient(
     circle at 50% 50%,
-    transparent var(--nxr-cr),
-    #000 calc(var(--nxr-cr) + 9%)
+    transparent calc(var(--nxr-cr) - 9%),
+    #000 var(--nxr-cr)
   );
   mask-image: radial-gradient(
     circle at 50% 50%,
-    transparent var(--nxr-cr),
-    #000 calc(var(--nxr-cr) + 9%)
+    transparent calc(var(--nxr-cr) - 9%),
+    #000 var(--nxr-cr)
   );
-  transition: --nxr-cr 1.3s linear;
+  transition: --nxr-cr 3s linear;
 }
 .nxr-curtain-open {
-  --nxr-cr: 170%;
+  --nxr-cr: 179%;
+}
+
+/* Portador del filtro de chapoteo (ver LoadProgress.tsx). Solo aloja un <defs>
+   de facto: no debe ocupar sitio ni capturar nada, pero tampoco puede llevar
+   display:none — un filtro dentro de un subárbol oculto deja de resolverse. */
+.nxr-splash-def {
+  position: absolute;
+  width: 0;
+  height: 0;
+  overflow: hidden;
+  pointer-events: none;
 }
 
 .nxr-curtain-cols {

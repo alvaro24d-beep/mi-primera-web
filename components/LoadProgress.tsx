@@ -45,10 +45,14 @@ declare global {
 // desaparecía en el mismo frame. 900 -> 1600 (V17.73): con el vídeo ya en
 // caché, 900ms se leían como un parpadeo y no como una pantalla de carga.
 const MIN_SHOW_MS = 1600;
-// Retirada del árbol de pintado. Cubre el revelado completo (3s de máscara) con
-// margen: mientras siga montada, su capa a pantalla completa se recompone sobre
-// un canvas que invalida a ~30fps.
-const LIFT_MS = 3200;
+// Retirada del árbol de pintado: mientras siga montada, su capa a pantalla
+// completa se recompone sobre un canvas que invalida a ~30fps.
+// 3200 -> 2400 (V17.77): antes tenía que cubrir los 3s completos del revelado
+// por máscara, porque hasta el último frame quedaba un anillo de cortina en las
+// esquinas. Ahora la capa entera se funde a opacidad 0 en 0.15 + 1.9s, así que
+// a partir de ~2.05s no hay nada que ver y el resto del recorrido del círculo
+// ocurre sobre una capa ya invisible. 2400 deja margen de sobra.
+const LIFT_MS = 2400;
 const FAILSAFE_MS = 8000;
 
 // ---- Chapoteo del CONTENIDO de la hero ----

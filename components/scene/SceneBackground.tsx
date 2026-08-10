@@ -259,6 +259,15 @@ const fragmentShader = /* glsl */ `
       fill = uBase;
     }
 
+    // ===== DÍA (V17.64): lo que cambia es LO QUE EMITE LA PANTALLA =====
+    // Aquí, sobre fill (el contenido) y NO al final sobre el color ya
+    // compuesto. Esa era la confusión de V17.62/63: mezclar a blanco al final
+    // borraba también los biseles, la cuadrícula y la viñeta, o sea la pantalla
+    // ENTERA. Aplicándolo al contenido, lo que se apaga es el vídeo (queda en
+    // blanco, "como un vídeo con el fondo blanco") mientras todo lo que dibuja
+    // el monitor físico sigue calculándose debajo y se sigue viendo.
+    fill = mix(fill, vec3(1.0), uDay);
+
     // Panel APAGADO (V17.13, "quita lo gris, casi negro"): fondo casi negro
     // — la lectura de "pantalla apagada" la dan la CUADRÍCULA (más clara en
     // reposo, ver el coeficiente de uLine abajo) y los biseles. El paso
@@ -291,12 +300,17 @@ const fragmentShader = /* glsl */ `
     );
     col *= mix(vec3(1.0), subpx, 1.0 - uPower);
 
-    col += uGlowCol * glow * 0.10 * uPower;
+    col += uGlowCol * glow * 0.10 * uPower * (1.0 - uDay);
     // Apagada, la cuadrícula sube a 0.16 (V17.13, "que se vea que está
     // ahí") — sobre el fondo casi negro es lo único que dibuja la pantalla.
     // En móvil sube vía uOffLift con tope 2.4: la base necesita más (x4.8)
     // pero unas líneas a ese múltiplo serían protagonistas.
-    col += uLine * line * (mix(0.16 * min(uOffLift, 2.4), 0.05, uPower) + 0.28 * glow * uPower);
+    // La cuadrícula CAMBIA DE SIGNO en día: sobre una pantalla blanca, sumar
+    // luz la haría invisible; restándola, las mismas líneas se leen en gris.
+    // Es lo que mantiene visible la retícula de la pantalla sobre el blanco.
+    float aporteLinea = line * (mix(0.16 * min(uOffLift, 2.4), 0.05, uPower) + 0.28 * glow * uPower);
+    col += uLine * aporteLinea * (1.0 - uDay);
+    col -= vec3(line * 0.075) * uDay;
 
     // Parpadeo en reposo (V17.15, "que la pantalla apagada no esté
     // estática"): ~8% de las celdas de la cuadrícula respiran un poco más
@@ -357,11 +371,20 @@ const fragmentShader = /* glsl */ `
     col += vec3((grain - 0.5) * 0.006 * offL) * offAmt;
     // Deep dark gaps between the monitor tiles — applied AFTER glow/grid so
     // the separators cut through everything, like real bezels.
-    col = mix(col, col * 0.16, sep);
+    // Biseles. De noche al 16% (casi negros, como los huecos reales entre
+    // monitores); en DÍA al 74%: sobre blanco, un 16% sería un enrejado casi
+    // negro y agresivo. A 0.74 los monitores se siguen distinguiendo uno a uno
+    // —que es justo lo que hay que conservar— pero como un gris suave.
+    col = mix(col, col * mix(0.16, 0.74, uDay), sep);
 
     // (Los LEDs de standby rojos de V17.12 se retiraron en V17.13 a
     // petición: "quita los puntos rojos esos".)
-    col *= (0.42 + 0.58 * vig);
+    // Los atenuados de abajo existen para domar el BRILLO del vídeo bajo el
+    // texto claro. En día no hay vídeo que domar y el texto es oscuro, así que
+    // se van desactivando con uDay: si no, el blanco se ensuciaría de gris y
+    // las esquinas quedarían mugrientas. Los BISELES (sep, justo arriba) NO se
+    // tocan — son los que dibujan los monitores y tienen que seguir ahí.
+    col *= mix(0.42 + 0.58 * vig, 1.0, uDay);
 
     // SCREEN-SPACE edge vignette ("sombra del vídeo de fondo") — inside the
     // wall shader on purpose: it dims ONLY the wall/video; the glass cards
@@ -373,7 +396,7 @@ const fragmentShader = /* glsl */ `
     vec2 sd = vec2((sc.x - 0.5) * 2.0, ((sc.y - 0.52) * 2.0) / 0.85);
     float rr = length(sd);
     float edge = 0.28 * smoothstep(0.38, 0.72, rr) + 0.30 * smoothstep(0.72, 1.0, rr);
-    col *= (1.0 - min(edge, 0.58));
+    col *= mix(1.0 - min(edge, 0.58), 1.0, uDay);
 
     // Marco del viewport (V17.21, "sombreado fino pero intenso alrededor
     // de la pantalla, solo en ordenador"): banda de ~90px de buffer pegada
@@ -381,24 +404,14 @@ const fragmentShader = /* glsl */ `
     // desaparece rápido hacia dentro. uFrameShade = 1 solo en desktop.
     float ebp = min(min(gl_FragCoord.x, uRes.x - gl_FragCoord.x), min(gl_FragCoord.y, uRes.y - gl_FragCoord.y));
     float frame = 1.0 - smoothstep(0.0, 90.0, ebp);
-    col *= 1.0 - frame * frame * 0.85 * uFrameShade;
+    col *= 1.0 - frame * frame * 0.85 * uFrameShade * (1.0 - uDay);
 
     // Atenuación global del muro (petición: "oscurece un poco el fondo en
     // ordenador") — solo <1 en desktop, ver el efecto de orientación en JS.
     // Apagada casi no se atenúa (suelo 0.9): uDim existe para domar el
     // BRILLO del vídeo bajo el texto; el apagado ya es casi negro de por
     // sí y los LEDs/rejilla deben seguir leyéndose (V17.12).
-    col *= mix(0.9, uDim, uPower);
-
-    // ===== FONDO BLANCO (V17.63) =====
-    // "Quita el fondo directamente y pon un fondo blanco, como si pusieras un
-    // vídeo con el fondo blanco". Literal: la pantalla entera va a BLANCO
-    // PLANO, sin relieve que conservar. Va al final del todo, así que se lleva
-    // por delante la viñeta, el marco y el atenuado — si no, los bordes se
-    // quedarían sucios sobre el blanco.
-    // (El aclarado con textura de V17.62 se descartó: era lo contrario de lo
-    // pedido.)
-    col = mix(col, vec3(1.0), clamp(uDay, 0.0, 1.0));
+    col *= mix(mix(0.9, uDim, uPower), 1.0, uDay);
 
     gl_FragColor = vec4(col, 1.0);
   }

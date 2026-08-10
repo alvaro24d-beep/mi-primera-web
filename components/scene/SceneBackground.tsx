@@ -210,11 +210,7 @@ const fragmentShader = /* glsl */ `
       // amortiguación global: la primera cresta es la fuerte y las de detrás se
       // van apagando, como el agua de verdad.
       ripW = sin(dr * ${R.FREQ.toFixed(1)}) * exp(-dr * dr * ${R.BELL.toFixed(1)}) * exp(-uRipT * ${R.DECAY.toFixed(2)});
-      // Empuje radial. 0.016 en UV del muro ≈ 72 unidades de arco ≈ 25px en
-      // pantalla en la cresta. Baja desde el 0.020 de V17.71 porque al partir
-      // la longitud de onda por dos, la MISMA amplitud duplicaría la pendiente
-      // de cada cresta y el muro se rompería en escalones.
-      uvW += (r > 0.0001 ? dv / r : vec2(0.0)) * ripW * 0.016;
+      uvW += (r > 0.0001 ? dv / r : vec2(0.0)) * ripW * ${R.AMP_UV.toFixed(3)};
     }
 
     // (La deriva de la cuadrícula con el scroll — uGridShift, V17.5 — se

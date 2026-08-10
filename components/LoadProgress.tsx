@@ -42,8 +42,9 @@ declare global {
 
 // Tiempo mínimo que la pantalla de carga se deja ver antes de romperse, aunque
 // el muro asiente antes. Sin esto, en carga caliente el nombre aparecía y
-// desaparecía en el mismo frame.
-const MIN_SHOW_MS = 900;
+// desaparecía en el mismo frame. 900 -> 1600 (V17.73): con el vídeo ya en
+// caché, 900ms se leían como un parpadeo y no como una pantalla de carga.
+const MIN_SHOW_MS = 1600;
 // Retirada del árbol de pintado. Cubre el revelado completo (3s de máscara) con
 // margen: mientras siga montada, su capa a pantalla completa se recompone sobre
 // un canvas que invalida a ~30fps.
@@ -69,14 +70,25 @@ const FAILSAFE_MS = 8000;
 // pantalla. Resultado: los glifos del centro se mueven primero y la ondulación
 // se propaga hacia fuera, en fase con el muro. Además es más barato que el
 // filtro — son transforms compuestos en GPU, sin recalcular ruido por frame.
-const AMP_PX = 24;
+//
+// V17.73 ("las letras no pueden tener el efecto en vez de simplemente
+// moverse?"): además de trasladarse, cada letra se ESTIRA a lo largo del eje
+// radial según la PENDIENTE de la onda en su posición — que es exactamente lo
+// que deforma a un objeto dentro de un campo de desplazamiento. Donde la onda
+// sube, las letras se separan y se estiran; donde baja, se comprimen. Es la
+// diferencia entre un texto que viaja rígido y un texto que pasa por debajo de
+// una lente de agua.
 // Los caracteres se parten solo en estos dos: los botones y el indicador de
 // scroll se mueven como bloques (partir un <Link> obliga a tocar su interior, y
 // aquí se restaura por innerHTML al terminar).
 const SEL_CHARS = ".nxr-hero-h1, .nxr-hero-sub";
 const SEL_BLOQUES = ".nxr-hero-actions, .nxr-hero-cue";
 
-type Pieza = { el: HTMLElement; dx: number; dy: number; r: number };
+// `ang` es la dirección radial en grados, para poder estirar la letra a lo
+// largo de ella (rotar → escalar en X → desrotar). `deforma` distingue las
+// letras, que se estiran, de los bloques (botones, indicador de scroll), que
+// solo se trasladan: deformar un botón lo rompe.
+type Pieza = { el: HTMLElement; dx: number; dy: number; r: number; ang: number; deforma: boolean };
 
 // Envuelve cada carácter en un span sin tocar el markup que ya hubiera dentro
 // (el <span> del degradado lima del h1 sigue siendo el padre de SUS letras).
@@ -137,6 +149,16 @@ export default function LoadProgress() {
       const bloques = Array.from(document.querySelectorAll<HTMLElement>(SEL_BLOQUES));
       if (!fuentes.length && !bloques.length) return;
 
+      // La cortina acaba de descubrir la web, así que lo que hay debajo tiene
+      // que estar VISIBLE. Sin esto, el h1 (.nxr-reveal + delay 0.2s) podía
+      // seguir en opacity 0 durante toda la onda y el titular no se veía
+      // ondular: se veía... nada. Comprobado en el navegador, con el h1 a
+      // opacity 0 y sin .nxr-visible mientras el chapoteo ya corría.
+      for (const el of [...fuentes, ...bloques]) {
+        el.closest(".nxr-reveal")?.classList.add("nxr-visible");
+        if (el.classList.contains("nxr-reveal")) el.classList.add("nxr-visible");
+      }
+
       // Se guarda el HTML de partida para devolverlo tal cual: es más seguro
       // que intentar desenvolver span a span.
       const original = fuentes.map((el) => ({ el, html: el.innerHTML }));
@@ -146,18 +168,19 @@ export default function LoadProgress() {
       const cy = window.innerHeight / 2;
       const H = window.innerHeight;
 
-      const registrar = (el: HTMLElement) => {
+      const registrar = (deforma: boolean) => (el: HTMLElement) => {
         const b = el.getBoundingClientRect();
         if (!b.width && !b.height) return;
         // MISMA métrica que el shader: distancia al centro dividida por la
         // altura del viewport (ver rippleParams).
         const dx = (b.left + b.width / 2 - cx) / H;
         const dy = (b.top + b.height / 2 - cy) / H;
-        piezas.push({ el, dx, dy, r: Math.hypot(dx, dy) });
+        const r = Math.hypot(dx, dy);
+        piezas.push({ el, dx, dy, r, ang: (Math.atan2(dy, dx) * 180) / Math.PI, deforma });
       };
 
-      for (const el of fuentes) partirEnCaracteres(el).forEach(registrar);
-      bloques.forEach(registrar);
+      for (const el of fuentes) partirEnCaracteres(el).forEach(registrar(true));
+      bloques.forEach(registrar(false));
       if (!piezas.length) return;
 
       const limpiar = () => {
@@ -181,9 +204,35 @@ export default function LoadProgress() {
         const frente = t * RIPPLE.VEL;
         for (const p of piezas) {
           const dr = p.r - frente;
-          const w = Math.sin(dr * RIPPLE.FREQ) * Math.exp(-dr * dr * RIPPLE.BELL) * decae;
-          const k = (w * AMP_PX) / (p.r > 0.0001 ? p.r : 1);
-          p.el.style.transform = `translate(${(p.dx * k).toFixed(2)}px, ${(p.dy * k).toFixed(2)}px)`;
+          const campana = Math.exp(-dr * dr * RIPPLE.BELL);
+          const seno = Math.sin(dr * RIPPLE.FREQ);
+          const w = seno * campana * decae;
+          const k = (w * RIPPLE.AMP_PX) / (p.r > 0.0001 ? p.r : 1);
+          const tx = (p.dx * k).toFixed(2);
+          const ty = (p.dy * k).toFixed(2);
+          if (!p.deforma) {
+            p.el.style.transform = `translate(${tx}px, ${ty}px)`;
+            continue;
+          }
+          // Pendiente de la onda (derivada respecto al radio) por la regla del
+          // producto. Es lo que estira o comprime la letra: un desplazamiento
+          // uniforme la movería sin deformarla, y sólo su VARIACIÓN a lo largo
+          // del radio la deforma.
+          const dw =
+            (RIPPLE.FREQ * Math.cos(dr * RIPPLE.FREQ) * campana +
+              seno * -2 * dr * RIPPLE.BELL * campana) *
+            decae;
+          const sx = Math.min(
+            RIPPLE.STRETCH_MAX,
+            Math.max(RIPPLE.STRETCH_MIN, 1 + dw * RIPPLE.STRETCH)
+          );
+          // El eje perpendicular compensa a la inversa (parcialmente), como el
+          // agua al conservar volumen: sin esto el estiramiento se lee como un
+          // simple "negrita/fina" en vez de como una lente.
+          const sy = 1 - (sx - 1) * 0.45;
+          p.el.style.transform =
+            `translate(${tx}px, ${ty}px) rotate(${p.ang.toFixed(1)}deg) ` +
+            `scale(${sx.toFixed(3)}, ${sy.toFixed(3)}) rotate(${(-p.ang).toFixed(1)}deg)`;
         }
         raf = requestAnimationFrame(tick);
       };

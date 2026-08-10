@@ -1441,6 +1441,20 @@ p.nxr-hero-mastery-line {
   --nxr-cr: 179%;
 }
 
+/* Respaldo para navegadores sin @property (la pone LoadProgress al detectar que
+   falta CSS.registerProperty). Sin registrar, --nxr-cr no se puede transicionar
+   y el hueco saltaría a 179% en un frame: la cortina se esfumaría sin apertura.
+   Aquí se retira la máscara y se cambia por un fundido, que anima en cualquier
+   navegador. */
+.nxr-curtain-simple {
+  -webkit-mask-image: none;
+  mask-image: none;
+  transition: opacity 0.9s ease;
+}
+.nxr-curtain-simple.nxr-curtain-open {
+  opacity: 0;
+}
+
 /* (La línea de escaneo verde se retiró en V17.49, y las columnas de tinte +
    scanlines en V17.72: el fondo de la espera es liso. El movimiento durante la
    espera lo lleva la respiración del logo; el de la apertura, el círculo de

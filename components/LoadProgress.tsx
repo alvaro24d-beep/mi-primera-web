@@ -103,6 +103,21 @@ function partirEnCaracteres(raiz: HTMLElement): HTMLElement[] {
 
   for (const t of textos) {
     if (!t.data.trim()) continue;
+    // Los acentos lima de los títulos (.nxr-gradient-text-lime) NO son color
+    // plano: llevan un degradado animado de fondo recortado a los glifos
+    // (background-clip:text) con el texto en text-fill transparent. Ese apaño
+    // aguanta que el texto se parta —el fondo vive en el wrapper y el clip
+    // sigue a los glifos— pero NO aguanta que cada letra reciba su propio
+    // transform: al transformarse, la letra se despega del recorte del padre,
+    // y como hereda la transparencia pero no el fondo, se vuelve INVISIBLE.
+    // Era esto lo que hacía que "piloto automático" solo apareciera al acabar
+    // la onda, justo cuando se restaura el markup.
+    // Se cambia por lima sólido mientras dura el chapoteo: el color computado
+    // del wrapper ya es --c-lime, así que basta con dejar de tapar el relleno.
+    // Al restaurar el HTML vuelve el degradado animado.
+    const padre = t.parentElement;
+    const transparente =
+      !!padre && getComputedStyle(padre).webkitTextFillColor === "rgba(0, 0, 0, 0)";
     const frag = document.createDocumentFragment();
     for (const trozo of t.data.split(/(\s+)/)) {
       if (!trozo) continue;
@@ -118,6 +133,7 @@ function partirEnCaracteres(raiz: HTMLElement): HTMLElement[] {
         s.textContent = c;
         s.style.display = "inline-block";
         s.style.willChange = "transform";
+        if (transparente) s.style.webkitTextFillColor = "currentColor";
         palabra.appendChild(s);
         chars.push(s);
       }
@@ -139,6 +155,17 @@ export default function LoadProgress() {
     let raf = 0;
     const timers: number[] = [];
     const montado = performance.now();
+
+    // El revelado circular depende de poder TRANSICIONAR --nxr-cr, y eso solo
+    // es posible si el navegador registra la custom property con @property
+    // (Chrome 85+, Safari 16.4+). Donde no la haya, la máscara no anima: el
+    // radio salta de 0% a 179% en el primer frame y la cortina desaparece de
+    // golpe, sin apertura. En ese caso se cambia a un fundido, que no depende
+    // de nada. Se detecta por capacidad y no por navegador, que es lo que
+    // sobrevive a las versiones.
+    if (typeof CSS === "undefined" || typeof CSS.registerProperty !== "function") {
+      root.classList.add("nxr-curtain-simple");
+    }
 
     const chapotear = () => {
       if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;

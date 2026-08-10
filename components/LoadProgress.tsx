@@ -47,12 +47,14 @@ declare global {
 const MIN_SHOW_MS = 1600;
 // Retirada del árbol de pintado: mientras siga montada, su capa a pantalla
 // completa se recompone sobre un canvas que invalida a ~30fps.
-// 3200 -> 2400 (V17.77): antes tenía que cubrir los 3s completos del revelado
-// por máscara, porque hasta el último frame quedaba un anillo de cortina en las
-// esquinas. Ahora la capa entera se funde a opacidad 0 en 0.15 + 1.9s, así que
-// a partir de ~2.05s no hay nada que ver y el resto del recorrido del círculo
-// ocurre sobre una capa ya invisible. 2400 deja margen de sobra.
-const LIFT_MS = 2400;
+// 3200 -> 2400 (V17.77) -> 2600 (V17.78): antes tenía que cubrir los 3s
+// completos del revelado por máscara, porque hasta el último frame quedaba un
+// anillo de cortina en las esquinas. Ahora la capa entera se funde a opacidad 0
+// en 0.2 + 2s, así que a partir de ~2.2s no hay nada que ver y el resto del
+// recorrido del círculo ocurre sobre una capa ya invisible. Este número TIENE
+// que ir por encima de ese total: si se queda corto, el display:none corta el
+// fundido a media disolución y vuelve el corte seco.
+const LIFT_MS = 2600;
 const FAILSAFE_MS = 8000;
 
 // ---- Chapoteo del CONTENIDO de la hero ----
@@ -336,8 +338,15 @@ export default function LoadProgress() {
 
   return (
     <div ref={rootRef} className="nxr-curtain" aria-hidden="true">
+      {/* El span interior NO es decorativo: lleva la respiración de la espera,
+          mientras el div de fuera lleva el fundido+difuminado de la salida. Las
+          dos animan `opacity` y, en un mismo elemento, la animación gana a la
+          transición — de ahí el destello que hacía que el logo se fuera de
+          golpe al dar paso a las ondas (ver globals.css). */}
       <div className="nxr-curtain-logo">
-        Nexora<span>.</span>
+        <span className="nxr-curtain-logo-in">
+          Nexora<span>.</span>
+        </span>
       </div>
     </div>
   );

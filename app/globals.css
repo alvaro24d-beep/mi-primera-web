@@ -1411,11 +1411,18 @@ p.nxr-hero-mastery-line {
      perceptible era el titular apareciendo… y el titular está en el centro
      exacto, justo donde NACE el círculo, así que salía en los primeros 200ms.
      De ahí la lectura de "se quita de golpe" pese a durar 3s.
-     Desvaneciendo la capa entera durante 1.9s, la retirada se ve mientras
+     Desvaneciendo la capa entera durante 2s, la retirada se ve mientras
      ocurre: el nombre y el fondo de la espera se van apagando de forma
-     continua y la web asoma por debajo. El ease-in deja el primer tercio casi
-     opaco (la pantalla de carga se sostiene) y acelera al final. */
-  transition: --nxr-cr 3s linear, opacity 1.9s cubic-bezier(0.4, 0, 0.7, 1) 0.15s;
+     continua y la web asoma por debajo.
+     LINEAL (V17.78, era un ease-in): con la curva, el primer tercio se quedaba
+     casi opaco y el grueso del cambio caía al final — o sea, la pantalla
+     aguantaba y LUEGO se iba deprisa, que es justo la lectura de "se quita de
+     golpe" que había que quitar. A ritmo constante el degradado se aprecia de
+     principio a fin, y además acompaña al revelado y al frente de la onda del
+     muro, que también son lineales.
+     El retardo de 0.2s deja que el logo (1.5s, arranca sin retardo) vaya por
+     delante: primero se disuelve el nombre, el fondo le sigue. */
+  transition: --nxr-cr 3s linear, opacity 2s linear 0.2s;
 }
 .nxr-curtain-open {
   --nxr-cr: 210%;
@@ -1442,19 +1449,43 @@ p.nxr-hero-mastery-line {
    agua. El chapoteo de los textos de la hero ya no usa filtro SVG —ver
    LoadProgress.tsx—, así que tampoco queda portador que declarar aquí.) */
 
+/* DOS CAPAS para el logo (V17.78) y esto es lo que arregla el corte: la
+   RESPIRACIÓN de la espera vive en el hijo y la SALIDA en el contenedor. Antes
+   ambas eran la misma propiedad (opacity) del mismo elemento, y una animación
+   gana siempre a una transición en la cascada: para poder fundir el logo había
+   que matar su animación con `animation: none`, lo que devolvía la opacidad de
+   golpe a 1 desde donde estuviera la respiración (hasta 0.72) justo en el
+   primer frame de la salida. Ese destello era, literalmente, el "de golpe" que
+   se veía al dar paso a las ondas. Separadas, la salida arranca exactamente
+   desde donde estaba el logo. */
 .nxr-curtain-logo {
   position: absolute;
   top: 50%;
   left: 50%;
-  transform: translate(-50%, -50%);
   font-size: 26px;
   font-weight: 700;
   letter-spacing: -0.02em;
   color: var(--c-white);
+  /* Estado de partida explícito: `filter` necesita un valor de origen para
+     poder interpolar (desde `none` no transiciona). */
+  transform: translate(-50%, -50%) scale(1);
+  filter: blur(0px);
+  opacity: 1;
+  /* La salida del logo: se DIFUMINA mientras se apaga y se agranda un pelín,
+     como si se disolviera en el agua en vez de apagarse. El desenfoque es lo
+     que de verdad se lee como "desaparecer progresivamente" — el fondo de la
+     cortina es liso y un color plano desenfocado sigue siendo el mismo color
+     plano, así que el logo es lo ÚNICO de esta pantalla en lo que un
+     difuminado se puede apreciar. Lineal, como el revelado y como el frente de
+     la onda del muro: los tres avanzan a ritmo constante y se acompañan. */
+  transition: opacity 1.5s linear, filter 1.5s linear, transform 1.6s ease-out;
+}
+.nxr-curtain-logo-in {
+  display: inline-block;
   /* Respiración muy contenida: da vida sin convertirse en un "loader". */
   animation: nxr-curtain-logo 2.4s ease-in-out infinite;
 }
-.nxr-curtain-logo span {
+.nxr-curtain-logo-in span {
   color: var(--c-lime);
 }
 @keyframes nxr-curtain-logo {
@@ -1466,20 +1497,28 @@ p.nxr-hero-mastery-line {
     opacity: 1;
   }
 }
-/* El logo está justo en el punto de impacto, así que tiene que irse pronto: si
-   se quedara, se le vería sobrevivir flotando en mitad del hueco que ya ha
-   descubierto la web. Pero 0.18s se leía como un corte seco JUSTO cuando el
-   resto de la capa empieza a fundirse (V17.77) — 0.55s sigue quitándolo antes
-   de que el hueco llegue a su sitio y ya no rompe la continuidad. */
 .nxr-curtain-open .nxr-curtain-logo {
   opacity: 0;
-  animation: none;
-  transition: opacity 0.55s ease-out;
+  filter: blur(14px);
+  transform: translate(-50%, -50%) scale(1.14);
+}
+/* Y la respiración se congela AL ABRIR, no se elimina: sin esto seguiría
+   latiendo por debajo del fundido y el logo se apagaría a tirones. */
+.nxr-curtain-open .nxr-curtain-logo-in {
+  animation-play-state: paused;
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .nxr-curtain-logo {
+  .nxr-curtain-logo-in {
     animation: none;
+  }
+  /* Ni difuminado ni escala en la salida del logo: se va con la capa. */
+  .nxr-curtain-logo {
+    transition: opacity 0.3s ease;
+  }
+  .nxr-curtain-open .nxr-curtain-logo {
+    filter: blur(0px);
+    transform: translate(-50%, -50%) scale(1);
   }
   /* Sin onda ni revelado circular (el muro tampoco ondula: SceneBackground no
      llega a armar el impacto con reduced-motion). La cortina se va con un

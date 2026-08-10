@@ -1010,12 +1010,10 @@ p.nxr-hero-mastery-line {
   stroke-linejoin: round;
 }
 
-/* Quinto servicio a lo ancho: 5 tarjetas en 2 columnas dejaban la última fila
-   con un hueco. Ocupando las dos, el desplegable cierra en rectángulo. (En la
-   columna única de móvil el grid lo recorta solo a 1: no hay que anularlo.) */
-.nxr-nav-srv-wide {
-  grid-column: span 2;
-}
+/* El quinto servicio a lo ancho (5 tarjetas en 2 columnas dejaban la última
+   fila coja) vive ENTERO en el media query de escritorio — ver min-width:769px.
+   Aquí no se declara nada a propósito: la rejilla de 2 columnas solo existe
+   allí, y un `span 2` global rompía el móvil de columna única. */
 
 .nxr-nav-srv-item {
   display: flex;
@@ -1299,6 +1297,15 @@ p.nxr-hero-mastery-line {
     display: inline;
   }
 
+  /* Columna única: aquí el desplegable es el menú entero (servicios + páginas)
+     y una rejilla de dos no cabe. El `span 2` del quinto servicio NO se
+     declara para este ancho (ver .nxr-nav-srv-wide): con una sola columna, un
+     item que abarca dos NO se recorta — el grid se inventa una segunda columna
+     implícita de ancho `auto` para colocarlo, y el menú entero se partía en
+     dos columnas desiguales (~139px y ~231px), con las cabeceras de grupo
+     compartiendo fila con una tarjeta y los títulos rotos en tres líneas.
+     Anularlo aquí con `grid-column: auto` NO sirve: el compilador de CSS borra
+     esa declaración por ser el valor inicial, sin ver que anula una anterior. */
   #nxr-nav-services {
     grid-template-columns: 1fr;
   }
@@ -1313,6 +1320,14 @@ p.nxr-hero-mastery-line {
   }
   #nxr-nav-services {
     grid-template-columns: 1fr 1fr;
+  }
+  /* Quinto servicio a lo ancho, para que la última fila no quede coja. El
+     contenido va CENTRADO: a doble ancho y alineado a la izquierda como las
+     otras cuatro, dejaba medio panel vacío a la derecha y la fila entera se
+     leía como un descuadre. */
+  .nxr-nav-srv-wide {
+    grid-column: span 2;
+    justify-content: center;
   }
 }
 

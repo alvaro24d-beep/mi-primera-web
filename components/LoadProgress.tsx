@@ -9,19 +9,25 @@ declare global {
   }
 }
 
-// ===== Cortina de entrada =====
-// V17.47 — deja de ser una BARRA DE PROGRESO ("no tiene que ser una barra que
+// ===== Cortina de entrada — piedra en el agua =====
+// V17.47 dejó de ser una BARRA DE PROGRESO ("no tiene que ser una barra que
 // esperas a que se complete; algo dinámico y visualmente estimulante, pero
-// profesional"). Ahora la cortina no informa de nada: es una pantalla apagada
-// que se RETIRA, y la gracia está en cómo se va.
+// profesional"): la cortina no informa de nada, es una pantalla apagada que se
+// RETIRA, y la gracia está en cómo se va.
 //
-// El lenguaje es el del propio sitio, no un efecto genérico: el muro de fondo
-// se enciende monitor a monitor en cascada aleatoria (ver uPower/tileOn en
-// SceneBackground.tsx), así que la cortina se despide igual — en columnas que
-// suben desescalonadas, con la textura de scanlines y el tinte por columna que
-// ya identifican a esa pantalla. Mientras espera, una línea de escaneo la
-// recorre en bucle: hay movimiento continuo desde el primer frame, sin
-// prometer un porcentaje que no controlamos.
+// V17.70 cambia ese "cómo": las columnas desescalonadas dejan paso a una
+// PIEDRA EN EL AGUA. Cae en el centro justo cuando la web está lista, el
+// círculo que abre descubre la página (máscara radial, ver globals.css) y el
+// muro del fondo ondula de verdad —vídeo, cuadrícula y monitores— con un
+// frente circular amortiguado que vive en el shader (uniform uRipT en
+// SceneBackground.tsx). Los dos lados se enganchan al MISMO hito,
+// `nxr:curtain-open`, así que impacto y apertura son un solo gesto y ninguno
+// de los dos componentes necesita conocer al otro.
+//
+// Las columnas se quedan, pero ya solo como TEXTURA: el tinte alterno y las
+// scanlines son lo que hace que la cortina se lea como una pantalla apagada
+// —el mismo lenguaje del muro— en vez de como un rectángulo negro. Ya no se
+// mueven.
 //
 // Se mantiene lo que ya funcionaba: cubre desde el PRIMER PAINT (el div viene
 // en el SSR y las columnas tapan por CSS, sin hueco pre-hidratación), se abre
@@ -31,14 +37,13 @@ declare global {
 //
 // Al abrirse deja window.__nxrCurtainOpen y emite `nxr:curtain-open`.
 
-// Orden de salida de las columnas: barajado A MANO y fijo. Ni Math.random (el
-// SSR y el cliente pintarían órdenes distintos) ni secuencial (un barrido de
-// izquierda a derecha se lee como una persiana, no como el encendido por
-// paneles del muro).
-const COL_ORDER = [3, 0, 6, 2, 8, 1, 7, 4, 9, 5];
-const COL_STAGGER_MS = 38;
-// Cascada completa: 9·38 + 520 de la propia transición, con margen.
-const LIFT_MS = 1000;
+// Columnas de textura. Sin orden de salida ya (no se van una a una), pero
+// siguen siendo 10 para conservar el mismo grano de tinte/scanlines.
+const COLS = 10;
+// Retirada del árbol de pintado. Cubre el revelado completo (1.3s de máscara)
+// con margen: mientras siga montada, su capa a pantalla completa se recompone
+// sobre un canvas que invalida a ~30fps.
+const LIFT_MS = 1500;
 const FAILSAFE_MS = 8000;
 
 export default function LoadProgress() {
@@ -59,9 +64,9 @@ export default function LoadProgress() {
         window.__nxrCurtainOpen = true;
         window.dispatchEvent(new Event("nxr:curtain-open"));
       }
-      // Fuera del árbol de pintado en cuanto termina la cascada: sin esto, sus
-      // 10 columnas y la línea de escaneo seguirían componiéndose sobre un
-      // canvas que invalida a ~30fps.
+      // Fuera del árbol de pintado en cuanto termina el revelado: sin esto, la
+      // capa y su máscara radial seguirían componiéndose sobre un canvas que
+      // invalida a ~30fps.
       timers.push(
         window.setTimeout(() => {
           root.style.display = "none";
@@ -83,12 +88,8 @@ export default function LoadProgress() {
   return (
     <div ref={rootRef} className="nxr-curtain" aria-hidden="true">
       <div className="nxr-curtain-cols">
-        {COL_ORDER.map((orden, i) => (
-          <div
-            key={i}
-            className="nxr-curtain-col"
-            style={{ transitionDelay: `${orden * COL_STAGGER_MS}ms` }}
-          />
+        {Array.from({ length: COLS }, (_, i) => (
+          <div key={i} className="nxr-curtain-col" />
         ))}
       </div>
       <div className="nxr-curtain-logo">

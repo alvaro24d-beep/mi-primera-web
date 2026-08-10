@@ -1385,18 +1385,55 @@ p.nxr-hero-mastery-line {
   max-width: 800px;
 }
 
-/* ===== Cortina de entrada (V17.47) =====
-   Ver LoadProgress.tsx. Ya NO es una barra de progreso: es una pantalla
-   apagada que se retira en columnas desescalonadas, el mismo lenguaje con el
-   que el muro se enciende monitor a monitor. Cubre desde el PRIMER PAINT (el
-   div viene en el SSR y son las columnas las que tapan, con el mismo #050810
-   que html, así que la transición pre/post hidratación es invisible).
-   Solo transform y opacity; display:none al terminar. */
+/* ===== Cortina de entrada — piedra en el agua (V17.70) =====
+   Ver LoadProgress.tsx. No es una barra de progreso: es una pantalla apagada
+   que se retira. Hasta V17.69 se iba en columnas desescalonadas; ahora se
+   abre como el agua — cae una piedra en el centro y el círculo que deja
+   descubre la web, mientras el muro del fondo ondula de verdad (la onda vive
+   en el shader, uniform uRipT en SceneBackground.tsx, disparada por el mismo
+   evento `nxr:curtain-open` que abre esto).
+   Cubre desde el PRIMER PAINT (el div viene en el SSR y son las columnas las
+   que tapan, con el mismo #050810 que html, así que la transición pre/post
+   hidratación es invisible). */
+
+/* El radio del hueco. Registrarlo es lo que permite TRANSICIONARLO: una
+   custom property sin @property es un token de texto y salta de golpe. Si el
+   navegador no lo soporta, el salto deja la web descubierta igual (la cortina
+   no se queda pegada) — solo se pierde la animación. */
+@property --nxr-cr {
+  syntax: "<percentage>";
+  inherits: false;
+  initial-value: 0%;
+}
+
 .nxr-curtain {
   position: fixed;
   inset: 0;
   z-index: 10002;
+  --nxr-cr: 0%;
+  /* Hueco circular creciente: transparente hasta --nxr-cr y opaco a partir de
+     ahí, con 9% de degradado para que el borde no sea un recorte de tijera
+     sino la lámina de agua que se abre. 100% = esquina más lejana (radial
+     farthest-corner), así que hace falta pasarse hasta 170% para limpiar toda
+     la pantalla. LINEAL a propósito: el frente de la onda del shader avanza a
+     velocidad constante y una curva ease dejaría el borde del revelado
+     adelantándose o quedándose atrás respecto a la cresta. */
+  -webkit-mask-image: radial-gradient(
+    circle at 50% 50%,
+    transparent var(--nxr-cr),
+    #000 calc(var(--nxr-cr) + 9%)
+  );
+  mask-image: radial-gradient(
+    circle at 50% 50%,
+    transparent var(--nxr-cr),
+    #000 calc(var(--nxr-cr) + 9%)
+  );
+  transition: --nxr-cr 1.3s linear;
 }
+.nxr-curtain-open {
+  --nxr-cr: 170%;
+}
+
 .nxr-curtain-cols {
   position: absolute;
   inset: 0;
@@ -1408,9 +1445,6 @@ p.nxr-hero-mastery-line {
   /* Un pelo de tinte alterno: los monitores del muro tampoco tienen todos la
      misma luminancia (ver panelLum en el shader). */
   box-shadow: inset -1px 0 0 rgba(255, 255, 255, 0.028);
-  transform: translateY(0);
-  transition: transform 0.52s cubic-bezier(0.65, 0, 0.35, 1);
-  will-change: transform;
 }
 .nxr-curtain-col:nth-child(2n) {
   background: #060a12;
@@ -1428,15 +1462,9 @@ p.nxr-hero-mastery-line {
   );
   pointer-events: none;
 }
-.nxr-curtain-open .nxr-curtain-col {
-  /* 101% y no 100%: a ciertos zooms el redondeo dejaba una línea de 1px. */
-  transform: translateY(-101%);
-}
-
 /* (La línea de escaneo verde que recorría la cortina se retiró en V17.49 a
-   petición. El movimiento durante la espera lo lleva ahora solo la
-   respiración del logo; el momento de la cascada de columnas al abrirse
-   sigue intacto.) */
+   petición. El movimiento durante la espera lo lleva la respiración del logo;
+   el momento de la apertura lo lleva ahora el círculo de agua.) */
 
 .nxr-curtain-logo {
   position: absolute;
@@ -1462,22 +1490,29 @@ p.nxr-hero-mastery-line {
     opacity: 1;
   }
 }
-/* El logo se va ANTES que las columnas: si se fuera con ellas, se le vería
-   trepar hacia arriba montado en la cascada. */
+/* El logo está justo en el punto de impacto, así que se apaga de golpe al
+   caer la piedra: si se quedara, se le vería sobrevivir flotando en mitad del
+   hueco que ya ha descubierto la web. */
 .nxr-curtain-open .nxr-curtain-logo {
   opacity: 0;
   animation: none;
-  transition: opacity 0.22s ease;
+  transition: opacity 0.18s ease;
 }
 
 @media (prefers-reduced-motion: reduce) {
   .nxr-curtain-logo {
     animation: none;
   }
-  /* Sin cascada: las columnas se van todas a la vez y sin retardo. */
-  .nxr-curtain-col {
-    transition-duration: 0.3s;
-    transition-delay: 0ms !important;
+  /* Sin onda ni revelado circular (el muro tampoco ondula: SceneBackground no
+     llega a armar el impacto con reduced-motion). La cortina se va con un
+     fundido corto y la máscara se quita de en medio. */
+  .nxr-curtain {
+    -webkit-mask-image: none;
+    mask-image: none;
+    transition: opacity 0.3s ease;
+  }
+  .nxr-curtain-open {
+    opacity: 0;
   }
 }
 

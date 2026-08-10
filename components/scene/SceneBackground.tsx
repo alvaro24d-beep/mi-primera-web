@@ -54,6 +54,12 @@ const wallAspect = (m: WallMode) => (2 * m.R * m.PHI) / m.H;
 // NearestFilter). El split RGB y las scanlines NO siguen a este número: van
 // ancladas a la rejilla de 180 dentro del shader (ver refPixel).
 const PIXEL_X = 240;
+
+// Vida de la onda de impacto, en segundos. El frente sale del encuadre a ~0.76s
+// (ver la velocidad en el shader) y la amortiguación exp(-2.1t) deja la estela
+// en el 8% a 1.2s: a partir de ahí no queda nada que renderizar, y cada frame
+// de más es un frame que la onda se auto-invalida para nada.
+const RIPPLE_DUR = 1.25;
 const COLS = 220;
 const ROWS = 72;
 
@@ -124,6 +130,8 @@ const fragmentShader = /* glsl */ `
   uniform vec2 uCoverScale; // aspect-correct "cover" crop: fraction of the video sampled per axis
   uniform vec2 uPanels;    // monitor-tile counts (across / down) for the panel-wall read
   uniform vec2 uRes;       // drawing-buffer size, for the SCREEN-SPACE edge vignette
+  uniform float uRipT;     // piedra en el agua (V17.70): segundos desde el
+                           // impacto en el centro de pantalla. <0 = inactivo
   uniform float uDim;      // atenuación global del muro (1 móvil, <1 desktop)
   uniform float uPower;    // encendido de la pantalla (V17.10): 0 = apagada
                            // (gris oscuro, sin vídeo ni glow), 1 = normal
@@ -174,10 +182,46 @@ const fragmentShader = /* glsl */ `
   }
 
   void main() {
+    // ===== PIEDRA EN EL AGUA (V17.70) =====
+    // Un único frente circular que sale del centro de la PANTALLA (no del UV
+    // del muro: la onda tiene que leerse redonda en el monitor del usuario, y
+    // el muro es un arco deformado por la curvatura y el aspecto).
+    //
+    // Se desplaza vUv ANTES de todo lo demás, así que ondula la superficie
+    // ENTERA —vídeo, cuadrícula fina y biseles de los monitores— igual que el
+    // reflejo en un estanque. Deformar solo el vídeo habría dejado la rejilla
+    // quieta por encima y el efecto se leería como un filtro pegado, no como
+    // agua. ripW sale también del bloque para modular el brillo más abajo:
+    // sin ese realce en las crestas la ondulación se nota en la geometría pero
+    // no "brilla", que es lo que la hace pasar por refracción.
+    vec2 uvW = vUv;
+    float ripW = 0.0;
+    if (uRipT >= 0.0) {
+      // Coordenada de pantalla corregida por aspecto: sin el factor x/y la
+      // onda saldría elíptica en pantallas anchas.
+      vec2 dv = (gl_FragCoord.xy / uRes - vec2(0.5)) * vec2(uRes.x / uRes.y, 1.0);
+      float r = length(dv);
+      // El frente avanza a 1.35 unidades/s y la esquina de una 16:9 queda a
+      // r≈1.02, así que la cresta sale del encuadre a ~0.76s. Va emparejado
+      // con el revelado de la cortina, que a 1.3s lineales hasta el 170%
+      // alcanza esa misma esquina (100%) a ~0.76s: el borde del hueco y la
+      // cresta viajan juntos, que es lo que vende que la web la descubre el
+      // propio golpe de agua.
+      float dr = r - uRipT * 1.35;
+      // Tren de 3-4 crestas dentro de una campana estrecha que viaja con el
+      // frente, y amortiguación global: la primera cresta es la fuerte y el
+      // resto se apaga detrás, como el agua de verdad.
+      ripW = sin(dr * 34.0) * exp(-dr * dr * 46.0) * exp(-uRipT * 2.1);
+      // Empuje radial. 0.009 en UV del muro ≈ 40 unidades de arco ≈ 14px en
+      // pantalla en la cresta: se ve claramente sin despegar los biseles de
+      // su sitio ni romper la lectura de "monitores".
+      uvW += (r > 0.0001 ? dv / r : vec2(0.0)) * ripW * 0.009;
+    }
+
     // (La deriva de la cuadrícula con el scroll — uGridShift, V17.5 — se
     // retiró en V17.28 a petición: la textura de pantalla queda fija.)
     // Crisp grid via screen-space derivatives (constant ~1px lines).
-    vec2 g = vUv * uCells;
+    vec2 g = uvW * uCells;
     vec2 gr = abs(fract(g - 0.5) - 0.5) / fwidth(g);
     float line = 1.0 - min(min(gr.x, gr.y), 1.0);
 
@@ -186,7 +230,7 @@ const fragmentShader = /* glsl */ `
     // own luminance so the wall reads as MANY PHYSICAL SCREENS, not one
     // continuous texture. Screen-space band width via fwidth = constant
     // ~2.5px separators regardless of depth/curvature.
-    vec2 p = vUv * uPanels;
+    vec2 p = uvW * uPanels;
     vec2 pid = floor(p);
     vec2 pr = abs(fract(p - 0.5) - 0.5) / fwidth(p);
     float sep = 1.0 - smoothstep(0.0, 2.5, min(pr.x, pr.y));
@@ -217,7 +261,7 @@ const fragmentShader = /* glsl */ `
     float gAll = max(glitch, glitchB);
 
     // Depth: light pooling toward uFocus + outward vignette.
-    float d = distance(vUv, uFocus);
+    float d = distance(uvW, uFocus);
     float glow = smoothstep(0.85, 0.0, d);
     float vig = smoothstep(1.2, 0.1, d);
 
@@ -225,7 +269,7 @@ const fragmentShader = /* glsl */ `
     if (uTv > 0.5) {
       // Chunky pixelation (in the curved UV, so the pixels follow the
       // concave deformation) + RGB split + scanlines = CRT screen.
-      vec2 puv = (floor(vUv * uPixel) + 0.5) / uPixel;
+      vec2 puv = (floor(uvW * uPixel) + 0.5) / uPixel;
       // Rejilla de REFERENCIA (las 180 celdas de siempre). El split RGB y las
       // scanlines de abajo se calibraron contra ella y se anclan aquí a
       // propósito: al afinar uPixel para reducir el pixelado encogerían con
@@ -265,7 +309,7 @@ const fragmentShader = /* glsl */ `
       // Separar el gris de su desviación cromática: >1 la expande.
       tv = mix(vec3(dot(tv, vec3(0.2126, 0.7152, 0.0722))), tv, uVidSat);
       tv = max(tv, 0.0); // saturar puede empujar un canal por debajo de 0
-      tv *= 0.78 + 0.22 * sin(vUv.y * refPixel.y * 6.28318);
+      tv *= 0.78 + 0.22 * sin(uvW.y * refPixel.y * 6.28318);
       // Dim + tint toward the site's dark base so overlaid text stays legible.
       // (El "vídeo limpio en móvil" de V16.94 duró un día: V16.95 restaura
       // el sombreado completo también ahí, ya con el clip de montañas.)
@@ -405,6 +449,12 @@ const fragmentShader = /* glsl */ `
     // sí y los LEDs/rejilla deben seguir leyéndose (V17.12).
     col *= mix(0.9, uDim, uPower);
 
+    // Brillo de las crestas de la onda: la cara del agua que se inclina hacia
+    // la luz devuelve más. Va AL FINAL, después de las atenuaciones, para que
+    // el destello no se lo coma la viñeta ni uDim — es el remate que hace que
+    // la deformación se lea como refracción y no como un pandeo de la imagen.
+    col *= 1.0 + ripW * 0.75;
+
     gl_FragColor = vec4(col, 1.0);
   }
 `;
@@ -451,6 +501,13 @@ export default function SceneBackground({
   // page-wide invalidation source: a stalled video used to freeze ALL
   // demand-mode rendering, including the hero CTA's glass panel).
   const videoElRef = useRef<HTMLVideoElement | null>(null);
+  // Piedra en el agua (V17.70). `pending` lo levanta el evento y lo consume el
+  // useFrame, que es quien tiene el reloj de la escena: el listener no puede
+  // fijar el instante de impacto por su cuenta porque `clock.elapsedTime` no
+  // avanza mientras no se renderiza (modo demand), y un origen en tiempo real
+  // haría que la onda arrancase ya empezada.
+  const ripPendingRef = useRef(false);
+  const ripStartRef = useRef(-1);
 
   // Always-valid 1x1 texture so `uSource` samples something before/without a
   // real video (the procedural path ignores it, but the sampler must be bound).
@@ -492,6 +549,7 @@ export default function SceneBackground({
       uSwitch: { value: 0 },
       uVidGamma: { value: 1 },
       uVidSat: { value: 1 },
+      uRipT: { value: -1 },
     }),
     // eslint-disable-next-line react-hooks/exhaustive-deps
     []
@@ -918,6 +976,34 @@ export default function SceneBackground({
     return () => window.removeEventListener("mousemove", onMove);
   }, [invalidate]);
 
+  // ===== Piedra en el agua al abrirse la cortina (V17.70) =====
+  // Se engancha a `nxr:curtain-open`, el hito que YA emite LoadProgress: es
+  // justo el instante en que la web se descubre, y así el impacto y la
+  // apertura son el mismo gesto sin que ninguno de los dos tenga que conocer
+  // al otro. Es un hito suelto, que es para lo que este proyecto usa
+  // CustomEvent (los valores continuos van por módulo mutable).
+  // El `invalidate()` es imprescindible: en modo demand no hay frame pendiente
+  // y sin él la onda no arrancaría hasta el siguiente scroll.
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    // Sin movimiento si el usuario lo ha pedido: la cortina se va con un fundido
+    // (ver globals.css) y el muro se queda quieto.
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    const golpe = () => {
+      ripPendingRef.current = true;
+      invalidate();
+    };
+    // Solo el evento, deliberadamente: nada de recuperar un impacto ya
+    // ocurrido mirando window.__nxrCurtainOpen. La cortina se abre con
+    // `nxr:wall-settled`, que emite ESTE mismo componente, así que cuando llega
+    // el turno de abrirse este listener ya existe siempre. Un catch-up, en
+    // cambio, dispararía una onda huérfana —sin cortina que la acompañe— si el
+    // componente se remontara después (cambio de clip, failsafe de 8s sin
+    // canvas), en mitad de una página que el usuario ya está leyendo.
+    window.addEventListener("nxr:curtain-open", golpe, { once: true });
+    return () => window.removeEventListener("nxr:curtain-open", golpe);
+  }, [invalidate]);
+
   // Keep-alive invalidation at ~30fps whenever the video is NOT actually
   // producing frames (no video configured, still loading/buffering, autoplay
   // refused, decode error). While the video plays, its rVFC is the exact
@@ -946,6 +1032,26 @@ export default function SceneBackground({
       gl.getDrawingBufferSize(scratchSize.current);
       (matV.uniforms.uRes.value as THREE.Vector2).copy(scratchSize.current);
       matV.uniforms.uTime.value = clock.elapsedTime;
+
+      // Onda de impacto: se auto-invalida frame a frame mientras vive, porque
+      // en modo demand nadie más pediría renders a 60fps (el rVFC del vídeo va
+      // a ~30 y dejaría la onda a saltos). Al terminar se apaga con un último
+      // invalidate para que el frame final quede ya sin deformación.
+      if (ripPendingRef.current) {
+        ripPendingRef.current = false;
+        ripStartRef.current = clock.elapsedTime;
+      }
+      if (ripStartRef.current >= 0) {
+        const t = clock.elapsedTime - ripStartRef.current;
+        if (t <= RIPPLE_DUR) {
+          matV.uniforms.uRipT.value = t;
+          invalidate();
+        } else {
+          ripStartRef.current = -1;
+          matV.uniforms.uRipT.value = -1;
+          invalidate();
+        }
+      }
 
       // ===== Pantalla apagada en la hero de la home (V17.10) =====
       // "Al cargar la home no quiero que se vea el vídeo; que la pantalla

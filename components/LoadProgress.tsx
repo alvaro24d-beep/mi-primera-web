@@ -150,13 +150,27 @@ export default function LoadProgress() {
       if (!fuentes.length && !bloques.length) return;
 
       // La cortina acaba de descubrir la web, así que lo que hay debajo tiene
-      // que estar VISIBLE. Sin esto, el h1 (.nxr-reveal + delay 0.2s) podía
-      // seguir en opacity 0 durante toda la onda y el titular no se veía
-      // ondular: se veía... nada. Comprobado en el navegador, con el h1 a
-      // opacity 0 y sin .nxr-visible mientras el chapoteo ya corría.
+      // que estar VISIBLE. Esto NO es cosmético: el h1 lleva .nxr-reveal, que
+      // arranca en opacity 0 + translateY(32px), y se le vio quedarse ahí
+      // durante TODA la onda — el titular no es que no ondulara, es que no
+      // había nada que ver ("piloto automático" no salía).
+      //
+      // Añadir .nxr-visible no basta, y por eso el intento anterior no lo
+      // arregló: esa clase solo ARRANCA una transición de 0.65s con 0.2s de
+      // retardo, así que durante casi un segundo el texto sigue medio
+      // transparente y desplazado. Aquí se fija el estado final a pelo, con la
+      // transición desactivada, para que el primer frame de la onda ya
+      // encuentre el texto entero en su sitio. Los inline se retiran al
+      // limpiar y el elemento vuelve a mandarlo el CSS.
+      const revelados: HTMLElement[] = [];
       for (const el of [...fuentes, ...bloques]) {
-        el.closest(".nxr-reveal")?.classList.add("nxr-visible");
-        if (el.classList.contains("nxr-reveal")) el.classList.add("nxr-visible");
+        const rev = el.closest<HTMLElement>(".nxr-reveal") ?? el;
+        if (revelados.includes(rev)) continue;
+        revelados.push(rev);
+        rev.classList.add("nxr-visible");
+        rev.style.transition = "none";
+        rev.style.opacity = "1";
+        rev.style.transform = "none";
       }
 
       // Se guarda el HTML de partida para devolverlo tal cual: es más seguro
@@ -191,6 +205,13 @@ export default function LoadProgress() {
         // Devolver el markup original deshace de un golpe los inline-block de
         // los caracteres, que alteran mínimamente el kerning mientras duran.
         for (const o of original) o.el.innerHTML = o.html;
+        // Y devolver el reveal al CSS. Se quedan con .nxr-visible puesta, así
+        // que siguen visibles: lo único que se retira es el atajo.
+        for (const rev of revelados) {
+          rev.style.transition = "";
+          rev.style.opacity = "";
+          rev.style.transform = "";
+        }
       };
 
       const t0 = performance.now();

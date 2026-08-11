@@ -6,7 +6,7 @@ import Contacto from "@/components/Contacto";
 import ClickSpark from "@/components/ClickSpark";
 
 export const metadata: Metadata = {
-  title: "SEO y posicionamiento — Nexora",
+  title: "SEO y posicionamiento — arcfine",
   description:
     "Posicionamos tu negocio en los primeros resultados de Google: auditoría, optimización técnica y autoridad que se traducen en clientes.",
 };

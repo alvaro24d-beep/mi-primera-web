@@ -21,7 +21,7 @@ gsap.registerPlugin(ScrollTrigger, SplitText);
 // keyframes CSS pausados por .nxr-anims-live fuera de pantalla.
 // V16.82 — "Web experiencial": la pantalla muestra una web CON FONDO 3D
 // (suelo-rejilla en perspectiva + orbes de marca flotando a distinta
-// profundidad, como la propia Nexora) que primero SE CREA (URL tecleada +
+// profundidad, como la propia arcfine) que primero SE CREA (URL tecleada +
 // candado SSL → el fondo 3D se enciende → el hero entra por bloques) y
 // después SE RECORRE con scroll AUTOMÁTICO: el flujo de secciones pasa por
 // el viewport (estados -s1/-s2) mientras cada capa del fondo se desplaza a
@@ -126,7 +126,7 @@ function ChatAnim() {
           🤖<i />
         </span>
         <span className="anim-ia-who">
-          <b>Agente Nexora</b>
+          <b>Agente arcfine</b>
           <span>en línea</span>
         </span>
       </div>

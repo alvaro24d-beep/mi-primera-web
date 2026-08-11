@@ -6,7 +6,7 @@ import AgentesIaPasos from "@/components/AgentesIaPasos";
 import Contacto from "@/components/Contacto";
 
 export const metadata: Metadata = {
-  title: "Agentes IA — Nexora",
+  title: "Agentes IA — arcfine",
   description:
     "Agentes de inteligencia artificial que atienden, reservan y resuelven por ti, 24/7: conectados a tu agenda, CRM y WhatsApp.",
 };

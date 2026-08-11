@@ -146,7 +146,7 @@ export default function IphoneMock() {
                             <i />
                           </span>
                         </div>
-                        <span className="nxr-ip-w-copy">© TuMarca — hecha por Nexora</span>
+                        <span className="nxr-ip-w-copy">© TuMarca — hecha por arcfine</span>
                       </div>
                     </div>
                   </div>

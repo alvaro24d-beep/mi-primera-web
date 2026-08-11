@@ -88,7 +88,7 @@ function ChatPanel({ static: isStatic }: { static?: boolean }) {
         <div className="nxr-aia-chat-head">
           <span className="nxr-aia-chat-avatar">{AgentAvatar}</span>
           <span className="nxr-aia-chat-id">
-            <span className="nxr-aia-chat-name">Agente de Nexora</span>
+            <span className="nxr-aia-chat-name">Agente de arcfine</span>
             <span className="nxr-aia-chat-online">
               <i />
               En línea · responde al momento

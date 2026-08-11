@@ -2,7 +2,7 @@
 
 // Typographic curved marquee between Capacidades and the tech stack —
 // CurvedLoop (React Bits, adapted). The words ARE the service (regla de oro:
-// nothing abstract): what Nexora builds into every web, looping like a
+// nothing abstract): what arcfine builds into every web, looping like a
 // production line. Decorative for AT (aria-hidden) — the same claims exist
 // as real copy in the sections around it. Draggable on desktop; on reduced
 // motion it renders as a static curved line, no loop.

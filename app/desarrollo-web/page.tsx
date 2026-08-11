@@ -8,9 +8,9 @@ import Contacto from "@/components/Contacto";
 import ClickSpark from "@/components/ClickSpark";
 
 export const metadata: Metadata = {
-  title: "Desarrollo web — Nexora",
+  title: "Desarrollo web — arcfine",
   description:
-    "Webs a medida que convierten: diseño, frontend, backend y rendimiento construidos capa a capa por Nexora.",
+    "Webs a medida que convierten: diseño, frontend, backend y rendimiento construidos capa a capa por arcfine.",
 };
 
 export default function DesarrolloWebPage() {

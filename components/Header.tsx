@@ -259,7 +259,7 @@ export default function Header() {
 
       <header id="nxr-header" className={navHidden ? "nxr-hidden" : ""}>
         <Link href="/" className="nxr-header-logo">
-          Nexora<span>.</span>
+          arcfine<span>.</span>
         </Link>
         <nav className="nxr-header-links">
           {NAV_LINKS.map((l) => (

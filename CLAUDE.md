@@ -22,7 +22,7 @@ There is no test suite/runner configured in this repo.
 
 ## Architecture
 
-This is a Next.js 16.2.10 App Router site for "Nexora" (an AI/software agency), built with React 19 and TypeScript. Two pages are built — the homepage (`/`) and `/desarrollo-web` — plus the `app/api/contacto` Route Handler. Per `AGENTS.md`, this Next.js version has breaking changes vs. training data — check `node_modules/next/dist/docs/` before relying on remembered APIs.
+This is a Next.js 16.2.10 App Router site for "arcfine" (an AI/software agency; the brand is always lowercase, and it was called Nexora until V17.81 — that's where the `nxr-` class prefix comes from), built with React 19 and TypeScript. Two pages are built — the homepage (`/`) and `/desarrollo-web` — plus the `app/api/contacto` Route Handler. Per `AGENTS.md`, this Next.js version has breaking changes vs. training data — check `node_modules/next/dist/docs/` before relying on remembered APIs.
 
 The visual design (glassmorphism cards, video wall, scroll-driven 3D effects) was originally ported from a WordPress "Code Snippets" PHP site, which is why every custom class is prefixed `nxr-` and `app/globals.css` is organized into numbered sections (`/* ===== Hero ===== */`, etc.) mirroring the original snippet blocks.
 

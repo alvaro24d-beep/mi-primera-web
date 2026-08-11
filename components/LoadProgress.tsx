@@ -345,7 +345,7 @@ export default function LoadProgress() {
           golpe al dar paso a las ondas (ver globals.css). */}
       <div className="nxr-curtain-logo">
         <span className="nxr-curtain-logo-in">
-          Nexora<span>.</span>
+          arcfine<span>.</span>
         </span>
       </div>
     </div>

@@ -14,7 +14,7 @@ function confirmationEmailHtml(nombre: string) {
           <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:520px;background:#0c1220;border:1px solid rgba(255,255,255,0.08);border-radius:20px;overflow:hidden;">
             <tr>
               <td style="padding:32px 36px 0;">
-                <span style="font-size:20px;font-weight:700;color:#ffffff;letter-spacing:-0.02em;">Nexora<span style="color:#A8F04A;">.</span></span>
+                <span style="font-size:20px;font-weight:700;color:#ffffff;letter-spacing:-0.02em;">arcfine<span style="color:#A8F04A;">.</span></span>
               </td>
             </tr>
             <tr>
@@ -60,7 +60,7 @@ function confirmationEmailHtml(nombre: string) {
             <tr>
               <td style="padding:24px 36px;border-top:1px solid rgba(255,255,255,0.08);">
                 <p style="margin:0;font-size:12px;line-height:1.6;color:rgba(255,255,255,0.35);">
-                  Nexora — Agencia de software &amp; inteligencia artificial.<br/>
+                  arcfine — Agencia de software &amp; inteligencia artificial.<br/>
                   Este email es una confirmación automática de tu solicitud de contacto.
                 </p>
               </td>
@@ -116,7 +116,7 @@ export async function POST(request: Request) {
     .send({
       from,
       to: email,
-      subject: "Hemos recibido tu mensaje — Nexora",
+      subject: "Hemos recibido tu mensaje — arcfine",
       html: confirmationEmailHtml(nombre),
     })
     .catch((err) => {

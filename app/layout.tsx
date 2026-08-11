@@ -43,7 +43,7 @@ const spaceMono = Space_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Nexora — Agencia de software & inteligencia artificial",
+  title: "arcfine — Agencia de software & inteligencia artificial",
   description:
     "Webs, agentes de IA, automatizaciones y apps que trabajan por ti mientras tú te enfocas en crecer.",
 };

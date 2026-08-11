@@ -9,7 +9,7 @@ import Contacto from "@/components/Contacto";
 // que sus paneles de cristal funcionan aquí igual que embebida.
 
 export const metadata: Metadata = {
-  title: "Contacto — Nexora",
+  title: "Contacto — arcfine",
   description:
     "Cuéntanos tu proyecto: respuesta en menos de 24h, primera conversación gratuita y sin compromiso, propuesta detallada en 48h.",
 };

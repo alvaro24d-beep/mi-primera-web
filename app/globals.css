@@ -1281,8 +1281,19 @@ p.nxr-hero-mastery-line {
   #nxr-nav {
     min-width: 420px;
   }
+  /* El padding vertical TIENE que ser el mismo que el de .nxr-nav-link (6px):
+     este botón es el más alto de la fila y por tanto quien fija la altura de
+     la barra entera. Se quedó en 9px cuando V17.48 adelgazó el resto de
+     pastillas de 9px a 6px, y el efecto era que la fila medía 39px mientras
+     Inicio y Hablemos medían 33: con `align-items: center` los dos extremos
+     quedaban centrados con 3px de sobra por arriba y por abajo, es decir a 8px
+     de los bordes horizontales de la barra frente a los 5px de los laterales.
+     Igualado, la fila mide 33px, la barra 43 (era 49) y los dos botones de los
+     extremos quedan a 5px por sus cuatro lados. Solo cambia el vertical: los
+     10px horizontales son propios de este botón, que lleva icono + texto +
+     chevron y con 18px se comería el ancho de la fila. */
   #nxr-nav #nxr-srv-btn {
-    padding: 9px 10px;
+    padding: 6px 10px;
   }
   #nxr-nav-services {
     grid-template-columns: 1fr 1fr;

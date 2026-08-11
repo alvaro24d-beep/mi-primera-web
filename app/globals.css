@@ -7539,48 +7539,16 @@ input[type="range"].nxr-ms-range::-moz-range-thumb {
   }
 }
 
-/* ===== Cursor circular que invierte el fondo (components/InvertCursor.tsx) =====
-   Disco BLANCO en `mix-blend-mode: difference`: difference contra blanco
-   devuelve el negativo exacto de lo que haya debajo, así que el círculo enseña
-   siempre el color contrario del punto donde está — sobre el muro oscuro sale
-   claro, sobre el naranja del CTA sale azulado, sobre texto blanco sale negro.
-   Se mezcla con TODO lo pintado debajo dentro del stacking context raíz, el
-   canvas WebGL (z-index -1000) incluido, porque ni él ni el <body> aíslan.
-   El JS solo escribe `transform`; la inversión es trabajo del compositor. */
-.nxr-cursor {
-  position: fixed;
-  top: 0;
-  left: 0;
-  /* 24px (antes 32): "un poco más pequeño". */
-  width: 24px;
-  height: 24px;
-  border-radius: 50%;
-  background: #fff;
-  mix-blend-mode: difference;
-  pointer-events: none;
-  /* Por encima de todo el chrome (el máximo del sitio era 10002: el nav
-     flotante y las bandas de GradualBlur). */
-  z-index: 10010;
-  opacity: 0;
-  transition: opacity 0.18s ease;
-  /* Capa propia: el disco se mueve en cada frame de ratón y no debe repintar
-     nada de lo que tiene debajo. */
-  will-change: transform;
-}
-.nxr-cursor.nxr-cursor-visible {
-  opacity: 1;
-}
-
-/* La flecha nativa se apaga SOLO con la clase que pone InvertCursor al montar
-   (y nunca en táctil, donde el efecto ni se monta): si el JS fallara, el
-   visitante conserva su cursor en lugar de quedarse a ciegas.
-   `!important` + el selector universal son necesarios de verdad aquí: decenas
-   de reglas del sitio declaran `cursor: pointer`/`text` en botones, enlaces,
-   inputs y el slider de presupuesto, y todas ganarían por especificidad. */
-.nxr-cursor-on,
-.nxr-cursor-on * {
-  cursor: none !important;
-}
+/* (V17.83 — el cursor circular que invertía el fondo se ELIMINÓ, con su
+   componente y su CSS. Era un disco blanco en `mix-blend-mode: difference`, y
+   el problema no tenía arreglo por ajuste: un cursor hecho con un div se
+   repinta al ritmo de los frames de LA PÁGINA —aquí marcados por un canvas
+   WebGL a pantalla completa— mientras que la flecha del sistema la dibuja el
+   compositor del SO a la frecuencia del ratón, y además el blend obliga a leer
+   y remezclar el fondo bajo el disco en cada uno de esos frames, justo encima
+   del canvas. Se veía a pocos fps y arrastrado. Si algún día se retoma, que
+   sea sabiendo que el techo es ese: no hay cursor DOM que iguale al nativo
+   sobre una página con WebGL de fondo.) */
 
 /* ===== Promociones de capa (perf: trazas con Layerize 750ms + Paint/PrePaint
    1.6s por ventana de 9s en Servicios) ===== */

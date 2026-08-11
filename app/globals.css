@@ -1366,9 +1366,21 @@ p.nxr-hero-mastery-line {
 /* El radio del hueco. Registrarlo es lo que permite TRANSICIONARLO: una
    custom property sin @property es un token de texto y salta de golpe. Si el
    navegador no lo soporta, el salto deja la web descubierta igual (la cortina
-   no se queda pegada) — solo se pierde la animación. */
+   no se queda pegada) — solo se pierde la animación.
+   `<length-percentage>` Y NO `<percentage>` (V17.79). Con `<percentage>` esta
+   regla funcionaba en `npm run dev` y quedaba MUERTA en producción, que es
+   donde se veía el corte: el minificador de CSS normaliza `initial-value: 0%`
+   a `initial-value: 0`, y 0 sin unidad no es un porcentaje válido (a
+   diferencia de una longitud, un porcentaje SIEMPRE exige el signo). Un
+   @property cuyo initial-value no case con su syntax es inválido y el
+   navegador lo descarta ENTERO — comprobado en el bundle y en
+   document.styleSheets: --nxr-cr no aparecía registrada. Sin registrar, la
+   máscara no interpola y el hueco pasa de 0% a 210% en un frame: la web
+   entera aparecía de golpe.
+   `<length-percentage>` acepta las dos formas, así que sobrevive a la
+   normalización venga como venga. NO devolver esto a `<percentage>`. */
 @property --nxr-cr {
-  syntax: "<percentage>";
+  syntax: "<length-percentage>";
   inherits: false;
   initial-value: 0%;
 }

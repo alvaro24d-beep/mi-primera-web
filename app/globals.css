@@ -1391,32 +1391,20 @@ p.nxr-hero-mastery-line {
   z-index: 10002;
   background: #050810;
   --nxr-cr: 0%;
-  /* Hueco circular creciente, con un degradado ANCHO (40%) para que el borde no
-     sea un recorte de tijera sino una disolución: es el ancho lo que convierte
-     el frente en algo que se desvanece por delante en vez de un corte que
-     avanza. Era 9% (~68px en un portátil) y a la velocidad a la que crece el
-     círculo eso pasa por cualquier punto de la pantalla en una décima de
-     segundo — indistinguible de un salto. A 40% son ~300px de transición.
-     El degradado va DETRÁS del radio (de --nxr-cr - 40% a --nxr-cr), no delante:
-     puesto delante, en reposo (--nxr-cr: 0%) la máscara era "transparent 0%,
-     #000 40%" y dejaba el centro medio translúcido desde el primer frame — se
-     veía el h1 y el párrafo de la hero por detrás del logo. Así, a 0% el primer
-     tope cae en -40% y la capa tapa del todo.
-     100% = esquina más lejana (radial farthest-corner), de ahí el 210% final:
-     170 para limpiar la pantalla + los 40 del degradado.
-     LINEAL a propósito: el frente de la onda del shader avanza a velocidad
-     constante y una curva ease dejaría el borde del revelado adelantándose o
-     quedándose atrás respecto a la cresta. */
-  -webkit-mask-image: radial-gradient(
-    circle at 50% 50%,
-    transparent calc(var(--nxr-cr) - 40%),
-    #000 var(--nxr-cr)
-  );
-  mask-image: radial-gradient(
-    circle at 50% 50%,
-    transparent calc(var(--nxr-cr) - 40%),
-    #000 var(--nxr-cr)
-  );
+  /* LA MÁSCARA NO VIVE AQUÍ (V17.80) — está en .nxr-curtain-open, más abajo.
+     En reposo, esta capa solo depende de `position: fixed` + `background`, que
+     no fallan en ningún navegador. Antes la máscara se aplicaba también en
+     reposo y en iPhone la pantalla de carga NO SE VEÍA EN ABSOLUTO: con
+     --nxr-cr en 0%, la primera parada del gradiente caía en calc(0% - 40%) =
+     -40%, y en un radial-gradient un porcentaje negativo no es válido según la
+     especificación. Blink lo tolera y pinta la capa opaca (por eso en
+     escritorio se veía bien); WebKit lo resuelve de otra forma y la máscara
+     salía transparente, con lo que el elemento entero —fondo y logo incluidos—
+     desaparecía. Sacándola del reposo, lo que el visitante tiene que ver sí o
+     sí ya no depende de una característica que pueda interpretarse de dos
+     maneras; el revelado circular queda como adorno de la SALIDA, y si un
+     navegador no lo pinta, la retirada se resuelve igual con el fundido de
+     opacidad de aquí abajo. */
   /* FUNDIDO ADEMÁS DEL REVELADO (V17.77). El círculo por sí solo no se ve: la
      cortina es #050810 y lo que descubre —la hero con el muro apagado— es
      igual de oscuro, así que no hay contraste que delate el borde. Lo único
@@ -1439,16 +1427,51 @@ p.nxr-hero-mastery-line {
 .nxr-curtain-open {
   --nxr-cr: 210%;
   opacity: 0;
+  /* Hueco circular creciente, con un degradado ANCHO (40%) para que el borde no
+     sea un recorte de tijera sino una disolución: es el ancho lo que convierte
+     el frente en algo que se desvanece por delante en vez de un corte que
+     avanza. Era 9% (~68px en un portátil) y a la velocidad a la que crece el
+     círculo eso pasa por cualquier punto de la pantalla en una décima de
+     segundo — indistinguible de un salto. A 40% son ~300px de transición.
+     El degradado va DETRÁS del radio (de --nxr-cr - 40% a --nxr-cr), no
+     delante: puesto delante, en el primer frame de la apertura la máscara sería
+     "transparent 0%, #000 40%" y el centro nacería medio translúcido, dejando
+     ver de golpe el h1 por detrás del logo.
+     max(0%, …) NO ES DECORATIVO (V17.80): sin él, mientras --nxr-cr va por
+     debajo del 40% esa primera parada es NEGATIVA, y un porcentaje negativo en
+     un radial-gradient no es válido — es lo que hacía desaparecer la cortina
+     entera en WebKit (ver el comentario de .nxr-curtain). Clampeada a 0%, el
+     resultado en Blink es idéntico (dos paradas en 0% = todo opaco) y deja de
+     depender de cómo interprete cada motor un valor fuera de rango.
+     100% = esquina más lejana (radial farthest-corner), de ahí el 210% final:
+     170 para limpiar la pantalla + los 40 del degradado.
+     LINEAL a propósito: el frente de la onda del shader avanza a velocidad
+     constante y una curva ease dejaría el borde del revelado adelantándose o
+     quedándose atrás respecto a la cresta. */
+  -webkit-mask-image: radial-gradient(
+    circle at 50% 50%,
+    transparent max(0%, calc(var(--nxr-cr) - 40%)),
+    #000 var(--nxr-cr)
+  );
+  mask-image: radial-gradient(
+    circle at 50% 50%,
+    transparent max(0%, calc(var(--nxr-cr) - 40%)),
+    #000 var(--nxr-cr)
+  );
 }
 
 /* Respaldo para navegadores sin @property (la pone LoadProgress al detectar que
    falta CSS.registerProperty). Sin registrar, --nxr-cr no se puede transicionar
-   y el hueco saltaría a 179% en un frame: la cortina se esfumaría sin apertura.
-   Aquí se retira la máscara y se cambia por un fundido, que anima en cualquier
-   navegador. */
-.nxr-curtain-simple {
+   y el hueco saltaría a 210% en un frame: el revelado no aportaría nada.
+   Aquí se retira la máscara y queda solo el fundido, que anima en cualquier
+   navegador. Los DOS selectores hacen falta: la máscara vive ahora en
+   .nxr-curtain-open (V17.80), así que anularla exige la misma especificidad. */
+.nxr-curtain-simple,
+.nxr-curtain-simple.nxr-curtain-open {
   -webkit-mask-image: none;
   mask-image: none;
+}
+.nxr-curtain-simple {
   /* Sin revelado que acompañar, el fundido puede ser más corto que el de la
      rama normal. La opacidad final la pone .nxr-curtain-open, común a las dos
      ramas desde V17.77. */
@@ -1524,24 +1547,29 @@ p.nxr-hero-mastery-line {
   .nxr-curtain-logo-in {
     animation: none;
   }
-  /* Ni difuminado ni escala en la salida del logo: se va con la capa. */
+  /* Ni difuminado ni escala en la salida del logo: se va con la capa.
+     `none` y no `blur(0px)`: aquí no hay interpolación que preservar, y el
+     minificador reduce `blur(0px)` a `blur()` —válido, pero es justo el tipo
+     de forma rara que a un motor le puede sentar mal (ver el @property de
+     --nxr-cr). Donde se puede ser inequívoco, se es. */
   .nxr-curtain-logo {
     transition: opacity 0.3s ease;
   }
   .nxr-curtain-open .nxr-curtain-logo {
-    filter: blur(0px);
+    filter: none;
     transform: translate(-50%, -50%) scale(1);
   }
   /* Sin onda ni revelado circular (el muro tampoco ondula: SceneBackground no
      llega a armar el impacto con reduced-motion). La cortina se va con un
-     fundido corto y la máscara se quita de en medio. */
+     fundido corto y la máscara se quita de en medio — desde V17.80 la máscara
+     está en .nxr-curtain-open, así que hay que anularla ahí. */
   .nxr-curtain {
-    -webkit-mask-image: none;
-    mask-image: none;
     transition: opacity 0.3s ease;
   }
   .nxr-curtain-open {
     opacity: 0;
+    -webkit-mask-image: none;
+    mask-image: none;
   }
 }
 

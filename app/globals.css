@@ -889,9 +889,12 @@ p.nxr-hero-mastery-line {
   margin-bottom: 4px;
 }
 
+/* Una sola columna por defecto (es el layout de MÓVIL, donde este desplegable
+   es el menú entero). Escritorio lo parte en dos zonas — ver el media query de
+   769px: servicios | aside. */
 #nxr-nav-services {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: 1fr;
   gap: 4px;
   max-height: 0;
   overflow: hidden;
@@ -908,6 +911,17 @@ p.nxr-hero-mastery-line {
   max-height: 500px;
   opacity: 1;
   padding: 4px 2px 2px;
+}
+
+/* La lista de servicios. En móvil contiene además las cabeceras de grupo y los
+   enlaces de "La agencia"; en escritorio, solo los cinco servicios. */
+.nxr-nav-srv-col {
+  display: grid;
+  grid-template-columns: 1fr;
+  /* Los mismos 4px que tenía el panel cuando los items eran hijos directos:
+     así el menú móvil, que solo ve esta columna, no cambia de ritmo. */
+  gap: 4px;
+  align-content: start;
 }
 
 /* Escritorio: el botón dice "Servicios" y el desplegable SOLO lista servicios
@@ -1033,6 +1047,121 @@ p.nxr-hero-mastery-line {
   color: var(--c-salmon);
   line-height: 1.3;
   margin-top: 1px;
+}
+
+/* ===== Columna derecha del desplegable (V17.84) =====
+   Solo escritorio: se monta siempre pero el `display: none` de aquí la deja
+   fuera en móvil, donde el desplegable ya es el menú completo.
+   Las tres piezas se reparten EXACTAMENTE el alto de la columna de servicios
+   (ver grid-template-rows en el media query): así las dos zonas terminan a la
+   misma altura y el panel cierra en rectángulo, que es lo que se busca — un
+   aside con altura propia dejaría un escalón contra la lista. */
+.nxr-nav-aside {
+  display: none;
+  /* #nxr-nav declara `white-space: nowrap` (para que las pastillas de la fila
+     no partan nunca), y eso se hereda hasta aquí: sin esto las descripciones
+     no se ajustaban al ancho de la columna y se salían por la derecha, donde
+     el overflow del nav las cortaba a media palabra. Las tarjetas de servicio
+     ya llevan su propio `white-space: normal` por el mismo motivo. */
+  white-space: normal;
+}
+
+.nxr-nav-aside-cta,
+.nxr-nav-aside-card {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 4px;
+  padding: 12px 14px;
+  /* Mismo radio que .nxr-nav-srv-item: las dos columnas comparten familia. */
+  border-radius: 16px;
+  text-decoration: none;
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  background: rgba(255, 255, 255, 0.045);
+  transition: background 0.2s, border-color 0.2s;
+}
+
+/* El CTA es la única superficie teñida de todo el desplegable: es el único
+   sitio donde interesa que el ojo caiga primero. */
+.nxr-nav-aside-cta {
+  background: rgba(168, 240, 74, 0.09);
+  border-color: rgba(168, 240, 74, 0.22);
+}
+.nxr-nav-aside-cta:hover {
+  background: rgba(168, 240, 74, 0.15);
+  border-color: rgba(168, 240, 74, 0.35);
+}
+.nxr-nav-aside-card:hover {
+  background: rgba(255, 255, 255, 0.085);
+  border-color: rgba(255, 255, 255, 0.16);
+}
+
+.nxr-nav-aside-title {
+  font-size: 13.5px;
+  font-weight: 700;
+  color: var(--c-white);
+  line-height: 1.25;
+}
+
+/* Space Mono, como todo el texto de apoyo del sitio (misma familia que
+   .nxr-nav-srv-desc). A 10.5px las dos descripciones caen en dos líneas
+   justas dentro de los ~250px útiles de la columna. */
+.nxr-nav-aside-desc {
+  font-family: var(--font-space-mono), ui-monospace, monospace;
+  font-size: 10.5px;
+  line-height: 1.45;
+  color: rgba(255, 255, 255, 0.55);
+}
+
+.nxr-nav-aside-go {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  margin-top: 2px;
+  font-size: 11.5px;
+  font-weight: 700;
+  color: var(--c-lime);
+}
+.nxr-nav-aside-go svg {
+  width: 13px;
+  height: 13px;
+  stroke: currentColor;
+  fill: none;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  transition: transform 0.2s;
+}
+.nxr-nav-aside-cta:hover .nxr-nav-aside-go svg {
+  transform: translateX(3px);
+}
+
+.nxr-nav-aside-stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
+}
+
+.nxr-nav-aside-stat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  border-radius: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  background: rgba(255, 255, 255, 0.03);
+}
+.nxr-nav-aside-stat b {
+  font-size: 16px;
+  font-weight: 700;
+  line-height: 1;
+}
+.nxr-nav-aside-stat span {
+  font-family: var(--font-space-mono), ui-monospace, monospace;
+  font-size: 9px;
+  line-height: 1;
+  color: rgba(255, 255, 255, 0.45);
 }
 
 .nxr-nav-link {
@@ -1264,14 +1393,10 @@ p.nxr-hero-mastery-line {
   }
 
   /* Columna única: aquí el desplegable es el menú entero (servicios + páginas)
-     y una rejilla de dos no cabe. El `span 2` del quinto servicio NO se
-     declara para este ancho (ver .nxr-nav-srv-wide): con una sola columna, un
-     item que abarca dos NO se recorta — el grid se inventa una segunda columna
-     implícita de ancho `auto` para colocarlo, y el menú entero se partía en
-     dos columnas desiguales (~139px y ~231px), con las cabeceras de grupo
-     compartiendo fila con una tarjeta y los títulos rotos en tres líneas.
-     Anularlo aquí con `grid-column: auto` NO sirve: el compilador de CSS borra
-     esa declaración por ser el valor inicial, sin ver que anula una anterior. */
+     y una rejilla de dos no cabe. Desde V17.84 esta es además la regla BASE
+     (fuera de todo media query), así que este bloque solo la repite por
+     claridad; el `span 2` del quinto servicio que obligaba a documentar aquí
+     un caso raro del grid ya no existe. */
   #nxr-nav-services {
     grid-template-columns: 1fr;
   }
@@ -1295,16 +1420,56 @@ p.nxr-hero-mastery-line {
   #nxr-nav #nxr-srv-btn {
     padding: 6px 10px;
   }
+  /* DOS ZONAS (V17.84): servicios | atajos. Antes eran dos columnas DE
+     SERVICIOS, y con cinco items la última fila quedaba coja — se resolvía
+     estirando el quinto a lo ancho, que se leía como "4 arriba y 1 abajo".
+     El reparto 1fr/1fr sale de la medida real: el panel tiene 618px útiles, o
+     sea ~304px por zona, y una tarjeta de servicio pide ~300 para que el
+     título no parta. `align-items: stretch` (por defecto en grid) es lo que
+     iguala la altura de las dos zonas. */
+  /* minmax(0, 1fr) Y NO 1fr: `1fr` es en realidad minmax(AUTO, 1fr), así que
+     una columna nunca baja del ancho mínimo de su contenido. Las tarjetas de
+     servicio piden ~360px para no partir su descripción, y con eso el panel
+     estiraba el nav entero de 628 a 800px al abrirse — la barra daba un salto
+     de ancho y, como el CTA se alinea con margin-left:auto, quedaba un hueco
+     de ~170px entre "Precios" y "Hablemos". Con el mínimo en 0 el reparto es
+     el que manda: 618px útiles - 10 de hueco = 304px por zona, exactamente el
+     ancho que ya tenían las tarjetas antes (305), así que las descripciones
+     siguen cabiendo en una línea y la barra no se mueve al abrir. */
   #nxr-nav-services {
-    grid-template-columns: 1fr 1fr;
+    /* Servicios a ancho FIJO y el aside con el resto, en vez de 1fr/1fr. Un
+       reparto a la mitad daba 287px por zona y la descripción más larga
+       ("Flujos sin intervención humana") partía en dos líneas: esa tarjeta
+       pasaba a medir 73px frente a los 64 de las otras cuatro y la columna
+       entera se descuadraba. 306px es lo que pide el contenido para caber en
+       una línea — el ancho que ya tenían las tarjetas antes del rediseño —, y
+       lo que sobra (~272px) es de sobra para el aside, cuyo texto sí está
+       pensado para ir en dos líneas. */
+    grid-template-columns: 306px minmax(0, 1fr);
+    gap: 10px;
+    /* width:0 + min-width:100% — el patrón para que un hijo NO participe en el
+       ancho intrínseco de su contenedor y aun así lo llene. El nav es un flex
+       que se dimensiona por su hijo más ancho, y el desplegable pedía el
+       max-content de sus dos columnas (~800px) incluso ESTANDO CERRADO: la
+       barra aparecía ya deformada, con un hueco enorme entre "Precios" y
+       "Hablemos" (el CTA se alinea con margin-left:auto), y al abrir el panel
+       se salía y quedaba recortado por el overflow del nav. Con width 0 el
+       ancho lo sigue fijando la fila de botones — que es quien debe fijarlo —
+       y el panel se estira a ese ancho y reparte 304px por zona. */
+    width: 0;
+    min-width: 100%;
   }
-  /* Quinto servicio a lo ancho, para que la última fila no quede coja. El
-     contenido va CENTRADO: a doble ancho y alineado a la izquierda como las
-     otras cuatro, dejaba medio panel vacío a la derecha y la fila entera se
-     leía como un descuadre. */
-  .nxr-nav-srv-wide {
-    grid-column: span 2;
-    justify-content: center;
+
+  /* Las tres piezas se reparten el alto de la columna de servicios (5 items de
+     64px + 4 huecos de 4 = 336px). Con estas proporciones y el gap de 6, salen
+     ~132 / ~100 / ~92px: el CTA manda, la tarjeta de precios queda claramente
+     por debajo en jerarquía, y las cifras cierran con celdas casi cuadradas
+     (~86x92). Son fracciones y no alturas fijas a propósito: si algún día la
+     lista gana o pierde un servicio, el aside sigue casando solo. */
+  .nxr-nav-aside {
+    display: grid;
+    grid-template-rows: 1.32fr 1fr 0.92fr;
+    gap: 6px;
   }
 }
 

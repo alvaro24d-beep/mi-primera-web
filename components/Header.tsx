@@ -403,49 +403,93 @@ export default function Header() {
 
         <div id="nxr-nav-sep" className={srvOpen ? "nxr-open" : ""}></div>
 
+        {/* Desplegable en DOS ZONAS en escritorio (V17.84): los cinco servicios
+            en una sola columna a la izquierda y, a la derecha y con la MISMA
+            altura exacta, atajos a las dos páginas que cierran una visita —
+            contacto y precios — más las cifras de la casa. Antes era una
+            rejilla de dos columnas donde el quinto servicio se estiraba a lo
+            ancho para que la última fila no quedara coja: se leía como 4+1.
+            En móvil el aside no se monta (el desplegable es el menú entero y
+            no cabe nada más). */}
         <div id="nxr-nav-services" className={srvOpen ? "nxr-open" : ""}>
-          {/* Cabeceras de grupo: SOLO móvil, donde este desplegable deja de ser
-              una lista de servicios y pasa a ser el menú entero. Sin ellas, las
-              páginas de abajo se leían como dos servicios más. En escritorio
-              siguen ocultas (aquí solo hay servicios, no hace falta rotular). */}
-          <div className="nxr-nav-srv-group">Servicios</div>
-          {SERVICIOS.map((s, i) => (
-            <Link
-              key={s.href}
-              href={s.href}
-              // Son 5 en una rejilla de 2 columnas: sin esto la última fila
-              // quedaba coja (3+2 con un hueco a la derecha). El quinto ocupa
-              // el ancho completo y el bloque cierra en rectángulo.
-              className={`nxr-nav-srv-item${i === SERVICIOS.length - 1 ? " nxr-nav-srv-wide" : ""}`}
-              onClick={closeDD}
-            >
-              <div className="nxr-nav-srv-icon" style={{ background: s.bg, color: s.color }}>
-                {s.icon}
-              </div>
-              <div>
+          <div className="nxr-nav-srv-col">
+            {/* Cabeceras de grupo: SOLO móvil, donde este desplegable deja de ser
+                una lista de servicios y pasa a ser el menú entero. Sin ellas, las
+                páginas de abajo se leían como dos servicios más. En escritorio
+                siguen ocultas (aquí solo hay servicios, no hace falta rotular). */}
+            <div className="nxr-nav-srv-group">Servicios</div>
+            {SERVICIOS.map((s) => (
+              <Link key={s.href} href={s.href} className="nxr-nav-srv-item" onClick={closeDD}>
+                <div className="nxr-nav-srv-icon" style={{ background: s.bg, color: s.color }}>
+                  {s.icon}
+                </div>
+                <div>
+                  <div className="nxr-nav-srv-title">{s.title}</div>
+                  <div className="nxr-nav-srv-desc">{s.desc}</div>
+                </div>
+              </Link>
+            ))}
+            <div className="nxr-nav-srv-group nxr-nav-srv-group-sec">La agencia</div>
+            {/* Formato deliberadamente MÁS LIGERO que el de un servicio: icono
+                pequeño y sin pastilla de color, sin descripción y una sola línea.
+                Un servicio es la oferta (tarjeta completa); esto son páginas de
+                apoyo, y la jerarquía tiene que verse de un vistazo. */}
+            {EXTRA_MOVIL.map((s) => (
+              <Link
+                key={s.href}
+                href={s.href}
+                className="nxr-nav-srv-item nxr-nav-srv-extra"
+                onClick={closeDD}
+              >
+                <div className="nxr-nav-srv-extra-ico" style={{ color: s.color }}>
+                  {s.icon}
+                </div>
                 <div className="nxr-nav-srv-title">{s.title}</div>
-                <div className="nxr-nav-srv-desc">{s.desc}</div>
-              </div>
+              </Link>
+            ))}
+          </div>
+
+          {/* Columna derecha. Los dos enlaces van a páginas que EXISTEN
+              (/contacto y /precios): es un menú, no un escaparate, y mandar a
+              un 404 desde aquí sería peor que dejar el hueco vacío. Las tres
+              cifras son las mismas que ya publica la web (Tech y ZoomParallax),
+              no números nuevos inventados para rellenar. */}
+          <aside className="nxr-nav-aside">
+            <Link href="/contacto" className="nxr-nav-aside-cta" onClick={closeDD}>
+              <span className="nxr-nav-aside-title">¿Hablamos de tu proyecto?</span>
+              <span className="nxr-nav-aside-desc">
+                Primera conversación gratuita y respuesta en menos de 24 h.
+              </span>
+              <span className="nxr-nav-aside-go">
+                Empezar
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="M5 12h14M12 5l7 7-7 7" />
+                </svg>
+              </span>
             </Link>
-          ))}
-          <div className="nxr-nav-srv-group nxr-nav-srv-group-sec">La agencia</div>
-          {/* Formato deliberadamente MÁS LIGERO que el de un servicio: icono
-              pequeño y sin pastilla de color, sin descripción y una sola línea.
-              Un servicio es la oferta (tarjeta completa); esto son páginas de
-              apoyo, y la jerarquía tiene que verse de un vistazo. */}
-          {EXTRA_MOVIL.map((s) => (
-            <Link
-              key={s.href}
-              href={s.href}
-              className="nxr-nav-srv-item nxr-nav-srv-extra"
-              onClick={closeDD}
-            >
-              <div className="nxr-nav-srv-extra-ico" style={{ color: s.color }}>
-                {s.icon}
-              </div>
-              <div className="nxr-nav-srv-title">{s.title}</div>
+
+            <Link href="/precios" className="nxr-nav-aside-card" onClick={closeDD}>
+              <span className="nxr-nav-aside-title">Cómo presupuestamos</span>
+              <span className="nxr-nav-aside-desc">
+                Propuesta cerrada a medida, de 4 a 8 semanas.
+              </span>
             </Link>
-          ))}
+
+            <div className="nxr-nav-aside-stats">
+              <div className="nxr-nav-aside-stat">
+                <b style={{ color: "var(--c-lime)" }}>+40</b>
+                <span>proyectos</span>
+              </div>
+              <div className="nxr-nav-aside-stat">
+                <b style={{ color: "var(--c-salmon)" }}>100%</b>
+                <span>en plazo</span>
+              </div>
+              <div className="nxr-nav-aside-stat">
+                <b style={{ color: "var(--c-red)" }}>24/7</b>
+                <span>activos</span>
+              </div>
+            </div>
+          </aside>
         </div>
       </nav>
     </>

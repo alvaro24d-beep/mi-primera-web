@@ -251,23 +251,28 @@ export default function GearPoints({
   // encima sin pelearse con ella.
   const uniforms = useMemo(
     () => ({
-      // uSize está en PÍXELES CSS a z=0; el tamaño real en pantalla es
-      // uSize·(CAMERA/distancia) ≈ uSize·0.70 con la nube en z=-420, así que
-      // 2.4 son ~1,7px de lado.
+      // EL MÍNIMO FÍSICO — no es un valor de gusto, es el punto más pequeño que
+      // esta escena puede dibujar sin que deje de ser un punto.
       //
-      // AQUÍ SE TOCA EL SUELO, y conviene medirlo en píxeles del framebuffer,
-      // que es donde se dibuja de verdad: en escritorio (dpr 1.25) el sprite
-      // mide 2,0px y su disco 1,5. Ese 1,5 es el mínimo con el que un círculo
-      // puede tener a la vez interior y borde; por debajo degenera en un par de
-      // píxeles grises y la nube vuelve a leerse como ruido, que es justo el
-      // aspecto de "baja resolución" que costó varias versiones quitar. Para
-      // hacerlos más pequeños que esto hay que subir antes el dpr del canvas
-      // (SceneCanvas), no seguir bajando este número.
+      // uSize está en PÍXELES CSS a z=0 y el tamaño real es uSize·0.70 (la
+      // perspectiva, con la nube en z=-420). Pero lo que decide si un punto se
+      // ve o se deshace no son los píxeles CSS sino los del FRAMEBUFFER, que es
+      // donde se rasteriza: en escritorio, a dpr 1.25, este 1.8 sale a 1,58px
+      // de sprite y 1,19 de disco. POCO MÁS DE UN PÍXEL. Por debajo, el disco
+      // deja de cubrir un píxel entero, se reparte con alfa parcial entre
+      // varios, y cada punto pasa a ser una mota gris translúcida en vez de un
+      // punto blanco: la nube vuelve a leerse como ruido, que es exactamente el
+      // aspecto de "baja resolución" que costó varias versiones quitar.
       //
-      // Curiosamente el móvil aguanta MEJOR que el escritorio desde V17.93:
-      // allí el canvas va a dpr 2 contra 1.25, así que el mismo tamaño en
-      // píxeles CSS dispone de más píxeles reales (disco de 2,5px). El que
-      // manda en este límite es el monitor.
+      // Para bajar de aquí hay que subir el dpr del canvas en escritorio (hoy
+      // 1.25, en SceneCanvas): más píxeles reales por píxel CSS es lo único que
+      // permite dibujar un punto más fino, y se paga en relleno por frame. Este
+      // número ya no da más de sí.
+      //
+      // El límite lo pone el MONITOR y no el teléfono, que es lo contrario de
+      // lo que parece: desde V17.93 el móvil va a dpr 2 frente a 1.25, así que
+      // el mismo tamaño en píxeles CSS dispone allí de más píxeles reales
+      // (sprite 2,56px, disco 1,9 — holgado).
       //
       // Lo que hace que a este tamaño sigan viéndose definidos y no como una
       // neblina es que ya no hay nada que los emborrone alrededor: ni halo, ni
@@ -275,9 +280,11 @@ export default function GearPoints({
       // pequeño perdona mucho menos que uno grande, así que esas tres cosas —
       // que antes se compensaban entre sí— aquí no pueden volver.
       //
-      // El MISMO valor en móvil que en escritorio: uSize está en píxeles CSS,
-      // así que el punto mide igual en las dos pantallas.
-      uSize: { value: 2.4 },
+      // El MISMO valor en móvil que en escritorio: al estar en píxeles CSS, el
+      // punto mide igual en las dos pantallas y el móvil gasta su densidad de
+      // más en CALIDAD, no en hacerlo aún más pequeño (a 0,8px CSS la nube
+      // habría desaparecido en un teléfono).
+      uSize: { value: 1.8 },
       uDpr: { value: 1 },
       // Cociente (dpr del framebuffer / dpr de la pantalla). 1 cuando el canvas
       // se dibuja a resolución física; ~0.33 en un iPhone, donde el buffer va a
@@ -310,10 +317,12 @@ export default function GearPoints({
       // ronda uOpacity·vBrillo sobre un muro casi negro, y el Bloom empieza a
       // florecer a partir de 0.6 de luminancia. Cruzarlo devuelve al punto un
       // halo difuso de MEDIA resolución sumado encima — para un punto de 1,6px
-      // eso no es un adorno, es borrarlo. 0.48·1.20 = 0.58, justo por debajo.
+      // eso no es un adorno, es borrarlo. 0.50·1.20 = 0.60, clavado en el
+      // umbral: es todo el contraste disponible sin que el bloom entre, y a
+      // 1,2px de disco hace falta hasta la última décima.
       // En móvil no hay EffectComposer (es desktop-only, ver SceneCanvas), así
       // que no hay umbral que respetar y el punto puede ser blanco de verdad.
-      uOpacity: { value: isMobile ? 0.9 : 0.48 },
+      uOpacity: { value: isMobile ? 0.9 : 0.5 },
     }),
     [isMobile]
   );

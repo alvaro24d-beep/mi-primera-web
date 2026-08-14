@@ -114,13 +114,16 @@ const vertexShader = /* glsl */ `
     gl_Position = projectionMatrix * mv;
 
     // Centelleo: dos senos de periodos primos entre sí para que el parpadeo no
-    // se lea cíclico. Rango 0.35..1.35 (antes 0.55..1.0): con el blending
-    // aditivo de abajo, los picos por encima de 1 son los que atraviesan el
-    // umbral del bloom y FLORECEN — de ahí que la nube destelle de verdad en
-    // vez de solo cambiar de gris.
+    // se lea cíclico. Rango ESTRECHO, 0.80..1.20 (fue 0.35..1.35 mientras el
+    // blending era aditivo y el objetivo era cruzar el umbral del bloom). Con
+    // mezcla normal ese rango ancho hacía dos cosas malas a la vez: en el valle
+    // el punto casi desaparecía —ya no suma luz, se funde con el fondo— y en el
+    // pico se iba por encima del umbral del bloom, que es de donde salía el
+    // halo difuso. Estrecho, el punto siempre está encendido y siempre nítido:
+    // el brillo lo da el CONTRASTE con un muro oscuro, no el parpadeo.
     float c1 = sin(uTime * (0.9 + semilla * 1.4) + semilla * 6.2831);
     float c2 = sin(uTime * (0.37 + semilla * 0.5) + semilla * 2.1);
-    vBrillo = 0.85 + 0.35 * c1 + 0.15 * c2;
+    vBrillo = 1.0 + 0.14 * c1 + 0.06 * c2;
 
     // Tamaño constante en píxeles PESE a la perspectiva: PixelCamera hace que
     // 1 unidad = 1px a z=0, así que a distancia d el factor es CAMERA/d.
@@ -130,6 +133,7 @@ const vertexShader = /* glsl */ `
 
 const fragmentShader = /* glsl */ `
   uniform float uOpacity;
+  uniform float uAA;        // ancho del suavizado, en píxeles del framebuffer
   varying float vBrillo;
 
   void main() {
@@ -147,28 +151,22 @@ const fragmentShader = /* glsl */ `
     // a cualquier tamaño y a cualquier dpr: ni dentado (que era el problema
     // del disco duro original) ni difuminado. Es la misma técnica con la que
     // el shader del muro mantiene sus líneas a 1px.
-    // El MEDIO fwidth, no uno entero, y esa mitad es la diferencia entre nítido
-    // y borroso aquí. El canvas no se dibuja a la resolución física de la
-    // pantalla: SceneCanvas fija dpr 1.25 en escritorio y 1 en móvil, así que
-    // el navegador ESTIRA el resultado (x1.6 en un portátil retina, x3 en un
-    // iPhone) con interpolación bilineal. Un borde ya suavizado a 1 píxel del
-    // framebuffer llega a la pantalla convertido en 2-3 píxeles de degradado —
-    // exactamente el halo turbio que se seguía viendo. Suavizándolo a medio
-    // píxel del buffer, el estirado lo devuelve a ~1 píxel real: el punto llega
-    // al ojo con su borde, no con su sombra.
+    // DISCO Y NADA MÁS. Sin halo: cualquier degradado alrededor del núcleo es,
+    // literalmente, la borrosidad. El resplandor no se pinta aquí.
+    //
+    // El ancho del suavizado NO es un fwidth entero fijo, porque cuánto vale un
+    // píxel del framebuffer en la pantalla depende del aparato: si el buffer se
+    // dibuja a la resolución física (dpr del canvas == devicePixelRatio, el
+    // caso de un monitor normal) un fwidth entero es exactamente un píxel y
+    // queda perfecto; pero en un iPhone el canvas va a dpr 1 sobre una pantalla
+    // 3x, el navegador ESTIRA el resultado y ese mismo borde llega convertido
+    // en 3 píxeles de degradado. uAA lleva ese cociente calculado en JS, así
+    // que el borde sale de un píxel REAL en las dos situaciones — ni difuso en
+    // el móvil ni dentado en el escritorio.
     vec2 c = gl_PointCoord - 0.5;
     float d = length(c) * 2.0;        // 0 en el centro, 1 en el borde del sprite
-    float aa = fwidth(d) * 0.5;
-    float disco = 1.0 - smoothstep(0.72 - aa, 0.72 + aa, d);
-    // Halo INDEPENDIENTE del disco: aporta el brillo sin restarle definición,
-    // porque no toca el núcleo. CEÑIDO (exponente 4.0, no 2.6): un halo ancho
-    // reparte luz por todo el sprite y devuelve por la puerta de atrás la
-    // difusión que el disco acaba de quitar. Que el resplandor amplio lo ponga
-    // el Bloom del composer, que es donde sale gratis; aquí solo hace falta que
-    // el punto no tenga un corte seco alrededor. En móvil no hay composer, así
-    // que este halo ES todo el glow — de ahí que se estreche pero no se quite.
-    float halo = exp(-d * d * 4.0) * 0.25;
-    float a = (disco + halo) * uOpacity * vBrillo;
+    float aa = fwidth(d) * uAA;
+    float a = (1.0 - smoothstep(0.75 - aa, 0.75 + aa, d)) * uOpacity * vBrillo;
     if (a < 0.004) discard;           // lo invisible no se compone
     gl_FragColor = vec4(vec3(1.0), a);
   }
@@ -242,13 +240,21 @@ export default function GearPoints({
   const uniforms = useMemo(
     () => ({
       // uSize está en PÍXELES CSS a z=0; el tamaño real en pantalla es
-      // uSize·(CAMERA/distancia) ≈ uSize·0.70 con la nube en z=-420. Con 4.4
-      // el punto mide ~3px de lado en pantalla: suficiente para que el disco
-      // sólido tenga un interior de verdad y no sea solo borde. Por debajo de
-      // ~2.5px cualquier perfil se lee borroso, porque no hay píxeles con los
-      // que dibujar un círculo.
-      uSize: { value: isMobile ? 4.8 : 4.4 },
+      // uSize·(CAMERA/distancia) ≈ uSize·0.70 con la nube en z=-420. Con 3.2 el
+      // punto mide ~2,2px de lado: PEQUEÑO a propósito. Estuvo en 4.4 y era
+      // demasiado — no porque un punto grande se vea peor por sí solo, sino
+      // porque la figura es una superficie 3D y en pantalla se solapan la cara
+      // de delante, la de detrás y los bordes tangentes: al doble de radio, un
+      // punto cubre CUATRO veces más área, y esos solapamientos convertían los
+      // brazos en masas blancas continuas. Una nube se lee como nube cuando se
+      // distinguen sus puntos; si se tocan entre sí, no hay perfil de punto que
+      // pueda salvarla.
+      uSize: { value: isMobile ? 3.6 : 3.2 },
       uDpr: { value: 1 },
+      // Cociente (dpr del framebuffer / dpr de la pantalla). 1 cuando el canvas
+      // se dibuja a resolución física; ~0.33 en un iPhone, donde el buffer va a
+      // dpr 1 y la pantalla es 3x. Ver el fragment.
+      uAA: { value: 1 },
       // El array se pasa por referencia: se mutan los Vector3 en su sitio cada
       // frame y three sube el bloque entero, sin reasignar ni reservar nada.
       uEstela: { value: Array.from({ length: ESTELA }, () => new THREE.Vector3(0, 0, 0)) },
@@ -258,16 +264,16 @@ export default function GearPoints({
       uEmpuje: { value: 52 },
       uTime: { value: 0 },
       uVida: { value: 0.014 },
-      // Con blending ADITIVO este número no es "cuánto tapa" sino "cuánta luz
-      // suma". Y la luz que llega al ojo es la de TODOS los puntos que caen en
-      // ese píxel, así que al pasar de 9.000 a 22.000 hubo que bajarlo o el
-      // velo sobre el texto habría crecido con la densidad.
-      // Con el disco sólido, el centro del punto llega de verdad a este valor
-      // (por vBrillo, hasta ~1.35x en los picos): es lo que hace que se lea
-      // como un punto ENCENDIDO y no como una mancha gris. Puede ser alto
-      // porque el disco cubre poca superficie — el velo sobre el texto venía
-      // del halo ancho, no del núcleo.
-      uOpacity: { value: isMobile ? 0.5 : 0.55 },
+      // Con mezcla NORMAL esto vuelve a ser opacidad de verdad, y el techo lo
+      // pone el bloom: el píxel final ronda uOpacity·vBrillo sobre un muro casi
+      // negro, y el Bloom del composer empieza a florecer a partir de 0.6 de
+      // luminancia. Por encima de ahí el punto se lleva su propio halo difuso
+      // de MEDIA resolución sumado encima — que era, medido con un A/B, buena
+      // parte de lo que se veía borroso. 0.46·1.20 = 0.55: el punto se queda
+      // justo por debajo del umbral y el bloom lo ignora. No se ve más apagado
+      // porque lo que hace blanco a un punto no es su valor absoluto sino el
+      // contraste contra el fondo, y el fondo aquí es un muro oscuro.
+      uOpacity: { value: isMobile ? 0.52 : 0.46 },
     }),
     [isMobile]
   );
@@ -295,7 +301,14 @@ export default function GearPoints({
     const dt = Math.min(0.1, t - ultimoT.current || 0.016); // cap: pestaña que vuelve
     ultimoT.current = t;
     m.uniforms.uTime.value = t;
-    m.uniforms.uDpr.value = gl.getPixelRatio();
+    const dprBuffer = gl.getPixelRatio();
+    m.uniforms.uDpr.value = dprBuffer;
+    // Cuánto se estira el framebuffer hasta los píxeles físicos de la pantalla.
+    // Se lee cada frame y no una vez: arrastrar la ventana a un monitor con
+    // otra densidad cambia devicePixelRatio sin desmontar nada. El suelo de
+    // 0.3 evita que en un aparato muy denso el borde quede tan duro que
+    // dentelle.
+    m.uniforms.uAA.value = Math.max(0.3, Math.min(1, dprBuffer / (window.devicePixelRatio || 1)));
     m.uniforms.uAspect.value = size.width / size.height;
 
     if (!reducedMotion) {
@@ -403,14 +416,18 @@ export default function GearPoints({
         // Sin escritura de profundidad: son miles de puntos transparentes y
         // ordenarlos entre sí no aporta nada, pero sí costaría.
         depthWrite={false}
-        // ADITIVO: los puntos SUMAN luz al fondo en vez de taparlo, que es lo
-        // que hace que un punto blanco sobre un muro oscuro se lea como brillo
-        // y no como pintura. Donde se solapan (los cubos de los radios) la suma
-        // los lleva por encima de 1 y ahí entra el Bloom del composer, cuyo
-        // umbral de luminancia está en 0.6: esos núcleos florecen de verdad.
-        // También es lo que permite subir uOpacity sin dañar la lectura del
-        // texto — aclara lo que hay debajo en lugar de ensuciarlo.
-        blending={THREE.AdditiveBlending}
+        // MEZCLA NORMAL, no aditiva, y este es el cambio que más hizo por la
+        // nitidez. En aditivo cada punto SUMA su luz a la del píxel, así que
+        // donde se solapan varios —y en una superficie 3D vista de frente se
+        // solapan la cara delantera, la trasera y los bordes tangentes— el
+        // resultado se dispara por encima de 1 y satura: los brazos de la rueda
+        // se veían como masas blancas continuas, sin puntos distinguibles
+        // dentro. Eso es lo que se leía como "baja resolución", y no tenía
+        // arreglo por el lado del perfil del punto: por muy limpio que sea un
+        // disco, veinte discos sumados dan una mancha. Con mezcla normal, dos
+        // puntos blancos superpuestos siguen dando blanco y ni uno más, de modo
+        // que la nube conserva su grano a cualquier densidad.
+        blending={THREE.NormalBlending}
       />
     </points>
   );

@@ -25,13 +25,21 @@ import { CAMERA_DISTANCE } from "./PixelCamera";
 // 1/32767 del radio: centésimas de píxel a cualquier tamaño al que se dibuje.
 
 const PUNTOS_URL = "/gear-points.bin";
-// 22.000 (eran 9.000). Al subir el radio de la pieza a 0.52 del lado corto, su
-// área en pantalla se multiplicó por ~2.4 y los 9.000 puntos se quedaban tan
-// separados que la silueta se deshacía: la densidad, no el número, es lo que
-// hace que una nube se lea como una forma. 22.000 la recuperan. El archivo
-// pasa de 53 a 129KB — sigue siendo 59 veces menos que el .glb — y el coste de
-// dibujarlos es el mismo draw call de siempre.
-const TOTAL_PUNTOS = 22000;
+// El archivo trae 22.000 posiciones, pero NO se dibujan todas: el muestreo fue
+// aleatorio, así que cualquier prefijo del array es a su vez una muestra
+// uniforme de la superficie y basta con recortar el drawRange.
+//
+// 10.000 y no 22.000, y esto es lo que zanjó lo de "se ve a baja resolución".
+// Lo que hace legible una nube no es el número de puntos ni el tamaño de cada
+// uno por separado, es la relación entre los dos. Con 22.000 puntos había que
+// hacerlos diminutos para que no se empastaran unos con otros (se acabó en 2,7
+// píxeles de framebuffer, de los que el disco interior eran 2), y un punto de
+// dos píxeles NO PUEDE dibujar un círculo: es un par de píxeles grises. La
+// figura entera se leía entonces como ruido, que es justo la textura de una
+// imagen de baja resolución. Con la mitad de puntos, cada uno puede medir el
+// doble sin volver a tocarse: misma cobertura total (~125.000 px², o sea la
+// misma silueta), pero ahora se distingue punto por punto.
+const PUNTOS_DIBUJADOS = 10000;
 
 // Profundidad a la que flota, en px de mundo (PixelCamera: 1 unidad = 1px a
 // z=0). Lejos del muro (-1900) y por delante de él, pero con bastante
@@ -210,10 +218,10 @@ export default function GearPoints({
         const g = new THREE.BufferGeometry();
         // normalized: true -> GL entrega [-1,1] sin conversión en CPU ni shader.
         g.setAttribute("position", new THREE.BufferAttribute(new Int16Array(ab), 3, true));
-        // El muestreo fue aleatorio, así que CUALQUIER prefijo del array es a su
-        // vez una muestra uniforme de la superficie: el móvil dibuja la mitad de
-        // los puntos sin necesidad de un segundo archivo ni de recortar nada.
-        g.setDrawRange(0, isMobile ? TOTAL_PUNTOS / 2 : TOTAL_PUNTOS);
+        // El móvil dibuja la mitad: allí la figura ocupa la mitad de píxeles
+        // (el tope de escala es 360 frente a 700), así que con el mismo número
+        // volvería a empastarse exactamente igual.
+        g.setDrawRange(0, isMobile ? PUNTOS_DIBUJADOS / 2 : PUNTOS_DIBUJADOS);
         // La esfera de cull la sabemos de antemano (el .bin está normalizado al
         // radio 1), así que nos ahorramos que three recorra los 22.000 puntos
         // para calcularla.
@@ -240,16 +248,17 @@ export default function GearPoints({
   const uniforms = useMemo(
     () => ({
       // uSize está en PÍXELES CSS a z=0; el tamaño real en pantalla es
-      // uSize·(CAMERA/distancia) ≈ uSize·0.70 con la nube en z=-420. Con 3.2 el
-      // punto mide ~2,2px de lado: PEQUEÑO a propósito. Estuvo en 4.4 y era
-      // demasiado — no porque un punto grande se vea peor por sí solo, sino
-      // porque la figura es una superficie 3D y en pantalla se solapan la cara
-      // de delante, la de detrás y los bordes tangentes: al doble de radio, un
-      // punto cubre CUATRO veces más área, y esos solapamientos convertían los
-      // brazos en masas blancas continuas. Una nube se lee como nube cuando se
-      // distinguen sus puntos; si se tocan entre sí, no hay perfil de punto que
-      // pueda salvarla.
-      uSize: { value: isMobile ? 3.6 : 3.2 },
+      // uSize·(CAMERA/distancia) ≈ uSize·0.70 con la nube en z=-420, así que
+      // 6.3 son ~4,4px de lado y el disco de dentro mide unos 3,3.
+      //
+      // Ese es el suelo por debajo del cual esto no funciona: para que un
+      // círculo se lea como un círculo (y no como una mancha gris) hacen falta
+      // 3-4 píxeles de diámetro, porque con 2 no hay dónde dibujar ni el
+      // interior ni el borde. Se probó a 3.2 buscando que no se empastaran
+      // entre ellos y el resultado fue el contrario del buscado: puntos
+      // demasiado pequeños para tener forma. El empaste se arregla con la
+      // DENSIDAD (ver PUNTOS_DIBUJADOS), no encogiéndolos.
+      uSize: { value: isMobile ? 6.6 : 6.3 },
       uDpr: { value: 1 },
       // Cociente (dpr del framebuffer / dpr de la pantalla). 1 cuando el canvas
       // se dibuja a resolución física; ~0.33 en un iPhone, donde el buffer va a

@@ -39,14 +39,14 @@ const PUNTOS_URL = "/gear-points.bin";
 // imagen de baja resolución. Con la mitad de puntos, cada uno puede medir el
 // doble sin volver a tocarse: misma cobertura total (~125.000 px², o sea la
 // misma silueta), pero ahora se distingue punto por punto.
-const PUNTOS_DIBUJADOS = 22000;
+const PUNTOS_DIBUJADOS = 13000;
 // El móvil NO lleva "la mitad" sino la parte proporcional a la superficie que
 // la figura ocupa allí, que es cuatro veces y media menos (tope de escala 360
 // frente a 700, y el área va con el cuadrado del radio). Lo que hay que igualar
 // entre las dos pantallas no es el número de puntos, son los px² que le tocan a
-// cada uno: con ~22 px² por punto en ambas, el grano se ve igual de fino en el
+// cada uno: con ~38 px² por punto en ambas, el grano se ve igual de fino en el
 // teléfono que en el monitor.
-const PUNTOS_DIBUJADOS_MOVIL = 4800;
+const PUNTOS_DIBUJADOS_MOVIL = 2800;
 
 // Profundidad a la que flota, en px de mundo (PixelCamera: 1 unidad = 1px a
 // z=0). Lejos del muro (-1900) y por delante de él, pero con bastante
@@ -253,15 +253,21 @@ export default function GearPoints({
     () => ({
       // uSize está en PÍXELES CSS a z=0; el tamaño real en pantalla es
       // uSize·(CAMERA/distancia) ≈ uSize·0.70 con la nube en z=-420, así que
-      // 3.0 son ~2,1px de lado y el disco de dentro mide 1,6.
+      // 2.4 son ~1,7px de lado.
       //
-      // ESTE ES EL SUELO. Un punto no puede encogerse más sin dejar de ser un
-      // punto: por debajo de ~1,5px de disco no quedan píxeles con los que
-      // dibujar a la vez un interior y un borde, el círculo degenera en un par
-      // de píxeles grises y la nube entera pasa a leerse como ruido — que es
-      // exactamente el aspecto de "baja resolución" que costó tres versiones
-      // quitar. Si hay que bajar de aquí, hay que subir antes la resolución del
-      // canvas (el dpr de SceneCanvas), no seguir bajando este número.
+      // AQUÍ SE TOCA EL SUELO, y conviene medirlo en píxeles del framebuffer,
+      // que es donde se dibuja de verdad: en escritorio (dpr 1.25) el sprite
+      // mide 2,0px y su disco 1,5. Ese 1,5 es el mínimo con el que un círculo
+      // puede tener a la vez interior y borde; por debajo degenera en un par de
+      // píxeles grises y la nube vuelve a leerse como ruido, que es justo el
+      // aspecto de "baja resolución" que costó varias versiones quitar. Para
+      // hacerlos más pequeños que esto hay que subir antes el dpr del canvas
+      // (SceneCanvas), no seguir bajando este número.
+      //
+      // Curiosamente el móvil aguanta MEJOR que el escritorio desde V17.93:
+      // allí el canvas va a dpr 2 contra 1.25, así que el mismo tamaño en
+      // píxeles CSS dispone de más píxeles reales (disco de 2,5px). El que
+      // manda en este límite es el monitor.
       //
       // Lo que hace que a este tamaño sigan viéndose definidos y no como una
       // neblina es que ya no hay nada que los emborrone alrededor: ni halo, ni
@@ -271,7 +277,7 @@ export default function GearPoints({
       //
       // El MISMO valor en móvil que en escritorio: uSize está en píxeles CSS,
       // así que el punto mide igual en las dos pantallas.
-      uSize: { value: 3.0 },
+      uSize: { value: 2.4 },
       uDpr: { value: 1 },
       // Cociente (dpr del framebuffer / dpr de la pantalla). 1 cuando el canvas
       // se dibuja a resolución física; ~0.33 en un iPhone, donde el buffer va a

@@ -32,10 +32,16 @@ const TOTAL_PUNTOS = 9000;
 // perspectiva para que la rotación se lea.
 const Z = -420;
 
+// Posiciones del cursor que siguen "empujando" a la vez. La 0 es la actual y
+// las demás son el rastro que va apagándose (ver la estela en el componente).
+const ESTELA = 10;
+
 const vertexShader = /* glsl */ `
+  #define ESTELA ${ESTELA}
   uniform float uSize;
   uniform float uDpr;
-  uniform vec2 uMouse;      // en NDC (-1..1)
+  // xy = posición en NDC, z = fuerza restante (1 recién puesta, 0 agotada)
+  uniform vec3 uEstela[ESTELA];
   uniform float uMouseOn;   // 0 en táctil: ni se calcula la repulsión
   uniform float uAspect;
   uniform float uRadio;     // radio de influencia del cursor, en NDC
@@ -51,16 +57,33 @@ const vertexShader = /* glsl */ `
     // aquí y no en el espacio del objeto es lo que mantiene el efecto correcto
     // mientras la figura gira con el scroll: el punto huye siempre en la
     // dirección en que el usuario lo ve, no en la que el modelo cree que es.
+    //
+    // Y no se empuja desde UN punto sino desde toda la ESTELA, cada posición
+    // con la fuerza que le queda. Ahí está el "tardar en volver": el rastro que
+    // el cursor deja atrás sigue apartando los puntos mientras se apaga, así
+    // que la nube se recompone poco a poco por detrás en vez de saltar a su
+    // sitio en cuanto el cursor se aleja. El bucle NO tiene rama: una entrada
+    // agotada aporta 0 por su propia fuerza, y así el coste es fijo y sin
+    // divergencia entre vértices.
     if (uMouseOn > 0.5) {
       vec4 clip = projectionMatrix * mv;
       vec2 ndc = clip.xy / clip.w;
-      vec2 dif = ndc - uMouse;
-      dif.x *= uAspect;              // sin esto el área de influencia sale ovalada
-      float d = length(dif);
-      // smoothstep(radio, 0) = 1 pegado al cursor y 0 en el borde: la caída es
-      // suave por los dos extremos, sin frente duro.
-      float f = smoothstep(uRadio, 0.0, d) * uEmpuje;
-      mv.xy += (dif / max(d, 1e-4)) * f;
+      vec2 desp = vec2(0.0);
+      for (int i = 0; i < ESTELA; i++) {
+        vec2 dif = ndc - uEstela[i].xy;
+        dif.x *= uAspect;            // sin esto el área de influencia sale ovalada
+        float d = length(dif);
+        // smoothstep(radio, 0) = 1 pegado al cursor y 0 en el borde: la caída es
+        // suave por los dos extremos, sin frente duro.
+        float f = smoothstep(uRadio, 0.0, d) * uEstela[i].z;
+        desp += (dif / max(d, 1e-4)) * f;
+      }
+      // Tope de magnitud: donde el rastro se solapa consigo mismo (un giro
+      // cerrado del ratón) las contribuciones se suman y sin esto el punto
+      // saldría disparado fuera de la pantalla.
+      float m = length(desp);
+      if (m > 1.0) desp /= m;
+      mv.xy += desp * uEmpuje;
     }
 
     gl_Position = projectionMatrix * mv;
@@ -112,6 +135,16 @@ export default function GearPoints({
   const raton = useRef(new THREE.Vector2(0, 0));
   const scrollObj = useRef(0);
   const scrollAct = useRef(0);
+  // Estela: la entrada 0 es SIEMPRE la posición actual del cursor (a fuerza
+  // plena mientras el puntero esté en la ventana, para que dejarlo quieto
+  // encima mantenga el hueco abierto) y las 1..n-1 son un buffer circular con
+  // las posiciones por las que ha pasado, apagándose por tiempo.
+  const estela = useRef<THREE.Vector3[]>(
+    Array.from({ length: ESTELA }, () => new THREE.Vector3(0, 0, 0))
+  );
+  const siguiente = useRef(1);
+  const ultimaMarca = useRef(new THREE.Vector2(0, 0));
+  const ultimoT = useRef(0);
 
   useEffect(() => {
     let cancelado = false;
@@ -151,15 +184,20 @@ export default function GearPoints({
   // pelearse con ella.
   const uniforms = useMemo(
     () => ({
-      uSize: { value: isMobile ? 2.2 : 2.4 },
+      uSize: { value: isMobile ? 2.3 : 2.5 },
       uDpr: { value: 1 },
-      uMouse: { value: new THREE.Vector2(0, 0) },
+      // El array se pasa por referencia: se mutan los Vector3 en su sitio cada
+      // frame y three sube el bloque entero, sin reasignar ni reservar nada.
+      uEstela: { value: Array.from({ length: ESTELA }, () => new THREE.Vector3(0, 0, 0)) },
       uMouseOn: { value: 0 },
       uAspect: { value: 1 },
-      uRadio: { value: 0.34 },
-      uEmpuje: { value: 46 },
+      uRadio: { value: 0.3 },
+      uEmpuje: { value: 52 },
       uTime: { value: 0 },
-      uOpacity: { value: isMobile ? 0.26 : 0.3 },
+      // Baja al subir el tamaño (0.3 -> 0.22): la figura ocupa ahora bastante
+      // más superficie de texto, y con la opacidad anterior el párrafo de la
+      // hero volvía a quedar ilegible bajo los puntos.
+      uOpacity: { value: isMobile ? 0.2 : 0.22 },
     }),
     [isMobile]
   );
@@ -183,7 +221,10 @@ export default function GearPoints({
     const p = puntosRef.current;
     if (!m || !p) return;
 
-    m.uniforms.uTime.value = clock.elapsedTime;
+    const t = clock.elapsedTime;
+    const dt = Math.min(0.1, t - ultimoT.current || 0.016); // cap: pestaña que vuelve
+    ultimoT.current = t;
+    m.uniforms.uTime.value = t;
     m.uniforms.uDpr.value = gl.getPixelRatio();
     m.uniforms.uAspect.value = size.width / size.height;
 
@@ -193,36 +234,66 @@ export default function GearPoints({
       scrollObj.current = window.scrollY;
       const dScroll = scrollObj.current - scrollAct.current;
       scrollAct.current += dScroll * 0.08;
-      // El scroll la hace RODAR sobre su propio eje (Z), no girar en Y. Girando
-      // en Y la rueda se pone de canto a los ~1500px de scroll y desaparece:
-      // queda una raya vertical de puntos que no se parece a nada. Rodando, la
-      // silueta se lee siempre y además es lo que una rueda hace. Una vuelta
-      // completa cada ~7000px, así que el movimiento se nota sin marear.
-      p.rotation.z = scrollAct.current * 0.0009;
-      // Inclinación fija de tres cuartos: lo justo para que se le vea el grosor
-      // y no parezca un dibujo plano.
-      p.rotation.x = -0.2;
-      p.rotation.y = 0;
+      const s = scrollAct.current;
+
+      // TRES EJES a la vez, con periodos que no son múltiplos entre sí: la
+      // combinación no vuelve a repetirse en todo el scroll de la página, así
+      // que la pieza nunca pasa dos veces por la misma pose.
+      //  · Z rueda sin parar — es una rueda, y da el hilo continuo.
+      //  · Y e X cabecean dentro de un tope. El tope es la clave: girando en Y
+      //    sin límite, a los ~1500px la rueda se pone de canto y se queda en
+      //    una raya vertical de puntos. A ±35° y ±24° se escorza de verdad,
+      //    enseña el grosor y sigue leyéndose como lo que es.
+      p.rotation.z = s * 0.0009;
+      p.rotation.y = Math.sin(s * 0.00042) * 0.62;
+      p.rotation.x = -0.2 + Math.sin(s * 0.00027 + 1.1) * 0.42;
 
       const dr = ratonObj.current.clone().sub(raton.current);
       raton.current.addScaledVector(dr, 0.09);
-      m.uniforms.uMouse.value.copy(raton.current);
       m.uniforms.uMouseOn.value = isMobile ? 0 : 1;
       // Ademas de repeler, el cursor inclina el conjunto: da la lectura de
       // volumen que un punto suelto no puede dar.
       p.rotation.y += raton.current.x * 0.16;
       p.rotation.x += raton.current.y * 0.12;
 
-      // Mientras algo siga asentándose hay que seguir pidiendo frames.
-      if (Math.abs(dScroll) > 0.5 || dr.lengthSq() > 1e-6) invalidate();
+      // ---- Estela del cursor
+      const est = estela.current;
+      const uni = m.uniforms.uEstela.value as THREE.Vector3[];
+      // La 0 sigue al cursor a fuerza plena: con el puntero quieto encima, el
+      // hueco se queda abierto en vez de cerrarse solo.
+      est[0].set(raton.current.x, raton.current.y, 1);
+      // El resto se apaga por TIEMPO, no por frames: así tarda lo mismo en
+      // recomponerse a 30 que a 120fps. TAU 0.55s -> ~1,6s hasta apagarse.
+      for (let i = 1; i < ESTELA; i++) {
+        if (est[i].z > 0) est[i].z = Math.max(0, est[i].z - dt / 0.55);
+      }
+      // Se suelta una marca nueva solo cada cierto recorrido: sembrar una por
+      // frame llenaría las 9 casillas en un palmo de pantalla y la estela no
+      // llegaría a notarse.
+      if (raton.current.distanceTo(ultimaMarca.current) > 0.045) {
+        ultimaMarca.current.copy(raton.current);
+        est[siguiente.current].set(raton.current.x, raton.current.y, 1);
+        siguiente.current = 1 + ((siguiente.current) % (ESTELA - 1));
+      }
+      for (let i = 0; i < ESTELA; i++) uni[i].copy(est[i]);
+
+      // Mientras algo siga asentándose hay que seguir pidiendo frames: aquí
+      // entra también la estela, que sigue moviendo puntos DESPUÉS de que el
+      // ratón se haya parado.
+      let estelaViva = false;
+      for (let i = 1; i < ESTELA; i++) if (est[i].z > 0) { estelaViva = true; break; }
+      if (Math.abs(dScroll) > 0.5 || dr.lengthSq() > 1e-6 || estelaViva) invalidate();
     }
   });
 
   if (!geo) return null;
 
-  // Radio en píxeles: ~30% del lado corto, con tope para que en pantallas muy
-  // anchas no se coma el contenido.
-  const escala = Math.min(Math.min(size.width, size.height) * 0.3, isMobile ? 200 : 300);
+  // Radio en píxeles: 40% del lado corto (era 30%), con tope para que en
+  // pantallas muy altas no se coma el contenido. Al crecer, la pieza cruza más
+  // superficie de texto, así que la opacidad baja en la misma jugada (ver
+  // uOpacity): lo que la mantiene siendo FONDO no es el tamaño sino cuánto
+  // pesa cada punto sobre lo que hay debajo.
+  const escala = Math.min(Math.min(size.width, size.height) * 0.4, isMobile ? 240 : 420);
 
   return (
     <points ref={puntosRef} geometry={geo} position={[0, 0, Z]} scale={escala} frustumCulled={false}>

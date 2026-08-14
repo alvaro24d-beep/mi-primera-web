@@ -67,6 +67,8 @@ Other counts that must stay in sync: ZoomParallax = 7 cards across `ZoomParallax
 
 `app/page.tsx` composes the homepage as `Hero, Intro, Servicios, ZoomParallax, Proceso, Tech, Contacto`; `app/desarrollo-web/page.tsx` is `DesarrolloWebHero, ProcesoReel, CapacidadesWeb, DwhTechStack, Contacto`. `Header` is mounted once in `app/layout.tsx`, not per page.
 
+**`ProcesoReel` is no longer a reel** (V17.98) — the name is kept only so the page's import doesn't move. It was a pinned horizontal scroll (sticky + `width: max-content` track scrubbed in x + depth carousel + progress dots); it is now a plain centred flex grid of five cards, no pin and no scrub, with a one-shot staggered entrance. That makes `Servicios` the **only** horizontal-scroll pin left on the site. The cards are still glass-panel anchors via `useGlassPanels`, so `nxr-dwh-proceso` stays in `SceneCanvas`'s `alwaysIds`.
+
 Service detail pages live at top-level routes matching `Header.tsx`'s `SERVICIOS` array (`/desarrollo-web`, `/agentes-ia`, `/automatizaciones`, `/seo`, `/apps-software`), not under `/servicios/*`. `/desarrollo-web` is the only one built; the other four, plus `/nosotros`, `/casos`, and a standalone `/contacto`, are not implemented yet and will 404 — the only working contact form is the `Contacto` section embedded at the bottom of pages that include it.
 
 ### The point cloud (`GearPoints`, inside the global canvas)

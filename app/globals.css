@@ -1948,7 +1948,9 @@ p.nxr-hero-mastery-line {
 
 /* GSAP's ScrollTrigger `pin` (see Servicios.tsx) pins this and inserts its
    own spacer sized to the horizontal scroll distance — no CSS height/sticky
-   needed, same pattern as `.nxr-dwh-proceso-sticky`.
+   needed, same pattern as `.nxr-dwh-stage`. (This used to point at
+   `.nxr-dwh-proceso-sticky` too; that reel was replaced by a plain grid in
+   V17.98, so this section is now the only horizontal-scroll pin on the site.)
    `overflow-x` must be `clip`, NOT `hidden`: per the CSS overflow spec,
    `hidden` on one axis forces a `visible` other axis to compute to `auto`,
    silently turning this into an internally-scrollable box — everything
@@ -6167,113 +6169,48 @@ input[type="range"].nxr-ms-range::-moz-range-thumb {
   }
 }
 
-/* ===== Desarrollo Web (service page) — Proceso (reel horizontal) ===== */
+/* ===== Desarrollo Web (service page) — Proceso (rejilla de pasos) =====
+   V17.98: fue un reel horizontal pineado (sticky de 100lvh + track con
+   `width: max-content` scrubbeado en x + carrusel con profundidad + barra de
+   progreso con puntos) y se cambió por una rejilla normal. Con el reel, leer
+   los cinco pasos exigía hacer scroll y consumirlos de uno en uno al ritmo del
+   pin, y en cualquier instante solo la card centrada estaba a plena opacidad
+   (las demás bajaban a 0.4): todo ello en contra de un contenido cuya única
+   función es leerse. */
 
 .nxr-dwh-proceso {
   position: relative;
-}
-
-/* GSAP's ScrollTrigger `pin` (see ProcesoReel.tsx) pins this and inserts its
-   own spacer sized to the horizontal scroll distance — no CSS height/sticky
-   needed, same reasoning as `.nxr-dwh-stage` above. */
-.nxr-dwh-proceso-sticky {
-  height: 100lvh;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  overflow: hidden;
-}
-
-/* Separate from `.nxr-dwh-proceso-sticky` (the pinned element itself) so the
-   one-shot entrance scale/fade (see ProcesoReel.tsx) never touches the box
-   GSAP's `pin` measures — transforms don't affect layout, but keeping the
-   pinned element itself untransformed removes any doubt. */
-.nxr-dwh-proceso-content {
-  display: flex;
-  flex-direction: column;
-  /* Simétrico desde V16.91: el padding derecho reducido compensaba la
-     proyección del plano del reel, eliminado con todo el sistema de
-     perspectiva de textos. */
-  padding: 0 var(--pad-x);
-}
-
-/* (El plano de perspectiva del reel — perspective(1200px) rotateY(10deg) —
-   se eliminó en V16.91 con el resto del sistema; el wrapper queda solo
-   como columna de layout.) */
-.nxr-dwh-proceso-tilt {
-  display: flex;
-  flex-direction: column;
-  gap: 40px;
-}
-
-@media (max-width: 768px) {
-  .nxr-dwh-proceso-content {
-    padding: 0 8px 0 20px;
-  }
+  padding: var(--section-pad) var(--pad-x);
 }
 
 .nxr-dwh-proceso-head {
-  max-width: 600px;
+  max-width: var(--max-w);
+  margin: 0 auto 44px;
 }
 
-.nxr-dwh-proceso-progress {
+/* Flex con wrap y centrado, NO grid, y la razón son los cinco pasos: cualquier
+   rejilla de columnas fijas deja la última fila coja (3+2 pegados a la
+   izquierda con un hueco a la derecha, o un solitario ocupando todo el ancho si
+   se usa auto-fit). Con flex, las dos cards de la segunda fila se centran
+   solas bajo las tres de arriba, que es el reparto que se espera de cinco
+   elementos. `flex: 1 1 300px` + `max-width` deja que se estiren para llenar la
+   fila sin llegar a ser desmesuradas. */
+.nxr-dwh-step-grid {
+  max-width: var(--max-w);
+  margin: 0 auto;
   display: flex;
-  flex-direction: column;
-  gap: 14px;
-}
-
-.nxr-dwh-proceso-progress-track {
-  position: relative;
-  height: 2px;
-  background: rgba(255, 255, 255, 0.1);
-  border-radius: 2px;
-  overflow: hidden;
-}
-
-.nxr-dwh-proceso-progress-fill {
-  position: absolute;
-  inset: 0;
-  transform-origin: left center;
-  transform: scaleX(0);
-  background: linear-gradient(90deg, var(--c-red), var(--c-lime), var(--c-salmon));
-}
-
-.nxr-dwh-proceso-dots {
-  display: flex;
-  gap: 10px;
-}
-
-.nxr-dwh-proceso-dot {
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
-  background: rgba(255, 255, 255, 0.2);
-  transition: background 0.3s, transform 0.3s;
-}
-
-.nxr-dwh-proceso-dot.nxr-active {
-  background: var(--c-lime);
-  transform: scale(1.4);
-}
-
-.nxr-dwh-proceso-track {
-  display: flex;
-  gap: 24px;
-  width: max-content;
-  will-change: transform;
-  /* Headroom so cards scaled up slightly past 1 by the depth effect (if ever
-     tuned above 1) don't get clipped by the sticky container's own
-     `overflow:hidden` — harmless when scale stays <=1 as configured now. */
-  padding: 12px 4px 24px;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 20px;
 }
 
 /* Anchor for a real volumetric fluid-glass mesh (useGlassPanels in
    ProcesoReel.tsx) — no CSS glass/backdrop-filter anymore, just layout + the
    sitewide legibility scrim (same treatment as the home's cards). */
 .nxr-dwh-step-card {
-  width: min(340px, 80vw);
-  flex-shrink: 0;
-  padding: 32px;
+  flex: 1 1 300px;
+  max-width: 360px;
+  padding: 30px 28px;
   background: rgba(8, 10, 14, 0.34);
   border-radius: var(--radius-lg);
 }
@@ -6297,57 +6234,30 @@ input[type="range"].nxr-ms-range::-moz-range-thumb {
   color: var(--c-white);
 }
 
+/* Más grande y con más contraste que en el reel (14.5px y 0.6 de blanco): allí
+   el texto compartía protagonismo con el movimiento y solo se leía la card
+   centrada; aquí las cinco se leen a la vez y en reposo, así que el cuerpo de
+   texto es lo único que importa. */
 .nxr-dwh-step-desc {
-  font-size: 14.5px;
-  line-height: 1.55;
-  color: rgba(255, 255, 255, 0.6);
-}
-
-.nxr-dwh-proceso-static {
-  height: auto;
-  padding: var(--section-pad) var(--pad-x);
-}
-
-.nxr-dwh-step-list {
-  margin-top: 40px;
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
-}
-
-.nxr-dwh-step-list .nxr-dwh-step-card {
-  width: 100%;
+  font-size: 15.5px;
+  line-height: 1.62;
+  color: rgba(255, 255, 255, 0.72);
 }
 
 @media (max-width: 768px) {
-  .nxr-dwh-proceso-sticky {
-    /* Top-align (not vertically-centred) on phones: the heading + reel appear
-       right as the hero scrolls away, instead of sitting in the middle of the
-       screen and leaving a tall empty band during the hero→proceso hand-off.
-       Minimal top padding so the heading rides at the very top of the incoming
-       section (enters as early as possible in the scroll). */
-    justify-content: flex-start;
-  }
-  .nxr-dwh-proceso-content {
-    padding: 2vh 20px 0;
-    gap: 24px;
-  }
-  .nxr-dwh-step-card {
-    width: 78vw;
-    padding: 26px;
-    /* Taller cards on phones so the horizontal reel fills the pinned viewport
-       (less dead space below it) and reads as a deliberate, roomy layout. */
-    min-height: 300px;
-    display: flex;
-    flex-direction: column;
-  }
-  .nxr-dwh-step-inner {
-    flex: 1;
-    justify-content: space-between;
-    gap: 18px;
-  }
-  .nxr-dwh-proceso-static {
+  .nxr-dwh-proceso {
     padding: var(--section-pad) 20px;
+  }
+  .nxr-dwh-proceso-head {
+    margin-bottom: 32px;
+  }
+  /* Una columna. Sin `min-height`: los 300px que tenían las cards existían para
+     que el reel llenase el viewport pineado, y fuera de ese contexto solo
+     serían huecos vacíos dentro de la card. */
+  .nxr-dwh-step-card {
+    flex-basis: 100%;
+    max-width: none;
+    padding: 24px;
   }
 }
 
@@ -7699,7 +7609,7 @@ input[type="range"].nxr-ms-range::-moz-range-thumb {
     transform: translate3d(calc(var(--drift-x, 0px) * 1.6), calc(var(--drift-y, 0px) * 1.6), 0);
   }
 
-  .nxr-dwh-proceso-tilt {
+  .nxr-dwh-step-grid {
     transform: translate3d(var(--drift-x, 0px), var(--drift-y, 0px), 0);
   }
 }

@@ -5,7 +5,6 @@ import gsap from "gsap";
 import { useGSAP } from "@gsap/react";
 import { useReducedMotion } from "@/hooks/useReducedMotion";
 import { useTitleReveal } from "@/hooks/useTitleReveal";
-import { useGlassPanels } from "@/hooks/useGlassPanels";
 
 // V17.98: esto fue un REEL HORIZONTAL pineado y ya no lo es. Tenía un sticky de
 // 100lvh, un track con `width: max-content` que GSAP scrubbeaba en x, un efecto
@@ -53,10 +52,21 @@ export default function ProcesoReel() {
   const sectionRef = useRef<HTMLElement>(null);
   const reducedMotion = useReducedMotion();
 
-  // Cada card sigue siendo el ANCLA de una malla real de cristal volumétrico
-  // (la card del DOM solo pone contenido y el velo de legibilidad, ver el CSS):
-  // eso no cambia al quitar el reel, es la identidad visual del sitio.
-  useGlassPanels(sectionRef, ".nxr-dwh-step-card", "#12141c", [reducedMotion]);
+  // SIN cristal volumétrico (V17.99). Estas cards eran anclas de useGlassPanels
+  // y la sección iba lageada: cada panel dibuja un MeshTransmissionMaterial, y
+  // tener materiales de transmisión visibles obliga a la escena a hacer una
+  // CAPTURA extra de todo lo que hay detrás en cada frame. Eso se paga en una
+  // página que ya sostiene el muro de vídeo a pantalla completa, y aquí no
+  // compraba nada: son cinco tarjetas de texto quietas, no las piezas de
+  // Servicios que se mueven y se doblan.
+  //
+  // Lo que las sigue vistiendo es `.nxr-glass-edge`, el borde de gradiente por
+  // mask que usa el resto del sitio: es la misma familia visual y cuesta una
+  // pseudo-capa estática. Deliberadamente NO se sustituye por backdrop-filter,
+  // que habría salido más caro que la propia malla — el compositor rehace cada
+  // capa de blur en CADA repintado del canvas, y el canvas repinta a ~30fps en
+  // toda la web (el mismo motivo por el que GradualBlur está limitado a 2
+  // divs).
 
   useGSAP(
     () => {
@@ -93,7 +103,7 @@ export default function ProcesoReel() {
 
       <div className="nxr-dwh-step-grid">
         {STEPS.map((s) => (
-          <div key={s.n} className="nxr-dwh-step-card" data-step={s.n}>
+          <div key={s.n} className="nxr-dwh-step-card nxr-glass-edge" data-step={s.n}>
             <span className="nxr-dwh-step-inner">
               <span className="nxr-dwh-step-num">{s.n}</span>
               <span className="nxr-dwh-step-title">{s.title}</span>

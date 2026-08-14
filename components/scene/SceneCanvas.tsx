@@ -214,7 +214,12 @@ export default function SceneCanvas() {
       "nxr-proceso",
       "nxr-tech",
       "nxr-contacto",
-      "nxr-dwh-proceso",
+      // (nxr-dwh-proceso salió de aquí en V17.99. Estaba porque su reel
+      // horizontal movía las cards cada frame; desde V17.98 es una rejilla
+      // quieta y desde V17.99 ni siquiera tiene mallas de cristal que seguir,
+      // así que forzar el bucle a "always" mientras la sección estuviera cerca
+      // era 60fps continuos sin nada que dibujar — parte del lag que se notaba
+      // justo ahí.)
       "nxr-dwh-capacidades",
       "nxr-aia-hero",
       "nxr-aia-casos",

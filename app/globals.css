@@ -6204,14 +6204,21 @@ input[type="range"].nxr-ms-range::-moz-range-thumb {
   gap: 20px;
 }
 
-/* Anchor for a real volumetric fluid-glass mesh (useGlassPanels in
-   ProcesoReel.tsx) — no CSS glass/backdrop-filter anymore, just layout + the
-   sitewide legibility scrim (same treatment as the home's cards). */
+/* V17.99: ya NO es el ancla de una malla de cristal volumétrico. Esta sección
+   iba lageada y el cristal era el motivo: cada panel dibuja un
+   MeshTransmissionMaterial y su sola presencia obliga a la escena a capturar
+   todo lo que hay detrás una vez por frame, coste que aquí no compraba nada
+   (cinco tarjetas de texto quietas). Ahora el cuerpo lo da un fondo OPACO —
+   más sólido que el antiguo velo de 0.34, que contaba con el cristal debajo
+   para tener presencia— y el contorno, `.nxr-glass-edge` en el TSX: gradiente
+   por mask, sin blur, sin capa de compositing. Nada de backdrop-filter aquí:
+   con el canvas repintando a ~30fps, cinco capas de blur salen más caras que
+   la malla que se acaba de quitar. */
 .nxr-dwh-step-card {
   flex: 1 1 300px;
   max-width: 360px;
   padding: 30px 28px;
-  background: rgba(8, 10, 14, 0.34);
+  background: rgba(14, 17, 25, 0.78);
   border-radius: var(--radius-lg);
 }
 

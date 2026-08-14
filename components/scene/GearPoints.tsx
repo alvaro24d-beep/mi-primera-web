@@ -25,7 +25,13 @@ import { CAMERA_DISTANCE } from "./PixelCamera";
 // 1/32767 del radio: centésimas de píxel a cualquier tamaño al que se dibuje.
 
 const PUNTOS_URL = "/gear-points.bin";
-const TOTAL_PUNTOS = 9000;
+// 22.000 (eran 9.000). Al subir el radio de la pieza a 0.52 del lado corto, su
+// área en pantalla se multiplicó por ~2.4 y los 9.000 puntos se quedaban tan
+// separados que la silueta se deshacía: la densidad, no el número, es lo que
+// hace que una nube se lea como una forma. 22.000 la recuperan. El archivo
+// pasa de 53 a 129KB — sigue siendo 59 veces menos que el .glb — y el coste de
+// dibujarlos es el mismo draw call de siempre.
+const TOTAL_PUNTOS = 22000;
 
 // Profundidad a la que flota, en px de mundo (PixelCamera: 1 unidad = 1px a
 // z=0). Lejos del muro (-1900) y por delante de él, pero con bastante
@@ -143,8 +149,14 @@ const fragmentShader = /* glsl */ `
     // fuerte y el halo contenido (0.5 -> 0.3): se gana chispa y se pierde
     // niebla. Con additive, el texto de debajo se aclara un punto en vez de
     // desaparecer bajo una capa lechosa.
-    float nucleo = exp(-d2 * 30.0);
-    float halo = exp(-d2 * 6.0) * 0.3;
+    // Núcleo APRETADO (30 -> 48) y halo tenue. Es lo que separa un punto
+    // "definido" de una manchita difusa: con una caída blanda, un punto de
+    // 2-3px es casi todo degradado y no llega a tener centro, y eso se lee
+    // como baja resolución aunque la resolución sea correcta. Concentrando la
+    // energía en el centro aparece el punto; el halo se queda solo para el
+    // brillo, que es su trabajo.
+    float nucleo = exp(-d2 * 48.0);
+    float halo = exp(-d2 * 7.0) * 0.22;
     gl_FragColor = vec4(vec3(1.0), (nucleo + halo) * uOpacity * vBrillo);
   }
 `;
@@ -216,13 +228,11 @@ export default function GearPoints({
   // pelearse con ella.
   const uniforms = useMemo(
     () => ({
-      // MÓVIL PIDE PUNTOS MÁS GRANDES, no más pequeños. El canvas corre a dpr 1
-      // allí (SceneCanvas), así que en una pantalla de dpr 3 cada píxel del
-      // buffer se estira a 3: un punto de 2.3px acababa siendo una manchita de
-      // ~7px estirada, y por eso se veía "en baja resolución". Con el perfil
-      // gaussiano del fragment, un punto MÁS GRANDE aguanta ese estirón — lo
-      // que no lo aguantaba era el contorno duro del disco anterior.
-      uSize: { value: isMobile ? 4.0 : 3.1 },
+      // Ahora que el canvas es propio y va a dpr 2 (GearPointsCanvas), cada
+      // punto se rasteriza con el doble de píxeles por lado: se ve DEFINIDO, y
+      // ya no hace falta agrandarlo para disimular el estirón que le hacía la
+      // pantalla. Vuelve a un tamaño contenido.
+      uSize: { value: isMobile ? 2.8 : 2.6 },
       uDpr: { value: 1 },
       // El array se pasa por referencia: se mutan los Vector3 en su sitio cada
       // frame y three sube el bloque entero, sin reasignar ni reservar nada.
@@ -233,10 +243,12 @@ export default function GearPoints({
       uEmpuje: { value: 52 },
       uTime: { value: 0 },
       uVida: { value: 0.014 },
-      // Con blending ADITIVO este número deja de ser "cuánto tapa" y pasa a ser
-      // "cuánta luz suma": puede subir bastante sin comerse el texto, porque lo
-      // aclara en vez de ensuciarlo. 0.22 -> 0.5.
-      uOpacity: { value: isMobile ? 0.38 : 0.44 },
+      // Con blending ADITIVO este número no es "cuánto tapa" sino "cuánta luz
+      // suma". Y la luz que llega al ojo es la de TODOS los puntos que caen en
+      // ese píxel, así que al pasar de 9.000 a 22.000 hay que bajarlo o el
+      // velo sobre el texto crece con la densidad: 0.44 -> 0.3. El brillo
+      // percibido no baja — lo que antes daba un punto ahora lo dan dos.
+      uOpacity: { value: isMobile ? 0.3 : 0.34 },
     }),
     [isMobile]
   );
@@ -285,7 +297,13 @@ export default function GearPoints({
       //    enseña el grosor y sigue leyéndose como lo que es.
       p.rotation.z = s * 0.0009;
       p.rotation.y = Math.sin(s * 0.00042) * 0.62;
-      p.rotation.x = -0.2 + Math.sin(s * 0.00027 + 1.1) * 0.42;
+      // X CONTINUA, no oscilando: la pieza bascula hacia el visitante y se le
+      // ve la cara, el canto y el dorso a lo largo del scroll — el giro "de
+      // frente". Va lenta (una vuelta cada ~11.400px, aprox. una por página
+      // entera) para que al cruzar el canto sea un instante y no un parpadeo
+      // constante; y como Z sigue rodando por su cuenta, incluso en ese
+      // instante hay movimiento que mirar.
+      p.rotation.x = s * 0.00055;
 
       // AMORTIGUACIÓN SOLO PARA EL TILT, nunca para la repulsión. Antes el
       // cursor entero pasaba por un lerp de 0.09 — unos 25 frames (~0.4s) en
@@ -341,7 +359,7 @@ export default function GearPoints({
   // superficie de texto, así que la opacidad baja en la misma jugada (ver
   // uOpacity): lo que la mantiene siendo FONDO no es el tamaño sino cuánto
   // pesa cada punto sobre lo que hay debajo.
-  const escala = Math.min(Math.min(size.width, size.height) * 0.4, isMobile ? 240 : 420);
+  const escala = Math.min(Math.min(size.width, size.height) * 0.52, isMobile ? 300 : 560);
 
   return (
     <points ref={puntosRef} geometry={geo} position={[0, 0, Z]} scale={escala} frustumCulled={false}>

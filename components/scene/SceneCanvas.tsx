@@ -6,13 +6,13 @@ import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import { Environment, Lightformer } from "@react-three/drei";
 import { EffectComposer, Bloom, Vignette } from "@react-three/postprocessing";
 import SceneBackground from "./SceneBackground";
-import GearPoints from "./GearPoints";
+
 import ServiciosCardsLayer from "./ServiciosCardsLayer";
 import ZoomParallaxCardsLayer from "./ZoomParallaxCardsLayer";
 import GlassPanelsLayer from "./GlassPanelsLayer";
 import PixelCamera, { CAMERA_DISTANCE } from "./PixelCamera";
 import { nearSections, canvasBox } from "@/store/sceneActivity";
-import { useReducedMotion } from "@/hooks/useReducedMotion";
+
 
 // Procedural HDRI: `<Environment>` + `<Lightformer>` only — never the
 // `preset` prop, which downloads an HDRI from drei's CDN at runtime. That
@@ -114,9 +114,6 @@ export default function SceneCanvas() {
   // re-arms per pathname so the NEW route's sections get tracked.
   const pathname = usePathname();
   const [isMobile] = useState(() => typeof window !== "undefined" && window.innerWidth < 768);
-  // Para la nube de puntos: con reduced motion se queda quieta (ni giro por
-  // scroll ni repulsión), como el resto de piezas animadas del sitio.
-  const reducedMotion = useReducedMotion();
   const [active, setActive] = useState(true);
   // Frameloop has THREE regimes (see the `frameloop` prop below):
   //   • tab hidden                        → "never"  (fully idle)
@@ -323,11 +320,9 @@ export default function SceneCanvas() {
           active={active}
           portrait={isPortrait}
         />
-        {/* Nube de puntos con la forma del modelo, entre el muro y el contenido.
-            Va DESPUÉS del muro (renderOrder -10) y antes que las cards, así que
-            el cristal la recoge en su captura de transmisión y se ve refractada
-            a través de él. */}
-        <GearPoints isMobile={isMobile} reducedMotion={reducedMotion} />
+        {/* (La nube de puntos se fue a su PROPIO canvas en V17.88 — ver
+            GearPointsCanvas: aquí dentro estaba atada al ritmo y a la
+            resolución del muro, y ambos son bajos a propósito.) */}
         <ServiciosCardsLayer />
         <ZoomParallaxCardsLayer isMobile={isMobile} />
         <GlassPanelsLayer />

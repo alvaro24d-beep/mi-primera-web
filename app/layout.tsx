@@ -3,6 +3,7 @@ import { Manrope, Cormorant_Garamond, Rajdhani, Space_Mono } from "next/font/goo
 import "./globals.css";
 import Header from "@/components/Header";
 import SceneCanvasLazy from "@/components/scene/SceneCanvasLazy";
+import GearPointsLazy from "@/components/scene/GearPointsLazy";
 import RevealInit from "@/components/RevealInit";
 import SmoothScroll from "@/components/SmoothScroll";
 import ScrollProgress from "@/components/ScrollProgress";
@@ -78,6 +79,10 @@ export default function RootLayout({
         {/* WebGL backdrop deferred off the load's critical path — see
             SceneCanvasLazy (dynamic import + idle mount + fade-in). */}
         <SceneCanvasLazy />
+        {/* La nube de puntos, en su propio canvas (z-index -999) entre el muro
+            y el contenido: separada del backdrop para no heredar ni su ritmo de
+            repintado ni su resolución. Ver GearPointsCanvas. */}
+        <GearPointsLazy />
         <RevealInit />
         {/* Fixed to the viewport (`target="page"`), sitting above page content
             but below Header/the floating nav (z-index 9998/9999) — content

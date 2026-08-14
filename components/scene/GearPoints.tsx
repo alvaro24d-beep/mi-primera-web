@@ -39,17 +39,14 @@ const PUNTOS_URL = "/gear-points.bin";
 // imagen de baja resolución. Con la mitad de puntos, cada uno puede medir el
 // doble sin volver a tocarse: misma cobertura total (~125.000 px², o sea la
 // misma silueta), pero ahora se distingue punto por punto.
-const PUNTOS_DIBUJADOS = 10000;
-// Y en móvil 2.200, no 5.000. "La mitad de puntos" parecía razonable y era un
-// error de bulto: lo que importa no es cuántos puntos hay sino cuántos px² de
-// pantalla le tocan a cada uno, y en un teléfono la figura no ocupa la mitad de
-// superficie, ocupa CUATRO VECES Y MEDIA menos (tope de escala 360 frente a
-// 700, y el área va con el cuadrado del radio). Con 5.000 puntos ahí dentro la
-// densidad era más del doble que en escritorio, así que se pisaban unos a otros
-// y la figura volvía a empastarse — el mismo defecto que se acababa de corregir
-// en el escritorio, pero solo en el móvil, que es justo lo que se seguía
-// viendo. 2.200 igualan la cobertura: ~18% de la silueta en las dos pantallas.
-const PUNTOS_DIBUJADOS_MOVIL = 2200;
+const PUNTOS_DIBUJADOS = 22000;
+// El móvil NO lleva "la mitad" sino la parte proporcional a la superficie que
+// la figura ocupa allí, que es cuatro veces y media menos (tope de escala 360
+// frente a 700, y el área va con el cuadrado del radio). Lo que hay que igualar
+// entre las dos pantallas no es el número de puntos, son los px² que le tocan a
+// cada uno: con ~22 px² por punto en ambas, el grano se ve igual de fino en el
+// teléfono que en el monitor.
+const PUNTOS_DIBUJADOS_MOVIL = 4800;
 
 // Profundidad a la que flota, en px de mundo (PixelCamera: 1 unidad = 1px a
 // z=0). Lejos del muro (-1900) y por delante de él, pero con bastante
@@ -256,23 +253,25 @@ export default function GearPoints({
     () => ({
       // uSize está en PÍXELES CSS a z=0; el tamaño real en pantalla es
       // uSize·(CAMERA/distancia) ≈ uSize·0.70 con la nube en z=-420, así que
-      // 6.3 son ~4,4px de lado y el disco de dentro mide unos 3,3.
+      // 3.0 son ~2,1px de lado y el disco de dentro mide 1,6.
       //
-      // Ese es el suelo por debajo del cual esto no funciona: para que un
-      // círculo se lea como un círculo (y no como una mancha gris) hacen falta
-      // 3-4 píxeles de diámetro, porque con 2 no hay dónde dibujar ni el
-      // interior ni el borde. Se probó a 3.2 buscando que no se empastaran
-      // entre ellos y el resultado fue el contrario del buscado: puntos
-      // demasiado pequeños para tener forma. El empaste se arregla con la
-      // DENSIDAD (ver PUNTOS_DIBUJADOS), no encogiéndolos.
+      // ESTE ES EL SUELO. Un punto no puede encogerse más sin dejar de ser un
+      // punto: por debajo de ~1,5px de disco no quedan píxeles con los que
+      // dibujar a la vez un interior y un borde, el círculo degenera en un par
+      // de píxeles grises y la nube entera pasa a leerse como ruido — que es
+      // exactamente el aspecto de "baja resolución" que costó tres versiones
+      // quitar. Si hay que bajar de aquí, hay que subir antes la resolución del
+      // canvas (el dpr de SceneCanvas), no seguir bajando este número.
       //
-      // El MISMO valor en móvil que en escritorio, a propósito: uSize está en
-      // píxeles CSS, así que el punto mide igual en las dos pantallas y en un
-      // teléfono de densidad 3 son ~13 píxeles físicos de sobra para dibujar un
-      // círculo. Estuvo en 6.6 "porque el móvil se ve peor" y eso era tapar el
-      // problema por el lado equivocado: lo que se veía mal no era el tamaño,
-      // era el dpr 1 del canvas (ya corregido en SceneCanvas) y la densidad.
-      uSize: { value: 6.3 },
+      // Lo que hace que a este tamaño sigan viéndose definidos y no como una
+      // neblina es que ya no hay nada que los emborrone alrededor: ni halo, ni
+      // suma aditiva con los puntos de detrás, ni bloom (ver uOpacity). Un punto
+      // pequeño perdona mucho menos que uno grande, así que esas tres cosas —
+      // que antes se compensaban entre sí— aquí no pueden volver.
+      //
+      // El MISMO valor en móvil que en escritorio: uSize está en píxeles CSS,
+      // así que el punto mide igual en las dos pantallas.
+      uSize: { value: 3.0 },
       uDpr: { value: 1 },
       // Cociente (dpr del framebuffer / dpr de la pantalla). 1 cuando el canvas
       // se dibuja a resolución física; ~0.33 en un iPhone, donde el buffer va a
@@ -296,13 +295,19 @@ export default function GearPoints({
       // justo por debajo del umbral y el bloom lo ignora. No se ve más apagado
       // porque lo que hace blanco a un punto no es su valor absoluto sino el
       // contraste contra el fondo, y el fondo aquí es un muro oscuro.
-      // En móvil sube a 0.75 porque allí NO hay EffectComposer (es desktop-only,
-      // ver SceneCanvas): sin bloom no hay umbral que respetar, y el punto puede
-      // ser blanco de verdad. Importa para la nitidez y no solo para el brillo
-      // — lo que hace que un borde se lea afilado es el contraste contra lo que
-      // tiene detrás, así que un punto a media opacidad sobre un muro oscuro se
-      // percibe blando aunque su geometría sea perfecta.
-      uOpacity: { value: isMobile ? 0.75 : 0.46 },
+      // Cuanto más pequeño es el punto, más manda el CONTRASTE: a 1,6px de
+      // disco no hay superficie con la que convencer al ojo, solo intensidad,
+      // así que un punto flojo se percibe como suciedad y uno rotundo como un
+      // punto. De ahí que al encogerlos suba la opacidad en vez de bajarla.
+      //
+      // El techo en escritorio no es estético sino del composer: el píxel final
+      // ronda uOpacity·vBrillo sobre un muro casi negro, y el Bloom empieza a
+      // florecer a partir de 0.6 de luminancia. Cruzarlo devuelve al punto un
+      // halo difuso de MEDIA resolución sumado encima — para un punto de 1,6px
+      // eso no es un adorno, es borrarlo. 0.48·1.20 = 0.58, justo por debajo.
+      // En móvil no hay EffectComposer (es desktop-only, ver SceneCanvas), así
+      // que no hay umbral que respetar y el punto puede ser blanco de verdad.
+      uOpacity: { value: isMobile ? 0.9 : 0.48 },
     }),
     [isMobile]
   );

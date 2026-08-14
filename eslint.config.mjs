@@ -31,6 +31,10 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Herramientas de línea de comandos que se ejecutan A MANO con node, no
+    // código de la app: son CommonJS (`require`), nunca entran en el bundle y
+    // las reglas de Next/React no les aplican.
+    "scripts/**",
   ]),
 ]);
 

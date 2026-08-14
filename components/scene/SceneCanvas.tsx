@@ -279,11 +279,26 @@ export default function SceneCanvas() {
       <Canvas
         ref={canvasRef}
         frameloop={!active ? "never" : cardsNear && engaged ? "always" : "demand"}
-        // Perf pass: 1.25 desktop / 1 mobile (was 1.5 / 1.25). The backdrop is
-        // a deliberately pixelated CRT and the cards are frosted glass — the
-        // ~40% pixel-count cut is not visible on either, and fill rate is this
-        // scene's dominant GPU cost (fullscreen wall + transmission + bloom).
-        dpr={isMobile ? 1 : [1, 1.25]}
+        // Perf pass: 1.25 desktop. The backdrop is a deliberately pixelated CRT
+        // and the cards are frosted glass — the ~40% pixel-count cut is not
+        // visible on either, and fill rate is this scene's dominant GPU cost
+        // (fullscreen wall + transmission + bloom).
+        //
+        // MÓVIL SUBE DE 1 A 2 (V17.93), y es la única forma de arreglar lo que
+        // se veía. A dpr 1 sobre un teléfono de densidad 3 el canvas se dibuja
+        // a un tercio de la resolución de la pantalla y el navegador ESTIRA el
+        // resultado x3: todo lo que hay dentro llega interpolado, y un detalle
+        // fino como un punto de 4px se convierte en una mancha de 12. Eso no lo
+        // arregla ningún shader —la información no está— y por eso tres
+        // intentos seguidos de afinar el punto no cambiaron nada en el móvil.
+        // A dpr 2 el estirado baja de x3 a x1.5.
+        //
+        // Se paga: son 4 veces los píxeles que el shader del muro tiene que
+        // rellenar por frame, y el relleno es el coste dominante de esta
+        // escena. El tope es 2 y no el devicePixelRatio real precisamente por
+        // eso — a 3 serían 9 veces y no hay teléfono que lo sostenga con este
+        // muro. Si aparece lag en gama baja, la palanca es bajarlo a 1.5.
+        dpr={isMobile ? [1, 2] : [1, 1.25]}
         camera={{ position: [0, 0, CAMERA_DISTANCE], fov: 50, near: 1, far: CAMERA_DISTANCE * 3 }}
         // antialias false on desktop too: every desktop frame goes through
         // EffectComposer, which renders into its own (multisampled) buffers —

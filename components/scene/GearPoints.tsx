@@ -40,6 +40,16 @@ const PUNTOS_URL = "/gear-points.bin";
 // doble sin volver a tocarse: misma cobertura total (~125.000 px², o sea la
 // misma silueta), pero ahora se distingue punto por punto.
 const PUNTOS_DIBUJADOS = 10000;
+// Y en móvil 2.200, no 5.000. "La mitad de puntos" parecía razonable y era un
+// error de bulto: lo que importa no es cuántos puntos hay sino cuántos px² de
+// pantalla le tocan a cada uno, y en un teléfono la figura no ocupa la mitad de
+// superficie, ocupa CUATRO VECES Y MEDIA menos (tope de escala 360 frente a
+// 700, y el área va con el cuadrado del radio). Con 5.000 puntos ahí dentro la
+// densidad era más del doble que en escritorio, así que se pisaban unos a otros
+// y la figura volvía a empastarse — el mismo defecto que se acababa de corregir
+// en el escritorio, pero solo en el móvil, que es justo lo que se seguía
+// viendo. 2.200 igualan la cobertura: ~18% de la silueta en las dos pantallas.
+const PUNTOS_DIBUJADOS_MOVIL = 2200;
 
 // Profundidad a la que flota, en px de mundo (PixelCamera: 1 unidad = 1px a
 // z=0). Lejos del muro (-1900) y por delante de él, pero con bastante
@@ -218,10 +228,7 @@ export default function GearPoints({
         const g = new THREE.BufferGeometry();
         // normalized: true -> GL entrega [-1,1] sin conversión en CPU ni shader.
         g.setAttribute("position", new THREE.BufferAttribute(new Int16Array(ab), 3, true));
-        // El móvil dibuja la mitad: allí la figura ocupa la mitad de píxeles
-        // (el tope de escala es 360 frente a 700), así que con el mismo número
-        // volvería a empastarse exactamente igual.
-        g.setDrawRange(0, isMobile ? PUNTOS_DIBUJADOS / 2 : PUNTOS_DIBUJADOS);
+        g.setDrawRange(0, isMobile ? PUNTOS_DIBUJADOS_MOVIL : PUNTOS_DIBUJADOS);
         // La esfera de cull la sabemos de antemano (el .bin está normalizado al
         // radio 1), así que nos ahorramos que three recorra los 22.000 puntos
         // para calcularla.
@@ -258,7 +265,14 @@ export default function GearPoints({
       // entre ellos y el resultado fue el contrario del buscado: puntos
       // demasiado pequeños para tener forma. El empaste se arregla con la
       // DENSIDAD (ver PUNTOS_DIBUJADOS), no encogiéndolos.
-      uSize: { value: isMobile ? 6.6 : 6.3 },
+      //
+      // El MISMO valor en móvil que en escritorio, a propósito: uSize está en
+      // píxeles CSS, así que el punto mide igual en las dos pantallas y en un
+      // teléfono de densidad 3 son ~13 píxeles físicos de sobra para dibujar un
+      // círculo. Estuvo en 6.6 "porque el móvil se ve peor" y eso era tapar el
+      // problema por el lado equivocado: lo que se veía mal no era el tamaño,
+      // era el dpr 1 del canvas (ya corregido en SceneCanvas) y la densidad.
+      uSize: { value: 6.3 },
       uDpr: { value: 1 },
       // Cociente (dpr del framebuffer / dpr de la pantalla). 1 cuando el canvas
       // se dibuja a resolución física; ~0.33 en un iPhone, donde el buffer va a
@@ -282,7 +296,13 @@ export default function GearPoints({
       // justo por debajo del umbral y el bloom lo ignora. No se ve más apagado
       // porque lo que hace blanco a un punto no es su valor absoluto sino el
       // contraste contra el fondo, y el fondo aquí es un muro oscuro.
-      uOpacity: { value: isMobile ? 0.52 : 0.46 },
+      // En móvil sube a 0.75 porque allí NO hay EffectComposer (es desktop-only,
+      // ver SceneCanvas): sin bloom no hay umbral que respetar, y el punto puede
+      // ser blanco de verdad. Importa para la nitidez y no solo para el brillo
+      // — lo que hace que un borde se lea afilado es el contraste contra lo que
+      // tiene detrás, así que un punto a media opacidad sobre un muro oscuro se
+      // percibe blando aunque su geometría sea perfecta.
+      uOpacity: { value: isMobile ? 0.75 : 0.46 },
     }),
     [isMobile]
   );

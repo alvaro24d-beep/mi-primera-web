@@ -15,6 +15,19 @@
 // scrolling and must never cost a React render.
 export const nearSections = new Set<string>();
 
+// Índice (en orden de documento) de la sección que ocupa ahora mismo la banda
+// central del viewport, escrito por el observer de SceneCanvas y leído por
+// SceneBackground para recolocar el muro en cada sección.
+//
+// Es un ÍNDICE y no un id a propósito: la pose de cada sección se deriva de su
+// número de orden, así que cualquier página —incluidas las que aún no existen—
+// tiene poses distintas y repartidas sin que haya que mantener una tabla de
+// secciones en ninguna parte.
+//
+// Mismo singleton mutable que los de arriba, y por la misma razón: se lee en
+// cada frame del muro y no puede costar un render de React.
+export const poseSeccion = { indice: 0 };
+
 // Posición REAL del canvas fijo en coords del layout viewport, medida cada
 // frame por CanvasBoxTracker (SceneCanvas.tsx) y restada por las tres capas
 // al mapear rects DOM → mundo. Normalmente es (0,0) y la resta es un no-op —

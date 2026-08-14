@@ -12,7 +12,7 @@ import ServiciosCardsLayer from "./ServiciosCardsLayer";
 import ZoomParallaxCardsLayer from "./ZoomParallaxCardsLayer";
 import GlassPanelsLayer from "./GlassPanelsLayer";
 import PixelCamera, { CAMERA_DISTANCE } from "./PixelCamera";
-import { nearSections, canvasBox } from "@/store/sceneActivity";
+import { nearSections, canvasBox, poseSeccion } from "@/store/sceneActivity";
 import { useReducedMotion } from "@/hooks/useReducedMotion";
 
 
@@ -259,6 +259,55 @@ export default function SceneCanvas() {
     // mount-once observe would leave every section of the NEXT route
     // untracked (meshes invisible forever).
   }, [pathname]);
+
+  // ===== Qué sección se está mirando -> pose del muro (V17.95) =====
+  // Observer aparte del de arriba, y no una opción más de aquel, porque
+  // pregunta otra cosa: el de arriba es "¿está CERCA?" (margen de +300px, para
+  // encender trabajo por adelantado) y este es "¿es la que se está mirando
+  // AHORA?". Con rootMargin -45% arriba y abajo, el área de disparo se reduce a
+  // una banda del 10% en mitad de la pantalla, así que el cambio ocurre cuando
+  // la sección nueva llega al centro de la vista y no cuando asoma por el
+  // borde. Un solo IntersectionObserver, cero trabajo por frame y cero
+  // listeners de scroll: el navegador ya sabe hacer esto.
+  //
+  // Se observan TODAS las <section id> del documento, no una lista: así una
+  // página nueva participa sola, sin tener que acordarse de apuntarla aquí
+  // (que es justo el fallo que tiene la lista de arriba, donde olvidarse deja
+  // las mallas invisibles para siempre).
+  useEffect(() => {
+    // Con reduced motion el muro se queda quieto: este movimiento es
+    // decorativo y es exactamente el tipo de desplazamiento no pedido que
+    // molesta a quien activa esa preferencia.
+    if (reducedMotion) {
+      poseSeccion.indice = 0;
+      return;
+    }
+    const secciones = Array.from(document.querySelectorAll<HTMLElement>("section[id]"));
+    if (!secciones.length) return;
+    const orden = new Map<Element, number>();
+    secciones.forEach((s, i) => orden.set(s, i));
+    const enBanda = new Set<Element>();
+    const io = new IntersectionObserver(
+      (entries) => {
+        for (const e of entries) {
+          if (e.isIntersecting) enBanda.add(e.target);
+          else enBanda.delete(e.target);
+        }
+        // Si dos secciones cortas comparten la banda, manda la de más arriba:
+        // el criterio tiene que ser estable, porque alternar entre dos poses
+        // dejaría el muro oscilando mientras el scroll está parado.
+        let primera = Infinity;
+        for (const el of enBanda) {
+          const i = orden.get(el);
+          if (i !== undefined && i < primera) primera = i;
+        }
+        if (primera !== Infinity) poseSeccion.indice = primera;
+      },
+      { rootMargin: "-45% 0px -45% 0px" }
+    );
+    secciones.forEach((s) => io.observe(s));
+    return () => io.disconnect();
+  }, [pathname, reducedMotion]);
 
   return (
     <div

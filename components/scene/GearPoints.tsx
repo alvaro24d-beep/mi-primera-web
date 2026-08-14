@@ -228,11 +228,12 @@ export default function GearPoints({
   // pelearse con ella.
   const uniforms = useMemo(
     () => ({
-      // Ahora que el canvas es propio y va a dpr 2 (GearPointsCanvas), cada
-      // punto se rasteriza con el doble de píxeles por lado: se ve DEFINIDO, y
-      // ya no hace falta agrandarlo para disimular el estirón que le hacía la
-      // pantalla. Vuelve a un tamaño contenido.
-      uSize: { value: isMobile ? 2.8 : 2.6 },
+      // De vuelta en el canvas global, el dpr vuelve a ser el suyo (1.25
+      // escritorio / 1 móvil), así que en móvil el punto necesita algún píxel
+      // más para no quedarse en nada al estirarlo la pantalla. Lo que salva la
+      // nitidez a esta resolución no es el tamaño sino el núcleo apretado del
+      // fragment (ver el exp(-d2*48)).
+      uSize: { value: isMobile ? 3.6 : 2.8 },
       uDpr: { value: 1 },
       // El array se pasa por referencia: se mutan los Vector3 en su sitio cada
       // frame y three sube el bloque entero, sin reasignar ni reservar nada.
@@ -362,7 +363,18 @@ export default function GearPoints({
   const escala = Math.min(Math.min(size.width, size.height) * 0.52, isMobile ? 300 : 560);
 
   return (
-    <points ref={puntosRef} geometry={geo} position={[0, 0, Z]} scale={escala} frustumCulled={false}>
+    // renderOrder -5: entre el muro (-10) y todo lo demás (0). No basta con
+    // confiar en el orden por profundidad — los transparentes se ordenan por
+    // distancia a la cámara y las cards se mueven en z cada frame, así que el
+    // orden quedaría a merced del scroll. Explícito y estable.
+    <points
+      ref={puntosRef}
+      geometry={geo}
+      position={[0, 0, Z]}
+      scale={escala}
+      renderOrder={-5}
+      frustumCulled={false}
+    >
       <shaderMaterial
         ref={matRef}
         vertexShader={vertexShader}

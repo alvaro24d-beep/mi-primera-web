@@ -6,12 +6,14 @@ import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import { Environment, Lightformer } from "@react-three/drei";
 import { EffectComposer, Bloom, Vignette } from "@react-three/postprocessing";
 import SceneBackground from "./SceneBackground";
+import GearPoints from "./GearPoints";
 
 import ServiciosCardsLayer from "./ServiciosCardsLayer";
 import ZoomParallaxCardsLayer from "./ZoomParallaxCardsLayer";
 import GlassPanelsLayer from "./GlassPanelsLayer";
 import PixelCamera, { CAMERA_DISTANCE } from "./PixelCamera";
 import { nearSections, canvasBox } from "@/store/sceneActivity";
+import { useReducedMotion } from "@/hooks/useReducedMotion";
 
 
 // Procedural HDRI: `<Environment>` + `<Lightformer>` only — never the
@@ -114,6 +116,8 @@ export default function SceneCanvas() {
   // re-arms per pathname so the NEW route's sections get tracked.
   const pathname = usePathname();
   const [isMobile] = useState(() => typeof window !== "undefined" && window.innerWidth < 768);
+  // Para la nube de puntos: con reduced motion se queda quieta.
+  const reducedMotion = useReducedMotion();
   const [active, setActive] = useState(true);
   // Frameloop has THREE regimes (see the `frameloop` prop below):
   //   • tab hidden                        → "never"  (fully idle)
@@ -320,9 +324,18 @@ export default function SceneCanvas() {
           active={active}
           portrait={isPortrait}
         />
-        {/* (La nube de puntos se fue a su PROPIO canvas en V17.88 — ver
-            GearPointsCanvas: aquí dentro estaba atada al ritmo y a la
-            resolución del muro, y ambos son bajos a propósito.) */}
+        {/* La nube de puntos vuelve AQUÍ DENTRO (V17.89). Tuvo canvas propio
+            durante una versión —por resolución y por fluidez— y era un error
+            de bulto: las cards de Servicios, las de ZoomParallax y los paneles
+            de cristal NO son DOM, son mallas de ESTE canvas, así que cualquier
+            canvas por delante se pone por delante de ellas. Y un canvas no se
+            puede intercalar entre el muro y las cards cuando muro y cards son
+            el mismo canvas. Estando dentro, el orden se resuelve donde debe:
+            renderOrder -5 la deja después del muro (-10) y antes de todo lo
+            demás (0), y como no escribe profundidad, cualquier card que pase
+            por delante la tapa. De regalo, entra en la captura de transmisión
+            y el cristal la refracta. */}
+        <GearPoints isMobile={isMobile} reducedMotion={reducedMotion} />
         <ServiciosCardsLayer />
         <ZoomParallaxCardsLayer isMobile={isMobile} />
         <GlassPanelsLayer />

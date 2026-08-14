@@ -14,13 +14,13 @@ import { CAMERA_DISTANCE } from "./PixelCamera";
 // EL MODELO NO SE CARGA. El .glb original pesa 7,6MB y trae 244.000 triángulos
 // con tres texturas PBR — nada de eso hace falta para pintar puntos. La
 // superficie se muestreó UNA vez fuera de línea (uniforme por área, con semilla
-// fija) y lo único que llega al navegador es public/gear-points.bin: 9.000
-// posiciones cuantizadas a Int16, 53KB. Para regenerarlo hay que volver a
+// fija) y lo único que llega al navegador es public/gear-points.bin: 22.000
+// posiciones cuantizadas a Int16, 129KB. Para regenerarlo hay que volver a
 // muestrear el .glb; no es un asset que se pueda "recompilar" desde el repo,
 // así que no lo borres.
 //
 // Int16 NORMALIZADO y no Float32: el atributo viaja y vive en la GPU a la
-// mitad de tamaño (53KB en vez de 105KB) y GL lo expande a [-1,1] al leerlo,
+// mitad de tamaño (129KB en vez de 258KB) y GL lo expande a [-1,1] al leerlo,
 // sin una sola instrucción de más en el shader. El error de cuantización es
 // 1/32767 del radio: centésimas de píxel a cualquier tamaño al que se dibuje.
 
@@ -133,31 +133,44 @@ const fragmentShader = /* glsl */ `
   varying float vBrillo;
 
   void main() {
-    // Perfil GAUSSIANO, no un disco con borde. El disco tenía un contorno
-    // definido y a un tamaño de 2-3px —y en móvil, sobre un canvas a dpr 1 que
-    // luego la pantalla estira— ese contorno es exactamente lo que se veía
-    // dentado y "de baja resolución": no había píxeles suficientes para
-    // dibujar un círculo. Una caída exponencial no tiene contorno que
-    // pixelar, así que aguanta cualquier resolución, y de paso ES el halo:
-    // núcleo denso y aura alrededor, que es lo que hace que un punto se lea
-    // como luz y no como una pegatina.
+    // DISCO SÓLIDO con el borde suavizado a UN PÍXEL, y un halo aparte.
+    //
+    // Antes esto era una gaussiana pura, y una gaussiana es difusa por
+    // definición: toda su energía se concentra en el centro y el resto es
+    // degradado. En un punto de 2-3px eso da un píxel tenue rodeado de nada,
+    // que es justo lo que se ve como borroso — el problema nunca fue la
+    // resolución del canvas, era el perfil.
+    //
+    // La clave es fwidth(d): devuelve cuánto cambia d entre un píxel y el de
+    // al lado, o sea, cuánto vale UN PÍXEL en las unidades del propio punto.
+    // Suavizar exactamente ese ancho da un círculo lleno con un borde limpio
+    // a cualquier tamaño y a cualquier dpr: ni dentado (que era el problema
+    // del disco duro original) ni difuminado. Es la misma técnica con la que
+    // el shader del muro mantiene sus líneas a 1px.
+    // El MEDIO fwidth, no uno entero, y esa mitad es la diferencia entre nítido
+    // y borroso aquí. El canvas no se dibuja a la resolución física de la
+    // pantalla: SceneCanvas fija dpr 1.25 en escritorio y 1 en móvil, así que
+    // el navegador ESTIRA el resultado (x1.6 en un portátil retina, x3 en un
+    // iPhone) con interpolación bilineal. Un borde ya suavizado a 1 píxel del
+    // framebuffer llega a la pantalla convertido en 2-3 píxeles de degradado —
+    // exactamente el halo turbio que se seguía viendo. Suavizándolo a medio
+    // píxel del buffer, el estirado lo devuelve a ~1 píxel real: el punto llega
+    // al ojo con su borde, no con su sombra.
     vec2 c = gl_PointCoord - 0.5;
-    float d2 = dot(c, c);             // al cuadrado: nos ahorra el sqrt
-    if (d2 > 0.25) discard;           // fuera del inscrito no hay nada que sumar
-    // El BRILLO percibido lo da el núcleo; el velo sobre el texto lo daba el
-    // halo, que es ancho y suma en toda su superficie. Por eso el núcleo va
-    // fuerte y el halo contenido (0.5 -> 0.3): se gana chispa y se pierde
-    // niebla. Con additive, el texto de debajo se aclara un punto en vez de
-    // desaparecer bajo una capa lechosa.
-    // Núcleo APRETADO (30 -> 48) y halo tenue. Es lo que separa un punto
-    // "definido" de una manchita difusa: con una caída blanda, un punto de
-    // 2-3px es casi todo degradado y no llega a tener centro, y eso se lee
-    // como baja resolución aunque la resolución sea correcta. Concentrando la
-    // energía en el centro aparece el punto; el halo se queda solo para el
-    // brillo, que es su trabajo.
-    float nucleo = exp(-d2 * 48.0);
-    float halo = exp(-d2 * 7.0) * 0.22;
-    gl_FragColor = vec4(vec3(1.0), (nucleo + halo) * uOpacity * vBrillo);
+    float d = length(c) * 2.0;        // 0 en el centro, 1 en el borde del sprite
+    float aa = fwidth(d) * 0.5;
+    float disco = 1.0 - smoothstep(0.72 - aa, 0.72 + aa, d);
+    // Halo INDEPENDIENTE del disco: aporta el brillo sin restarle definición,
+    // porque no toca el núcleo. CEÑIDO (exponente 4.0, no 2.6): un halo ancho
+    // reparte luz por todo el sprite y devuelve por la puerta de atrás la
+    // difusión que el disco acaba de quitar. Que el resplandor amplio lo ponga
+    // el Bloom del composer, que es donde sale gratis; aquí solo hace falta que
+    // el punto no tenga un corte seco alrededor. En móvil no hay composer, así
+    // que este halo ES todo el glow — de ahí que se estreche pero no se quite.
+    float halo = exp(-d * d * 4.0) * 0.25;
+    float a = (disco + halo) * uOpacity * vBrillo;
+    if (a < 0.004) discard;           // lo invisible no se compone
+    gl_FragColor = vec4(vec3(1.0), a);
   }
 `;
 
@@ -204,7 +217,7 @@ export default function GearPoints({
         // los puntos sin necesidad de un segundo archivo ni de recortar nada.
         g.setDrawRange(0, isMobile ? TOTAL_PUNTOS / 2 : TOTAL_PUNTOS);
         // La esfera de cull la sabemos de antemano (el .bin está normalizado al
-        // radio 1), así que nos ahorramos que three recorra los 9.000 puntos
+        // radio 1), así que nos ahorramos que three recorra los 22.000 puntos
         // para calcularla.
         g.boundingSphere = new THREE.Sphere(new THREE.Vector3(0, 0, 0), 1);
         setGeo(g);
@@ -220,20 +233,21 @@ export default function GearPoints({
 
   useEffect(() => () => geo?.dispose(), [geo]);
 
-  // Calibrado para que sea FONDO y no un objeto encima del contenido. A
-  // opacidad 0.6 y 3px la figura tapaba el párrafo de la hero — se leía como
-  // una capa por delante del texto, que es justo lo contrario de lo que pide
-  // estar "entre el muro y el contenido". A 0.3 y 2.4px la silueta sigue
-  // reconociéndose sobre el muro oscuro y el texto blanco pasa por encima sin
-  // pelearse con ella.
+  // Calibrado para que sea FONDO y no un objeto encima del contenido, pero
+  // NÍTIDO. El equilibrio no se busca bajando la opacidad hasta que la nube
+  // desaparezca (eso deja puntos grises que se leen como suciedad), sino
+  // concentrando la luz de cada punto en su disco: núcleo brillante, halo
+  // corto. Así la silueta se reconoce sobre el muro oscuro y el texto pasa por
+  // encima sin pelearse con ella.
   const uniforms = useMemo(
     () => ({
-      // De vuelta en el canvas global, el dpr vuelve a ser el suyo (1.25
-      // escritorio / 1 móvil), así que en móvil el punto necesita algún píxel
-      // más para no quedarse en nada al estirarlo la pantalla. Lo que salva la
-      // nitidez a esta resolución no es el tamaño sino el núcleo apretado del
-      // fragment (ver el exp(-d2*48)).
-      uSize: { value: isMobile ? 3.6 : 2.8 },
+      // uSize está en PÍXELES CSS a z=0; el tamaño real en pantalla es
+      // uSize·(CAMERA/distancia) ≈ uSize·0.70 con la nube en z=-420. Con 4.4
+      // el punto mide ~3px de lado en pantalla: suficiente para que el disco
+      // sólido tenga un interior de verdad y no sea solo borde. Por debajo de
+      // ~2.5px cualquier perfil se lee borroso, porque no hay píxeles con los
+      // que dibujar un círculo.
+      uSize: { value: isMobile ? 4.8 : 4.4 },
       uDpr: { value: 1 },
       // El array se pasa por referencia: se mutan los Vector3 en su sitio cada
       // frame y three sube el bloque entero, sin reasignar ni reservar nada.
@@ -246,10 +260,14 @@ export default function GearPoints({
       uVida: { value: 0.014 },
       // Con blending ADITIVO este número no es "cuánto tapa" sino "cuánta luz
       // suma". Y la luz que llega al ojo es la de TODOS los puntos que caen en
-      // ese píxel, así que al pasar de 9.000 a 22.000 hay que bajarlo o el
-      // velo sobre el texto crece con la densidad: 0.44 -> 0.3. El brillo
-      // percibido no baja — lo que antes daba un punto ahora lo dan dos.
-      uOpacity: { value: isMobile ? 0.3 : 0.34 },
+      // ese píxel, así que al pasar de 9.000 a 22.000 hubo que bajarlo o el
+      // velo sobre el texto habría crecido con la densidad.
+      // Con el disco sólido, el centro del punto llega de verdad a este valor
+      // (por vBrillo, hasta ~1.35x en los picos): es lo que hace que se lea
+      // como un punto ENCENDIDO y no como una mancha gris. Puede ser alto
+      // porque el disco cubre poca superficie — el velo sobre el texto venía
+      // del halo ancho, no del núcleo.
+      uOpacity: { value: isMobile ? 0.5 : 0.55 },
     }),
     [isMobile]
   );
@@ -335,8 +353,8 @@ export default function GearPoints({
         if (est[i].z > 0) est[i].z = Math.max(0, est[i].z - dt / 0.55);
       }
       // Se suelta una marca nueva solo cada cierto recorrido: sembrar una por
-      // frame llenaría las 9 casillas en un palmo de pantalla y la estela no
-      // llegaría a notarse.
+      // frame llenaría las 9 casillas del rastro en un palmo de pantalla y la
+      // estela no llegaría a notarse.
       if (ratonObj.current.distanceTo(ultimaMarca.current) > 0.045) {
         ultimaMarca.current.copy(ratonObj.current);
         est[siguiente.current].set(ratonObj.current.x, ratonObj.current.y, 1);
@@ -355,12 +373,13 @@ export default function GearPoints({
 
   if (!geo) return null;
 
-  // Radio en píxeles: 40% del lado corto (era 30%), con tope para que en
-  // pantallas muy altas no se coma el contenido. Al crecer, la pieza cruza más
-  // superficie de texto, así que la opacidad baja en la misma jugada (ver
-  // uOpacity): lo que la mantiene siendo FONDO no es el tamaño sino cuánto
-  // pesa cada punto sobre lo que hay debajo.
-  const escala = Math.min(Math.min(size.width, size.height) * 0.52, isMobile ? 300 : 560);
+  // Radio en píxeles: 66% del lado corto (30% -> 52% -> 62% -> 66%), con tope
+  // para que en pantallas muy altas no se coma el contenido. Al crecer, la
+  // pieza cruza más superficie de texto, pero lo que la mantiene siendo FONDO
+  // no es el tamaño sino cuánto pesa cada punto sobre lo que hay debajo (ver
+  // uOpacity y el halo ceñido del fragment). El tope de móvil sube en la misma
+  // proporción: ahí el lado corto ya manda casi siempre, así que apenas actúa.
+  const escala = Math.min(Math.min(size.width, size.height) * 0.66, isMobile ? 360 : 700);
 
   return (
     // renderOrder -5: entre el muro (-10) y todo lo demás (0). No basta con

@@ -47,10 +47,29 @@ const vertexShader = /* glsl */ `
   uniform float uRadio;     // radio de influencia del cursor, en NDC
   uniform float uEmpuje;    // desplazamiento máximo, en px de mundo
   uniform float uTime;
+  uniform float uVida;      // amplitud de la deriva propia, en radios del objeto
   varying float vBrillo;
 
   void main() {
-    vec4 mv = modelViewMatrix * vec4(position, 1.0);
+    // Semilla por punto derivada de su propia posición: un atributo más habría
+    // sido otro buffer que subir y mantener, y aquí basta con que cada punto
+    // tenga SU número estable.
+    float semilla = fract(sin(dot(position.xyz, vec3(12.9898, 78.233, 45.164))) * 43758.5453);
+
+    // VIDA PROPIA. Cada punto deriva alrededor de su sitio con su frecuencia y
+    // su fase, en los tres ejes y con periodos distintos por eje, así que la
+    // nube nunca está quieta ni respira "a una". La amplitud se mide en radios
+    // del objeto (uVida ~0.014 = 1,4% del radio ≈ 6px en pantalla): suficiente
+    // para que se note el hormigueo, poco para que la silueta siga siendo la
+    // de la pieza y no una mancha.
+    float f = 0.7 + semilla * 0.9;
+    vec3 pos = position + vec3(
+      sin(uTime * f + semilla * 6.2831),
+      cos(uTime * f * 0.83 + semilla * 4.7),
+      sin(uTime * f * 1.17 + semilla * 2.3)
+    ) * uVida;
+
+    vec4 mv = modelViewMatrix * vec4(pos, 1.0);
 
     // Repulsión EN ESPACIO DE PANTALLA. Se proyecta el punto, se mide su
     // distancia al cursor en NDC y se empuja en el plano de la cámara. Hacerlo
@@ -88,13 +107,14 @@ const vertexShader = /* glsl */ `
 
     gl_Position = projectionMatrix * mv;
 
-    // Semilla por punto derivada de su propia posición: un atributo más habría
-    // sido otro buffer que subir y mantener, y aquí basta con que cada punto
-    // tenga SU número estable.
-    float semilla = fract(sin(dot(position.xyz, vec3(12.9898, 78.233, 45.164))) * 43758.5453);
-    // Centelleo lento y desfasado. Es lo único que impide que la nube parezca
-    // una calcomanía cuando nada se mueve.
-    vBrillo = 0.55 + 0.45 * sin(uTime * (0.6 + semilla * 0.9) + semilla * 6.2831);
+    // Centelleo: dos senos de periodos primos entre sí para que el parpadeo no
+    // se lea cíclico. Rango 0.35..1.35 (antes 0.55..1.0): con el blending
+    // aditivo de abajo, los picos por encima de 1 son los que atraviesan el
+    // umbral del bloom y FLORECEN — de ahí que la nube destelle de verdad en
+    // vez de solo cambiar de gris.
+    float c1 = sin(uTime * (0.9 + semilla * 1.4) + semilla * 6.2831);
+    float c2 = sin(uTime * (0.37 + semilla * 0.5) + semilla * 2.1);
+    vBrillo = 0.85 + 0.35 * c1 + 0.15 * c2;
 
     // Tamaño constante en píxeles PESE a la perspectiva: PixelCamera hace que
     // 1 unidad = 1px a z=0, así que a distancia d el factor es CAMERA/d.
@@ -107,13 +127,25 @@ const fragmentShader = /* glsl */ `
   varying float vBrillo;
 
   void main() {
-    // Disco con borde suave. El discard recorta la esquina del cuadrado del
-    // punto: son 2-3px, pero son 9.000 cuadrados por frame.
+    // Perfil GAUSSIANO, no un disco con borde. El disco tenía un contorno
+    // definido y a un tamaño de 2-3px —y en móvil, sobre un canvas a dpr 1 que
+    // luego la pantalla estira— ese contorno es exactamente lo que se veía
+    // dentado y "de baja resolución": no había píxeles suficientes para
+    // dibujar un círculo. Una caída exponencial no tiene contorno que
+    // pixelar, así que aguanta cualquier resolución, y de paso ES el halo:
+    // núcleo denso y aura alrededor, que es lo que hace que un punto se lea
+    // como luz y no como una pegatina.
     vec2 c = gl_PointCoord - 0.5;
-    float d = dot(c, c);              // distancia AL CUADRADO: nos ahorra el sqrt
-    if (d > 0.25) discard;
-    float a = smoothstep(0.25, 0.04, d);
-    gl_FragColor = vec4(1.0, 1.0, 1.0, a * uOpacity * vBrillo);
+    float d2 = dot(c, c);             // al cuadrado: nos ahorra el sqrt
+    if (d2 > 0.25) discard;           // fuera del inscrito no hay nada que sumar
+    // El BRILLO percibido lo da el núcleo; el velo sobre el texto lo daba el
+    // halo, que es ancho y suma en toda su superficie. Por eso el núcleo va
+    // fuerte y el halo contenido (0.5 -> 0.3): se gana chispa y se pierde
+    // niebla. Con additive, el texto de debajo se aclara un punto en vez de
+    // desaparecer bajo una capa lechosa.
+    float nucleo = exp(-d2 * 30.0);
+    float halo = exp(-d2 * 6.0) * 0.3;
+    gl_FragColor = vec4(vec3(1.0), (nucleo + halo) * uOpacity * vBrillo);
   }
 `;
 
@@ -184,7 +216,13 @@ export default function GearPoints({
   // pelearse con ella.
   const uniforms = useMemo(
     () => ({
-      uSize: { value: isMobile ? 2.3 : 2.5 },
+      // MÓVIL PIDE PUNTOS MÁS GRANDES, no más pequeños. El canvas corre a dpr 1
+      // allí (SceneCanvas), así que en una pantalla de dpr 3 cada píxel del
+      // buffer se estira a 3: un punto de 2.3px acababa siendo una manchita de
+      // ~7px estirada, y por eso se veía "en baja resolución". Con el perfil
+      // gaussiano del fragment, un punto MÁS GRANDE aguanta ese estirón — lo
+      // que no lo aguantaba era el contorno duro del disco anterior.
+      uSize: { value: isMobile ? 4.0 : 3.1 },
       uDpr: { value: 1 },
       // El array se pasa por referencia: se mutan los Vector3 en su sitio cada
       // frame y three sube el bloque entero, sin reasignar ni reservar nada.
@@ -194,10 +232,11 @@ export default function GearPoints({
       uRadio: { value: 0.3 },
       uEmpuje: { value: 52 },
       uTime: { value: 0 },
-      // Baja al subir el tamaño (0.3 -> 0.22): la figura ocupa ahora bastante
-      // más superficie de texto, y con la opacidad anterior el párrafo de la
-      // hero volvía a quedar ilegible bajo los puntos.
-      uOpacity: { value: isMobile ? 0.2 : 0.22 },
+      uVida: { value: 0.014 },
+      // Con blending ADITIVO este número deja de ser "cuánto tapa" y pasa a ser
+      // "cuánta luz suma": puede subir bastante sin comerse el texto, porque lo
+      // aclara en vez de ensuciarlo. 0.22 -> 0.5.
+      uOpacity: { value: isMobile ? 0.38 : 0.44 },
     }),
     [isMobile]
   );
@@ -248,8 +287,15 @@ export default function GearPoints({
       p.rotation.y = Math.sin(s * 0.00042) * 0.62;
       p.rotation.x = -0.2 + Math.sin(s * 0.00027 + 1.1) * 0.42;
 
+      // AMORTIGUACIÓN SOLO PARA EL TILT, nunca para la repulsión. Antes el
+      // cursor entero pasaba por un lerp de 0.09 — unos 25 frames (~0.4s) en
+      // converger — y la repulsión salía de ESE valor retrasado: el hueco
+      // perseguía al puntero medio segundo por detrás, que es exactamente la
+      // sensación de "no va fluido". El retraso no era del render sino del
+      // dato. La inclinación del conjunto sí quiere ir suave (es un gesto de
+      // cámara, no una respuesta directa), así que se queda con su lerp.
       const dr = ratonObj.current.clone().sub(raton.current);
-      raton.current.addScaledVector(dr, 0.09);
+      raton.current.addScaledVector(dr, 0.12);
       m.uniforms.uMouseOn.value = isMobile ? 0 : 1;
       // Ademas de repeler, el cursor inclina el conjunto: da la lectura de
       // volumen que un punto suelto no puede dar.
@@ -259,9 +305,11 @@ export default function GearPoints({
       // ---- Estela del cursor
       const est = estela.current;
       const uni = m.uniforms.uEstela.value as THREE.Vector3[];
-      // La 0 sigue al cursor a fuerza plena: con el puntero quieto encima, el
-      // hueco se queda abierto en vez de cerrarse solo.
-      est[0].set(raton.current.x, raton.current.y, 1);
+      // La 0 va a la posición CRUDA del puntero, sin amortiguar: es la
+      // respuesta directa y tiene que llegar en el mismo frame. Con el puntero
+      // quieto encima se queda a fuerza plena, así que el hueco no se cierra
+      // solo.
+      est[0].set(ratonObj.current.x, ratonObj.current.y, 1);
       // El resto se apaga por TIEMPO, no por frames: así tarda lo mismo en
       // recomponerse a 30 que a 120fps. TAU 0.55s -> ~1,6s hasta apagarse.
       for (let i = 1; i < ESTELA; i++) {
@@ -270,9 +318,9 @@ export default function GearPoints({
       // Se suelta una marca nueva solo cada cierto recorrido: sembrar una por
       // frame llenaría las 9 casillas en un palmo de pantalla y la estela no
       // llegaría a notarse.
-      if (raton.current.distanceTo(ultimaMarca.current) > 0.045) {
-        ultimaMarca.current.copy(raton.current);
-        est[siguiente.current].set(raton.current.x, raton.current.y, 1);
+      if (ratonObj.current.distanceTo(ultimaMarca.current) > 0.045) {
+        ultimaMarca.current.copy(ratonObj.current);
+        est[siguiente.current].set(ratonObj.current.x, ratonObj.current.y, 1);
         siguiente.current = 1 + ((siguiente.current) % (ESTELA - 1));
       }
       for (let i = 0; i < ESTELA; i++) uni[i].copy(est[i]);
@@ -306,7 +354,14 @@ export default function GearPoints({
         // Sin escritura de profundidad: son miles de puntos transparentes y
         // ordenarlos entre sí no aporta nada, pero sí costaría.
         depthWrite={false}
-        blending={THREE.NormalBlending}
+        // ADITIVO: los puntos SUMAN luz al fondo en vez de taparlo, que es lo
+        // que hace que un punto blanco sobre un muro oscuro se lea como brillo
+        // y no como pintura. Donde se solapan (los cubos de los radios) la suma
+        // los lleva por encima de 1 y ahí entra el Bloom del composer, cuyo
+        // umbral de luminancia está en 0.6: esos núcleos florecen de verdad.
+        // También es lo que permite subir uOpacity sin dañar la lectura del
+        // texto — aclara lo que hay debajo en lugar de ensuciarlo.
+        blending={THREE.AdditiveBlending}
       />
     </points>
   );

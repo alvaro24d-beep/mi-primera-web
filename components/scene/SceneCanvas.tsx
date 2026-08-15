@@ -211,7 +211,9 @@ export default function SceneCanvas() {
       "nxr-servicios",
       "nxr-zoom-parallax",
       "nxr-intro",
-      "nxr-proceso",
+      // (nxr-proceso salió en V18.01, mismo caso que nxr-dwh-proceso: sus cards
+      // dejaron de ser anclas de cristal, así que ya no hay ninguna malla que
+      // seguir ahí y forzar el bucle a "always" eran 60fps por nada.)
       "nxr-tech",
       "nxr-contacto",
       // (nxr-dwh-proceso salió de aquí en V17.99. Estaba porque su reel

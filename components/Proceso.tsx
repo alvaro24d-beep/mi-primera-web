@@ -2,7 +2,6 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useTitleReveal } from "@/hooks/useTitleReveal";
-import { useGlassPanels } from "@/hooks/useGlassPanels";
 import { useTextScramble } from "@/hooks/useTextScramble";
 
 const PASOS = [
@@ -93,12 +92,19 @@ export default function Proceso() {
   const tiltRefs = useRef<(HTMLButtonElement | null)[]>([]);
   const [expanded, setExpanded] = useState<number | null>(null);
 
-  // Volumetric fluid-glass behind each step card (flat variant of the
-  // Servicios identity). The anchors are the buttons themselves — which is
-  // also why the old pointer-tilt below is gone: a CSS-rotated anchor
-  // reports an inflated axis-aligned rect, so the mesh would "breathe"
-  // under the cursor while the glass stayed unrotated.
-  useGlassPanels(sectionRef, ".nxr-paso-card", "#141018", []);
+  // SIN cristal volumétrico (V18.01). Cada card era el ancla de una malla, y un
+  // MeshTransmissionMaterial visible no cuesta solo lo suyo: obliga a la escena
+  // a capturar todo lo que hay detrás una vez por frame. Estas cinco tarjetas
+  // están quietas salvo cuando se despliegan, así que pagaban ese peaje
+  // continuamente a cambio de poco. Ahora llevan el mismo acabado que los pasos
+  // de /desarrollo-web: fondo semitransparente + backdrop-filter de 10px + el
+  // borde `.nxr-glass-edge`, apagando el blur cuando la sección está lejos (ver
+  // el observador de proximidad más abajo, que ya existía para la barra).
+  //
+  // (El tilt con el puntero se quitó al llegar el cristal, porque un ancla
+  // rotada por CSS reporta un rect alineado a los ejes más grande y la malla
+  // "respiraba" bajo el cursor. No vuelve: el layout está afinado sin él y
+  // Servicios sigue siendo la única sección con tilt.)
 
   // Split composition per breakpoint (petición: "en ordenador el párrafo a
   // la derecha como estaba antes; en móvil debajo del título"):
@@ -166,6 +172,14 @@ export default function Proceso() {
       ioNear = new IntersectionObserver(
         ([entry]) => {
           cerca = entry.isIntersecting;
+          // Se aprovecha este mismo observador para apagar el backdrop-filter
+          // de las cards cuando la sección queda lejos (V18.01): un blur fuera
+          // de pantalla sigue dentro del interest rect del compositor y sigue
+          // pagando un render pass por frame, y con el canvas de fondo
+          // repintando a ~30fps en toda la web eso es coste continuo. Mismo
+          // patrón que `.nxr-tech-far`, pero sin un segundo IO: este ya tenía
+          // exactamente el margen que hace falta.
+          sectionRef.current?.classList.toggle("nxr-proceso-lejos", !cerca);
           if (cerca) onScroll();
         },
         { rootMargin: "400px 0px" }
@@ -260,7 +274,7 @@ export default function Proceso() {
                 <div className="nxr-paso-tilt">
                   <button
                     type="button"
-                    className="nxr-paso-card"
+                    className="nxr-paso-card nxr-glass-edge"
                     ref={(el) => {
                       tiltRefs.current[i] = el;
                     }}

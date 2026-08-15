@@ -4266,13 +4266,18 @@ p.nxr-hero-mastery-line {
    Proceso.tsx): no painted glass/tilt of its own anymore — the WebGL card
    behind it is the glass. The old CSS pointer-tilt transform is gone too (a
    rotated anchor reports an inflated rect, desyncing the mesh). */
+/* V18.01: ya no hay malla de cristal detrás (ver Proceso.tsx). El acabado es
+   el mismo que el de los pasos de /desarrollo-web: fondo semitransparente +
+   backdrop-filter con el token del sitio, y el contorno por `.nxr-glass-edge`
+   en el TSX. El fondo sube de 0.34 a 0.52 porque aquel valor era solo un velo
+   de legibilidad que contaba con el cristal debajo para dar cuerpo. */
 .nxr-paso-card {
   border-radius: var(--radius-md);
   padding: 24px 20px;
   width: 100%;
   border: none;
-  /* Legibility scrim over the clear mesh — see .nxr-intro-card's note. */
-  background: rgba(8, 10, 14, 0.34);
+  background: rgba(14, 17, 25, 0.52);
+  backdrop-filter: var(--glass-blur);
   cursor: pointer;
   font: inherit;
   color: inherit;
@@ -4281,6 +4286,14 @@ p.nxr-hero-mastery-line {
   display: flex;
   flex-direction: column;
   position: relative;
+}
+
+/* Sección lejos del viewport (reutiliza el IO de proximidad que Proceso.tsx ya
+   tenía para la barra de progreso): sin esto, cinco backdrop-filter siguen
+   dentro del interest rect del compositor y pagan un render pass por frame
+   aunque no se vean. Mismo motivo que `.nxr-tech-far .nxr-tech-card`. */
+.nxr-proceso-lejos .nxr-paso-card {
+  backdrop-filter: none;
 }
 
 .nxr-paso-card:focus-visible {

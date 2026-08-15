@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef } from "react";
+import { useEffect, useRef } from "react";
 import gsap from "gsap";
 import { useGSAP } from "@gsap/react";
 import { useReducedMotion } from "@/hooks/useReducedMotion";
@@ -60,13 +60,30 @@ export default function ProcesoReel() {
   // compraba nada: son cinco tarjetas de texto quietas, no las piezas de
   // Servicios que se mueven y se doblan.
   //
-  // Lo que las sigue vistiendo es `.nxr-glass-edge`, el borde de gradiente por
-  // mask que usa el resto del sitio: es la misma familia visual y cuesta una
-  // pseudo-capa estática. Deliberadamente NO se sustituye por backdrop-filter,
-  // que habría salido más caro que la propia malla — el compositor rehace cada
-  // capa de blur en CADA repintado del canvas, y el canvas repinta a ~30fps en
-  // toda la web (el mismo motivo por el que GradualBlur está limitado a 2
-  // divs).
+  // Lo que las viste es `.nxr-glass-edge` (borde de gradiente por mask, coste
+  // de una pseudo-capa estática) más un backdrop-filter de 10px, el token del
+  // sitio — ver el CSS.
+  //
+  // Ese blur sí es compositing y hay que pagarlo con cuidado: el compositor
+  // rehace cada capa en CADA repintado del canvas, y el canvas repinta a ~30fps
+  // en toda la web. Por eso el observer de abajo lo APAGA mientras la sección
+  // está lejos, igual que hace Tech con sus chips: un backdrop-filter fuera de
+  // pantalla sigue dentro del interest rect del compositor y sigue costando.
+  // Aun así sale mucho más barato que la malla que había: el blur cubre solo el
+  // área de las cinco cards y solo cuando se ven, mientras que la captura de
+  // transmisión era de la escena entera, todos los frames.
+  useEffect(() => {
+    const el = sectionRef.current;
+    if (!el) return;
+    const io = new IntersectionObserver(
+      ([e]) => el.classList.toggle("nxr-dwh-proceso-lejos", !e.isIntersecting),
+      // 200px de margen: el blur ya está encendido cuando la sección asoma, así
+      // que el cambio nunca se ve ocurrir.
+      { rootMargin: "200px 0px" }
+    );
+    io.observe(el);
+    return () => io.disconnect();
+  }, []);
 
   useGSAP(
     () => {

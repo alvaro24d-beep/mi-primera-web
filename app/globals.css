@@ -6208,18 +6208,31 @@ input[type="range"].nxr-ms-range::-moz-range-thumb {
    iba lageada y el cristal era el motivo: cada panel dibuja un
    MeshTransmissionMaterial y su sola presencia obliga a la escena a capturar
    todo lo que hay detrás una vez por frame, coste que aquí no compraba nada
-   (cinco tarjetas de texto quietas). Ahora el cuerpo lo da un fondo OPACO —
-   más sólido que el antiguo velo de 0.34, que contaba con el cristal debajo
-   para tener presencia— y el contorno, `.nxr-glass-edge` en el TSX: gradiente
-   por mask, sin blur, sin capa de compositing. Nada de backdrop-filter aquí:
-   con el canvas repintando a ~30fps, cinco capas de blur salen más caras que
-   la malla que se acaba de quitar. */
+   (cinco tarjetas de texto quietas). El contorno lo da `.nxr-glass-edge` en el
+   TSX: gradiente por mask, sin blur y sin capa de compositing.
+
+   V18.00: y SÍ llevan blur, con el token del sitio (10px) y el fondo bajado a
+   0.52 para que se aprecie — a 0.78 el desenfoque quedaba tapado por el propio
+   fondo. Esto reintroduce compositing, así que va con el apagado de abajo. Es
+   mucho más barato que la malla retirada aun así: el blur cubre solo el área de
+   las cinco cards y solo mientras están en pantalla, mientras que la captura de
+   transmisión era de la escena entera, cada frame. */
 .nxr-dwh-step-card {
   flex: 1 1 300px;
   max-width: 360px;
   padding: 30px 28px;
-  background: rgba(14, 17, 25, 0.78);
+  background: rgba(14, 17, 25, 0.52);
+  backdrop-filter: var(--glass-blur);
   border-radius: var(--radius-lg);
+}
+
+/* Sección a más de 200px del viewport (IO en ProcesoReel.tsx): las cards no se
+   ven, pero sus backdrop-filter siguen dentro del interest rect del compositor
+   y pagan un render pass por frame — y el canvas de fondo repinta a ~30fps en
+   toda la web, así que ese "por frame" es continuo. Mismo patrón, y por el
+   mismo motivo, que `.nxr-tech-far .nxr-tech-card`. */
+.nxr-dwh-proceso-lejos .nxr-dwh-step-card {
+  backdrop-filter: none;
 }
 
 .nxr-dwh-step-inner {

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useRef } from "react";
 import gsap from "gsap";
 import { useGSAP } from "@gsap/react";
 import { useReducedMotion } from "@/hooks/useReducedMotion";
@@ -60,64 +60,35 @@ export default function ProcesoReel() {
   // compraba nada: son cinco tarjetas de texto quietas, no las piezas de
   // Servicios que se mueven y se doblan.
   //
-  // Lo que las viste es `.nxr-glass-edge` (borde de gradiente por mask, coste
-  // de una pseudo-capa estática) más un backdrop-filter de 10px, el token del
-  // sitio — ver el CSS.
-  //
-  // Ese blur sí es compositing y hay que pagarlo con cuidado: el compositor
-  // rehace cada capa en CADA repintado del canvas, y el canvas repinta a ~30fps
-  // en toda la web. Por eso el observer de abajo lo APAGA mientras la sección
-  // está lejos, igual que hace Tech con sus chips: un backdrop-filter fuera de
-  // pantalla sigue dentro del interest rect del compositor y sigue costando.
-  // Aun así sale mucho más barato que la malla que había: el blur cubre solo el
-  // área de las cinco cards y solo cuando se ven, mientras que la captura de
-  // transmisión era de la escena entera, todos los frames.
-  useEffect(() => {
-    const el = sectionRef.current;
-    if (!el) return;
-    const io = new IntersectionObserver(
-      ([e]) => el.classList.toggle("nxr-dwh-proceso-lejos", !e.isIntersecting),
-      // 200px de margen: el blur ya está encendido cuando la sección asoma, así
-      // que el cambio nunca se ve ocurrir.
-      { rootMargin: "200px 0px" }
-    );
-    io.observe(el);
-    return () => io.disconnect();
-  }, []);
+  // Lo que las viste es `.nxr-glass-edge` (borde de gradiente por mask) más el
+  // backdrop-filter del CSS. Sin apagarlo por proximidad ni nada por el estilo:
+  // hubo un IntersectionObserver que lo ponía en `none` cuando la sección
+  // quedaba lejos, para ahorrarle pases al compositor, y era una optimización
+  // que no compensaba el riesgo — cualquier fallo en esa clase deja las cards
+  // sin desenfoque, que es justo lo que no puede pasar aquí.
 
   useGSAP(
     () => {
       if (reducedMotion) return;
-      const cards = gsap.utils.selector(sectionRef)(".nxr-dwh-step-card");
-      if (!cards.length) return;
-      // Entrada escalonada y UNA SOLA VEZ (`once`), sin pin y sin scrub: las
-      // cards aparecen al llegar la sección y ahí se quedan. Antes la posición
-      // y la opacidad de cada card dependían del scroll en todo momento, que es
-      // lo que obligaba a "conducir" la sección para leerla.
-      const st = { trigger: sectionRef.current, start: "top 78%", once: true } as const;
-      // La entrada va SEPARADA en dos capas a propósito (V18.06), y el motivo
-      // es el cristal: una opacidad menor que 1 en la card apaga su propio
-      // backdrop-filter mientras dura, así que si la card se funde, el blur no
-      // aparece hasta que termina la animación — que es exactamente el "tarda
-      // un segundo en ponerse" que se veía en el móvil.
-      //  · La CARD solo se desplaza. El transform de un elemento no afecta a su
-      //    propio backdrop-filter (el backdrop root se busca entre los
-      //    ancestros), así que el cristal se ve a plena intensidad desde el
-      //    primer frame.
-      //  · El CONTENIDO es lo que se funde.
-      gsap.from(cards, {
-        y: 26,
+      const inners = gsap.utils.selector(sectionRef)(".nxr-dwh-step-inner");
+      if (!inners.length) return;
+      // Entrada escalonada y UNA SOLA VEZ (`once`), sin pin y sin scrub: el
+      // contenido aparece al llegar la sección y ahí se queda. Antes la
+      // posición y la opacidad de cada card dependían del scroll en todo
+      // momento, que es lo que obligaba a "conducir" la sección para leerla.
+      //
+      // Se anima el CONTENIDO de las cards, nunca las cards. Una card que se
+      // mueve o se funde es una card cuyo backdrop-filter puede apagarse
+      // mientras dura la animación, y eso es exactamente lo que hacía que el
+      // desenfoque tardara en aparecer o no apareciera. Así el cristal está
+      // completo desde el primer frame y lo único que entra es lo de dentro.
+      gsap.from(inners, {
+        opacity: 0,
+        y: 18,
         duration: 0.55,
         ease: "power2.out",
         stagger: 0.07,
-        scrollTrigger: st,
-      });
-      gsap.from(gsap.utils.selector(sectionRef)(".nxr-dwh-step-inner"), {
-        opacity: 0,
-        duration: 0.5,
-        ease: "power2.out",
-        stagger: 0.07,
-        scrollTrigger: st,
+        scrollTrigger: { trigger: sectionRef.current, start: "top 78%", once: true },
       });
     },
     { scope: sectionRef, dependencies: [reducedMotion] }

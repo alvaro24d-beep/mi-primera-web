@@ -172,14 +172,6 @@ export default function Proceso() {
       ioNear = new IntersectionObserver(
         ([entry]) => {
           cerca = entry.isIntersecting;
-          // Se aprovecha este mismo observador para apagar el backdrop-filter
-          // de las cards cuando la sección queda lejos (V18.01): un blur fuera
-          // de pantalla sigue dentro del interest rect del compositor y sigue
-          // pagando un render pass por frame, y con el canvas de fondo
-          // repintando a ~30fps en toda la web eso es coste continuo. Mismo
-          // patrón que `.nxr-tech-far`, pero sin un segundo IO: este ya tenía
-          // exactamente el margen que hace falta.
-          sectionRef.current?.classList.toggle("nxr-proceso-lejos", !cerca);
           if (cerca) onScroll();
         },
         { rootMargin: "400px 0px" }

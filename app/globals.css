@@ -4313,13 +4313,9 @@ p.nxr-hero-mastery-line {
   border: none;
   background: rgba(14, 17, 25, 0.42);
   backdrop-filter: blur(16px) saturate(1.3);
-  /* La entrada vive AQUÍ desde V18.06, no en el wrapper: el transform de un
-     elemento no afecta a su propio backdrop-filter (el backdrop root se busca
-     entre los ANCESTROS), así que la card puede subir sin perder el cristal.
-     La opacidad, en cambio, sí se lo llevaría por delante, y por eso el
-     fundido lo hace el contenido y no la card. */
-  transform: translateY(36px);
-  transition: transform 0.7s cubic-bezier(0.22, 1, 0.36, 1);
+  /* La card NO se anima: ni transform, ni opacity, ni filter. Nada que pueda
+     interferir con su propio desenfoque. La entrada la hace su contenido (ver
+     abajo), que es lo único que se mueve. */
   cursor: pointer;
   font: inherit;
   color: inherit;
@@ -4330,25 +4326,19 @@ p.nxr-hero-mastery-line {
   position: relative;
 }
 
-/* Sección lejos del viewport (reutiliza el IO de proximidad que Proceso.tsx ya
-   tenía para la barra de progreso): sin esto, cinco backdrop-filter siguen
-   dentro del interest rect del compositor y pagan un render pass por frame
-   aunque no se vean. Mismo motivo que `.nxr-tech-far .nxr-tech-card`. */
-.nxr-proceso-lejos .nxr-paso-card {
-  backdrop-filter: none;
-}
 
-.nxr-paso.nxr-paso-active .nxr-paso-card {
-  transform: translateY(0);
-}
-
-/* El FUNDIDO de entrada lo hace el contenido, no la card: una opacidad menor
-   que 1 en la card apagaría su propio backdrop-filter mientras dura. Así el
-   cristal se ve entero desde el principio y lo que aparece es lo que lleva
-   dentro. */
+/* La entrada, ENTERA, la hace el contenido de la card — sube y aparece — y no
+   la card. Así el cristal está a plena intensidad desde el primer frame y no
+   hay ninguna propiedad animada por encima de él que pueda apagarlo. */
 .nxr-paso-card > * {
   opacity: 0;
-  transition: opacity 0.55s cubic-bezier(0.22, 1, 0.36, 1);
+  transform: translateY(14px);
+  transition: opacity 0.55s cubic-bezier(0.22, 1, 0.36, 1),
+    transform 0.55s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.nxr-paso.nxr-paso-active .nxr-paso-card > * {
+  transform: translateY(0);
 }
 
 .nxr-paso.nxr-paso-active .nxr-paso-card > * {
@@ -6307,14 +6297,6 @@ input[type="range"].nxr-ms-range::-moz-range-thumb {
   border-radius: var(--radius-lg);
 }
 
-/* Sección a más de 200px del viewport (IO en ProcesoReel.tsx): las cards no se
-   ven, pero sus backdrop-filter siguen dentro del interest rect del compositor
-   y pagan un render pass por frame — y el canvas de fondo repinta a ~30fps en
-   toda la web, así que ese "por frame" es continuo. Mismo patrón, y por el
-   mismo motivo, que `.nxr-tech-far .nxr-tech-card`. */
-.nxr-dwh-proceso-lejos .nxr-dwh-step-card {
-  backdrop-filter: none;
-}
 
 .nxr-dwh-step-inner {
   display: flex;

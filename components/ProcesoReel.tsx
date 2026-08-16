@@ -60,12 +60,13 @@ export default function ProcesoReel() {
   // compraba nada: son cinco tarjetas de texto quietas, no las piezas de
   // Servicios que se mueven y se doblan.
   //
-  // Lo que las viste es `.nxr-glass-edge` (borde de gradiente por mask) más el
-  // backdrop-filter del CSS. Sin apagarlo por proximidad ni nada por el estilo:
-  // hubo un IntersectionObserver que lo ponía en `none` cuando la sección
-  // quedaba lejos, para ahorrarle pases al compositor, y era una optimización
-  // que no compensaba el riesgo — cualquier fallo en esa clase deja las cards
-  // sin desenfoque, que es justo lo que no puede pasar aquí.
+  // El acabado vive entero en el CSS: fondo semitransparente, backdrop-filter y
+  // borde propio. Nada que lo condicione — hubo un IntersectionObserver que
+  // apagaba el blur al alejarse la sección y una clase compartida
+  // (`.nxr-glass-edge`) que hacía lo mismo mientras el elemento no estuviera
+  // revelado. Las dos eran optimizaciones que no compensaban su riesgo: si
+  // fallan, las cards se quedan sin desenfoque, que es justo lo que no puede
+  // pasar aquí.
 
   useGSAP(
     () => {
@@ -108,7 +109,7 @@ export default function ProcesoReel() {
 
       <div className="nxr-dwh-step-grid">
         {STEPS.map((s) => (
-          <div key={s.n} className="nxr-dwh-step-card nxr-glass-edge" data-step={s.n}>
+          <div key={s.n} className="nxr-dwh-step-card" data-step={s.n}>
             <span className="nxr-dwh-step-inner">
               <span className="nxr-dwh-step-num">{s.n}</span>
               <span className="nxr-dwh-step-title">{s.title}</span>

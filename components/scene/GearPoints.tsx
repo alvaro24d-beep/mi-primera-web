@@ -73,10 +73,7 @@ const vertexShader = /* glsl */ `
   uniform float uAspect;
   uniform float uRadio;     // radio de influencia del cursor, en NDC
   uniform float uEmpuje;    // desplazamiento máximo, en px de mundo
-  uniform float uTime;
-  uniform float uVida;      // amplitud de la deriva propia, en radios del objeto
   uniform float uForm;      // 0 = polvo disperso, 1 = figura montada
-  varying float vBrillo;
 
   void main() {
     // Tres semillas por punto, derivadas de su propia posición: un atributo más
@@ -113,21 +110,14 @@ const vertexShader = /* glsl */ `
     vec3 disperso = position * (2.3 + semB * 1.9) + (vec3(semilla, semB, semC) - 0.5) * 1.3;
     vec3 base = mix(disperso, position, e);
 
-    // VIDA PROPIA. Cada punto deriva alrededor de su sitio con su frecuencia y
-    // su fase, en los tres ejes y con periodos distintos por eje, así que la
-    // nube nunca está quieta ni respira "a una". La amplitud se mide en radios
-    // del objeto (uVida ~0.014 = 1,4% del radio ≈ 6px en pantalla): suficiente
-    // para que se note el hormigueo, poco para que la silueta siga siendo la
-    // de la pieza y no una mancha. Escalada por el avance de la entrada para
-    // que durante el viaje no tiemble además de moverse.
-    float f = 0.7 + semilla * 0.9;
-    vec3 pos = base + vec3(
-      sin(uTime * f + semilla * 6.2831),
-      cos(uTime * f * 0.83 + semilla * 4.7),
-      sin(uTime * f * 1.17 + semilla * 2.3)
-    ) * uVida * e;
-
-    vec4 mv = modelViewMatrix * vec4(pos, 1.0);
+    // La figura NO tiene movimiento propio. Cada punto derivaba alrededor de su
+    // sitio con senos del reloj y encima centelleaba, así que la nube vibraba
+    // permanentemente sin que nadie la tocara — eso es el "se mueve sola". Y no
+    // era gratis: al depender del tiempo, cada frame que el muro pedía para su
+    // vídeo redibujaba puntos en posiciones distintas.
+    // Ahora la nube solo se mueve por tres motivos, los tres con una causa
+    // visible: el scroll la gira, el cursor la aparta y la sección la recoloca.
+    vec4 mv = modelViewMatrix * vec4(base, 1.0);
 
     // ===== Repulsión EN ESPACIO DE PANTALLA =====
     // Se proyecta el punto, se mide su distancia al cursor en NDC y se empuja en
@@ -189,17 +179,9 @@ const vertexShader = /* glsl */ `
 
     gl_Position = projectionMatrix * mv;
 
-    // Centelleo: dos senos de periodos primos entre sí para que el parpadeo no
-    // se lea cíclico. Rango ESTRECHO, 0.80..1.20 (fue 0.35..1.35 mientras el
-    // blending era aditivo y el objetivo era cruzar el umbral del bloom). Con
-    // mezcla normal ese rango ancho hacía dos cosas malas a la vez: en el valle
-    // el punto casi desaparecía —ya no suma luz, se funde con el fondo— y en el
-    // pico se iba por encima del umbral del bloom, que es de donde salía el
-    // halo difuso. Estrecho, el punto siempre está encendido y siempre nítido:
-    // el brillo lo da el CONTRASTE con un muro oscuro, no el parpadeo.
-    float c1 = sin(uTime * (0.9 + semilla * 1.4) + semilla * 6.2831);
-    float c2 = sin(uTime * (0.37 + semilla * 0.5) + semilla * 2.1);
-    vBrillo = 1.0 + 0.14 * c1 + 0.06 * c2;
+    // (Aquí vivía un centelleo por punto, dos senos del reloj. Se ha ido con la
+    // deriva y por el mismo motivo: hacía que la nube nunca estuviera quieta.
+    // El brillo lo da el contraste contra un muro oscuro, no el parpadeo.)
 
     // Tamaño constante en píxeles PESE a la perspectiva: PixelCamera hace que
     // 1 unidad = 1px a z=0, así que a distancia d el factor es CAMERA/d.
@@ -210,7 +192,6 @@ const vertexShader = /* glsl */ `
 const fragmentShader = /* glsl */ `
   uniform float uOpacity;
   uniform float uAA;        // ancho del suavizado, en píxeles del framebuffer
-  varying float vBrillo;
 
   void main() {
     // DISCO SÓLIDO con el borde suavizado a UN PÍXEL, y un halo aparte.
@@ -242,7 +223,7 @@ const fragmentShader = /* glsl */ `
     vec2 c = gl_PointCoord - 0.5;
     float d = length(c) * 2.0;        // 0 en el centro, 1 en el borde del sprite
     float aa = fwidth(d) * uAA;
-    float a = (1.0 - smoothstep(0.75 - aa, 0.75 + aa, d)) * uOpacity * vBrillo;
+    float a = (1.0 - smoothstep(0.75 - aa, 0.75 + aa, d)) * uOpacity;
     if (a < 0.004) discard;           // lo invisible no se compone
     gl_FragColor = vec4(vec3(1.0), a);
   }
@@ -372,12 +353,9 @@ export default function GearPoints({
       uAspect: { value: 1 },
       uRadio: { value: 0.3 },
       uEmpuje: { value: 52 },
-      uTime: { value: 0 },
-      uVida: { value: 0.014 },
-      // Con reduced motion la figura arranca YA montada: la animación de
-      // agrupación es puro movimiento decorativo y es justo lo que esa
-      // preferencia pide no ver.
-      uForm: { value: reducedMotion ? 1 : 0 },
+      // Valor inicial solamente: el useFrame lo reescribe en CADA frame, así
+      // que da igual cuántas veces React recree este objeto memoizado.
+      uForm: { value: 0 },
       // Con mezcla NORMAL esto vuelve a ser opacidad de verdad, y el techo lo
       // pone el bloom: el píxel final ronda uOpacity·vBrillo sobre un muro casi
       // negro, y el Bloom del composer empieza a florecer a partir de 0.6 de
@@ -403,7 +381,7 @@ export default function GearPoints({
       // que no hay umbral que respetar y el punto puede ser blanco de verdad.
       uOpacity: { value: isMobile ? 0.9 : 0.5 },
     }),
-    [isMobile, reducedMotion]
+    [isMobile]
   );
 
   // El cursor mueve la nube, así que hay que pedir frames: en modo demand nadie
@@ -441,10 +419,12 @@ export default function GearPoints({
     const p = puntosRef.current;
     if (!m || !p) return;
 
+    // El reloj ya solo sirve para medir el paso del tiempo entre frames (la
+    // edad del rastro del cursor); la figura no depende de él, así que no hay
+    // ningún uTime que subir al shader.
     const t = clock.elapsedTime;
     const dt = Math.min(0.1, t - ultimoT.current || 0.016); // cap: pestaña que vuelve
     ultimoT.current = t;
-    m.uniforms.uTime.value = t;
     const dprBuffer = gl.getPixelRatio();
     m.uniforms.uDpr.value = dprBuffer;
     // Cuánto se estira el framebuffer hasta los píxeles físicos de la pantalla.
@@ -599,35 +579,29 @@ export default function GearPoints({
       if (Math.abs(dScroll) > 0.5 || dr.lengthSq() > 1e-6 || estelaViva || poseViva) invalidate();
     }
 
-    // ---- Entrada: el polvo se agrupa (V18.02)
-    // Arranca cuando la nube se monta de verdad (hasta que el .bin no ha
-    // llegado no hay material y este useFrame sale antes), así que el viaje se
-    // ve entero y no a medias. 2,2s de recorrido más el escalonado por punto
-    // del shader.
+    // ---- Entrada: el polvo se agrupa hasta formar la pieza
     //
-    // La comprobación de reduced motion va aquí y no solo en el valor inicial
-    // del uniform porque la preferencia puede llegar DESPUÉS del montaje
-    // (useReducedMotion devuelve false en SSR y cambia al hidratar): sin esto,
-    // activarla a media animación dejaría la figura congelada a medio formar.
+    // El progreso se LEE DEL RELOJ en vez de acumularse sumando dt frame a
+    // frame: en una pestaña en segundo plano el navegador estrangula
+    // requestAnimationFrame, y con la versión acumulativa la nube se quedaba a
+    // medio formar (medido: 13% después de un minuto). Contra el reloj, los
+    // frames que falten simplemente se saltan.
     if (reducedMotion) {
-      if (m.uniforms.uForm.value !== 1) {
-        form.current = 1;
-        m.uniforms.uForm.value = 1;
-        invalidate();
-      }
-    } else if (form.current < 1) {
-      // El progreso se LEE DEL RELOJ, no se acumula sumando dt frame a frame.
-      // La diferencia importa de verdad: en una pestaña en segundo plano el
-      // navegador estrangula requestAnimationFrame, así que con la versión
-      // acumulativa la nube se quedaba a medio formar —medido: 13% después de
-      // un minuto— y el visitante volvía a una figura deshecha que seguía
-      // avanzando a cámara lenta. Contra el reloj, los frames que falten solo
-      // se saltan: al volver a la pestaña la animación está donde le toca.
+      form.current = 1;
+    } else {
       if (t0.current === 0) t0.current = performance.now();
       form.current = Math.min(1, (performance.now() - t0.current) / 2200);
-      m.uniforms.uForm.value = form.current;
-      invalidate();
+      if (form.current < 1) invalidate();
     }
+    // Y se ESCRIBE SIEMPRE, no solo mientras la animación avanza. Esto es lo
+    // que hacía que la figura "desapareciera" al volver de otra pestaña: los
+    // uniforms viven en un useMemo, y cuando React lo recalcula crea un objeto
+    // nuevo con uForm en 0 —o sea, la nube otra vez hecha polvo—. Como para
+    // entonces la animación ya había terminado, la rama que escribía el uniform
+    // no volvía a entrar nunca y la nube se quedaba dispersa para siempre.
+    // Escribiéndolo en cada frame, el uniform refleja el estado real se recree
+    // el objeto las veces que se recree.
+    m.uniforms.uForm.value = form.current;
   });
 
   if (!geo) return null;

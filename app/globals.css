@@ -4310,9 +4310,14 @@ p.nxr-hero-mastery-line {
   border-radius: var(--radius-md);
   padding: 24px 20px;
   width: 100%;
-  border: none;
   background: rgba(14, 17, 25, 0.42);
   backdrop-filter: blur(16px) saturate(1.3);
+  /* Borde propio en vez de `.nxr-glass-edge`: aquella clase arrastra una regla
+     del sistema de reveal que pone `backdrop-filter: none` a todo
+     `.nxr-glass-edge` que no esté revelado todavía. Un acoplamiento invisible
+     que dejaba estas cards sin desenfoque según el estado del scroll. Una línea
+     de borde no lo necesita. */
+  border: 1px solid rgba(255, 255, 255, 0.1);
   /* La card NO se anima: ni transform, ni opacity, ni filter. Nada que pueda
      interferir con su propio desenfoque. La entrada la hace su contenido (ver
      abajo), que es lo único que se mueve. */
@@ -6294,6 +6299,10 @@ input[type="range"].nxr-ms-range::-moz-range-thumb {
      le sube la saturación, porque el muro que hay detrás es casi negro. */
   background: rgba(14, 17, 25, 0.42);
   backdrop-filter: blur(16px) saturate(1.3);
+  /* Borde propio, no `.nxr-glass-edge`: esa clase arrastra una regla del
+     sistema de reveal que apaga el backdrop-filter mientras el elemento no
+     esté revelado. Ver la nota en .nxr-paso-card. */
+  border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: var(--radius-lg);
 }
 
@@ -7757,8 +7766,15 @@ input[type="range"].nxr-ms-range::-moz-range-thumb {
   }
 }
 
+/* `backwards` y no `both`: los dos evitan el parpadeo inicial (aplican el
+   primer keyframe antes de arrancar), pero `both` añade `forwards`, que deja la
+   animación RELLENANDO para siempre. Un elemento con una animación de opacity
+   viva —aunque su valor final sea 1— se queda compositado aparte, y eso lo
+   convierte en BACKDROP ROOT de toda la página: cualquier backdrop-filter de
+   dentro deja de ver el fondo real. Con `backwards`, al terminar el elemento
+   vuelve a su estado natural y no queda nada colgando. */
 .nxr-route-enter {
-  animation: nxr-route-in 0.5s ease-out both;
+  animation: nxr-route-in 0.5s ease-out backwards;
 }
 
 @media (prefers-reduced-motion: reduce) {

@@ -97,9 +97,10 @@ export default function Proceso() {
   // a capturar todo lo que hay detrás una vez por frame. Estas cinco tarjetas
   // están quietas salvo cuando se despliegan, así que pagaban ese peaje
   // continuamente a cambio de poco. Ahora llevan el mismo acabado que los pasos
-  // de /desarrollo-web: fondo semitransparente + backdrop-filter de 10px + el
-  // borde `.nxr-glass-edge`, apagando el blur cuando la sección está lejos (ver
-  // el observador de proximidad más abajo, que ya existía para la barra).
+  // de /desarrollo-web y se define entero en el CSS: fondo semitransparente,
+  // backdrop-filter y un borde propio. Sin apagados por proximidad y sin
+  // `.nxr-glass-edge` — todo eso acabó quitándole el desenfoque a las cards
+  // según el estado del scroll (ver la nota en .nxr-paso-card del globals.css).
   //
   // (El tilt con el puntero se quitó al llegar el cristal, porque un ancla
   // rotada por CSS reporta un rect alineado a los ejes más grande y la malla
@@ -266,7 +267,7 @@ export default function Proceso() {
                 <div className="nxr-paso-tilt">
                   <button
                     type="button"
-                    className="nxr-paso-card nxr-glass-edge"
+                    className="nxr-paso-card"
                     ref={(el) => {
                       tiltRefs.current[i] = el;
                     }}

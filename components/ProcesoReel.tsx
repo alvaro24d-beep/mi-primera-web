@@ -94,20 +94,30 @@ export default function ProcesoReel() {
       // cards aparecen al llegar la sección y ahí se quedan. Antes la posición
       // y la opacidad de cada card dependían del scroll en todo momento, que es
       // lo que obligaba a "conducir" la sección para leerla.
+      const st = { trigger: sectionRef.current, start: "top 78%", once: true } as const;
+      // La entrada va SEPARADA en dos capas a propósito (V18.06), y el motivo
+      // es el cristal: una opacidad menor que 1 en la card apaga su propio
+      // backdrop-filter mientras dura, así que si la card se funde, el blur no
+      // aparece hasta que termina la animación — que es exactamente el "tarda
+      // un segundo en ponerse" que se veía en el móvil.
+      //  · La CARD solo se desplaza. El transform de un elemento no afecta a su
+      //    propio backdrop-filter (el backdrop root se busca entre los
+      //    ancestros), así que el cristal se ve a plena intensidad desde el
+      //    primer frame.
+      //  · El CONTENIDO es lo que se funde.
       gsap.from(cards, {
-        opacity: 0,
         y: 26,
         duration: 0.55,
         ease: "power2.out",
         stagger: 0.07,
-        // clearProps al acabar: GSAP deja escrito un `transform: translate(0,0)`
-        // residual, y un transform —aunque sea la identidad— convierte al
-        // elemento en BACKDROP ROOT. Dejarlo puesto es arriesgarse a que el
-        // backdrop-filter de la card se quede sin fondo que desenfocar, que es
-        // justo el fallo que se acaba de corregir en Proceso. Al limpiarlo, la
-        // card vuelve a no tener ningún transform y el blur ve el canvas.
-        clearProps: "transform,opacity",
-        scrollTrigger: { trigger: sectionRef.current, start: "top 78%", once: true },
+        scrollTrigger: st,
+      });
+      gsap.from(gsap.utils.selector(sectionRef)(".nxr-dwh-step-inner"), {
+        opacity: 0,
+        duration: 0.5,
+        ease: "power2.out",
+        stagger: 0.07,
+        scrollTrigger: st,
       });
     },
     { scope: sectionRef, dependencies: [reducedMotion] }

@@ -4258,33 +4258,27 @@ p.nxr-hero-mastery-line {
   transform: scale(1.12);
 }
 
+/* SIN opacity ni transform, NUNCA (V18.06). Este wrapper llevaba la entrada de
+   cada paso (subir + aparecer) y era lo que impedía ver el blur de la card que
+   tiene dentro: tanto `transform` como `opacity < 1` convierten a un elemento
+   en BACKDROP ROOT, y desde ahí el backdrop-filter de un descendiente deja de
+   ver el fondo real de la página —el canvas WebGL— y solo desenfoca lo pintado
+   dentro del wrapper, que es transparente.
+   Ponerlo en `none` al activarse (V18.05) no bastaba: en escritorio Proceso.tsx
+   AÑADE Y QUITA la clase activa según avanza el scroll, así que el transform
+   volvía una y otra vez y el blur se apagaba con él. Y en móvil solo aparecía
+   al terminar la animación, de ahí el "tarda un segundo en ponerse".
+   La entrada no se pierde, se MUEVE (ver .nxr-paso-card más abajo): el
+   desplazamiento pasa a la propia card —el transform de un elemento no afecta
+   a su propio backdrop-filter, solo el de sus ancestros— y el fundido pasa a
+   su contenido. Así el cristal está a plena intensidad desde el primer frame,
+   en cualquier dispositivo y en cualquier punto del scroll. */
 .nxr-paso-tilt {
   width: 100%;
   flex: 1;
   display: flex;
   flex-direction: column;
   cursor: pointer;
-  opacity: 0;
-  /* Rise + fade only — the old rotateX(-28deg) leg of this entrance is gone:
-     the card inside is now a WebGL glass-mesh anchor, and a rotated anchor
-     reports an inflated axis-aligned rect (the mesh would mis-size during
-     every entrance). A pure translate keeps the rect honest, and the mesh
-     rides the rise frame-by-frame. */
-  transform: translateY(36px);
-  transform-origin: bottom center;
-  transition: opacity 0.7s cubic-bezier(0.22, 1, 0.36, 1), transform 0.7s cubic-bezier(0.22, 1, 0.36, 1);
-}
-
-/* `none` y NO `translateY(0)`, que es lo mismo geométricamente pero no para el
-   compositor: cualquier transform distinto de `none` convierte a este wrapper
-   en un BACKDROP ROOT, y entonces el backdrop-filter de la card que lleva
-   dentro deja de ver el fondo real de la página —el canvas WebGL— y solo
-   desenfoca lo pintado dentro del wrapper, que es transparente. El desenfoque
-   se calculaba sobre la nada y por eso no se veía nada de blur. La transición
-   sigue funcionando igual: CSS interpola `none` como la matriz identidad. */
-.nxr-paso.nxr-paso-active .nxr-paso-tilt {
-  opacity: 1;
-  transform: none;
 }
 
 /* Anchor for a real volumetric fluid-glass mesh (see useGlassPanels in
@@ -4310,6 +4304,13 @@ p.nxr-hero-mastery-line {
   border: none;
   background: rgba(14, 17, 25, 0.42);
   backdrop-filter: blur(16px) saturate(1.3);
+  /* La entrada vive AQUÍ desde V18.06, no en el wrapper: el transform de un
+     elemento no afecta a su propio backdrop-filter (el backdrop root se busca
+     entre los ANCESTROS), así que la card puede subir sin perder el cristal.
+     La opacidad, en cambio, sí se lo llevaría por delante, y por eso el
+     fundido lo hace el contenido y no la card. */
+  transform: translateY(36px);
+  transition: transform 0.7s cubic-bezier(0.22, 1, 0.36, 1);
   cursor: pointer;
   font: inherit;
   color: inherit;
@@ -4326,6 +4327,23 @@ p.nxr-hero-mastery-line {
    aunque no se vean. Mismo motivo que `.nxr-tech-far .nxr-tech-card`. */
 .nxr-proceso-lejos .nxr-paso-card {
   backdrop-filter: none;
+}
+
+.nxr-paso.nxr-paso-active .nxr-paso-card {
+  transform: translateY(0);
+}
+
+/* El FUNDIDO de entrada lo hace el contenido, no la card: una opacidad menor
+   que 1 en la card apagaría su propio backdrop-filter mientras dura. Así el
+   cristal se ve entero desde el principio y lo que aparece es lo que lleva
+   dentro. */
+.nxr-paso-card > * {
+  opacity: 0;
+  transition: opacity 0.55s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.nxr-paso.nxr-paso-active .nxr-paso-card > * {
+  opacity: 1;
 }
 
 .nxr-paso-card:focus-visible {
@@ -4469,6 +4487,12 @@ p.nxr-hero-mastery-line {
     transition: none !important;
     animation: none !important;
     transform: none !important;
+  }
+  /* Sin movimiento no hay entrada que esperar, y el contenido de la card no
+     puede quedarse invisible aguardando una clase que llega con el scroll. */
+  .nxr-paso-card > * {
+    opacity: 1 !important;
+    transition: none !important;
   }
 }
 

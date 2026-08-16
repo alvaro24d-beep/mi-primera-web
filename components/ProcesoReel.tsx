@@ -100,6 +100,13 @@ export default function ProcesoReel() {
         duration: 0.55,
         ease: "power2.out",
         stagger: 0.07,
+        // clearProps al acabar: GSAP deja escrito un `transform: translate(0,0)`
+        // residual, y un transform —aunque sea la identidad— convierte al
+        // elemento en BACKDROP ROOT. Dejarlo puesto es arriesgarse a que el
+        // backdrop-filter de la card se quede sin fondo que desenfocar, que es
+        // justo el fallo que se acaba de corregir en Proceso. Al limpiarlo, la
+        // card vuelve a no tener ningún transform y el blur ve el canvas.
+        clearProps: "transform,opacity",
         scrollTrigger: { trigger: sectionRef.current, start: "top 78%", once: true },
       });
     },

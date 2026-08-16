@@ -4275,9 +4275,16 @@ p.nxr-hero-mastery-line {
   transition: opacity 0.7s cubic-bezier(0.22, 1, 0.36, 1), transform 0.7s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
+/* `none` y NO `translateY(0)`, que es lo mismo geométricamente pero no para el
+   compositor: cualquier transform distinto de `none` convierte a este wrapper
+   en un BACKDROP ROOT, y entonces el backdrop-filter de la card que lleva
+   dentro deja de ver el fondo real de la página —el canvas WebGL— y solo
+   desenfoca lo pintado dentro del wrapper, que es transparente. El desenfoque
+   se calculaba sobre la nada y por eso no se veía nada de blur. La transición
+   sigue funcionando igual: CSS interpola `none` como la matriz identidad. */
 .nxr-paso.nxr-paso-active .nxr-paso-tilt {
   opacity: 1;
-  transform: translateY(0);
+  transform: none;
 }
 
 /* Anchor for a real volumetric fluid-glass mesh (see useGlassPanels in
@@ -4289,13 +4296,20 @@ p.nxr-hero-mastery-line {
    backdrop-filter con el token del sitio, y el contorno por `.nxr-glass-edge`
    en el TSX. El fondo sube de 0.34 a 0.52 porque aquel valor era solo un velo
    de legibilidad que contaba con el cristal debajo para dar cuerpo. */
+/* V18.05: blur 16px + saturate, y el fondo baja a 0.42. El desenfoque ya
+   estaba antes, pero no se APRECIABA por dos motivos a la vez: detrás de estas
+   cards el muro es casi negro y uniforme, y desenfocar algo uniforme no cambia
+   nada; y con el fondo al 52% lo poco que había quedaba tapado. Más
+   transparencia deja ver el fondo, el saturate revive los azules del muro que
+   asoman, y así el cristal se lee como cristal. Es el mismo tratamiento que
+   `.nxr-tech-card` (blur + saturate 1.25) usa desde hace versiones. */
 .nxr-paso-card {
   border-radius: var(--radius-md);
   padding: 24px 20px;
   width: 100%;
   border: none;
-  background: rgba(14, 17, 25, 0.52);
-  backdrop-filter: var(--glass-blur);
+  background: rgba(14, 17, 25, 0.42);
+  backdrop-filter: blur(16px) saturate(1.3);
   cursor: pointer;
   font: inherit;
   color: inherit;
@@ -6252,8 +6266,11 @@ input[type="range"].nxr-ms-range::-moz-range-thumb {
   flex: 1 1 300px;
   max-width: 360px;
   padding: 30px 28px;
-  background: rgba(14, 17, 25, 0.52);
-  backdrop-filter: var(--glass-blur);
+  /* Mismos valores que .nxr-paso-card en la home (ver la nota de V18.05 allí):
+     el desenfoque solo se aprecia si el fondo se transparenta lo bastante y se
+     le sube la saturación, porque el muro que hay detrás es casi negro. */
+  background: rgba(14, 17, 25, 0.42);
+  backdrop-filter: blur(16px) saturate(1.3);
   border-radius: var(--radius-lg);
 }
 

@@ -62,9 +62,12 @@ const vertexShader = /* glsl */ `
   #define ESTELA ${ESTELA}
   uniform float uSize;
   uniform float uDpr;
-  // xy = posición en NDC, z = EDAD en segundos de esa marca del rastro. Fue
-  // "fuerza restante" y ahora es tiempo: la fuerza la calcula el shader con una
-  // envolvente de muelle (abajo), que es lo que le da el rebote.
+  // xy = posición en NDC, z = FUERZA con signo de esa marca del rastro, ya
+  // pasada por la envolvente del muelle. Se calcula en JS y no aquí (V18.03):
+  // depende solo de la EDAD de la marca, que es idéntica para los 13.000
+  // vértices, así que evaluarla en el shader era resolver diez exponenciales y
+  // diez cosenos por vértice para obtener diez números que son los mismos para
+  // todos. Se calculan una vez por frame en la CPU y llegan ya hechos.
   uniform vec3 uEstela[ESTELA];
   uniform float uMouseOn;   // 0 en táctil: ni se calcula la repulsión
   uniform float uAspect;
@@ -156,14 +159,15 @@ const vertexShader = /* glsl */ `
       vec2 ndc = clip.xy / clip.w;
       vec2 desp = vec2(0.0);
       float giro = (semC - 0.5) * 0.7;
+      // Fuera del bucle: solo depende de la semilla del punto, así que dentro
+      // se recalculaba diez veces el mismo número.
+      float kGiro = inversesqrt(1.0 + giro * giro);
       for (int i = 0; i < ESTELA; i++) {
         vec2 dif = ndc - uEstela[i].xy;
         dif.x *= uAspect;            // sin esto el área de influencia sale ovalada
         float d = length(dif);
         float q = d / uRadio;
         float caida = 1.0 / (1.0 + q * q * q * 2.0);
-        float edad = uEstela[i].z;
-        float env = exp(-edad * 2.4) * cos(edad * 5.0);
         // Mezcla de radial y tangencial SIN normalize(): dir y su perpendicular
         // son ortonormales, así que el módulo de la suma es exactamente
         // sqrt(1+giro²) y basta con dividir por él. Un normalize() aquí sería
@@ -171,8 +175,8 @@ const vertexShader = /* glsl */ `
         // un punto cayera justo encima de una marca del rastro, que con el
         // cursor quieto es exactamente lo que acaba pasando.
         vec2 dir = dif / max(d, 1e-4);
-        dir = (dir + vec2(-dir.y, dir.x) * giro) * inversesqrt(1.0 + giro * giro);
-        desp += dir * caida * env;
+        dir = (dir + vec2(-dir.y, dir.x) * giro) * kGiro;
+        desp += dir * caida * uEstela[i].z;
       }
       desp *= 0.75 + semB * 0.55;    // rigidez propia de cada punto
       // Tope de magnitud: donde el rastro se solapa consigo mismo (un giro
@@ -272,6 +276,9 @@ export default function GearPoints({
   );
   const siguiente = useRef(1);
   const desdeMarca = useRef(0);
+  // Última posición en la que se soltó una marca: sirve para saber si el cursor
+  // se ha movido de verdad desde entonces (ver la siembra en el useFrame).
+  const ultimaMarca = useRef(new THREE.Vector2(0, 0));
   const ultimoT = useRef(0);
   // Entrada: 0 = polvo disperso, 1 = figura montada. Ver uForm en el shader.
   // t0 es el instante en que arranca el viaje (0 = aún no ha empezado), y se
@@ -479,23 +486,45 @@ export default function GearPoints({
       // directa y tiene que llegar en el mismo frame. Con el puntero quieto
       // encima se queda recién puesta, así que el hueco no se cierra solo.
       est[0].set(ratonObj.current.x, ratonObj.current.y, 0);
-      // Las demás ENVEJECEN; la fuerza que les queda la decide el muelle del
-      // shader a partir de esa edad. Se cuenta en segundos y no en frames para
-      // que el rastro dure lo mismo a 30 que a 120fps.
+      // Las demás ENVEJECEN. Se cuenta en segundos y no en frames para que el
+      // rastro dure lo mismo a 30 que a 120fps.
       for (let i = 1; i < ESTELA; i++) est[i].z += dt;
-      // Marcas nuevas a INTERVALO FIJO (~35ms) y no cada cierta distancia
-      // recorrida, que es de donde salían los trompicones: sembrando por
-      // distancia, un movimiento lento no soltaba ninguna marca durante un buen
-      // rato y luego soltaba una de golpe, así que el rastro avanzaba a saltos
-      // en vez de fluir. Por tiempo, la estela es una muestra uniforme del
-      // recorrido del cursor pase lo que pase con su velocidad.
+      // Marcas nuevas a intervalo fijo (~35ms) Y SOLO SI EL CURSOR SE HA
+      // MOVIDO. Las dos condiciones hacen falta, cada una arregla un problema
+      // distinto y quitar cualquiera de ellas rompe algo:
+      //
+      //  · Por tiempo (y no cada cierta distancia recorrida, como era antes de
+      //    V18.02) porque sembrando por distancia un movimiento lento no
+      //    soltaba marca durante un buen rato y luego soltaba una de golpe: el
+      //    rastro avanzaba a saltos en vez de fluir.
+      //  · Pero solo con movimiento, porque sembrar también con el puntero
+      //    QUIETO —lo que hacía V18.02— tenía dos efectos feos. Las diez marcas
+      //    caían en el mismo sitio con edades distintas, y como el buffer es
+      //    circular la suma de sus fuerzas cambiaba cada vez que se reciclaba
+      //    una casilla: los puntos TEMBLABAN bajo un cursor parado. Y la estela
+      //    no llegaba a morir nunca, así que el invalidate() de abajo no
+      //    paraba y la escena entera —muro y captura de transmisión incluidos—
+      //    se quedaba renderizando a 60fps de forma permanente. De ahí el lag.
+      //
+      // El umbral es diminuto (0.004 en NDC, unos 4px): basta para distinguir
+      // "quieto" de "moviéndose despacio" sin reintroducir los saltos.
       desdeMarca.current += dt;
-      if (desdeMarca.current >= 0.035) {
+      const movido = ratonObj.current.distanceTo(ultimaMarca.current) > 0.004;
+      if (desdeMarca.current >= 0.035 && movido) {
         desdeMarca.current = 0;
+        ultimaMarca.current.copy(ratonObj.current);
         est[siguiente.current].set(ratonObj.current.x, ratonObj.current.y, 0);
         siguiente.current = 1 + (siguiente.current % (ESTELA - 1));
       }
-      for (let i = 0; i < ESTELA; i++) uni[i].copy(est[i]);
+      // La envolvente del muelle se resuelve AQUÍ, no en el shader: depende
+      // solo de la edad, que es la misma para los 13.000 vértices. exp(-t·2.4)
+      // amortigua y cos(t·5) es lo que cruza el cero y hace que el punto se
+      // pase un poco de vuelta antes de asentarse.
+      uni[0].set(est[0].x, est[0].y, 1);
+      for (let i = 1; i < ESTELA; i++) {
+        const edad = est[i].z;
+        uni[i].set(est[i].x, est[i].y, Math.exp(-edad * 2.4) * Math.cos(edad * 5));
+      }
 
       // ---- Posición de la nube según la sección (V18.02)
       // Deja de estar clavada en el centro: cada sección la manda a un sitio y
@@ -526,7 +555,12 @@ export default function GearPoints({
       // Mientras algo siga asentándose hay que seguir pidiendo frames: aquí
       // entra también la estela, que sigue moviendo puntos DESPUÉS de que el
       // ratón se haya parado, y el viaje de la nube entre secciones.
-      const estelaViva = est.some((v, i) => i > 0 && v.z < 1.6);
+      // Sin closure por frame (el .some creaba uno): esto corre en cada frame
+      // renderizado de toda la web.
+      let estelaViva = false;
+      for (let i = 1; i < ESTELA; i++) {
+        if (est[i].z < 1.6) { estelaViva = true; break; }
+      }
       const poseViva =
         Math.abs(po.x - pa.x) > 0.0005 ||
         Math.abs(po.y - pa.y) > 0.0005 ||

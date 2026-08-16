@@ -7639,11 +7639,21 @@ input[type="range"].nxr-ms-range::-moz-range-thumb {
   initial-value: 0px;
 }
 
+/* OJO al elegir a quién se le pone esta deriva: un `transform` crea un
+   BACKDROP ROOT nuevo, así que cualquier descendiente con backdrop-filter deja
+   de ver el fondo real de la página —el canvas WebGL— y solo desenfoca lo
+   pintado dentro del propio contenedor, que es transparente: el blur
+   desaparece sin que nada falle. Por eso el drift va en los ENCABEZADOS de
+   Proceso y de los pasos de /desarrollo-web, y no en los contenedores que
+   envuelven sus cards (fue `.nxr-proceso-inner` y `.nxr-dwh-step-grid` hasta
+   V18.04, y era justo lo que dejaba esas cards sin desenfoque). Los dos
+   efectos no pueden convivir en la misma rama del árbol. */
 @media (pointer: fine) {
   .nxr-hero-center,
   .nxr-hero-mastery,
   .nxr-intro-inner,
-  .nxr-proceso-inner,
+  .nxr-proceso-header,
+  .nxr-dwh-proceso-head,
   .nxr-tech-inner,
   .nxr-contacto-inner,
   .nxr-servicios-content,
@@ -7660,9 +7670,6 @@ input[type="range"].nxr-ms-range::-moz-range-thumb {
     transform: translate3d(calc(var(--drift-x, 0px) * 1.6), calc(var(--drift-y, 0px) * 1.6), 0);
   }
 
-  .nxr-dwh-step-grid {
-    transform: translate3d(var(--drift-x, 0px), var(--drift-y, 0px), 0);
-  }
 }
 
 /* (V17.83 — el cursor circular que invertía el fondo se ELIMINÓ, con su

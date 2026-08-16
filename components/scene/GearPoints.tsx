@@ -264,7 +264,8 @@ export default function GearPoints({
   // escena. Los dos viven en refs porque se leen y escriben cada frame.
   const ratonObj = useRef(new THREE.Vector2(0, 0));
   const raton = useRef(new THREE.Vector2(0, 0));
-  const scrollObj = useRef(0);
+  // Último scrollY visto: ya no es un "objetivo a alcanzar" con amortiguación,
+  // solo sirve para saber cuánto se ha movido desde el frame anterior.
   const scrollAct = useRef(0);
   // Estela: la entrada 0 es SIEMPRE la posición actual del cursor (edad 0, para
   // que dejar el puntero quieto encima mantenga el hueco abierto) y las 1..n-1
@@ -419,6 +420,22 @@ export default function GearPoints({
     return () => window.removeEventListener("mousemove", onMove);
   }, [reducedMotion, isMobile, invalidate]);
 
+  // El SCROLL también tiene que pedir frames (V18.04). La nube gira con el
+  // scroll en toda la web, pero el bucle solo corre en "always" cerca de las
+  // secciones con mallas de cristal; en el resto está en "demand" y los únicos
+  // frames que llegaban eran los que pide el muro al decodificar vídeo (~25-30
+  // por segundo, y a su propio ritmo, no al del scroll). De ahí los
+  // trompicones: la figura no se movía a saltos, es que se dibujaba a saltos.
+  // Con esto hay un frame por evento de scroll — que es justo lo que hace
+  // falta y ni uno más, porque R3F acumula las invalidaciones y pinta una sola
+  // vez por rAF.
+  useEffect(() => {
+    if (reducedMotion) return;
+    const onScroll = () => invalidate();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, [reducedMotion, invalidate]);
+
   useFrame(({ clock }) => {
     const m = matRef.current;
     const p = puntosRef.current;
@@ -441,10 +458,20 @@ export default function GearPoints({
     if (!reducedMotion) {
       // Scroll -> giro. Se lee de window y no de un store: es un valor que ya
       // está calculado, y suscribirse a otro sitio solo añadiría trabajo.
-      scrollObj.current = window.scrollY;
-      const dScroll = scrollObj.current - scrollAct.current;
-      scrollAct.current += dScroll * 0.08;
-      const s = scrollAct.current;
+      //
+      // Y se usa TAL CUAL, sin amortiguar (V18.04). Antes pasaba por un lerp
+      // de 0.08 por frame, y una amortiguación por frame supone que los frames
+      // llegan a un ritmo regular: en modo demand no llegan, así que en cada
+      // frame suelto el valor daba un tirón del 8% de la distancia pendiente y
+      // el giro salía a tirones. Además el scroll YA viene suavizado por Lenis,
+      // así que aquello era amortiguar dos veces. Leyéndolo directo, la pose de
+      // la figura es siempre la que le toca al scroll actual: si un frame no
+      // llega, simplemente no se dibuja ese instante, pero nada se desincroniza
+      // ni se acumula.
+      const sY = window.scrollY;
+      const dScroll = sY - scrollAct.current;
+      scrollAct.current = sY;
+      const s = sY;
 
       // TRES EJES a la vez, con periodos que no son múltiplos entre sí: la
       // combinación no vuelve a repetirse en todo el scroll de la página, así
@@ -537,8 +564,12 @@ export default function GearPoints({
       const idx = poseSeccion.indice;
       const a = idx * 2.399963 + 1.1;
       const po = poseObj.current;
-      po.x = idx === 0 ? 0 : Math.cos(a) * 0.3;
-      po.y = idx === 0 ? 0 : Math.sin(a * 1.3) * 0.16;
+      // Amplitudes contenidas (0.16 del ancho, 0.10 del alto): con las
+      // anteriores —casi el doble— la figura llegaba a asomarse fuera del
+      // encuadre en pantallas estrechas y parecía que "desaparecía". Se sigue
+      // moviendo de sección en sección, pero sin salirse nunca.
+      po.x = idx === 0 ? 0 : Math.cos(a) * 0.16;
+      po.y = idx === 0 ? 0 : Math.sin(a * 1.3) * 0.1;
       po.z = idx === 0 ? 0 : Math.sin(a * 0.7);
       const pa = pose.current;
       pa.x += (po.x - pa.x) * 0.035;

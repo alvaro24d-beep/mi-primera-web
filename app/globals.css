@@ -1780,6 +1780,24 @@ p.nxr-hero-mastery-line {
   gap: 8px;
   margin-top: 44px;
 }
+
+/* En BLANCO, y solo el de la hero (V18.02). Las piezas se comparten con el
+   .nxr-scrollcue de /desarrollo-web y /agentes-ia, donde van en una esquina
+   sobre fondo despejado y con 0.42/0.55 de blanco se leen de sobra. Aquí el
+   indicador cae en mitad del hero, con el muro de vídeo y la nube de puntos
+   por detrás, y a esa opacidad se perdía. Se sube solo en este contexto para
+   no tocar las otras dos páginas. */
+.nxr-hero-cue .nxr-scrollcue-wheel {
+  border-color: rgba(255, 255, 255, 0.85);
+}
+
+.nxr-hero-cue .nxr-scrollcue-wheel i {
+  background: #fff;
+}
+
+.nxr-hero-cue .nxr-scrollcue-txt {
+  color: #fff;
+}
 @media (max-width: 768px), (max-height: 760px) {
   /* Pantallas bajas: el hero ya va justo de alto (ver --vh-100), así que el
      indicador se acerca al CTA en vez de empujar el bloque fuera de la caja. */

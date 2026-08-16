@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useFrame, useThree } from "@react-three/fiber";
 import * as THREE from "three";
 import { CAMERA_DISTANCE } from "./PixelCamera";
+import { poseSeccion } from "@/store/sceneActivity";
 
 // ===== Nube de puntos con la forma del modelo (V17.85) =====
 // Una rueda de radios dibujada solo con puntos, flotando ENTRE el muro de
@@ -61,7 +62,9 @@ const vertexShader = /* glsl */ `
   #define ESTELA ${ESTELA}
   uniform float uSize;
   uniform float uDpr;
-  // xy = posición en NDC, z = fuerza restante (1 recién puesta, 0 agotada)
+  // xy = posición en NDC, z = EDAD en segundos de esa marca del rastro. Fue
+  // "fuerza restante" y ahora es tiempo: la fuerza la calcula el shader con una
+  // envolvente de muelle (abajo), que es lo que le da el rebote.
   uniform vec3 uEstela[ESTELA];
   uniform float uMouseOn;   // 0 en táctil: ni se calcula la repulsión
   uniform float uAspect;
@@ -69,55 +72,109 @@ const vertexShader = /* glsl */ `
   uniform float uEmpuje;    // desplazamiento máximo, en px de mundo
   uniform float uTime;
   uniform float uVida;      // amplitud de la deriva propia, en radios del objeto
+  uniform float uForm;      // 0 = polvo disperso, 1 = figura montada
   varying float vBrillo;
 
   void main() {
-    // Semilla por punto derivada de su propia posición: un atributo más habría
-    // sido otro buffer que subir y mantener, y aquí basta con que cada punto
-    // tenga SU número estable.
+    // Tres semillas por punto, derivadas de su propia posición: un atributo más
+    // habría sido otro buffer que subir y mantener, y aquí basta con que cada
+    // punto tenga SUS números estables.
     float semilla = fract(sin(dot(position.xyz, vec3(12.9898, 78.233, 45.164))) * 43758.5453);
+    float semB = fract(sin(dot(position.xyz, vec3(39.3468, 11.135, 83.155))) * 24634.6345);
+    float semC = fract(sin(dot(position.xyz, vec3(73.1560, 52.235, 9.1510))) * 13721.1234);
+
+    // ===== ENTRADA: el polvo se agrupa hasta formar la pieza =====
+    // Cada punto sale de un sitio disperso propio y viaja hasta el suyo. El
+    // stagger va por semilla, no por índice: los índices están ordenados como
+    // salieron del muestreo del .glb y agruparían la figura por zonas, como si
+    // se dibujara sola; repartido al azar, la pieza se CONDENSA entera a la vez,
+    // que es lo que parece polvo juntándose. El easing es cúbico de salida:
+    // llegan rápido y frenan al posarse, en vez de a velocidad constante.
+    // El easing se escribe MULTIPLICANDO y no con pow(), y no es por
+    // rendimiento: pow(x, y) en GLSL se evalúa como exp2(y * log2(x)), y
+    // log2(0.0) es -infinito, así que pow(0.0, 3.0) está INDEFINIDO por
+    // especificación. Al terminar el viaje 1.0 - t vale exactamente 0 y el
+    // easing devolvía NaN, que se propagaba a la posición del vértice: la
+    // figura no llegaba a formarse nunca y los puntos quedaban esparcidos por
+    // la pantalla como basura. Con la multiplicación es exacto en todo el
+    // rango, incluidos los extremos.
+    float t = clamp((uForm - semilla * 0.4) / 0.6, 0.0, 1.0);
+    float u = 1.0 - t;
+    float e = 1.0 - u * u * u;
+    // El punto de partida es la PROPIA figura estallada hacia fuera (position
+    // multiplicada) más una desviación por punto, en vez de una dirección
+    // aleatoria normalizada. Dos motivos, y el segundo es el que importa:
+    // se lee mejor —la nube colapsa sobre sí misma en vez de venir de un
+    // amasijo sin forma— y, sobre todo, aquí NO hay ningún normalize() que
+    // pueda toparse con un vector nulo y devolver NaN.
+    vec3 disperso = position * (2.3 + semB * 1.9) + (vec3(semilla, semB, semC) - 0.5) * 1.3;
+    vec3 base = mix(disperso, position, e);
 
     // VIDA PROPIA. Cada punto deriva alrededor de su sitio con su frecuencia y
     // su fase, en los tres ejes y con periodos distintos por eje, así que la
     // nube nunca está quieta ni respira "a una". La amplitud se mide en radios
     // del objeto (uVida ~0.014 = 1,4% del radio ≈ 6px en pantalla): suficiente
     // para que se note el hormigueo, poco para que la silueta siga siendo la
-    // de la pieza y no una mancha.
+    // de la pieza y no una mancha. Escalada por el avance de la entrada para
+    // que durante el viaje no tiemble además de moverse.
     float f = 0.7 + semilla * 0.9;
-    vec3 pos = position + vec3(
+    vec3 pos = base + vec3(
       sin(uTime * f + semilla * 6.2831),
       cos(uTime * f * 0.83 + semilla * 4.7),
       sin(uTime * f * 1.17 + semilla * 2.3)
-    ) * uVida;
+    ) * uVida * e;
 
     vec4 mv = modelViewMatrix * vec4(pos, 1.0);
 
-    // Repulsión EN ESPACIO DE PANTALLA. Se proyecta el punto, se mide su
-    // distancia al cursor en NDC y se empuja en el plano de la cámara. Hacerlo
-    // aquí y no en el espacio del objeto es lo que mantiene el efecto correcto
-    // mientras la figura gira con el scroll: el punto huye siempre en la
-    // dirección en que el usuario lo ve, no en la que el modelo cree que es.
+    // ===== Repulsión EN ESPACIO DE PANTALLA =====
+    // Se proyecta el punto, se mide su distancia al cursor en NDC y se empuja en
+    // el plano de la cámara. Hacerlo aquí y no en el espacio del objeto es lo
+    // que mantiene el efecto correcto mientras la figura gira con el scroll: el
+    // punto huye siempre en la dirección en que el usuario lo ve.
     //
-    // Y no se empuja desde UN punto sino desde toda la ESTELA, cada posición
-    // con la fuerza que le queda. Ahí está el "tardar en volver": el rastro que
-    // el cursor deja atrás sigue apartando los puntos mientras se apaga, así
-    // que la nube se recompone poco a poco por detrás en vez de saltar a su
-    // sitio en cuanto el cursor se aleja. El bucle NO tiene rama: una entrada
-    // agotada aporta 0 por su propia fuerza, y así el coste es fijo y sin
-    // divergencia entre vértices.
+    // Tres cosas la hacen orgánica en vez de "un círculo recortado":
+    //
+    //  1. CAÍDA SIN BORDE. Antes era un smoothstep con uRadio de frontera, y
+    //     un smoothstep tiene un final EXACTO: a esa distancia la fuerza pasa a
+    //     ser cero de golpe y ahí se dibujaba el contorno del círculo. Ahora es
+    //     1/(1+q³), la forma de un campo de fuerza real: no llega a cero nunca,
+    //     solo se vuelve despreciable, así que el hueco no tiene canto.
+    //  2. MUELLE, no rampa. La fuerza de cada marca del rastro decae como
+    //     exp(-edad)·cos(edad): un oscilador amortiguado. El coseno cruza el
+    //     cero y se hace ligeramente negativo, o sea que el punto se pasa un
+    //     poco de vuelta y se asienta — que es como se mueve algo con masa, y
+    //     no como algo que regresa a su sitio y se para en seco.
+    //  3. CADA PUNTO RESPONDE A SU MANERA. Su rigidez cambia cuánto le afecta y
+    //     su giro le mete una componente tangencial con signo propio, así que el
+    //     material se arremolina un poco al abrirse en vez de apartarse en
+    //     bloque radialmente.
+    //
+    // El bucle no tiene ramas: una entrada sin usar lleva una edad enorme y su
+    // exponencial vale 0, así que el coste es fijo y sin divergencia.
     if (uMouseOn > 0.5) {
       vec4 clip = projectionMatrix * mv;
       vec2 ndc = clip.xy / clip.w;
       vec2 desp = vec2(0.0);
+      float giro = (semC - 0.5) * 0.7;
       for (int i = 0; i < ESTELA; i++) {
         vec2 dif = ndc - uEstela[i].xy;
         dif.x *= uAspect;            // sin esto el área de influencia sale ovalada
         float d = length(dif);
-        // smoothstep(radio, 0) = 1 pegado al cursor y 0 en el borde: la caída es
-        // suave por los dos extremos, sin frente duro.
-        float f = smoothstep(uRadio, 0.0, d) * uEstela[i].z;
-        desp += (dif / max(d, 1e-4)) * f;
+        float q = d / uRadio;
+        float caida = 1.0 / (1.0 + q * q * q * 2.0);
+        float edad = uEstela[i].z;
+        float env = exp(-edad * 2.4) * cos(edad * 5.0);
+        // Mezcla de radial y tangencial SIN normalize(): dir y su perpendicular
+        // son ortonormales, así que el módulo de la suma es exactamente
+        // sqrt(1+giro²) y basta con dividir por él. Un normalize() aquí sería
+        // 0/0 —y por tanto NaN propagado a la posición del vértice— en cuanto
+        // un punto cayera justo encima de una marca del rastro, que con el
+        // cursor quieto es exactamente lo que acaba pasando.
+        vec2 dir = dif / max(d, 1e-4);
+        dir = (dir + vec2(-dir.y, dir.x) * giro) * inversesqrt(1.0 + giro * giro);
+        desp += dir * caida * env;
       }
+      desp *= 0.75 + semB * 0.55;    // rigidez propia de cada punto
       // Tope de magnitud: donde el rastro se solapa consigo mismo (un giro
       // cerrado del ratón) las contribuciones se suman y sin esto el punto
       // saldría disparado fuera de la pantalla.
@@ -205,16 +262,26 @@ export default function GearPoints({
   const raton = useRef(new THREE.Vector2(0, 0));
   const scrollObj = useRef(0);
   const scrollAct = useRef(0);
-  // Estela: la entrada 0 es SIEMPRE la posición actual del cursor (a fuerza
-  // plena mientras el puntero esté en la ventana, para que dejarlo quieto
-  // encima mantenga el hueco abierto) y las 1..n-1 son un buffer circular con
-  // las posiciones por las que ha pasado, apagándose por tiempo.
+  // Estela: la entrada 0 es SIEMPRE la posición actual del cursor (edad 0, para
+  // que dejar el puntero quieto encima mantenga el hueco abierto) y las 1..n-1
+  // son un buffer circular con las posiciones por las que ha pasado. La z de
+  // cada una es su EDAD en segundos; 99 = casilla sin usar (su exponencial en
+  // el shader vale 0, así que no empuja sin necesidad de una rama).
   const estela = useRef<THREE.Vector3[]>(
-    Array.from({ length: ESTELA }, () => new THREE.Vector3(0, 0, 0))
+    Array.from({ length: ESTELA }, () => new THREE.Vector3(0, 0, 99))
   );
   const siguiente = useRef(1);
-  const ultimaMarca = useRef(new THREE.Vector2(0, 0));
+  const desdeMarca = useRef(0);
   const ultimoT = useRef(0);
+  // Entrada: 0 = polvo disperso, 1 = figura montada. Ver uForm en el shader.
+  // t0 es el instante en que arranca el viaje (0 = aún no ha empezado), y se
+  // fija en el primer frame en que la nube existe de verdad.
+  const form = useRef(0);
+  const t0 = useRef(0);
+  // Pose de la nube por sección: objetivo y valor amortiguado. z es un -1..1
+  // que la acerca o la aleja de la cámara.
+  const poseObj = useRef({ x: 0, y: 0, z: 0 });
+  const pose = useRef({ x: 0, y: 0, z: 0 });
 
   useEffect(() => {
     let cancelado = false;
@@ -299,6 +366,10 @@ export default function GearPoints({
       uEmpuje: { value: 52 },
       uTime: { value: 0 },
       uVida: { value: 0.014 },
+      // Con reduced motion la figura arranca YA montada: la animación de
+      // agrupación es puro movimiento decorativo y es justo lo que esa
+      // preferencia pide no ver.
+      uForm: { value: reducedMotion ? 1 : 0 },
       // Con mezcla NORMAL esto vuelve a ser opacidad de verdad, y el techo lo
       // pone el bloom: el píxel final ronda uOpacity·vBrillo sobre un muro casi
       // negro, y el Bloom del composer empieza a florecer a partir de 0.6 de
@@ -324,7 +395,7 @@ export default function GearPoints({
       // que no hay umbral que respetar y el punto puede ser blanco de verdad.
       uOpacity: { value: isMobile ? 0.9 : 0.5 },
     }),
-    [isMobile]
+    [isMobile, reducedMotion]
   );
 
   // El cursor mueve la nube, así que hay que pedir frames: en modo demand nadie
@@ -404,32 +475,93 @@ export default function GearPoints({
       // ---- Estela del cursor
       const est = estela.current;
       const uni = m.uniforms.uEstela.value as THREE.Vector3[];
-      // La 0 va a la posición CRUDA del puntero, sin amortiguar: es la
-      // respuesta directa y tiene que llegar en el mismo frame. Con el puntero
-      // quieto encima se queda a fuerza plena, así que el hueco no se cierra
-      // solo.
-      est[0].set(ratonObj.current.x, ratonObj.current.y, 1);
-      // El resto se apaga por TIEMPO, no por frames: así tarda lo mismo en
-      // recomponerse a 30 que a 120fps. TAU 0.55s -> ~1,6s hasta apagarse.
-      for (let i = 1; i < ESTELA; i++) {
-        if (est[i].z > 0) est[i].z = Math.max(0, est[i].z - dt / 0.55);
-      }
-      // Se suelta una marca nueva solo cada cierto recorrido: sembrar una por
-      // frame llenaría las 9 casillas del rastro en un palmo de pantalla y la
-      // estela no llegaría a notarse.
-      if (ratonObj.current.distanceTo(ultimaMarca.current) > 0.045) {
-        ultimaMarca.current.copy(ratonObj.current);
-        est[siguiente.current].set(ratonObj.current.x, ratonObj.current.y, 1);
-        siguiente.current = 1 + ((siguiente.current) % (ESTELA - 1));
+      // La 0 va a la posición CRUDA del puntero y con edad 0: es la respuesta
+      // directa y tiene que llegar en el mismo frame. Con el puntero quieto
+      // encima se queda recién puesta, así que el hueco no se cierra solo.
+      est[0].set(ratonObj.current.x, ratonObj.current.y, 0);
+      // Las demás ENVEJECEN; la fuerza que les queda la decide el muelle del
+      // shader a partir de esa edad. Se cuenta en segundos y no en frames para
+      // que el rastro dure lo mismo a 30 que a 120fps.
+      for (let i = 1; i < ESTELA; i++) est[i].z += dt;
+      // Marcas nuevas a INTERVALO FIJO (~35ms) y no cada cierta distancia
+      // recorrida, que es de donde salían los trompicones: sembrando por
+      // distancia, un movimiento lento no soltaba ninguna marca durante un buen
+      // rato y luego soltaba una de golpe, así que el rastro avanzaba a saltos
+      // en vez de fluir. Por tiempo, la estela es una muestra uniforme del
+      // recorrido del cursor pase lo que pase con su velocidad.
+      desdeMarca.current += dt;
+      if (desdeMarca.current >= 0.035) {
+        desdeMarca.current = 0;
+        est[siguiente.current].set(ratonObj.current.x, ratonObj.current.y, 0);
+        siguiente.current = 1 + (siguiente.current % (ESTELA - 1));
       }
       for (let i = 0; i < ESTELA; i++) uni[i].copy(est[i]);
 
+      // ---- Posición de la nube según la sección (V18.02)
+      // Deja de estar clavada en el centro: cada sección la manda a un sitio y
+      // a una profundidad distintos. La pose sale del índice de sección por el
+      // ángulo áureo, igual que la del muro, pero DESFASADA (el +1.1) para que
+      // las dos no se muevan a la vez ni hacia el mismo lado — si compartieran
+      // ángulo, el conjunto se leería como una sola cosa desplazándose.
+      // El índice 0 (la hero) se queda centrado y a su z de siempre: es donde
+      // la figura tiene que estar mientras se lee el titular.
+      const idx = poseSeccion.indice;
+      const a = idx * 2.399963 + 1.1;
+      const po = poseObj.current;
+      po.x = idx === 0 ? 0 : Math.cos(a) * 0.3;
+      po.y = idx === 0 ? 0 : Math.sin(a * 1.3) * 0.16;
+      po.z = idx === 0 ? 0 : Math.sin(a * 0.7);
+      const pa = pose.current;
+      pa.x += (po.x - pa.x) * 0.035;
+      pa.y += (po.y - pa.y) * 0.035;
+      pa.z += (po.z - pa.z) * 0.035;
+      // x/y en fracción de viewport (así el encuadre aguanta en cualquier
+      // pantalla) y z en px de mundo. El rango de z es asimétrico a propósito:
+      // acercarse agranda la figura por perspectiva y a partir de cierto punto
+      // se comería el contenido, así que se aleja más de lo que se acerca.
+      p.position.x = pa.x * size.width;
+      p.position.y = pa.y * size.height;
+      p.position.z = Z + pa.z * 220;
+
       // Mientras algo siga asentándose hay que seguir pidiendo frames: aquí
       // entra también la estela, que sigue moviendo puntos DESPUÉS de que el
-      // ratón se haya parado.
-      let estelaViva = false;
-      for (let i = 1; i < ESTELA; i++) if (est[i].z > 0) { estelaViva = true; break; }
-      if (Math.abs(dScroll) > 0.5 || dr.lengthSq() > 1e-6 || estelaViva) invalidate();
+      // ratón se haya parado, y el viaje de la nube entre secciones.
+      const estelaViva = est.some((v, i) => i > 0 && v.z < 1.6);
+      const poseViva =
+        Math.abs(po.x - pa.x) > 0.0005 ||
+        Math.abs(po.y - pa.y) > 0.0005 ||
+        Math.abs(po.z - pa.z) > 0.0005;
+      if (Math.abs(dScroll) > 0.5 || dr.lengthSq() > 1e-6 || estelaViva || poseViva) invalidate();
+    }
+
+    // ---- Entrada: el polvo se agrupa (V18.02)
+    // Arranca cuando la nube se monta de verdad (hasta que el .bin no ha
+    // llegado no hay material y este useFrame sale antes), así que el viaje se
+    // ve entero y no a medias. 2,2s de recorrido más el escalonado por punto
+    // del shader.
+    //
+    // La comprobación de reduced motion va aquí y no solo en el valor inicial
+    // del uniform porque la preferencia puede llegar DESPUÉS del montaje
+    // (useReducedMotion devuelve false en SSR y cambia al hidratar): sin esto,
+    // activarla a media animación dejaría la figura congelada a medio formar.
+    if (reducedMotion) {
+      if (m.uniforms.uForm.value !== 1) {
+        form.current = 1;
+        m.uniforms.uForm.value = 1;
+        invalidate();
+      }
+    } else if (form.current < 1) {
+      // El progreso se LEE DEL RELOJ, no se acumula sumando dt frame a frame.
+      // La diferencia importa de verdad: en una pestaña en segundo plano el
+      // navegador estrangula requestAnimationFrame, así que con la versión
+      // acumulativa la nube se quedaba a medio formar —medido: 13% después de
+      // un minuto— y el visitante volvía a una figura deshecha que seguía
+      // avanzando a cámara lenta. Contra el reloj, los frames que falten solo
+      // se saltan: al volver a la pestaña la animación está donde le toca.
+      if (t0.current === 0) t0.current = performance.now();
+      form.current = Math.min(1, (performance.now() - t0.current) / 2200);
+      m.uniforms.uForm.value = form.current;
+      invalidate();
     }
   });
 

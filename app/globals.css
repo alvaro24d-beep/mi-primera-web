@@ -4182,13 +4182,22 @@ p.nxr-hero-mastery-line {
   flex-shrink: 0;
 }
 
+/* SIN `perspective` (V18.07). Tenía perspective: 1200px, resto del tilt 3D que
+   inclinaba las cards con el puntero y que se eliminó hace versiones: dentro de
+   esta rejilla ya no queda ni un rotateX, ni un translateZ, ni un preserve-3d,
+   así que no hacía absolutamente nada visible. Lo que sí hacía era romper el
+   cristal: `perspective` distinto de none convierte al elemento en BACKDROP
+   ROOT igual que `transform` u `opacity`, y como este track es ancestro directo
+   de las cards, el backdrop-filter de cada una dejaba de ver el fondo real de
+   la página —el canvas WebGL— y solo desenfocaba lo pintado dentro del track,
+   que es transparente. Era la última pieza de la cadena que quedaba por
+   limpiar tras el wrapper (V18.06) y el drift del cursor (V18.04). */
 .nxr-proceso-track {
   position: relative;
   display: grid;
   grid-template-columns: repeat(5, 1fr);
   gap: 0;
   align-items: stretch;
-  perspective: 1200px;
 }
 
 .nxr-proceso-track::before {

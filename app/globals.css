@@ -6068,9 +6068,13 @@ input[type="range"].nxr-ms-range::-moz-range-thumb {
      presentation text (top of .nxr-intro-cards) reads as following on
      directly from the headline, not a separate, distant block. */
   /* El alargue de escritorio (240vh) es solo para que allí se aprecie la
-     desaparición; en móvil habría sido scroll de más sin motivo. */
+     desaparición; en móvil habría sido scroll de más sin motivo.
+     200 -> 150vh (V18.21, "que no haya que hacer tanto scroll"): como el
+     contenido va fijo al viewport, esta altura no maqueta nada, solo reparte el
+     recorrido del fundido. Acortarla no recorta contenido — hace que la entrada
+     y la salida ocurran en menos scroll. */
   #nxr-intro {
-    height: 200vh;
+    height: 150vh;
   }
 
   .nxr-intro-inner {

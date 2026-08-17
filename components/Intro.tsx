@@ -92,15 +92,11 @@ export default function Intro() {
         return;
       }
 
-      // Troceado por LÍNEAS, no por caracteres (V17.56). El barrido se lee
-      // igual de bien y cuesta ~11 elementos en vez de ~100: cada uno lleva su
-      // propio `filter: blur()`, y cien capas de composición desenfocándose en
-      // cada frame de scroll habrían sido un coste real. Además, partiendo por
-      // líneas el acento .nxr-gradient-text-lime queda intacto dentro de la
-      // suya — trocearlo en chars lo rompería, porque pinta con
-      // background-clip: text.
-      // autoSplit re-trocea al cambiar el ancho (las líneas cambian con el
-      // viewport) y onSplit vuelve a capturarlas.
+      // Titular y párrafo van los dos por CARACTERES (V18.21; el párrafo estuvo
+      // por líneas desde V17.56 por coste). El acento .nxr-gradient-text-lime
+      // del titular es la excepción: pinta con background-clip: text y trocearlo
+      // lo dejaría transparente, así que va en `ignore` y se reinyecta entero.
+      // autoSplit re-trocea al cambiar el ancho y onSplit vuelve a capturar.
       let titleLines: HTMLElement[] = [];
       let textLines: HTMLElement[] = [];
       // Último estado pintado. autoSplit REHACE los trozos cuando cambia el
@@ -146,9 +142,6 @@ export default function Intro() {
         aplicar(textLines, ultimaBase, ultimoSaliendo, false);
       };
 
-      // El TITULAR va letra a letra (V17.57). Es corto (~26 unidades), así que
-      // el coste de un blur por trozo es asumible; el párrafo se queda por
-      // líneas porque ahí serían ~90.
       // El acento .nxr-gradient-text-lime va en `ignore` y se reinyecta ENTERO:
       // pinta con background-clip: text, y trocearlo en chars lo dejaría
       // transparente (mismo motivo documentado en useTitleReveal). Se anima
@@ -165,11 +158,22 @@ export default function Intro() {
           reaplicar();
         },
       });
+      // El párrafo va TAMBIÉN letra a letra (antes por líneas). Con ~90
+      // caracteres el barrido se lee mucho más fino que con once líneas: el
+      // difuminado recorre la frase en vez de encenderla a bloques.
+      //
+      // El coste que documentaba la versión por líneas es real —cada trozo
+      // lleva su propio filter: blur() y son capas de composición— pero está
+      // acotado por dos cosas que ya estaban aquí: solo los caracteres EN
+      // TRANSICIÓN llevan blur (los demás quedan en `none`, ver `aplicar`), y
+      // SPREAD hace que en cada instante solo una parte de la frase esté en ese
+      // estado. El <strong> del interior no da problemas al trocear, a
+      // diferencia del acento del titular, que pinta con background-clip.
       const textsSplit = SplitText.create(texts.querySelectorAll<HTMLElement>(".nxr-intro-text"), {
-        type: "lines",
+        type: "words, chars",
         autoSplit: true,
         onSplit: (self) => {
-          textLines = self.lines as HTMLElement[];
+          textLines = self.chars as HTMLElement[];
           reaplicar();
         },
       });

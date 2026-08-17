@@ -6,6 +6,7 @@ import SceneCanvasLazy from "@/components/scene/SceneCanvasLazy";
 import RevealInit from "@/components/RevealInit";
 import SmoothScroll from "@/components/SmoothScroll";
 import ScrollProgress from "@/components/ScrollProgress";
+import ScrollSnap from "@/components/ScrollSnap";
 import LoadProgress from "@/components/LoadProgress";
 import CursorDrift from "@/components/CursorDrift";
 import GradualBlur from "@/components/GradualBlur";
@@ -63,6 +64,11 @@ export default function RootLayout({
         <link rel="preload" as="video" href="/bg-video.mp4" media="(orientation: landscape)" />
         <link rel="preload" as="video" href="/bg-video-vertical.mp4" media="(orientation: portrait)" />
         <SmoothScroll />
+        {/* Asienta el scroll en el límite de sección más cercano cuando se
+            detiene cerca de uno, para no quedarse a medias entre dos. Actúa por
+            proximidad, así que en mitad de los recorridos largos (hero, Intro,
+            el reel de Servicios) no interviene. */}
+        <ScrollSnap />
         <ScrollProgress />
         {/* Cortina de carga: cubre la página desde el primer paint hasta que
             el muro de vídeo está pintando (progreso por hitos reales) — el

@@ -222,7 +222,9 @@ export default function SceneCanvas() {
       // así que forzar el bucle a "always" mientras la sección estuviera cerca
       // era 60fps continuos sin nada que dibujar — parte del lag que se notaba
       // justo ahí.)
-      "nxr-dwh-capacidades",
+      // (nxr-dwh-capacidades salió en V18.14, mismo caso que los dos procesos:
+      // sus cards pasaron de ser anclas de cristal volumétrico a llevar
+      // backdrop-filter, así que ya no hay ninguna malla que seguir ahí.)
       "nxr-aia-hero",
       "nxr-aia-casos",
       "nxr-aia-noche",

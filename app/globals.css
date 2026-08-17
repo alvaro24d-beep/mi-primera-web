@@ -6366,13 +6366,13 @@ input[type="range"].nxr-ms-range::-moz-range-thumb {
 
 /* Pinned stage: title on top, the deck dead-centred in the leftover space.
    GSAP pins THIS element (see CapacidadesWeb.tsx). */
+/* Ya no reserva una pantalla entera: sin pin, la sección ocupa lo que ocupen
+   sus cards apiladas y el scroll pasa por ella con normalidad. El padding
+   inferior sigue librando la barra flotante (#nxr-nav, ~63px de alto a 20px
+   del borde). */
 .nxr-dwh-cap-stage {
-  min-height: 100lvh;
   display: flex;
   flex-direction: column;
-  /* Bottom padding reserves the floating nav band (#nxr-nav, ~63px tall,
-     20px off the bottom) — the centred deck was sitting underneath the bar
-     while pinned (same fix as /agentes-ia's Noche stage). */
   padding: 10vh var(--pad-x) calc(8vh + 88px);
   max-width: var(--max-w);
   margin: 0 auto;
@@ -6380,49 +6380,66 @@ input[type="range"].nxr-ms-range::-moz-range-thumb {
   box-sizing: border-box;
 }
 
-/* The stacked deck: every card occupies the SAME centred box; GSAP moves
-   them between "slots" (translate/scale/opacity ONLY — the cards anchor
-   volumetric glass meshes whose rect tracking can't follow rotation). */
+/* PILA STICKY (V18.14). Cada card va en su propio envoltorio pegajoso y el
+   apilado lo resuelve el navegador: los envoltorios se suceden en flujo
+   normal, y al llegar arriba cada uno se queda clavado mientras el siguiente
+   sigue subiendo por debajo. GSAP solo añade el escalado (ver el componente).
+   Antes era una baraja pineada donde solo se leía una card a la vez. */
 .nxr-dwh-cap-deck {
   position: relative;
-  flex: 1;
-  min-height: 0;
-  display: grid;
-  place-items: center;
   margin-top: 24px;
 }
 
-.nxr-dwh-cap-card {
-  grid-area: 1 / 1;
-  position: relative;
-  width: min(560px, 92%);
-  /* Uniform height: mixed content-driven heights made the receding stack's
-     silhouette ragged. */
-  min-height: 232px;
-  box-sizing: border-box;
-  /* Hidden until CapacidadesWeb.tsx's layout effect sets each card's slot
-     state and flips this back to visible — the sitewide first-paint-flash
-     guard. */
-  visibility: hidden;
-  padding: 34px;
-  /* Anchor for a real volumetric fluid-glass mesh (useGlassPanels): no CSS
-     glass — just the sitewide legibility scrim. */
-  background: rgba(8, 10, 14, 0.34);
-  border-radius: var(--radius-lg);
-  will-change: transform, opacity;
+/* El `top` crece con el índice, y ese escalonado es lo que deja ver el borde
+   de las cards que ya se quedaron detrás en vez de taparlas del todo. La
+   altura reserva el recorrido de scroll que necesita cada card para llegar a
+   su sitio: sin ella, los envoltorios no tendrían nada que recorrer y las seis
+   se apilarían de golpe. */
+.nxr-dwh-cap-sticky {
+  position: sticky;
+  top: calc(16vh + var(--i, 0) * 26px);
+  height: 62vh;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
 }
 
-/* Reduced-motion fallback: the deck flattens into a plain visible grid. */
+.nxr-dwh-cap-card {
+  position: relative;
+  width: min(560px, 92%);
+  /* Altura uniforme: con alturas dictadas por el contenido, la silueta de la
+     pila salía desigual. */
+  min-height: 232px;
+  box-sizing: border-box;
+  padding: 34px;
+  /* Mismo acabado que las demás cards de la web (ver .nxr-paso-card): fondo
+     semitransparente + desenfoque del fondo + borde propio. Nada de
+     `.nxr-glass-edge` aquí — esa clase arrastra una regla del sistema de
+     reveal que apaga el backdrop-filter mientras el elemento no esté
+     revelado. */
+  background: rgba(14, 17, 25, 0.42);
+  backdrop-filter: blur(16px) saturate(1.3);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: var(--radius-lg);
+  /* Encoge desde el BORDE SUPERIOR: así, al reducirse, descubre por abajo a la
+     card que llega, que es lo que hace legible la pila. */
+  transform-origin: top center;
+  will-change: transform;
+}
+
+/* Sin movimiento: la pila se aplana en una rejilla normal, sin sticky ni
+   escalado y sin recorrido de scroll reservado. */
 .nxr-dwh-cap-deck-static {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 20px;
-  place-items: stretch;
+}
+.nxr-dwh-cap-deck-static .nxr-dwh-cap-sticky {
+  position: static;
+  height: auto;
 }
 .nxr-dwh-cap-deck-static .nxr-dwh-cap-card {
-  grid-area: auto;
   width: auto;
-  visibility: visible;
 }
 
 .nxr-dwh-cap-inner {
@@ -6498,6 +6515,12 @@ input[type="range"].nxr-ms-range::-moz-range-thumb {
   }
   .nxr-dwh-cap-card {
     padding: 26px;
+  }
+  /* Menos escalón y menos recorrido por card: en vertical la pantalla da para
+     mucho menos, y con los valores de escritorio la pila se salía por abajo. */
+  .nxr-dwh-cap-sticky {
+    top: calc(12vh + var(--i, 0) * 18px);
+    height: 54vh;
   }
   .nxr-dwh-cap-deck-static {
     grid-template-columns: 1fr;

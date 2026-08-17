@@ -5,7 +5,6 @@ import gsap from "gsap";
 import { useGSAP } from "@gsap/react";
 import { useTitleReveal } from "@/hooks/useTitleReveal";
 import { useReducedMotion } from "@/hooks/useReducedMotion";
-import { useGlassPanels } from "@/hooks/useGlassPanels";
 
 const CAPACIDADES = [
   {
@@ -101,42 +100,44 @@ function parseStat(val: string) {
 }
 
 // Visual stack: how a card sitting `s` slots behind the front one rests.
-// DELIBERATELY translate/scale/opacity only — never rotation: each card is
-// the anchor of a real volumetric glass mesh (useGlassPanels), whose
-// rect-based tracking follows position and scale exactly but cannot rotate
-// (a CSS-rotated anchor reports an inflated axis-aligned rect — the same
-// reason the home's Proceso dropped its pointer tilt).
-const SLOT_Y = -26; // px upward per slot (the deck recedes upward)
-const SLOT_SCALE = 0.055;
-const VISIBLE_DEPTH = 3; // slots visible behind the front card
-const slot = (s: number) => ({
-  y: s * SLOT_Y,
-  scale: 1 - Math.min(s, VISIBLE_DEPTH + 1) * SLOT_SCALE,
-  opacity: s <= VISIBLE_DEPTH ? 1 - s * 0.22 : 0,
-});
+// Cuánto encoge cada card por cada compañera que le queda por delante. Con 6
+// capacidades, la primera acaba en 0.75 y la última se queda a tamaño natural:
+// la pila se ve en perspectiva sin que las de abajo lleguen a desaparecer.
+const MERMA = 0.05;
 
-function CapCard({ c }: { c: (typeof CAPACIDADES)[number] }) {
+function CapCard({ c, i }: { c: (typeof CAPACIDADES)[number]; i: number }) {
   return (
-    // Anchor for a volumetric fluid-glass mesh — layout/content + scrim only.
-    <div className="nxr-dwh-cap-card">
-      <span className="nxr-dwh-cap-inner">
-        <div className="nxr-dwh-cap-icon" style={{ background: c.bg, color: c.color }}>
-          {c.icon}
-        </div>
-        <div className="nxr-dwh-cap-title">{c.title}</div>
-        <div className="nxr-dwh-cap-desc">{c.desc}</div>
-      </span>
+    // Cada card va dentro de su propio envoltorio STICKY. El envoltorio es el
+    // que se queda pegado; la card de dentro es la que GSAP escala, y lo hace
+    // desde su borde superior (transform-origin en el CSS) para que al
+    // encogerse deje ver la que llega por debajo.
+    <div className="nxr-dwh-cap-sticky" style={{ ["--i" as string]: i }}>
+      <div className="nxr-dwh-cap-card">
+        <span className="nxr-dwh-cap-inner">
+          <div className="nxr-dwh-cap-icon" style={{ background: c.bg, color: c.color }}>
+            {c.icon}
+          </div>
+          <div className="nxr-dwh-cap-title">{c.title}</div>
+          <div className="nxr-dwh-cap-desc">{c.desc}</div>
+        </span>
+      </div>
     </div>
   );
 }
 
 /**
- * "Baraja" section — the page's non-linear-scroll piece, following the
- * home's directive that sections shouldn't just ride the vertical flow: the
- * six capability cards sit STACKED at screen centre inside a pinned stage,
- * and each scroll step PEELS the front card away (up and gone) while the
- * deck behind steps forward one slot. Volumetric glass on every card, the
- * dynamic per-line bow on the title, stats count-up after the pin.
+ * Sección de capacidades — PILA STICKY (V18.14). Cada card se queda pegada
+ * arriba mientras la siguiente sube por debajo, y va encogiendo un poco a
+ * medida que se le acumulan compañeras encima: al final del recorrido se ven
+ * las seis apiladas en perspectiva, no una sola.
+ *
+ * Fue una "baraja" pineada en la que cada paso PELABA la card de delante y
+ * solo se leía una a la vez. El cambio quita el pin —una sección menos que
+ * secuestra el scroll— y hace que el conjunto se lea de un vistazo.
+ *
+ * El efecto es CSS puro en su mayor parte: los envoltorios son `position:
+ * sticky` con un `top` escalonado por índice, así que el apilado lo hace el
+ * navegador. GSAP solo añade el escalado, atado al scroll con scrub.
  */
 export default function CapacidadesWeb() {
   const titleRef = useTitleReveal<HTMLHeadingElement>();
@@ -145,8 +146,6 @@ export default function CapacidadesWeb() {
   const deckRef = useRef<HTMLDivElement>(null);
   const statsRef = useRef<HTMLDivElement>(null);
   const reducedMotion = useReducedMotion();
-
-  useGlassPanels(sectionRef, ".nxr-dwh-cap-card", "#12141c", [reducedMotion]);
 
   useGSAP(
     () => {
@@ -160,10 +159,10 @@ export default function CapacidadesWeb() {
       const statVals = gsap.utils.toArray<HTMLElement>(statsEl.querySelectorAll(".nxr-dwh-stat-val"));
 
       if (prefersReduced) {
-        // Static fallback: the deck lays out as a plain grid via the
-        // .nxr-dwh-cap-deck-static class (no pin, no peel).
+        // Sin movimiento: la pila se aplana en una rejilla normal (el sticky y
+        // el escalado se anulan en el CSS con la clase de abajo).
         deck.classList.add("nxr-dwh-cap-deck-static");
-        gsap.set(cards, { visibility: "visible", clearProps: "transform,opacity" });
+        gsap.set(cards, { clearProps: "transform" });
         statVals.forEach((el, i) => {
           const { prefix, target, suffix } = parseStat(STATS[i].val);
           el.textContent = `${prefix}${target}${suffix}`;
@@ -171,58 +170,39 @@ export default function CapacidadesWeb() {
         return;
       }
 
-      // Resting slots (front card = slot 0, deeper cards recede up/behind).
-      // Only the FRONT card shows its content: the cards are translucent
-      // (scrim + glass), so stacked visible texts read as an overlapping
-      // soup — the back cards reduce to clean receding card edges instead.
-      const innerOf = (card: HTMLElement) => card.querySelector<HTMLElement>(".nxr-dwh-cap-inner");
-      cards.forEach((card, i) => {
-        const s = slot(i);
-        // zIndex: the FRONT card must paint ABOVE the deeper ones. In plain
-        // DOM order later siblings painted on top, so the front card's text
-        // was read through 3-4 stacked translucent scrims — darkest on the
-        // first card, progressively clearer as the deck emptied ("las
-        // primeras cards se ven con el texto más oscuro"). Earlier cards
-        // are always in front of later ones, so one static assignment holds
-        // for every step of the peel (the peeling card also flies off on
-        // top, as it should).
-        gsap.set(card, { y: s.y, scale: s.scale, opacity: s.opacity, zIndex: cards.length - i });
-        gsap.set(innerOf(card) ?? {}, { opacity: i === 0 ? 1 : 0 });
-      });
-      // CSS keeps the cards `visibility: hidden` until the initial states are
-      // in — the usual first-paint-flash guard used sitewide.
-      gsap.set(cards, { visibility: "visible" });
-
-      const steps = cards.length - 1; // the last card stays
+      // El apilado lo hace el CSS con `position: sticky`; lo único que añade
+      // GSAP es el ESCALADO, que es lo que da la perspectiva de pila.
+      //
+      // Cada card encoge hasta un tamaño que depende de cuántas van a acabar
+      // encima de ella: la primera es la que más se hunde y la última se queda
+      // a tamaño natural. Y cada una empieza a encoger cuando le toca —en su
+      // fracción del recorrido— no todas a la vez, de modo que el gesto
+      // acompaña al scroll en lugar de ocurrir de golpe.
+      //
+      // Un solo ScrollTrigger con scrub para las seis, con el DECK entero como
+      // trigger: los envoltorios sticky ya reparten el recorrido, así que no
+      // hacen falta seis triggers ni ningún pin.
+      const n = cards.length;
       const tl = gsap.timeline({
         scrollTrigger: {
-          trigger: stage,
+          trigger: deck,
           start: "top top",
-          end: () => `+=${steps * 60}%`,
-          scrub: 0.6,
-          pin: stage,
-          anticipatePin: 1,
+          end: "bottom bottom",
+          scrub: 0.5,
           invalidateOnRefresh: true,
         },
       });
 
-      // Step k (one timeline unit each): the front card peels up and away
-      // while every card behind advances one slot — and the NEW front
-      // card's content fades in as it arrives (see innerOf above).
-      for (let k = 0; k < steps; k++) {
-        tl.to(
-          cards[k],
-          { yPercent: -160, opacity: 0, scale: 1.05, duration: 0.75, ease: "power2.in" },
-          k
+      cards.forEach((card, i) => {
+        const destino = 1 - (n - i - 1) * MERMA;
+        if (destino >= 1) return; // la última no encoge: nada que animar
+        tl.fromTo(
+          card,
+          { scale: 1 },
+          { scale: destino, ease: "none", duration: Math.max(0.001, 1 - i / n) },
+          i / n
         );
-        for (let j = k + 1; j < cards.length; j++) {
-          const s = slot(j - k - 1);
-          tl.to(cards[j], { y: s.y, scale: s.scale, opacity: s.opacity, duration: 0.6, ease: "power2.out" }, k + 0.12);
-          tl.to(innerOf(cards[j]) ?? {}, { opacity: s.y === 0 ? 1 : 0, duration: 0.4 }, k + 0.25);
-        }
-        // Breather between peels so each capability gets its own beat.
-        tl.to({}, { duration: 0.25 }, k + 0.75);
-      }
+      });
 
       // ---- Stats count-up: numbers animate from 0 once the strip (after the
       // pin) scrolls into view, keeping each stat's own sign/suffix.
@@ -259,8 +239,8 @@ export default function CapacidadesWeb() {
         </div>
 
         <div className="nxr-dwh-cap-deck" ref={deckRef}>
-          {CAPACIDADES.map((c) => (
-            <CapCard key={c.title} c={c} />
+          {CAPACIDADES.map((c, i) => (
+            <CapCard key={c.title} c={c} i={i} />
           ))}
         </div>
       </div>

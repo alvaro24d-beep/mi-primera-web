@@ -852,6 +852,21 @@ export default function Servicios() {
       // taller than the drum angle alone needs, so the helix's climb reads
       // clearly instead of looking like a flat horizontal strip.
       const isDesktopUI = window.innerWidth > 900;
+      // Cuánto del prólogo aguanta la frase a brillo y nitidez COMPLETOS antes
+      // de empezar a disolverse, en fracción de PROLOGUE. Vale para los tres
+      // sitios que necesitan saberlo —el tween de buildTl, la guarda de
+      // trySnap y la de touchend—, que es justo lo que pedía el comentario de
+      // buildTl: los umbrales de momentos solapados comparten constante. Antes
+      // era un 0.65 escrito a mano en cada uno.
+      //
+      // Móvil 0.52 (V18.10, "que no haya que hacer tanto scroll para pasarla"):
+      // sobre un prólogo de 1.35·vh son ~70vh de frase a plena legibilidad
+      // frente a los ~88vh de antes, un 20% menos de recorrido. Se queda por
+      // encima del suelo de 60vh que hace falta para que la frase no se pueda
+      // saltar de un flick — por debajo de ahí deja de leerse en un scroll
+      // normal. NO se toca PROLOGUE: esa geometría está validada en teléfono
+      // físico y bajarla rompió la entrada dos veces (ver su comentario).
+      const HOLD_FRASE = isDesktopUI ? 0.65 : 0.52;
       const ARC_AMPLITUDE = isDesktopUI ? 130 : 28;
       // Half-angle of the carousel drum: how far a card has turned by the
       // time it reaches the viewport edge. Bigger angle = tighter cylinder
@@ -1257,11 +1272,11 @@ export default function Servicios() {
         if (!total || !snapStep) return;
         const progress = progressNow(st);
         // Never idle-snap while the phrase still HOLDS at full brightness
-        // (< 0.65·pro — its fade-out starts exactly there, see buildTl; los
+        // (su fade-out arranca exactamente en HOLD_FRASE, ver buildTl; los
         // umbrales de momentos solapados comparten constante). Cualquier
         // reposo con la frase ya desvaneciéndose desliza la card 0 desde el
         // lado mientras la frase termina de disolverse.
-        if (progress * total < snapPro * 0.65) return;
+        if (progress * total < snapPro * HOLD_FRASE) return;
         // First settle on mobile: force card 0 (unless the flick genuinely
         // sailed past card 1) and use the page-style ease-in-out glide —
         // see `presentedFirst` above.
@@ -1346,13 +1361,13 @@ export default function Servicios() {
           // 0.32 cualquier reposo trae la card 0 mientras la frase
           // termina.
           // HOLD + fundido (V16.32, "tiene que durar un poco más nítida"):
-          // la frase aguanta a brillo/nitidez COMPLETOS hasta 0.65·pro
-          // (~88vh móvil / ~42vh desktop de scroll legible; antes 0.5) y
-          // solo entonces se disuelve, acompañando hasta 1.2·pro con la
-          // primera card ya entrando (el handoff clásico). 0.65 es la MISMA
-          // constante que las guardas de trySnap/touchend (umbrales de
-          // momentos solapados comparten constante) y el clamp del ticker
-          // (1.3·snapPro) cubre el final del fade.
+          // la frase aguanta a brillo/nitidez COMPLETOS hasta HOLD_FRASE·pro
+          // (~70vh móvil / ~42vh desktop de scroll legible) y solo entonces se
+          // disuelve, acompañando con la primera card ya entrando (el handoff
+          // clásico). HOLD_FRASE es la MISMA constante que usan las guardas de
+          // trySnap/touchend (umbrales de momentos solapados comparten
+          // constante) y el clamp del ticker (1.3·snapPro) cubre el final del
+          // fade.
           // Salida con el MISMO barrido que la entrada: el desenfoque empieza
           // por el principio de la frase y avanza hacia la derecha, en vez de
           // apagarse toda a la vez.
@@ -1370,7 +1385,7 @@ export default function Servicios() {
               duration: pro * 0.14,
               stagger: { amount: pro * 0.62, from: "start" },
             },
-            pro * 0.65
+            pro * HOLD_FRASE
           );
         }
         t.fromTo(track, { x: startX() }, { x: endX(), ease: "none", duration: moveAmount() }, pro);
@@ -1624,10 +1639,10 @@ export default function Servicios() {
           const dx = touchX - (e.changedTouches[0]?.clientX ?? touchX);
           const p = progressNow(st);
           // Released while the phrase still holds at full brightness:
-          // leave the scroll natural. 0.65 = el inicio del fade-out (misma
-          // constante que buildTl/trySnap) — soltar con la frase ya
+          // leave the scroll natural. HOLD_FRASE = el inicio del fade-out
+          // (misma constante que buildTl/trySnap) — soltar con la frase ya
           // desvaneciéndose pagina la card 0.
-          if (p * snapAmount < snapPro * 0.65) return;
+          if (p * snapAmount < snapPro * HOLD_FRASE) return;
           const eps = 0.02;
           let targetIdx: number | null = null;
           // El reel se recorre en DIAGONAL, así que un swipe HORIZONTAL tipo

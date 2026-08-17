@@ -440,7 +440,19 @@ export default function GearPoints({
       const sY = window.scrollY;
       const dScroll = sY - scrollAct.current;
       scrollAct.current = sY;
-      const s = sY;
+      // TOPE al final del hero. El giro se medía sobre el scrollY absoluto, que
+      // en la home llega a decenas de miles de píxeles: al salir del hero la
+      // figura seguía acumulando vueltas, y como justo ahí es cuando se está
+      // dispersando, lo que se veía era una nube deshaciéndose mientras giraba
+      // sin freno — más aún con un scroll rápido, que multiplica el giro por
+      // frame. Saturando el valor, la rotación se queda quieta en cuanto el
+      // hero termina y la nube solo se dispersa, que es lo que tiene que hacer.
+      //
+      // El tope replica el recorrido del pin del hero (ver el `end` de su
+      // timeline en Hero.tsx: +160% en móvil, +360% en escritorio). No hace
+      // falta que sea exacto —solo que caiga al final del hero, donde la figura
+      // ya no se ve— pero si allí se cambia ese valor, este quiere seguirlo.
+      const s = Math.min(sY, size.height * (isMobile ? 1.6 : 3.6));
 
       // TRES EJES a la vez, con periodos que no son múltiplos entre sí: la
       // combinación no vuelve a repetirse en todo el scroll de la página, así

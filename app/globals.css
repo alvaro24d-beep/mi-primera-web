@@ -1496,6 +1496,10 @@ p.nxr-hero-mastery-line {
    the individual reveal-on-load elements inside, so the one-time mount fade-in
    (`.nxr-reveal`, a CSS transition) and the scroll-driven exit (GSAP inline
    styles) never fight over the same properties on the same element. */
+/* Este wrapper YA NO se anima (V18.13): la fase 1 escala, desenfoca y desvanece
+   .nxr-hero-center, el bloque de dentro. Así el indicador de deslizar puede ser
+   hermano suyo aquí —en flujo, justo debajo del CTA y centrado por este mismo
+   flex— sin que el fundido del titular se lo lleve por delante. */
 .nxr-hero-fade {
   position: absolute;
   inset: 0;
@@ -1504,7 +1508,6 @@ p.nxr-hero-mastery-line {
   justify-content: center;
   align-items: center;
   padding: 0 var(--pad-x);
-  will-change: transform, filter, opacity;
 }
 
 .nxr-hero-center {
@@ -1514,6 +1517,7 @@ p.nxr-hero-mastery-line {
   text-align: center;
   gap: 20px;
   width: 100%;
+  will-change: transform, filter, opacity;
 }
 
 .nxr-hero-h1 {
@@ -1779,29 +1783,6 @@ p.nxr-hero-mastery-line {
   align-items: center;
   gap: 8px;
   margin-top: 44px;
-}
-
-/* El indicador ÚNICO del hero, anclado al pie del escenario en vez de ir en
-   flujo bajo el CTA. Al estar fuera de .nxr-hero-fade no se desvanece con el
-   titular, así que sigue ahí durante las frases y no hace falta un segundo
-   indicador para ellas. Lo apaga la timeline en la fase 3. */
-.nxr-hero-cue-fijo {
-  position: absolute;
-  left: 50%;
-  bottom: 7vh;
-  transform: translateX(-50%);
-  margin-top: 0;
-  pointer-events: none;
-  z-index: 3;
-}
-
-@media (max-width: 768px) {
-  /* Más arriba en el teléfono: la barra de navegación inferior se come unos
-     83px, y en una pantalla de 700px de alto un 7vh son 49px — el indicador
-     habría caído justo detrás de ella. */
-  .nxr-hero-cue-fijo {
-    bottom: 16vh;
-  }
 }
 
 /* En BLANCO, y solo el de la hero (V18.02). Las piezas se comparten con el

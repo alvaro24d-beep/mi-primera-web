@@ -218,9 +218,13 @@ export default function GearPoints({
   // Ratón y scroll: objetivo -> valor amortiguado, el patrón del resto de la
   // escena. Los dos viven en refs porque se leen y escriben cada frame.
   const ratonObj = useRef(new THREE.Vector2(0, 0));
-  // Último scrollY visto: ya no es un "objetivo a alcanzar" con amortiguación,
-  // solo sirve para saber cuánto se ha movido desde el frame anterior.
+  // Último scrollY visto, solo para saber cuánto se ha movido desde el frame
+  // anterior.
   const scrollAct = useRef(0);
+  // Scroll amortiguado del que sale el giro. `null` = aún sin inicializar: en
+  // el primer frame se pone al valor actual, para que entrar a la página a
+  // media altura no dispare un giro de puesta al día.
+  const scrollSuave = useRef<number | null>(null);
   // Centro de repulsión: persigue al cursor con retraso. Ese retraso ES la
   // inercia — cuando el puntero se aleja, el centro tarda en seguirlo y los
   // puntos vuelven poco a poco en vez de saltar a su sitio. Sustituye a la
@@ -448,52 +452,58 @@ export default function GearPoints({
     m.uniforms.uAspect.value = size.width / size.height;
 
     if (!reducedMotion) {
-      // Scroll -> giro. Se lee de window y no de un store: es un valor que ya
-      // está calculado, y suscribirse a otro sitio solo añadiría trabajo.
+      // ---- Scroll -> giro
       //
-      // Y se usa TAL CUAL, sin amortiguar (V18.04). Antes pasaba por un lerp
-      // de 0.08 por frame, y una amortiguación por frame supone que los frames
-      // llegan a un ritmo regular: en modo demand no llegan, así que en cada
-      // frame suelto el valor daba un tirón del 8% de la distancia pendiente y
-      // el giro salía a tirones. Además el scroll YA viene suavizado por Lenis,
-      // así que aquello era amortiguar dos veces. Leyéndolo directo, la pose de
-      // la figura es siempre la que le toca al scroll actual: si un frame no
-      // llega, simplemente no se dibuja ese instante, pero nada se desincroniza
-      // ni se acumula.
+      // El recorrido se ACOTA y además se AMORTIGUA, y hacen falta las dos
+      // cosas porque limitan cosas distintas:
+      //
+      //  · El tope limita CUÁNTO gira en total. Sin él, el giro salía del
+      //    scrollY absoluto, que en la home llega a decenas de miles de
+      //    píxeles: al salir del hero la figura seguía acumulando vueltas
+      //    mientras se dispersaba. El tope replica el recorrido del pin del
+      //    hero (su `end`: +160% en móvil, +360% en escritorio), así que la
+      //    rotación se queda quieta justo cuando la figura deja de verse.
+      //  · La amortiguación limita LO RÁPIDO que gira, que es lo que de verdad
+      //    se veía descontrolado. Con el hero pineado, esos 3.600px de
+      //    recorrido se recorren en un flick de ~0,3s, y leyendo el scroll
+      //    directo eso son ~190 grados en 0,3s: más de 600 grados por segundo.
+      //    Ninguna cota de posición arregla eso, porque el problema no es
+      //    dónde acaba sino a qué velocidad llega.
+      //
+      // Y se amortigua POR TIEMPO (1 - exp(-dt/TAU)), no con un factor fijo por
+      // frame. Ese fue el error de la versión anterior a V18.04 y por eso se
+      // quitó: con factor fijo, un frame tardío avanza lo mismo que uno
+      // puntual, y en modo demand los frames llegan irregulares — de ahí los
+      // trompicones. Por tiempo, lo que avanza depende del tiempo transcurrido
+      // de verdad, así que sale suave a cualquier ritmo de frames.
       const sY = window.scrollY;
       const dScroll = sY - scrollAct.current;
       scrollAct.current = sY;
-      // TOPE al final del hero. El giro se medía sobre el scrollY absoluto, que
-      // en la home llega a decenas de miles de píxeles: al salir del hero la
-      // figura seguía acumulando vueltas, y como justo ahí es cuando se está
-      // dispersando, lo que se veía era una nube deshaciéndose mientras giraba
-      // sin freno — más aún con un scroll rápido, que multiplica el giro por
-      // frame. Saturando el valor, la rotación se queda quieta en cuanto el
-      // hero termina y la nube solo se dispersa, que es lo que tiene que hacer.
-      //
-      // El tope replica el recorrido del pin del hero (ver el `end` de su
-      // timeline en Hero.tsx: +160% en móvil, +360% en escritorio). No hace
-      // falta que sea exacto —solo que caiga al final del hero, donde la figura
-      // ya no se ve— pero si allí se cambia ese valor, este quiere seguirlo.
-      const s = Math.min(sY, size.height * (isMobile ? 1.6 : 3.6));
+      const sTope = Math.min(sY, size.height * (isMobile ? 1.6 : 3.6));
+      // Arranca en el valor actual: si se entra a la página a media altura, la
+      // figura no tiene que girar desde cero hasta ponerse al día.
+      if (scrollSuave.current === null) scrollSuave.current = sTope;
+      // TAU 0.4s: un flick que antes giraba 190 grados en 0,3s ahora reparte
+      // ese mismo giro a lo largo de algo más de un segundo, y al parar el
+      // scroll el giro converge y se detiene solo.
+      scrollSuave.current += (sTope - scrollSuave.current) * (1 - Math.exp(-dt / 0.4));
+      const s = scrollSuave.current;
 
       // TRES EJES a la vez, con periodos que no son múltiplos entre sí: la
-      // combinación no vuelve a repetirse en todo el scroll de la página, así
-      // que la pieza nunca pasa dos veces por la misma pose.
-      //  · Z rueda sin parar — es una rueda, y da el hilo continuo.
-      //  · Y e X cabecean dentro de un tope. El tope es la clave: girando en Y
-      //    sin límite, a los ~1500px la rueda se pone de canto y se queda en
-      //    una raya vertical de puntos. A ±35° y ±24° se escorza de verdad,
-      //    enseña el grosor y sigue leyéndose como lo que es.
-      p.rotation.z = s * 0.0009;
+      // combinación no vuelve a repetirse en todo el recorrido, así que la pieza
+      // nunca pasa dos veces por la misma pose.
+      //  · Z rueda — es una rueda, y da el hilo continuo.
+      //  · Y cabecea dentro de un tope: girando sin límite, la rueda se pone de
+      //    canto y se queda en una raya vertical de puntos.
+      //  · X bascula hacia el visitante, el giro "de frente".
+      //
+      // Los factores bajan a la mitad (Z 0.0009 -> 0.00045, X 0.00055 ->
+      // 0.00028): sobre el recorrido acotado del hero eso son unos 90 grados en
+      // Z y 55 en X de principio a fin, suficiente para que se vea girar y
+      // escorzarse sin que parezca que se ha desbocado.
+      p.rotation.z = s * 0.00045;
       p.rotation.y = Math.sin(s * 0.00042) * 0.62;
-      // X CONTINUA, no oscilando: la pieza bascula hacia el visitante y se le
-      // ve la cara, el canto y el dorso a lo largo del scroll — el giro "de
-      // frente". Va lenta (una vuelta cada ~11.400px, aprox. una por página
-      // entera) para que al cruzar el canto sea un instante y no un parpadeo
-      // constante; y como Z sigue rodando por su cuenta, incluso en ese
-      // instante hay movimiento que mirar.
-      p.rotation.x = s * 0.00055;
+      p.rotation.x = s * 0.00028;
 
       // ---- Cursor: UNA amortiguación, y por TIEMPO
       //
@@ -537,14 +547,18 @@ export default function GearPoints({
       p.rotation.y += centro.current.x * 0.16;
       p.rotation.x += centro.current.y * 0.12;
 
-      // Frames mientras algo siga moviéndose: el centro persiguiendo al
-      // puntero, o la fuerza entrando/saliendo. Cuando ambos han convergido no
-      // se pide nada y la escena vuelve a su modo demand.
+      // Frames mientras algo siga moviéndose: el giro alcanzando al scroll, el
+      // centro persiguiendo al puntero o la fuerza entrando/saliendo. El primero
+      // es imprescindible desde que el giro va amortiguado — sin él, al soltar
+      // el scroll dejarían de pedirse frames y la rotación se quedaría clavada a
+      // mitad de camino. Cuando los tres convergen no se pide nada y la escena
+      // vuelve a su modo demand.
+      const giroVivo = Math.abs(sTope - s) > 0.5;
       const centroVivo =
         Math.abs(ratonObj.current.x - centro.current.x) > 0.0005 ||
         Math.abs(ratonObj.current.y - centro.current.y) > 0.0005;
       const fuerzaViva = Math.abs(objFuerza - fuerza.current) > 0.002;
-      if (Math.abs(dScroll) > 0.5 || centroVivo || fuerzaViva) invalidate();
+      if (Math.abs(dScroll) > 0.5 || giroVivo || centroVivo || fuerzaViva) invalidate();
     }
 
     // ---- La nube vive SOLO durante el hero

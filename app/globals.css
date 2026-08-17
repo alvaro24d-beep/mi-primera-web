@@ -1700,8 +1700,40 @@ p.nxr-hero-mastery-line {
   /* Respiración muy contenida: da vida sin convertirse en un "loader". */
   animation: nxr-curtain-logo 2.4s ease-in-out infinite;
 }
-.nxr-curtain-logo-in span {
+/* ENTRADA del nombre, letra a letra (V18.19). Cada letra sube un poco y se
+   enfoca, escalonada por su `animation-delay` en el TSX.
+   `backwards` y no `forwards`: los dos evitan el parpadeo inicial —aplican el
+   primer keyframe durante el retardo, así que la letra no asoma antes de
+   tocarle—, pero `forwards` dejaría la animación RELLENANDO para siempre y el
+   elemento compositado aparte. Con `backwards`, al terminar cada letra vuelve
+   a su estado natural y no queda nada colgando. */
+.nxr-curtain-letra {
+  display: inline-block;
+  animation: nxr-curtain-letra 0.6s cubic-bezier(0.22, 1, 0.36, 1) backwards;
+}
+
+@keyframes nxr-curtain-letra {
+  from {
+    opacity: 0;
+    transform: translateY(0.4em);
+    filter: blur(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+    filter: blur(0);
+  }
+}
+
+.nxr-curtain-punto {
   color: var(--c-lime);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  /* Sin entrada escalonada: el nombre está desde el primer frame. */
+  .nxr-curtain-letra {
+    animation: none;
+  }
 }
 @keyframes nxr-curtain-logo {
   0%,

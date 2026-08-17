@@ -4,7 +4,6 @@ import { useEffect, useMemo, useRef } from "react";
 import { useFrame, useThree } from "@react-three/fiber";
 import * as THREE from "three";
 import { RIPPLE } from "./rippleParams";
-import { poseSeccion } from "@/store/sceneActivity";
 
 // ---- Concave "inside a cylinder" backdrop, now a TV wall ------------------
 // A large vertical-axis cylindrical wall section behind everything in the
@@ -502,10 +501,6 @@ export default function SceneBackground({
 
   const target = useRef({ x: 0, y: 0 });
   const current = useRef({ x: 0, y: 0 });
-  // Pose del muro por sección: objetivo (lo que dicta la sección en pantalla) y
-  // valor amortiguado (lo que se dibuja). Ver el bloque en el useFrame.
-  const poseTarget = useRef({ x: 0, y: 0 });
-  const pose = useRef({ x: 0, y: 0 });
   const scratchSize = useRef(new THREE.Vector2());
   // Encendido de pantalla (V17.10): en la home el muro arranca APAGADO en
   // la hero y se enciende al llegar la Intro. `null` = primer frame (se
@@ -1135,58 +1130,22 @@ export default function SceneBackground({
     c.x += (t.x - c.x) * 0.09;
     c.y += (t.y - c.y) * 0.09;
 
-    // ===== Recolocación del muro por sección (V17.95) =====
-    // El muro se planta en una posición distinta en cada sección, sobre el
-    // mismo eje que ya usa el parallax del ratón: es el MISMO gesto, solo que
-    // el que manda no es el cursor sino en qué parte de la página estás.
-    //
-    // Se mueve el muro y NO la cámara, y eso no es una preferencia: PixelCamera
-    // sostiene la invariante de que 1 unidad de mundo == 1 píxel CSS a z=0, y
-    // las cards de Servicios, las de ZoomParallax y los paneles de cristal se
-    // colocan cada frame a partir de getBoundingClientRect() de su ancla del
-    // DOM. Mover la cámara desplazaría todas esas mallas respecto al HTML al
-    // que van pegadas, que es el bug más caro que se puede introducir aquí.
-    //
-    // La pose sale del ÍNDICE de la sección por el ángulo áureo (2.39996 rad):
-    // repartir así un círculo garantiza que dos secciones seguidas nunca caigan
-    // cerca —el salto se nota siempre— y que la vuelta no se cierre en un ciclo
-    // corto y reconocible, sin tener que elegir a mano la pose de cada una. La
-    // sección 0 se queda en el centro exacto porque es la hero, que ya está
-    // afinada como está.
-    const i = poseSeccion.indice;
-    const ang = i * 2.399963;
-    const pt = poseTarget.current;
-    pt.x = i === 0 ? 0 : Math.cos(ang);
-    pt.y = i === 0 ? 0 : Math.sin(ang);
-    const p = pose.current;
-    // 0.045: ~1s en asentarse. Lento a propósito — esto tiene que leerse como
-    // un movimiento de cámara que acompaña, no como un tirón al cruzar el
-    // borde de una sección.
-    p.x += (pt.x - p.x) * 0.045;
-    p.y += (pt.y - p.y) * 0.045;
-
+    // (V18.19: aquí vivía la recolocación del muro por sección — cada sección
+    // lo plantaba en una pose distinta, sacada del índice por el ángulo áureo.
+    // Se ha eliminado a petición: ese movimiento al cruzar de sección se leía
+    // como un desplazamiento de cámara y molestaba al bajar. El muro solo
+    // responde ya al parallax del cursor, que es su gesto de siempre.)
     const group = groupRef.current;
     if (group) {
-      // Amplitud mayor que la del ratón (0.09/0.065) para que el cambio de
-      // sección se lea por encima de él, pero contenida: el muro es un arco
-      // cóncavo y pasados unos grados empiezan a asomar sus bordes.
-      group.rotation.y = c.x * 0.09 + p.x * 0.14;
-      group.rotation.x = -c.y * 0.065 + p.y * 0.1;
+      group.rotation.y = c.x * 0.09;
+      group.rotation.x = -c.y * 0.065;
     }
     const mat = matRef.current;
     if (mat) {
-      (mat.uniforms.uFocus.value as THREE.Vector2).set(
-        0.5 + c.x * 0.14 + p.x * 0.1,
-        0.46 - c.y * 0.11 - p.y * 0.08
-      );
+      (mat.uniforms.uFocus.value as THREE.Vector2).set(0.5 + c.x * 0.14, 0.46 - c.y * 0.11);
     }
 
-    if (
-      Math.abs(t.x - c.x) > 0.001 ||
-      Math.abs(t.y - c.y) > 0.001 ||
-      Math.abs(pt.x - p.x) > 0.001 ||
-      Math.abs(pt.y - p.y) > 0.001
-    )
+    if (Math.abs(t.x - c.x) > 0.001 || Math.abs(t.y - c.y) > 0.001)
       invalidate();
   });
 

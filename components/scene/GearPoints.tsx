@@ -107,7 +107,13 @@ const vertexShader = /* glsl */ `
     // se lee mejor —la nube colapsa sobre sí misma en vez de venir de un
     // amasijo sin forma— y, sobre todo, aquí NO hay ningún normalize() que
     // pueda toparse con un vector nulo y devolver NaN.
-    vec3 disperso = position * (2.3 + semB * 1.9) + (vec3(semilla, semB, semC) - 0.5) * 1.3;
+    // Se abre a 1,4..1,9 veces su radio, no a 2,3..4,2 como antes. Aquello
+    // cuadruplicaba el tamaño de la figura, y como la velocidad a la que un
+    // punto cruza la pantalla es su radio por la velocidad angular, la nube
+    // dispersa se movía cuatro veces más rápido que la formada. Con una
+    // apertura contenida la dispersión se lee igual de bien y no hay ningún
+    // salto de escala.
+    vec3 disperso = position * (1.4 + semB * 0.5) + (vec3(semilla, semB, semC) - 0.5) * 1.1;
     vec3 base = mix(disperso, position, e);
 
     // La figura NO tiene movimiento propio. Cada punto derivaba alrededor de su
@@ -479,13 +485,22 @@ export default function GearPoints({
       const sY = window.scrollY;
       const dScroll = sY - scrollAct.current;
       scrollAct.current = sY;
-      const sTope = Math.min(sY, size.height * (isMobile ? 1.6 : 3.6));
+      // CONGELADO fuera del hero, y esto es lo que faltaba. Al dispersarse, cada
+      // punto se va a position*(2,3..4,2): la figura multiplica su RADIO por
+      // cuatro. Y la velocidad con que un punto cruza la pantalla es su radio
+      // por la velocidad angular, así que con la misma rotación de siempre los
+      // puntos pasaban a moverse cuatro veces más rápido — justo al terminar
+      // maestría, que es cuando arranca la dispersión. No era el giro lo que se
+      // desbocaba, era el radio. Dejando de actualizar el objetivo cuando el
+      // hero sale de pantalla, la nube se limita a abrirse y apagarse.
+      const sTope = heroVisible.current
+        ? Math.min(sY, size.height * (isMobile ? 1.6 : 3.6))
+        : (scrollSuave.current ?? 0);
       // Arranca en el valor actual: si se entra a la página a media altura, la
       // figura no tiene que girar desde cero hasta ponerse al día.
       if (scrollSuave.current === null) scrollSuave.current = sTope;
-      // TAU 0.4s: un flick que antes giraba 190 grados en 0,3s ahora reparte
-      // ese mismo giro a lo largo de algo más de un segundo, y al parar el
-      // scroll el giro converge y se detiene solo.
+      // TAU 0.4s: reparte el giro de un flick a lo largo de algo más de un
+      // segundo, y al parar el scroll converge y se detiene solo.
       scrollSuave.current += (sTope - scrollSuave.current) * (1 - Math.exp(-dt / 0.4));
       const s = scrollSuave.current;
 

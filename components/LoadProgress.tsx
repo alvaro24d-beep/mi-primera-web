@@ -343,9 +343,23 @@ export default function LoadProgress() {
           dos animan `opacity` y, en un mismo elemento, la animación gana a la
           transición — de ahí el destello que hacía que el logo se fuera de
           golpe al dar paso a las ondas (ver globals.css). */}
+      {/* El nombre entra LETRA A LETRA. Cada nivel del árbol lleva una cosa y
+          solo una, que es lo que permite que las tres animaciones convivan sin
+          pisarse: el div de fuera, la salida (transición); el span de en medio,
+          la respiración de la espera (animación infinita); y cada letra, su
+          entrada. Meter la entrada en el span de en medio habría chocado con
+          la respiración — las dos animan `opacity` y en un mismo elemento solo
+          manda una. */}
       <div className="nxr-curtain-logo">
         <span className="nxr-curtain-logo-in">
-          arcfine<span>.</span>
+          {"arcfine".split("").map((ch, i) => (
+            <span key={i} className="nxr-curtain-letra" style={{ animationDelay: `${i * 0.07}s` }}>
+              {ch}
+            </span>
+          ))}
+          <span className="nxr-curtain-letra nxr-curtain-punto" style={{ animationDelay: "0.49s" }}>
+            .
+          </span>
         </span>
       </div>
     </div>

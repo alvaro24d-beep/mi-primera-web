@@ -54,21 +54,22 @@ const PUNTOS_DIBUJADOS_MOVIL = 2800;
 // perspectiva para que la rotación se lea.
 const Z = -420;
 
-// Posiciones del cursor que siguen "empujando" a la vez. La 0 es la actual y
-// las demás son el rastro que va apagándose (ver la estela en el componente).
-const ESTELA = 10;
-
 const vertexShader = /* glsl */ `
-  #define ESTELA ${ESTELA}
   uniform float uSize;
   uniform float uDpr;
-  // xy = posición en NDC, z = FUERZA con signo de esa marca del rastro, ya
-  // pasada por la envolvente del muelle. Se calcula en JS y no aquí (V18.03):
-  // depende solo de la EDAD de la marca, que es idéntica para los 13.000
-  // vértices, así que evaluarla en el shader era resolver diez exponenciales y
-  // diez cosenos por vértice para obtener diez números que son los mismos para
-  // todos. Se calculan una vez por frame en la CPU y llegan ya hechos.
-  uniform vec3 uEstela[ESTELA];
+  // UN SOLO centro de repulsión, en NDC, y ya amortiguado en JS (V18.15).
+  //
+  // Antes esto era una ESTELA de diez marcas con su edad y una envolvente de
+  // muelle, y de ahí venían los dos defectos que se veían. El trompicón: las
+  // diez marcas viven en un buffer circular, así que cada 35ms una casilla se
+  // REEMPLAZABA y su contribución saltaba de golpe de un sitio a otro. El
+  // temblor: la envolvente llevaba un coseno que cruza el cero, de modo que
+  // cada marca tiraba hacia fuera y hacia dentro alternativamente, diez de
+  // ellas desfasadas entre sí. Ninguna de las dos cosas se arregla ajustando
+  // números: son discontinuidades del propio diseño. Con un único centro que
+  // persigue al cursor no hay nada que reciclar ni que oscile.
+  uniform vec2 uCursor;
+  uniform float uFuerza;    // 0..1, sube y baja suave: entrada y salida del efecto
   uniform float uMouseOn;   // 0 en táctil: ni se calcula la repulsión
   uniform float uAspect;
   uniform float uRadio;     // radio de influencia del cursor, en NDC
@@ -125,56 +126,30 @@ const vertexShader = /* glsl */ `
     // que mantiene el efecto correcto mientras la figura gira con el scroll: el
     // punto huye siempre en la dirección en que el usuario lo ve.
     //
-    // Tres cosas la hacen orgánica en vez de "un círculo recortado":
+    // Es UNA resta, UNA división y UNA suma. Todo lo que tenía movimiento
+    // propio —el rastro de diez marcas, la envolvente de muelle, el remolino
+    // tangencial, la rigidez por punto— se ha quitado: cada una de esas piezas
+    // aportaba su propia discontinuidad, y juntas hacían que el efecto
+    // temblara. Lo que hace que esto se vea suave no es ningún truco de aquí
+    // dentro, es que uCursor y uFuerza llegan ya suavizados desde JS y son
+    // continuos por construcción.
     //
-    //  1. CAÍDA SIN BORDE. Antes era un smoothstep con uRadio de frontera, y
-    //     un smoothstep tiene un final EXACTO: a esa distancia la fuerza pasa a
-    //     ser cero de golpe y ahí se dibujaba el contorno del círculo. Ahora es
-    //     1/(1+q³), la forma de un campo de fuerza real: no llega a cero nunca,
-    //     solo se vuelve despreciable, así que el hueco no tiene canto.
-    //  2. MUELLE, no rampa. La fuerza de cada marca del rastro decae como
-    //     exp(-edad)·cos(edad): un oscilador amortiguado. El coseno cruza el
-    //     cero y se hace ligeramente negativo, o sea que el punto se pasa un
-    //     poco de vuelta y se asienta — que es como se mueve algo con masa, y
-    //     no como algo que regresa a su sitio y se para en seco.
-    //  3. CADA PUNTO RESPONDE A SU MANERA. Su rigidez cambia cuánto le afecta y
-    //     su giro le mete una componente tangencial con signo propio, así que el
-    //     material se arremolina un poco al abrirse en vez de apartarse en
-    //     bloque radialmente.
-    //
-    // El bucle no tiene ramas: una entrada sin usar lleva una edad enorme y su
-    // exponencial vale 0, así que el coste es fijo y sin divergencia.
-    if (uMouseOn > 0.5) {
+    // La caída es 1/(1+q³), la forma de un campo de fuerza real: no llega a
+    // cero nunca, solo se vuelve despreciable, así que el hueco no tiene canto
+    // (un smoothstep sí termina en una distancia exacta, y ahí se dibujaba el
+    // contorno del círculo).
+    if (uMouseOn > 0.5 && uFuerza > 0.001) {
       vec4 clip = projectionMatrix * mv;
       vec2 ndc = clip.xy / clip.w;
-      vec2 desp = vec2(0.0);
-      float giro = (semC - 0.5) * 0.7;
-      // Fuera del bucle: solo depende de la semilla del punto, así que dentro
-      // se recalculaba diez veces el mismo número.
-      float kGiro = inversesqrt(1.0 + giro * giro);
-      for (int i = 0; i < ESTELA; i++) {
-        vec2 dif = ndc - uEstela[i].xy;
-        dif.x *= uAspect;            // sin esto el área de influencia sale ovalada
-        float d = length(dif);
-        float q = d / uRadio;
-        float caida = 1.0 / (1.0 + q * q * q * 2.0);
-        // Mezcla de radial y tangencial SIN normalize(): dir y su perpendicular
-        // son ortonormales, así que el módulo de la suma es exactamente
-        // sqrt(1+giro²) y basta con dividir por él. Un normalize() aquí sería
-        // 0/0 —y por tanto NaN propagado a la posición del vértice— en cuanto
-        // un punto cayera justo encima de una marca del rastro, que con el
-        // cursor quieto es exactamente lo que acaba pasando.
-        vec2 dir = dif / max(d, 1e-4);
-        dir = (dir + vec2(-dir.y, dir.x) * giro) * kGiro;
-        desp += dir * caida * uEstela[i].z;
-      }
-      desp *= 0.75 + semB * 0.55;    // rigidez propia de cada punto
-      // Tope de magnitud: donde el rastro se solapa consigo mismo (un giro
-      // cerrado del ratón) las contribuciones se suman y sin esto el punto
-      // saldría disparado fuera de la pantalla.
-      float m = length(desp);
-      if (m > 1.0) desp /= m;
-      mv.xy += desp * uEmpuje;
+      vec2 dif = ndc - uCursor;
+      dif.x *= uAspect;              // sin esto el área de influencia sale ovalada
+      float d = length(dif);
+      float q = d / uRadio;
+      float caida = 1.0 / (1.0 + q * q * q * 2.0);
+      // max() y no normalize(): con el punto exactamente sobre el cursor,
+      // normalize(vec2(0.0)) es 0/0 y propaga NaN a gl_Position.
+      vec2 dir = dif / max(d, 1e-4);
+      mv.xy += dir * caida * uFuerza * uEmpuje;
     }
 
     gl_Position = projectionMatrix * mv;
@@ -244,23 +219,19 @@ export default function GearPoints({
   // Ratón y scroll: objetivo -> valor amortiguado, el patrón del resto de la
   // escena. Los dos viven en refs porque se leen y escriben cada frame.
   const ratonObj = useRef(new THREE.Vector2(0, 0));
-  const raton = useRef(new THREE.Vector2(0, 0));
   // Último scrollY visto: ya no es un "objetivo a alcanzar" con amortiguación,
   // solo sirve para saber cuánto se ha movido desde el frame anterior.
   const scrollAct = useRef(0);
-  // Estela: la entrada 0 es SIEMPRE la posición actual del cursor (edad 0, para
-  // que dejar el puntero quieto encima mantenga el hueco abierto) y las 1..n-1
-  // son un buffer circular con las posiciones por las que ha pasado. La z de
-  // cada una es su EDAD en segundos; 99 = casilla sin usar (su exponencial en
-  // el shader vale 0, así que no empuja sin necesidad de una rama).
-  const estela = useRef<THREE.Vector3[]>(
-    Array.from({ length: ESTELA }, () => new THREE.Vector3(0, 0, 99))
-  );
-  const siguiente = useRef(1);
-  const desdeMarca = useRef(0);
-  // Última posición en la que se soltó una marca: sirve para saber si el cursor
-  // se ha movido de verdad desde entonces (ver la siembra en el useFrame).
-  const ultimaMarca = useRef(new THREE.Vector2(0, 0));
+  // Centro de repulsión: persigue al cursor con retraso. Ese retraso ES la
+  // inercia — cuando el puntero se aleja, el centro tarda en seguirlo y los
+  // puntos vuelven poco a poco en vez de saltar a su sitio. Sustituye a la
+  // estela de diez marcas, que daba esa misma sensación pero a costa de
+  // reciclar casillas (saltos) y de oscilar (temblor).
+  const centro = useRef(new THREE.Vector2(0, 0));
+  // 0..1. Sube al entrar el puntero en la ventana y baja al salir, así que el
+  // efecto no aparece ni desaparece de golpe.
+  const fuerza = useRef(0);
+  const punteroDentro = useRef(false);
   const ultimoT = useRef(0);
   // Opacidad a la que se dibuja la nube ya formada. Se guarda aparte porque el
   // useFrame la modula con el avance de `form` para apagarla al dispersarse.
@@ -347,9 +318,9 @@ export default function GearPoints({
       // se dibuja a resolución física; ~0.33 en un iPhone, donde el buffer va a
       // dpr 1 y la pantalla es 3x. Ver el fragment.
       uAA: { value: 1 },
-      // El array se pasa por referencia: se mutan los Vector3 en su sitio cada
-      // frame y three sube el bloque entero, sin reasignar ni reservar nada.
-      uEstela: { value: Array.from({ length: ESTELA }, () => new THREE.Vector3(0, 0, 0)) },
+      // Se muta en su sitio cada frame, sin reasignar ni reservar nada.
+      uCursor: { value: new THREE.Vector2(0, 0) },
+      uFuerza: { value: 0 },
       uMouseOn: { value: 0 },
       uAspect: { value: 1 },
       uRadio: { value: 0.3 },
@@ -395,10 +366,25 @@ export default function GearPoints({
     if (reducedMotion || isMobile) return;
     const onMove = (e: MouseEvent) => {
       ratonObj.current.set((e.clientX / window.innerWidth) * 2 - 1, -((e.clientY / window.innerHeight) * 2 - 1));
+      punteroDentro.current = true;
       invalidate();
     };
+    // Al salir el puntero de la ventana la fuerza baja a 0 y el efecto se
+    // retira solo, en vez de quedarse un hueco abierto en la última posición
+    // conocida. `mouseout` con relatedTarget nulo es la forma fiable de
+    // detectar que el puntero ha abandonado la ventana de verdad.
+    const onOut = (e: MouseEvent) => {
+      if (!e.relatedTarget) {
+        punteroDentro.current = false;
+        invalidate();
+      }
+    };
     window.addEventListener("mousemove", onMove, { passive: true });
-    return () => window.removeEventListener("mousemove", onMove);
+    document.addEventListener("mouseout", onOut, { passive: true });
+    return () => {
+      window.removeEventListener("mousemove", onMove);
+      document.removeEventListener("mouseout", onOut);
+    };
   }, [reducedMotion, isMobile, invalidate]);
 
   // El SCROLL también tiene que pedir frames (V18.04). La nube gira con el
@@ -474,78 +460,48 @@ export default function GearPoints({
       // instante hay movimiento que mirar.
       p.rotation.x = s * 0.00055;
 
-      // AMORTIGUACIÓN SOLO PARA EL TILT, nunca para la repulsión. Antes el
-      // cursor entero pasaba por un lerp de 0.09 — unos 25 frames (~0.4s) en
-      // converger — y la repulsión salía de ESE valor retrasado: el hueco
-      // perseguía al puntero medio segundo por detrás, que es exactamente la
-      // sensación de "no va fluido". El retraso no era del render sino del
-      // dato. La inclinación del conjunto sí quiere ir suave (es un gesto de
-      // cámara, no una respuesta directa), así que se queda con su lerp.
-      const dr = ratonObj.current.clone().sub(raton.current);
-      raton.current.addScaledVector(dr, 0.12);
+      // ---- Cursor: UNA amortiguación, y por TIEMPO
+      //
+      // `1 - exp(-dt/TAU)` en vez del típico lerp de factor fijo. Un lerp del
+      // 12% "por frame" supone que los frames llegan a ritmo constante, y aquí
+      // no llegan: la escena va en modo demand y los frames los reparte el
+      // vídeo del muro a su propio ritmo. Con factor fijo, un frame tardío
+      // avanza lo mismo que uno puntual, y eso se ve exactamente como
+      // trompicones. Con la exponencial, lo que avanza depende del tiempo que
+      // ha pasado de verdad, así que el recorrido es el mismo a 30fps que a
+      // 120 y el movimiento sale suave aunque el ritmo sea irregular.
+      //
+      // TAU 0.09s para el centro: bastante rápido para que el hueco siga al
+      // puntero sin retraso perceptible, y bastante lento para que al alejarse
+      // los puntos vuelvan con inercia en vez de saltar a su sitio.
+      const kCentro = 1 - Math.exp(-dt / 0.09);
+      centro.current.x += (ratonObj.current.x - centro.current.x) * kCentro;
+      centro.current.y += (ratonObj.current.y - centro.current.y) * kCentro;
+      // La fuerza entra y sale más despacio (TAU 0.22s): así el efecto no
+      // aparece de golpe al entrar el puntero ni se corta en seco al salir.
+      const kFuerza = 1 - Math.exp(-dt / 0.22);
+      const objFuerza = punteroDentro.current && !isMobile ? 1 : 0;
+      fuerza.current += (objFuerza - fuerza.current) * kFuerza;
+
       m.uniforms.uMouseOn.value = isMobile ? 0 : 1;
-      // Ademas de repeler, el cursor inclina el conjunto: da la lectura de
-      // volumen que un punto suelto no puede dar.
-      p.rotation.y += raton.current.x * 0.16;
-      p.rotation.x += raton.current.y * 0.12;
+      (m.uniforms.uCursor.value as THREE.Vector2).copy(centro.current);
+      m.uniforms.uFuerza.value = fuerza.current;
 
-      // ---- Estela del cursor
-      const est = estela.current;
-      const uni = m.uniforms.uEstela.value as THREE.Vector3[];
-      // La 0 va a la posición CRUDA del puntero y con edad 0: es la respuesta
-      // directa y tiene que llegar en el mismo frame. Con el puntero quieto
-      // encima se queda recién puesta, así que el hueco no se cierra solo.
-      est[0].set(ratonObj.current.x, ratonObj.current.y, 0);
-      // Las demás ENVEJECEN. Se cuenta en segundos y no en frames para que el
-      // rastro dure lo mismo a 30 que a 120fps.
-      for (let i = 1; i < ESTELA; i++) est[i].z += dt;
-      // Marcas nuevas a intervalo fijo (~35ms) Y SOLO SI EL CURSOR SE HA
-      // MOVIDO. Las dos condiciones hacen falta, cada una arregla un problema
-      // distinto y quitar cualquiera de ellas rompe algo:
-      //
-      //  · Por tiempo (y no cada cierta distancia recorrida, como era antes de
-      //    V18.02) porque sembrando por distancia un movimiento lento no
-      //    soltaba marca durante un buen rato y luego soltaba una de golpe: el
-      //    rastro avanzaba a saltos en vez de fluir.
-      //  · Pero solo con movimiento, porque sembrar también con el puntero
-      //    QUIETO —lo que hacía V18.02— tenía dos efectos feos. Las diez marcas
-      //    caían en el mismo sitio con edades distintas, y como el buffer es
-      //    circular la suma de sus fuerzas cambiaba cada vez que se reciclaba
-      //    una casilla: los puntos TEMBLABAN bajo un cursor parado. Y la estela
-      //    no llegaba a morir nunca, así que el invalidate() de abajo no
-      //    paraba y la escena entera —muro y captura de transmisión incluidos—
-      //    se quedaba renderizando a 60fps de forma permanente. De ahí el lag.
-      //
-      // El umbral es diminuto (0.004 en NDC, unos 4px): basta para distinguir
-      // "quieto" de "moviéndose despacio" sin reintroducir los saltos.
-      desdeMarca.current += dt;
-      const movido = ratonObj.current.distanceTo(ultimaMarca.current) > 0.004;
-      if (desdeMarca.current >= 0.035 && movido) {
-        desdeMarca.current = 0;
-        ultimaMarca.current.copy(ratonObj.current);
-        est[siguiente.current].set(ratonObj.current.x, ratonObj.current.y, 0);
-        siguiente.current = 1 + (siguiente.current % (ESTELA - 1));
-      }
-      // La envolvente del muelle se resuelve AQUÍ, no en el shader: depende
-      // solo de la edad, que es la misma para los 13.000 vértices. exp(-t·2.4)
-      // amortigua y cos(t·5) es lo que cruza el cero y hace que el punto se
-      // pase un poco de vuelta antes de asentarse.
-      uni[0].set(est[0].x, est[0].y, 1);
-      for (let i = 1; i < ESTELA; i++) {
-        const edad = est[i].z;
-        uni[i].set(est[i].x, est[i].y, Math.exp(-edad * 2.4) * Math.cos(edad * 5));
-      }
+      // Además de repeler, el cursor inclina el conjunto: da la lectura de
+      // volumen que un punto suelto no puede dar. Reutiliza el mismo centro
+      // amortiguado, así que no hay un segundo suavizado que pueda desfasarse
+      // del primero.
+      p.rotation.y += centro.current.x * 0.16;
+      p.rotation.x += centro.current.y * 0.12;
 
-      // Mientras algo siga asentándose hay que seguir pidiendo frames: aquí
-      // entra también la estela, que sigue moviendo puntos DESPUÉS de que el
-      // ratón se haya parado.
-      // Sin closure por frame (el .some creaba uno): esto corre en cada frame
-      // renderizado de toda la web.
-      let estelaViva = false;
-      for (let i = 1; i < ESTELA; i++) {
-        if (est[i].z < 1.6) { estelaViva = true; break; }
-      }
-      if (Math.abs(dScroll) > 0.5 || dr.lengthSq() > 1e-6 || estelaViva) invalidate();
+      // Frames mientras algo siga moviéndose: el centro persiguiendo al
+      // puntero, o la fuerza entrando/saliendo. Cuando ambos han convergido no
+      // se pide nada y la escena vuelve a su modo demand.
+      const centroVivo =
+        Math.abs(ratonObj.current.x - centro.current.x) > 0.0005 ||
+        Math.abs(ratonObj.current.y - centro.current.y) > 0.0005;
+      const fuerzaViva = Math.abs(objFuerza - fuerza.current) > 0.002;
+      if (Math.abs(dScroll) > 0.5 || centroVivo || fuerzaViva) invalidate();
     }
 
     // ---- La nube vive SOLO durante el hero

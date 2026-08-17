@@ -4,7 +4,6 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useFrame, useThree } from "@react-three/fiber";
 import * as THREE from "three";
 import { CAMERA_DISTANCE } from "./PixelCamera";
-import { poseSeccion } from "@/store/sceneActivity";
 
 // ===== Nube de puntos con la forma del modelo (V17.85) =====
 // Una rueda de radios dibujada solo con puntos, flotando ENTRE el muro de
@@ -243,6 +242,10 @@ export default function GearPoints({
   // Marca de tiempo real del último frame, para que el avance de `form` no
   // dependa de cuántos frames lleguen.
   const ultimoMs = useRef(0);
+  // ¿El hero está en pantalla? Lo mantiene un IntersectionObserver (más abajo)
+  // y decide si la figura está montada o dispersa. Arranca en true para que la
+  // animación de entrada ocurra desde el primer frame, sin esperar al observer.
+  const heroVisible = useRef(true);
 
   useEffect(() => {
     let cancelado = false;
@@ -403,6 +406,26 @@ export default function GearPoints({
     return () => window.removeEventListener("scroll", onScroll);
   }, [reducedMotion, invalidate]);
 
+  // ¿Se está viendo el hero? De esto depende que la figura esté montada o
+  // dispersa, así que se pregunta DIRECTAMENTE por el elemento en vez de
+  // deducirlo de un índice de sección. Un IntersectionObserver no cuesta nada
+  // por frame y no puede desincronizarse del DOM real.
+  useEffect(() => {
+    const hero = document.getElementById("nxr-hero");
+    if (!hero) return;
+    const io = new IntersectionObserver(
+      ([e]) => {
+        heroVisible.current = e.isIntersecting;
+        invalidate();
+      },
+      // Sin margen: la figura empieza a deshacerse justo cuando el hero deja de
+      // asomar por el borde, no antes.
+      { threshold: 0 }
+    );
+    io.observe(hero);
+    return () => io.disconnect();
+  }, [invalidate]);
+
   useFrame(({ clock }) => {
     const m = matRef.current;
     const p = puntosRef.current;
@@ -483,10 +506,18 @@ export default function GearPoints({
       // ha pasado de verdad, así que el recorrido es el mismo a 30fps que a
       // 120 y el movimiento sale suave aunque el ritmo sea irregular.
       //
-      // TAU 0.09s para el centro: bastante rápido para que el hueco siga al
-      // puntero sin retraso perceptible, y bastante lento para que al alejarse
-      // los puntos vuelvan con inercia en vez de saltar a su sitio.
-      const kCentro = 1 - Math.exp(-dt / 0.09);
+      // TAU 0.26s para el centro (era 0.09). Este número ES el tiempo que
+      // tardan los puntos en recomponerse: el hueco lo abre el centro, y los
+      // puntos vuelven a su sitio al ritmo al que el centro se aleja de ellos.
+      // Subirlo hace que el centro quede más atrás del puntero, así que al pasar
+      // el cursor la nube se cierra por detrás despacio, con viscosidad.
+      //
+      // El precio es inevitable y conviene tenerlo claro: con el centro más
+      // rezagado, el hueco también sigue al puntero con algo más de retraso. No
+      // son dos ajustes independientes, es el mismo. 0.26s da inercia clara sin
+      // que el hueco se sienta desengachado del cursor; a partir de ~0.4s ya se
+      // percibe como que va detrás.
+      const kCentro = 1 - Math.exp(-dt / 0.26);
       centro.current.x += (ratonObj.current.x - centro.current.x) * kCentro;
       centro.current.y += (ratonObj.current.y - centro.current.y) * kCentro;
       // La fuerza entra y sale más despacio (TAU 0.22s): así el efecto no
@@ -519,14 +550,19 @@ export default function GearPoints({
     // ---- La nube vive SOLO durante el hero
     //
     // La figura acompaña al titular y a las frases de maestría, que son la
-    // misma sección (#nxr-hero, con su pin), y en cuanto el visitante pasa de
-    // ahí se deshace: los puntos se dispersan y se apagan. Volviendo arriba se
-    // vuelven a juntar, porque el objetivo se recalcula solo.
+    // misma sección (#nxr-hero, con su pin). Al salir de ahí se dispersa y se
+    // apaga; al volver, se junta otra vez. Las dos direcciones salen del mismo
+    // objetivo, así que no hay estado que reiniciar ni caminos distintos para
+    // ir y volver.
     //
-    // El detector es el índice de sección que ya mantiene SceneCanvas —índice 0
-    // es siempre la primera sección del documento, o sea el hero— así que no
-    // hace falta medir rects ni escuchar scroll aparte.
-    const objetivo = reducedMotion ? 1 : poseSeccion.indice === 0 ? 1 : 0;
+    // El detector es un IntersectionObserver sobre el propio #nxr-hero (arriba),
+    // y no el índice de sección de SceneCanvas como hasta V18.16. Aquel era un
+    // dato INDIRECTO: "el hero es la sección número 0 del documento". Basta con
+    // que aparezca cualquier <section id> antes en el DOM, o con que ninguna
+    // sección cruce la banda central del observer, para que el índice deje de
+    // ser 0 y la figura no vuelva a formarse nunca. Preguntar directamente si el
+    // hero se ve no puede fallar por eso.
+    const objetivo = reducedMotion || heroVisible.current ? 1 : 0;
     if (reducedMotion) {
       form.current = 1;
     } else {
@@ -536,9 +572,11 @@ export default function GearPoints({
       const ahora = performance.now();
       const dtReal = ultimoMs.current ? Math.min(0.25, (ahora - ultimoMs.current) / 1000) : 0.016;
       ultimoMs.current = ahora;
-      // Se junta despacio (2,2s, es la entrada y se mira) y se deshace algo más
-      // rápido (1,2s): al irse ya no es el foco y no conviene que se arrastre.
-      const paso = dtReal / (objetivo > form.current ? 2.2 : 1.2);
+      // 2,2s para juntarse y 1,8s para deshacerse. La dispersión estaba en 1,2s
+      // y era demasiado corta: se leía como "desaparece de golpe" en vez de como
+      // una nube que se abre. Sigue siendo algo más rápida que la entrada,
+      // porque al irse ya no es el foco.
+      const paso = dtReal / (objetivo > form.current ? 2.2 : 1.8);
       form.current =
         objetivo > form.current
           ? Math.min(objetivo, form.current + paso)
@@ -553,10 +591,14 @@ export default function GearPoints({
     // volvía a entrar nunca y se quedaba dispersa para siempre.
     m.uniforms.uForm.value = form.current;
     // Y ADEMÁS se apaga al dispersarse, que es lo que la hace desaparecer de
-    // verdad en vez de dejar un polvo suelto por la pantalla. El x1.6 la funde
-    // antes de terminar de esparcirse: para cuando los puntos estarían lejos de
-    // su sitio, ya no se ven.
-    m.uniforms.uOpacity.value = OPACIDAD * Math.min(1, form.current * 1.6);
+    // verdad en vez de dejar polvo suelto por la pantalla.
+    //
+    // El x1.25 (era x1.6) reparte el fundido por CASI TODO el recorrido en vez
+    // de concentrarlo al final: con 1.6, la nube estaba a plena opacidad hasta
+    // que ya se había esparcido bastante y entonces se apagaba de una — otra de
+    // las cosas que hacían que pareciera irse de golpe. Ahora se abre y se apaga
+    // a la vez, que es lo que se lee como dispersarse.
+    m.uniforms.uOpacity.value = OPACIDAD * Math.min(1, form.current * 1.25);
   });
 
   if (!geo) return null;

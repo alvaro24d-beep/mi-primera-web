@@ -406,7 +406,12 @@ export default function SceneCanvas() {
             demás (0), y como no escribe profundidad, cualquier card que pase
             por delante la tapa. De regalo, entra en la captura de transmisión
             y el cristal la refracta. */}
-        <GearPoints isMobile={isMobile} reducedMotion={reducedMotion} />
+        {/* SOLO EN LA HOME. La nube es el acompañamiento del hero y de las
+            frases de maestría, no un fondo del sitio entero: fuera de "/" no se
+            monta, así que ni se descarga el .bin ni se dibujan sus puntos ni
+            pide frames. El canvas persiste entre rutas, de modo que basta con
+            que deje de renderizarse para que desaparezca al navegar. */}
+        {pathname === "/" && <GearPoints isMobile={isMobile} reducedMotion={reducedMotion} />}
         <ServiciosCardsLayer />
         <ZoomParallaxCardsLayer isMobile={isMobile} />
         <GlassPanelsLayer />

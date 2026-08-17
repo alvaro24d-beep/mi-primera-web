@@ -1781,17 +1781,16 @@ p.nxr-hero-mastery-line {
   margin-top: 44px;
 }
 
-/* El de la fase de "Construido con maestría": mismas piezas, pero anclado al
-   pie del escenario en vez de ir en flujo bajo el CTA. Arranca invisible
-   porque quien lo enciende es la timeline del hero, cuando las frases empiezan
-   a escribirse (ver Hero.tsx). */
-.nxr-hero-cue-mastery {
+/* El indicador ÚNICO del hero, anclado al pie del escenario en vez de ir en
+   flujo bajo el CTA. Al estar fuera de .nxr-hero-fade no se desvanece con el
+   titular, así que sigue ahí durante las frases y no hace falta un segundo
+   indicador para ellas. Lo apaga la timeline en la fase 3. */
+.nxr-hero-cue-fijo {
   position: absolute;
   left: 50%;
   bottom: 7vh;
   transform: translateX(-50%);
   margin-top: 0;
-  opacity: 0;
   pointer-events: none;
   z-index: 3;
 }
@@ -1800,7 +1799,7 @@ p.nxr-hero-mastery-line {
   /* Más arriba en el teléfono: la barra de navegación inferior se come unos
      83px, y en una pantalla de 700px de alto un 7vh son 49px — el indicador
      habría caído justo detrás de ella. */
-  .nxr-hero-cue-mastery {
+  .nxr-hero-cue-fijo {
     bottom: 16vh;
   }
 }

@@ -46,18 +46,12 @@ function HeroCopy() {
         </Link>
       </div>
 
-      {/* Indicador de deslizar, reutilizando las piezas del .nxr-scrollcue de
-          /desarrollo-web y /agentes-ia (misma rueda y misma tipografía) pero
-          en FLUJO bajo el CTA en vez de anclado a una esquina. Vive dentro de
-          HeroCopy a propósito: así lo envuelve .nxr-hero-fade y se desvanece
-          con el resto del hero en la fase 1 del scrub, sin necesitar su propia
-          animación. */}
-      <div className="nxr-hero-cue nxr-reveal nxr-reveal-delay-5" aria-hidden="true">
-        <span className="nxr-scrollcue-wheel">
-          <i />
-        </span>
-        <span className="nxr-scrollcue-txt">Desliza</span>
-      </div>
+      {/* (El indicador de deslizar ya no vive aquí. Estaba dentro de HeroCopy,
+          que .nxr-hero-fade desvanece en la fase 1, así que desaparecía justo
+          antes de las frases y hacía falta un segundo indicador para ellas:
+          dos elementos distintos para una sola idea. Ahora es UNO solo,
+          hermano del escenario, que acompaña las dos fases sin interrupción —
+          ver el <div> al final de Hero.) */}
     </div>
   );
 }
@@ -110,7 +104,7 @@ export default function Hero() {
       const q = gsap.utils.selector(section);
       const fade = q(".nxr-hero-fade")[0] as HTMLElement | undefined;
       const mastery = q(".nxr-hero-mastery")[0] as HTMLElement | undefined;
-      const cueMastery = q(".nxr-hero-cue-mastery")[0] as HTMLElement | undefined;
+      const cueFijo = q(".nxr-hero-cue-fijo")[0] as HTMLElement | undefined;
       const lines = q(".nxr-hero-mastery-line");
 
       // V16.23 — ENTRADA POR ESCRITURA A MÁQUINA ("quiero que sea de
@@ -220,14 +214,10 @@ export default function Hero() {
         1.1
       );
 
-      // El indicador de deslizar acompaña a las frases: entra cuando empiezan a
-      // escribirse y se va con ellas. Atado a la MISMA timeline y a los mismos
-      // instantes que las fases 2 y 3, así que no puede desincronizarse del
-      // texto ni quedarse colgado si el visitante sube y baja.
-      if (cueMastery) {
-        tl.to(cueMastery, { opacity: 1, duration: 0.35, ease: "none" }, 1.1);
-        tl.to(cueMastery, { opacity: 0, duration: 0.5, ease: "none" }, 2.7);
-      }
+      // El indicador acompaña TODO el hero y solo se va al final, con las
+      // frases (fase 3). No se apaga y enciende entre fases: es el mismo
+      // elemento de principio a fin, que es justo lo que se pidió.
+      if (cueFijo) tl.to(cueFijo, { opacity: 0, duration: 0.5, ease: "none" }, 2.7);
 
       // Hold so it's readable.
       tl.to({}, { duration: 0.6 }, 2.1);
@@ -244,6 +234,16 @@ export default function Hero() {
       <>
         <section key="static" id="nxr-hero" className="nxr-hero-static" ref={sectionRef}>
           <HeroCopy />
+          {/* En esta rama el indicador va EN FLUJO, bajo el CTA: aquí no hay
+              escenario pineado al que anclarlo, y sin él la versión de
+              movimiento reducido se quedaba sin ninguna pista de que hay que
+              seguir bajando. */}
+          <div className="nxr-hero-cue" aria-hidden="true">
+            <span className="nxr-scrollcue-wheel">
+              <i />
+            </span>
+            <span className="nxr-scrollcue-txt">Desliza</span>
+          </div>
         </section>
         <div className="nxr-hero-mastery-static">
           <p className="nxr-hero-mastery-line">Construido con maestría.</p>
@@ -262,11 +262,12 @@ export default function Hero() {
         <h2 className="nxr-hero-mastery">
           <MasteryLines />
         </h2>
-        {/* El mismo indicador que hay bajo el CTA, para la fase de las frases.
-            Va FUERA del <h2> (un h2 solo admite contenido de frase) y por eso
-            no hereda su visibilidad: lo enciende y lo apaga la propia timeline,
-            entrando con la escritura y saliendo cuando las frases se van. */}
-        <div className="nxr-hero-cue nxr-hero-cue-mastery" aria-hidden="true">
+        {/* EL indicador de deslizar, uno solo para todo el hero. Está fuera de
+            .nxr-hero-fade (que se desvanece en la fase 1) y fuera del <h2> (un
+            h2 solo admite contenido de frase), así que sobrevive al relevo
+            entre el titular y las frases y se lee como un único elemento
+            continuo. Solo se va en la fase 3, cuando las frases suben. */}
+        <div className="nxr-hero-cue nxr-hero-cue-fijo nxr-reveal nxr-reveal-delay-5" aria-hidden="true">
           <span className="nxr-scrollcue-wheel">
             <i />
           </span>

@@ -262,15 +262,16 @@ export default function GearPoints({
   // se ha movido de verdad desde entonces (ver la siembra en el useFrame).
   const ultimaMarca = useRef(new THREE.Vector2(0, 0));
   const ultimoT = useRef(0);
-  // Entrada: 0 = polvo disperso, 1 = figura montada. Ver uForm en el shader.
-  // t0 es el instante en que arranca el viaje (0 = aún no ha empezado), y se
-  // fija en el primer frame en que la nube existe de verdad.
+  // Opacidad a la que se dibuja la nube ya formada. Se guarda aparte porque el
+  // useFrame la modula con el avance de `form` para apagarla al dispersarse.
+  const OPACIDAD = isMobile ? 0.9 : 0.5;
+  // 0 = polvo disperso, 1 = figura montada (ver uForm en el shader). Persigue a
+  // un objetivo que depende de si el hero está en pantalla, así que la misma
+  // variable sirve para la entrada y para el deshacerse al salir.
   const form = useRef(0);
-  const t0 = useRef(0);
-  // Pose de la nube por sección: objetivo y valor amortiguado. z es un -1..1
-  // que la acerca o la aleja de la cámara.
-  const poseObj = useRef({ x: 0, y: 0, z: 0 });
-  const pose = useRef({ x: 0, y: 0, z: 0 });
+  // Marca de tiempo real del último frame, para que el avance de `form` no
+  // dependa de cuántos frames lleguen.
+  const ultimoMs = useRef(0);
 
   useEffect(() => {
     let cancelado = false;
@@ -379,9 +380,11 @@ export default function GearPoints({
       // 1,2px de disco hace falta hasta la última décima.
       // En móvil no hay EffectComposer (es desktop-only, ver SceneCanvas), así
       // que no hay umbral que respetar y el punto puede ser blanco de verdad.
-      uOpacity: { value: isMobile ? 0.9 : 0.5 },
+      // Valor inicial: el useFrame lo reescribe cada frame multiplicándolo por
+      // el avance de `form`, que es lo que apaga la nube al dispersarse.
+      uOpacity: { value: OPACIDAD },
     }),
-    [isMobile]
+    [OPACIDAD]
   );
 
   // El cursor mueve la nube, así que hay que pedir frames: en modo demand nadie
@@ -533,75 +536,59 @@ export default function GearPoints({
         uni[i].set(est[i].x, est[i].y, Math.exp(-edad * 2.4) * Math.cos(edad * 5));
       }
 
-      // ---- Posición de la nube según la sección (V18.02)
-      // Deja de estar clavada en el centro: cada sección la manda a un sitio y
-      // a una profundidad distintos. La pose sale del índice de sección por el
-      // ángulo áureo, igual que la del muro, pero DESFASADA (el +1.1) para que
-      // las dos no se muevan a la vez ni hacia el mismo lado — si compartieran
-      // ángulo, el conjunto se leería como una sola cosa desplazándose.
-      // El índice 0 (la hero) se queda centrado y a su z de siempre: es donde
-      // la figura tiene que estar mientras se lee el titular.
-      const idx = poseSeccion.indice;
-      const a = idx * 2.399963 + 1.1;
-      const po = poseObj.current;
-      // Amplitudes contenidas (0.16 del ancho, 0.10 del alto): con las
-      // anteriores —casi el doble— la figura llegaba a asomarse fuera del
-      // encuadre en pantallas estrechas y parecía que "desaparecía". Se sigue
-      // moviendo de sección en sección, pero sin salirse nunca.
-      po.x = idx === 0 ? 0 : Math.cos(a) * 0.16;
-      po.y = idx === 0 ? 0 : Math.sin(a * 1.3) * 0.1;
-      po.z = idx === 0 ? 0 : Math.sin(a * 0.7);
-      const pa = pose.current;
-      pa.x += (po.x - pa.x) * 0.035;
-      pa.y += (po.y - pa.y) * 0.035;
-      pa.z += (po.z - pa.z) * 0.035;
-      // x/y en fracción de viewport (así el encuadre aguanta en cualquier
-      // pantalla) y z en px de mundo. El rango de z es asimétrico a propósito:
-      // acercarse agranda la figura por perspectiva y a partir de cierto punto
-      // se comería el contenido, así que se aleja más de lo que se acerca.
-      p.position.x = pa.x * size.width;
-      p.position.y = pa.y * size.height;
-      p.position.z = Z + pa.z * 220;
-
       // Mientras algo siga asentándose hay que seguir pidiendo frames: aquí
       // entra también la estela, que sigue moviendo puntos DESPUÉS de que el
-      // ratón se haya parado, y el viaje de la nube entre secciones.
+      // ratón se haya parado.
       // Sin closure por frame (el .some creaba uno): esto corre en cada frame
       // renderizado de toda la web.
       let estelaViva = false;
       for (let i = 1; i < ESTELA; i++) {
         if (est[i].z < 1.6) { estelaViva = true; break; }
       }
-      const poseViva =
-        Math.abs(po.x - pa.x) > 0.0005 ||
-        Math.abs(po.y - pa.y) > 0.0005 ||
-        Math.abs(po.z - pa.z) > 0.0005;
-      if (Math.abs(dScroll) > 0.5 || dr.lengthSq() > 1e-6 || estelaViva || poseViva) invalidate();
+      if (Math.abs(dScroll) > 0.5 || dr.lengthSq() > 1e-6 || estelaViva) invalidate();
     }
 
-    // ---- Entrada: el polvo se agrupa hasta formar la pieza
+    // ---- La nube vive SOLO durante el hero
     //
-    // El progreso se LEE DEL RELOJ en vez de acumularse sumando dt frame a
-    // frame: en una pestaña en segundo plano el navegador estrangula
-    // requestAnimationFrame, y con la versión acumulativa la nube se quedaba a
-    // medio formar (medido: 13% después de un minuto). Contra el reloj, los
-    // frames que falten simplemente se saltan.
+    // La figura acompaña al titular y a las frases de maestría, que son la
+    // misma sección (#nxr-hero, con su pin), y en cuanto el visitante pasa de
+    // ahí se deshace: los puntos se dispersan y se apagan. Volviendo arriba se
+    // vuelven a juntar, porque el objetivo se recalcula solo.
+    //
+    // El detector es el índice de sección que ya mantiene SceneCanvas —índice 0
+    // es siempre la primera sección del documento, o sea el hero— así que no
+    // hace falta medir rects ni escuchar scroll aparte.
+    const objetivo = reducedMotion ? 1 : poseSeccion.indice === 0 ? 1 : 0;
     if (reducedMotion) {
       form.current = 1;
     } else {
-      if (t0.current === 0) t0.current = performance.now();
-      form.current = Math.min(1, (performance.now() - t0.current) / 2200);
-      if (form.current < 1) invalidate();
+      // Avanza contra el RELOJ REAL, no acumulando el dt de R3F: en una pestaña
+      // en segundo plano el navegador estrangula requestAnimationFrame y la
+      // versión acumulativa se quedaba a medias (medido: 13% tras un minuto).
+      const ahora = performance.now();
+      const dtReal = ultimoMs.current ? Math.min(0.25, (ahora - ultimoMs.current) / 1000) : 0.016;
+      ultimoMs.current = ahora;
+      // Se junta despacio (2,2s, es la entrada y se mira) y se deshace algo más
+      // rápido (1,2s): al irse ya no es el foco y no conviene que se arrastre.
+      const paso = dtReal / (objetivo > form.current ? 2.2 : 1.2);
+      form.current =
+        objetivo > form.current
+          ? Math.min(objetivo, form.current + paso)
+          : Math.max(objetivo, form.current - paso);
+      if (form.current !== objetivo) invalidate();
     }
-    // Y se ESCRIBE SIEMPRE, no solo mientras la animación avanza. Esto es lo
-    // que hacía que la figura "desapareciera" al volver de otra pestaña: los
+    // Se ESCRIBE SIEMPRE, no solo mientras la animación avanza. Esto es lo que
+    // hacía que la figura "desapareciera" al volver de otra pestaña: los
     // uniforms viven en un useMemo, y cuando React lo recalcula crea un objeto
-    // nuevo con uForm en 0 —o sea, la nube otra vez hecha polvo—. Como para
-    // entonces la animación ya había terminado, la rama que escribía el uniform
-    // no volvía a entrar nunca y la nube se quedaba dispersa para siempre.
-    // Escribiéndolo en cada frame, el uniform refleja el estado real se recree
-    // el objeto las veces que se recree.
+    // nuevo con uForm en 0 —la nube otra vez hecha polvo—. Como para entonces
+    // la animación ya había terminado, la rama que escribía el uniform no
+    // volvía a entrar nunca y se quedaba dispersa para siempre.
     m.uniforms.uForm.value = form.current;
+    // Y ADEMÁS se apaga al dispersarse, que es lo que la hace desaparecer de
+    // verdad en vez de dejar un polvo suelto por la pantalla. El x1.6 la funde
+    // antes de terminar de esparcirse: para cuando los puntos estarían lejos de
+    // su sitio, ya no se ven.
+    m.uniforms.uOpacity.value = OPACIDAD * Math.min(1, form.current * 1.6);
   });
 
   if (!geo) return null;

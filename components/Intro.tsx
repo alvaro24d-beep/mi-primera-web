@@ -52,7 +52,16 @@ const SPREAD = 0.55;
 // pero a simple vista indistinguible de estar parado, que es justo lo que
 // había que evitar. A 0.7 el mínimo es el 30% y el centro se mueve el doble,
 // sin perder la frenada (los extremos van al 170%).
-const SLOW_K = 0.7;
+//
+// En MÓVIL baja a 0.3 (V18.22). El reparto es un juego de suma cero: cuanto más
+// frena el centro, más se aceleran los extremos, y son los extremos los que
+// dibujan la entrada y la salida. Con 0.7 iban al 170% de velocidad y sobre una
+// sección corta eso se veía como que el texto aparecía y desaparecía de golpe.
+// A 0.3 los extremos van al 130%: entrada y salida duran bastante más, a cambio
+// de una frenada central menos marcada — que es tiempo en el que el texto está
+// quieto, o sea justo el scroll que sobraba.
+const SLOW_K_DESKTOP = 0.7;
+const SLOW_K_MOVIL = 0.3;
 // Banda alrededor del centro en la que el texto se lee a plena opacidad. Es lo
 // que sustituye a la antigua meseta: el texto sigue moviéndose (despacio)
 // mientras tanto, en vez de estar parado.
@@ -224,7 +233,8 @@ export default function Intro() {
           // Una sola curva continua, sin tramos: −1 entrando · 0 centrado ·
           // +1 saliendo. Frena al acercarse al centro y acelera al alejarse,
           // pero el valor cambia SIEMPRE (nunca hay dos frames iguales).
-          const eased = p + (SLOW_K * Math.sin(2 * Math.PI * p)) / (2 * Math.PI);
+          const slowK = horizontal ? SLOW_K_MOVIL : SLOW_K_DESKTOP;
+          const eased = p + (slowK * Math.sin(2 * Math.PI * p)) / (2 * Math.PI);
           const k = (eased - 0.5) * 2;
 
           // El fundido va por LÍNEAS y desacoplado de la posición: dentro de

@@ -247,11 +247,8 @@ export default function GearPoints({
   // Marca de tiempo real del último frame, para que el avance de `form` no
   // dependa de cuántos frames lleguen.
   const ultimoMs = useRef(0);
-  // ¿La figura debe estar formada? Lo mantiene un IntersectionObserver (más
-  // abajo) y es simplemente "la Intro todavía no asoma". Arranca en true para
-  // que la animación de entrada corra desde el primer frame, sin esperar al
-  // observer.
-  const montada = useRef(true);
+  // El <section id="nxr-intro">: marca el punto donde la figura deja de verse.
+  const introEl = useRef<HTMLElement | null>(null);
 
   useEffect(() => {
     let cancelado = false;
@@ -412,28 +409,12 @@ export default function GearPoints({
     return () => window.removeEventListener("scroll", onScroll);
   }, [reducedMotion, invalidate]);
 
-  // ¿Se está viendo el hero? De esto depende que la figura esté montada o
-  // dispersa, así que se pregunta DIRECTAMENTE por el elemento en vez de
-  // deducirlo de un índice de sección. Un IntersectionObserver no cuesta nada
-  // por frame y no puede desincronizarse del DOM real.
+  // Los dos elementos de los que se deduce todo: el hero da el progreso del
+  // giro y la Intro dice hasta dónde llega la figura. Se buscan una vez.
   useEffect(() => {
     heroEl.current = document.getElementById("nxr-hero");
-    // Se observa la INTRO, no el hero: la figura se dispersa en cuanto la Intro
-    // asoma por abajo. Mirando el hero, la dispersión llegaba tarde — su pin lo
-    // hace tan alto que sigue intersectando el viewport un buen rato después de
-    // que la Intro ya esté entrando.
-    const intro = document.getElementById("nxr-intro");
-    if (!intro) return;
-    const io = new IntersectionObserver(
-      ([e]) => {
-        montada.current = !e.isIntersecting;
-        invalidate();
-      },
-      { threshold: 0 }
-    );
-    io.observe(intro);
-    return () => io.disconnect();
-  }, [invalidate]);
+    introEl.current = document.getElementById("nxr-intro");
+  }, []);
 
   useFrame(({ clock }) => {
     const m = matRef.current;
@@ -559,7 +540,17 @@ export default function GearPoints({
     // sección cruce la banda central del observer, para que el índice deje de
     // ser 0 y la figura no vuelva a formarse nunca. Preguntar directamente si el
     // hero se ve no puede fallar por eso.
-    const objetivo = reducedMotion || montada.current ? 1 : 0;
+    // Formada mientras la Intro NO haya asomado por abajo, y solo entonces. Se
+    // mira la POSICIÓN del rect, no si intersecta: "no intersecta" es cierto
+    // tanto antes de la Intro como después, así que con un
+    // IntersectionObserver la figura se dispersaba al llegar a la Intro y se
+    // volvía a formar al pasarla — apareciendo en las secciones siguientes, que
+    // es justo lo que no debe hacer. Con la posición, `top` solo vuelve a ser
+    // grande subiendo, de modo que la figura reaparece al regresar al hero y no
+    // al avanzar.
+    const rIntro = introEl.current?.getBoundingClientRect();
+    const enZona = rIntro ? rIntro.top > size.height * 0.85 : true;
+    const objetivo = reducedMotion || enZona ? 1 : 0;
     if (reducedMotion) {
       form.current = 1;
     } else {

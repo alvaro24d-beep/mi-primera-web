@@ -1817,6 +1817,17 @@ p.nxr-hero-mastery-line {
   margin-top: 44px;
 }
 
+/* Aparece y desaparece EN SU SITIO, sin desplazarse. Lleva `.nxr-reveal` para
+   heredar su fundido de entrada, pero esa clase trae también un
+   `translateY(32px) -> 0`, y ese desplazamiento es lo que hacía que el
+   indicador subiera. Anulando el transform en las dos fases de la clase queda
+   solo el fundido; la salida ya era opacidad pura (la pone la timeline del
+   hero). */
+.nxr-hero-cue.nxr-reveal,
+.nxr-hero-cue.nxr-reveal.nxr-visible {
+  transform: none;
+}
+
 /* En BLANCO, y solo el de la hero (V18.02). Las piezas se comparten con el
    .nxr-scrollcue de /desarrollo-web y /agentes-ia, donde van en una esquina
    sobre fondo despejado y con 0.42/0.55 de blanco se leen de sobra. Aquí el
@@ -6069,12 +6080,15 @@ input[type="range"].nxr-ms-range::-moz-range-thumb {
      directly from the headline, not a separate, distant block. */
   /* El alargue de escritorio (240vh) es solo para que allí se aprecie la
      desaparición; en móvil habría sido scroll de más sin motivo.
-     200 -> 150vh (V18.21, "que no haya que hacer tanto scroll"): como el
-     contenido va fijo al viewport, esta altura no maqueta nada, solo reparte el
-     recorrido del fundido. Acortarla no recorta contenido — hace que la entrada
-     y la salida ocurran en menos scroll. */
+     200 -> 150 -> 170vh. Como el contenido va fijo al viewport, esta altura no
+     maqueta nada: solo reparte el recorrido del fundido. Los 150 de V18.21
+     recortaban scroll pero dejaban la entrada y la salida demasiado rápidas, y
+     lo que de verdad sobraba no era recorrido sino la frenada central (ver
+     SLOW_K en Intro.tsx, que en móvil baja a 0.3). Con las dos cosas juntas
+     —algo más de pista y menos tiempo quieto— sale menos scroll que el original
+     y transiciones más largas que antes. */
   #nxr-intro {
-    height: 150vh;
+    height: 170vh;
   }
 
   .nxr-intro-inner {

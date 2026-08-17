@@ -219,9 +219,17 @@ export default function Hero() {
         1.1
       );
 
-      // El indicador acompaña TODO el hero y solo se va al final, con las
-      // frases (fase 3). No se apaga y enciende entre fases: es el mismo
-      // elemento de principio a fin, que es justo lo que se pidió.
+      // EL INDICADOR, entero, en una línea. Está visible desde que carga la
+      // página (su CSS no lo esconde) y lo único que se le hace es apagarlo al
+      // final, a la vez que las frases se van. Como la timeline va con scrub,
+      // subir deshace el tween y vuelve a aparecer: no hace falta nada más.
+      //
+      // Y lo lleva SOLO esta línea. Antes tenía además la clase `.nxr-reveal`,
+      // que le daba su propio fundido de entrada por transición CSS y un
+      // translateY: dos sistemas escribiendo la misma propiedad —uno inline
+      // desde GSAP y otro desde una clase— más un desplazamiento que nadie
+      // había pedido. De ahí que el indicador se moviera al entrar y que su
+      // opacidad no se comportara igual en todos los momentos.
       if (cueFijo) tl.to(cueFijo, { opacity: 0, duration: 0.5, ease: "none" }, 2.7);
 
       // Hold so it's readable.
@@ -269,7 +277,7 @@ export default function Hero() {
               mano. Y como la fase 1 desvanece .nxr-hero-center y no este
               wrapper, sobrevive al relevo entre el titular y las frases: es un
               único elemento continuo. Solo se va en la fase 3, con las frases. */}
-          <div className="nxr-hero-cue nxr-reveal nxr-reveal-delay-5" aria-hidden="true">
+          <div className="nxr-hero-cue" aria-hidden="true">
             <span className="nxr-scrollcue-wheel">
               <i />
             </span>

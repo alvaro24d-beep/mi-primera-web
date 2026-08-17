@@ -1817,16 +1817,6 @@ p.nxr-hero-mastery-line {
   margin-top: 44px;
 }
 
-/* Aparece y desaparece EN SU SITIO, sin desplazarse. Lleva `.nxr-reveal` para
-   heredar su fundido de entrada, pero esa clase trae también un
-   `translateY(32px) -> 0`, y ese desplazamiento es lo que hacía que el
-   indicador subiera. Anulando el transform en las dos fases de la clase queda
-   solo el fundido; la salida ya era opacidad pura (la pone la timeline del
-   hero). */
-.nxr-hero-cue.nxr-reveal,
-.nxr-hero-cue.nxr-reveal.nxr-visible {
-  transform: none;
-}
 
 /* En BLANCO, y solo el de la hero (V18.02). Las piezas se comparten con el
    .nxr-scrollcue de /desarrollo-web y /agentes-ia, donde van en una esquina

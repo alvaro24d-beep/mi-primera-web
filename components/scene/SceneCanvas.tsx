@@ -210,7 +210,10 @@ export default function SceneCanvas() {
     const alwaysIds = [
       "nxr-servicios",
       "nxr-zoom-parallax",
-      "nxr-intro",
+      // (nxr-intro salió en V18.25. Estaba aquí de cuando tenía sus tres cards
+      // de cristal, retiradas hace versiones: hoy no registra ni una malla —sus
+      // textos son DOM animado con GSAP— así que forzaba el bucle a 60fps
+      // durante 2,4 pantallas de recorrido para no dibujar nada.)
       // (nxr-proceso salió en V18.01, mismo caso que nxr-dwh-proceso: sus cards
       // dejaron de ser anclas de cristal, así que ya no hay ninguna malla que
       // seguir ahí y forzar el bucle a "always" eran 60fps por nada.)
@@ -297,21 +300,19 @@ export default function SceneCanvas() {
         // visible on either, and fill rate is this scene's dominant GPU cost
         // (fullscreen wall + transmission + bloom).
         //
-        // MÓVIL SUBE DE 1 A 2 (V17.93), y es la única forma de arreglar lo que
-        // se veía. A dpr 1 sobre un teléfono de densidad 3 el canvas se dibuja
-        // a un tercio de la resolución de la pantalla y el navegador ESTIRA el
-        // resultado x3: todo lo que hay dentro llega interpolado, y un detalle
-        // fino como un punto de 4px se convierte en una mancha de 12. Eso no lo
-        // arregla ningún shader —la información no está— y por eso tres
-        // intentos seguidos de afinar el punto no cambiaron nada en el móvil.
-        // A dpr 2 el estirado baja de x3 a x1.5.
+        // MÓVIL: 1 -> 2 (V17.93) -> 1.5 (V18.25). A dpr 1 el canvas se dibuja a
+        // un tercio de la resolución de un teléfono de densidad 3 y el navegador
+        // estira el resultado, así que un detalle fino como un punto de 4px
+        // llegaba convertido en una mancha; por eso se subió a 2.
         //
-        // Se paga: son 4 veces los píxeles que el shader del muro tiene que
-        // rellenar por frame, y el relleno es el coste dominante de esta
-        // escena. El tope es 2 y no el devicePixelRatio real precisamente por
-        // eso — a 3 serían 9 veces y no hay teléfono que lo sostenga con este
-        // muro. Si aparece lag en gama baja, la palanca es bajarlo a 1.5.
-        dpr={isMobile ? [1, 2] : [1, 1.25]}
+        // Baja a 1.5 porque el motivo de aquel 2 era la NITIDEZ DE LA NUBE, y la
+        // nube hoy solo se ve en el hero (V18.12). Se estaba pagando el coste en
+        // toda la web —el relleno va con el cuadrado del dpr, así que 2 son
+        // CUATRO veces los píxeles del muro a pantalla completa y 1.5 son 2,25:
+        // un 44% menos de relleno por frame en móvil— para una figura que ya no
+        // está en pantalla la mayor parte del recorrido. En el hero el punto
+        // conserva 1,9px de disco, que sigue por encima del suelo de 1,5.
+        dpr={isMobile ? [1, 1.5] : [1, 1.25]}
         camera={{ position: [0, 0, CAMERA_DISTANCE], fov: 50, near: 1, far: CAMERA_DISTANCE * 3 }}
         // antialias false on desktop too: every desktop frame goes through
         // EffectComposer, which renders into its own (multisampled) buffers —

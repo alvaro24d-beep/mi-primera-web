@@ -404,7 +404,15 @@ export default function GearPoints({
   // vez por rAF.
   useEffect(() => {
     if (reducedMotion) return;
-    const onScroll = () => invalidate();
+    // Solo se piden frames si la figura está EN JUEGO. Este listener pedía uno
+    // en cada evento de scroll de toda la home —o sea, renders del canvas a
+    // ritmo de scroll durante la página entera— cuando la nube solo se ve en el
+    // hero: una vez dispersa (form 0) no había nada que redibujar y se seguía
+    // pagando igual. El umbral deja pasar también la propia dispersión, que sí
+    // hay que ver terminar.
+    const onScroll = () => {
+      if (form.current > 0.001) invalidate();
+    };
     window.addEventListener("scroll", onScroll, { passive: true });
     return () => window.removeEventListener("scroll", onScroll);
   }, [reducedMotion, invalidate]);

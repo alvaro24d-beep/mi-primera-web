@@ -370,8 +370,13 @@ export default function Header() {
                 estado, sin re-render y sin riesgo de desajuste de hidratación. */}
             <span className="nxr-srv-btn-txt">Servicios</span>
             <span className="nxr-srv-btn-txt-movil">Menú</span>
+            {/* Apunta hacia ARRIBA en reposo, que es hacia donde se abre el
+                panel: esta barra vive abajo del todo, así que un chevron
+                mirando al suelo señalaba justo al revés de lo que iba a pasar.
+                Al abrirse rota 180° y pasa a mirar hacia abajo, indicando el
+                cierre (la rotación sigue en el CSS, .nxr-open). */}
             <svg className={`nxr-srv-chevron${srvOpen ? " nxr-open" : ""}`} viewBox="0 0 24 24">
-              <path d="M6 9l6 6 6-6" />
+              <path d="M6 15l6-6 6 6" />
             </svg>
           </button>
           <Link href="/nosotros" className={`nxr-nav-link${isActive("/nosotros") ? " active" : ""}`}>

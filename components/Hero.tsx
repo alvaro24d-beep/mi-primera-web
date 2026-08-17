@@ -110,6 +110,7 @@ export default function Hero() {
       const q = gsap.utils.selector(section);
       const fade = q(".nxr-hero-fade")[0] as HTMLElement | undefined;
       const mastery = q(".nxr-hero-mastery")[0] as HTMLElement | undefined;
+      const cueMastery = q(".nxr-hero-cue-mastery")[0] as HTMLElement | undefined;
       const lines = q(".nxr-hero-mastery-line");
 
       // V16.23 — ENTRADA POR ESCRITURA A MÁQUINA ("quiero que sea de
@@ -219,6 +220,15 @@ export default function Hero() {
         1.1
       );
 
+      // El indicador de deslizar acompaña a las frases: entra cuando empiezan a
+      // escribirse y se va con ellas. Atado a la MISMA timeline y a los mismos
+      // instantes que las fases 2 y 3, así que no puede desincronizarse del
+      // texto ni quedarse colgado si el visitante sube y baja.
+      if (cueMastery) {
+        tl.to(cueMastery, { opacity: 1, duration: 0.35, ease: "none" }, 1.1);
+        tl.to(cueMastery, { opacity: 0, duration: 0.5, ease: "none" }, 2.7);
+      }
+
       // Hold so it's readable.
       tl.to({}, { duration: 0.6 }, 2.1);
 
@@ -252,6 +262,16 @@ export default function Hero() {
         <h2 className="nxr-hero-mastery">
           <MasteryLines />
         </h2>
+        {/* El mismo indicador que hay bajo el CTA, para la fase de las frases.
+            Va FUERA del <h2> (un h2 solo admite contenido de frase) y por eso
+            no hereda su visibilidad: lo enciende y lo apaga la propia timeline,
+            entrando con la escritura y saliendo cuando las frases se van. */}
+        <div className="nxr-hero-cue nxr-hero-cue-mastery" aria-hidden="true">
+          <span className="nxr-scrollcue-wheel">
+            <i />
+          </span>
+          <span className="nxr-scrollcue-txt">Desliza</span>
+        </div>
       </div>
     </section>
   );

@@ -10,6 +10,7 @@ import { useReducedMotion } from "@/hooks/useReducedMotion";
 import { scrambleElement } from "@/hooks/useTextScramble";
 import Link from "next/link";
 import { useServiciosCardsRegistry } from "@/store/useServiciosCardsRegistry";
+import { esMovil } from "@/lib/scrollRitmo";
 
 gsap.registerPlugin(ScrollTrigger, SplitText);
 
@@ -680,7 +681,7 @@ export default function Servicios() {
               // trigger termina ahora en "bottom 115%", ver Intro.tsx): el
               // sticky de Servicios cae justo detrás del bottom de la Intro,
               // así que ambas cifras se miden en la misma escala y encadenan.
-              start: () => (window.innerWidth > 900 ? "top 135%" : "top 115%"),
+              start: () => (!esMovil() ? "top 135%" : "top 115%"),
               end: "top top",
               scrub: 0.5,
               invalidateOnRefresh: true,
@@ -851,7 +852,7 @@ export default function Servicios() {
       // departing card into either overlay. Desktop's is deliberately much
       // taller than the drum angle alone needs, so the helix's climb reads
       // clearly instead of looking like a flat horizontal strip.
-      const isDesktopUI = window.innerWidth > 900;
+      const isDesktopUI = !esMovil();
       // Cuánto del prólogo aguanta la frase a brillo y nitidez COMPLETOS antes
       // de empezar a disolverse, en fracción de PROLOGUE. Vale para los tres
       // sitios que necesitan saberlo —el tween de buildTl, la guarda de
@@ -1280,7 +1281,7 @@ export default function Servicios() {
         // First settle on mobile: force card 0 (unless the flick genuinely
         // sailed past card 1) and use the page-style ease-in-out glide —
         // see `presentedFirst` above.
-        const firstSettle = window.innerWidth <= 900 && !presentedFirst;
+        const firstSettle = esMovil() && !presentedFirst;
         let idx = nearestIdx(progress);
         if (firstSettle) {
           presentedFirst = true;
@@ -1419,7 +1420,7 @@ export default function Servicios() {
             // update truncates the inertia exactly at centre; the wall
             // lifts after the first settle, so the next swipe pages to
             // card 1 normally.
-            if (!presentedFirst && window.innerWidth <= 900 && !snapGliding) {
+            if (!presentedFirst && esMovil() && !snapGliding) {
               const cap = pOf(0);
               const capY = scrollAt(self, cap);
               const lenis = window.__nxrLenis;
@@ -1545,7 +1546,7 @@ export default function Servicios() {
           // El margen sigue al start del scrub en CADA breakpoint: si se
           // queda corto, el clamp apaga la frase mientras el scrub la
           // enciende (ver V17.59).
-          const head = window.innerHeight * (window.innerWidth > 900 ? 1.45 : 1.25);
+          const head = window.innerHeight * (!esMovil() ? 1.45 : 1.25);
           const outside = y < start - head || y > end || y > start + snapPro * 1.3;
           if (outside) {
             // BUG V17.57 → V17.58: el clamp leía y escribía en headTitle (el
@@ -1612,7 +1613,7 @@ export default function Servicios() {
       // the reel's ends, swiping outward is left alone so the user can
       // leave the section naturally. glideTo's per-frame immediate writes
       // also neutralise Lenis' leftover touch inertia each frame.
-      if (window.innerWidth <= 900) {
+      if (esMovil()) {
         let touchIdx = 0;
         let touchY = 0;
         let touchX = 0;

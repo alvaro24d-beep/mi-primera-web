@@ -7,6 +7,7 @@ import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { useTitleReveal } from "@/hooks/useTitleReveal";
 import { useReducedMotion } from "@/hooks/useReducedMotion";
 import { useGlassPanels } from "@/hooks/useGlassPanels";
+import { recorridoPin } from "@/lib/scrollRitmo";
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -208,7 +209,7 @@ export default function AgentesIaPasos() {
           : {
               trigger: stage,
               start: "top top",
-              end: "+=280%",
+              end: recorridoPin("aiaPasos"),
               scrub: 0.6,
               pin: stage,
               anticipatePin: 1,

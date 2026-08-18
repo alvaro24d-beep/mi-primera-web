@@ -5,6 +5,7 @@ import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { useGSAP } from "@gsap/react";
 import { useReducedMotion } from "@/hooks/useReducedMotion";
+import { recorridoPin } from "@/lib/scrollRitmo";
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -141,7 +142,7 @@ export default function SeoHero() {
         scrollTrigger: {
           trigger: section,
           start: "top top",
-          end: () => (window.innerWidth < 768 ? "+=300%" : "+=340%"),
+          end: recorridoPin("seoHero"),
           scrub: 0.6,
           pin: stage,
           anticipatePin: 1,

@@ -6,6 +6,7 @@ import gsap from "gsap";
 import { useGSAP } from "@gsap/react";
 import IphoneMock from "./dwh/IphoneMock";
 import DecryptedText from "./DecryptedText";
+import { recorridoPin } from "@/lib/scrollRitmo";
 
 // Three.js + R3F + drei + postprocessing is by far the heaviest JS on this
 // route. Load it as a separate chunk after hydration (`ssr: false`) so it
@@ -127,7 +128,7 @@ export default function DesarrolloWebHero() {
           // pin en ambos dispositivos. scrub normaliza la timeline completa
           // sobre esta distancia, así que comprime proporcionalmente sin
           // tocar los offsets.
-          end: () => (window.innerWidth < 768 ? "+=320%" : "+=380%"),
+          end: recorridoPin("dwhHero"),
           scrub: 0.6,
           pin: stage,
           anticipatePin: 1,

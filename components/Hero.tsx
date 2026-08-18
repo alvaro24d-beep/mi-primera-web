@@ -5,6 +5,7 @@ import Link from "next/link";
 import gsap from "gsap";
 import { useGSAP } from "@gsap/react";
 import { useReducedMotion } from "@/hooks/useReducedMotion";
+import { recorridoPin } from "@/lib/scrollRitmo";
 
 const ARROW = (
   <svg
@@ -167,7 +168,7 @@ export default function Hero() {
           start: "top top",
           // Mobile: 160% (was 220%) — the mastery phrases needed too many
           // swipes to get through ("que no haya que hacer tanto scroll").
-          end: () => (window.innerWidth < 768 ? "+=160%" : "+=360%"),
+          end: recorridoPin("hero"),
           scrub: 0.6,
           pin: stage,
           anticipatePin: 1,

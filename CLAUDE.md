@@ -102,6 +102,12 @@ Besides the global scene, a page can mount its own `<Canvas>` for a hero. `/desa
 - `RevealInit` — a single page-wide `IntersectionObserver` that adds `.nxr-visible` to any `.nxr-reveal` element for fade-in-on-scroll; sections just add the `nxr-reveal` class rather than wiring up their own observer.
 - `GradualBlur` ×2 — progressive backdrop-filter bands at top/bottom (`divCount={2}` on purpose: each div is a full-width blur pass the compositor re-runs on every canvas frame, so keep the count low; `strength` is calibrated against it — the outermost band blurs `0.0625·(divCount+1)·strength` rem, so changing one without the other changes the look), sitting above content but below the Header/floating nav (z-index 9998/9999). The component was pruned to these three props in V17.76 — it no longer accepts presets, responsive heights, hover intensity or `target`.
 
+### Scroll rhythm lives in one place
+
+`lib/scrollRitmo.ts` owns **the single mobile breakpoint for scroll** (`MOVIL_MAX = 900`, via `esMovil()`) and the **per-section pin distance table** (`RECORRIDO` + `recorridoPin(...)`). Before V18.26 each pinned component wrote its own `end: () => (window.innerWidth < 768 ? "+=X%" : "+=Y%")`, and **two different breakpoints coexisted** — some sections flipped to mobile at 768px and others at 900px, so between those widths (a portrait tablet) the page ran half in phone mode and half in desktop mode. Ten components now read from the module; there is no loose `900` left in `components/`.
+
+Deliberately **not** centralised, and the module says so: section heights in `vh` for non-pinned sections (they live in `globals.css` with their media query), the per-section split between "hold" and "transition" (`PROLOGUE`/`HOLD_FRASE` in Servicios, `SLOW_K`/`SPREAD` in Intro — not interchangeable between sections), Lenis' base feel in `SmoothScroll.tsx`, and the `< 768` checks that are about layout or GPU quality rather than gesture (notably `SceneCanvas`'s `isMobile`, which gates `dpr` and cloud density and *should* be independent).
+
 There's no shared "scroll context": components register their own native `scroll`/`resize` listeners independently. This works because Lenis drives the *real* browser scroll position (not a virtual one), so plain `window.scrollY` / native `scroll` events stay valid everywhere.
 
 ### Mobile viewport stability

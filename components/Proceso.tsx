@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useTitleReveal } from "@/hooks/useTitleReveal";
 import { useTextScramble } from "@/hooks/useTextScramble";
+import { esMovil } from "@/lib/scrollRitmo";
 
 const PASOS = [
   {
@@ -126,7 +127,7 @@ export default function Proceso() {
 
     const pasos = pasoRefs.current.filter(Boolean) as HTMLDivElement[];
     const totalPasos = pasos.length;
-    let isMobile = window.innerWidth <= 900;
+    let isMobile = esMovil();
     // Ancho de la pista cacheado (V17.76). `offsetWidth` es una LECTURA DE
     // LAYOUT y estaba dentro del handler de scroll: en esta sección el DOM
     // llega sucio a cada frame (Lenis mueve el scroll, GSAP anima arriba),
@@ -140,7 +141,7 @@ export default function Proceso() {
     let lastW = -1;
 
     function onWindowResize() {
-      isMobile = window.innerWidth <= 900;
+      isMobile = esMovil();
       trackW = track!.offsetWidth;
     }
     window.addEventListener("resize", onWindowResize, { passive: true });

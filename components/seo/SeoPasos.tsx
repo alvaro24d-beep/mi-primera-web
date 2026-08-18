@@ -7,6 +7,7 @@ import { useGSAP } from "@gsap/react";
 import { useReducedMotion } from "@/hooks/useReducedMotion";
 import { useGlassPanels } from "@/hooks/useGlassPanels";
 import { useTitleReveal } from "@/hooks/useTitleReveal";
+import { recorridoPin } from "@/lib/scrollRitmo";
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -73,7 +74,7 @@ export default function SeoPasos() {
         scrollTrigger: {
           trigger: section,
           start: "top top",
-          end: () => (window.innerWidth < 768 ? "+=220%" : "+=300%"),
+          end: recorridoPin("seoPasos"),
           scrub: 0.6,
           pin: stage,
           anticipatePin: 1,

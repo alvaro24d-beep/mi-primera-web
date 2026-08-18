@@ -4,6 +4,7 @@ import { useRef } from "react";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { SplitText } from "gsap/SplitText";
+import { esMovil } from "@/lib/scrollRitmo";
 import { useGSAP } from "@gsap/react";
 import { useReducedMotion } from "@/hooks/useReducedMotion";
 
@@ -195,9 +196,9 @@ export default function Intro() {
       aplicar(textLines, 1, false, false);
       gsap.set([title, texts], { opacity: 1 });
 
-      let horizontal = window.innerWidth <= 900;
+      let horizontal = esMovil();
       const onResize = () => {
-        horizontal = window.innerWidth <= 900;
+        horizontal = esMovil();
       };
       window.addEventListener("resize", onResize, { passive: true });
 
@@ -220,7 +221,7 @@ export default function Intro() {
         // Servicios pueda arrancar antes y su recorrido se acorte, sin dejar
         // hueco entre las dos: ambas cifras se miden contra la misma
         // referencia (el sticky de Servicios cae justo tras este bottom).
-        end: () => (window.innerWidth <= 900 ? "bottom 115%" : "bottom 150%"),
+        end: () => (esMovil() ? "bottom 115%" : "bottom 150%"),
         invalidateOnRefresh: true,
         scrub: 0.6,
         // El scrub deja el último valor al salir, y con 0.6s de lag una salida

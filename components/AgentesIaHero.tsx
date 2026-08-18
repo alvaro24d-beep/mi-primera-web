@@ -7,6 +7,7 @@ import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { useReducedMotion } from "@/hooks/useReducedMotion";
 import { useGlassPanels } from "@/hooks/useGlassPanels";
 import SiriSplash from "./aia/SiriSplash";
+import { recorridoPin } from "@/lib/scrollRitmo";
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -262,7 +263,7 @@ export default function AgentesIaHero() {
         scrollTrigger: {
           trigger: section,
           start: "top top",
-          end: () => (window.innerWidth < 768 ? "+=460%" : "+=540%"),
+          end: recorridoPin("aiaHero"),
           scrub: 0.6,
           pin: stage,
           anticipatePin: 1,

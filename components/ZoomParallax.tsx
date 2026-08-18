@@ -294,34 +294,38 @@ export default function ZoomParallax() {
       const total = section!.offsetHeight - vh;
       const scrolled = -rect.top;
 
-      // ===== Curva de entrada y salida del sticky (V18.27) =====
-      // Un `position: sticky` es un ángulo recto: el elemento viaja a la
-      // velocidad del scroll y al tocar su tope pasa a velocidad CERO en un
-      // solo frame. Eso es lo que se siente como un frenazo, y lo mismo al
-      // revés cuando se despega.
+      // ===== Acoplamiento suave del sticky (V18.28) =====
+      // Un `position: sticky` es la función max(0, distancia_al_tope): el
+      // elemento baja con el scroll hasta que toca su tope y ahí se queda. El
+      // frenazo que se siente es que esa función tiene un PICO — su pendiente
+      // salta de 1 a 0 en un solo punto, o sea la velocidad cae a cero de golpe.
       //
-      // Se suaviza con un desplazamiento propio que vale 0 en los dos extremos
-      // de la zona y llega a su máximo en el centro: -4·A·x·(1-x), la parábola
-      // más simple con esa forma. Cerca del tope el elemento se adelanta un
-      // poco y luego frena hasta asentarse, en vez de chocar contra él; al
-      // final hace lo simétrico, empieza a moverse ANTES de soltarse y llega al
-      // despegue ya en marcha. Como en ambos bordes vale exactamente 0, no hay
-      // ningún salto al entrar ni al salir de la zona: la curva se acopla sola.
+      // Lo que arregla eso es sustituir ese max por su versión suavizada, que
+      // es un problema con solución conocida: el smooth max cuadrático.
       //
-      // La misma fórmula sirve para los dos extremos; lo único que cambia es de
-      // dónde sale la x. Y no descoloca las mallas de cristal de las cards:
-      // ZoomParallaxCardsLayer las posiciona con getBoundingClientRect(), que
-      // ya incluye este transform.
-      const ZONA = vh * 0.35;
-      const AMPL = vh * 0.08;
-      let curva = 0;
-      if (rect.top > 0 && rect.top < ZONA) {
-        const x = rect.top / ZONA;
-        curva = -4 * AMPL * x * (1 - x);
-      } else if (scrolled > total - ZONA && scrolled < total) {
-        const x = (total - scrolled) / ZONA;
-        curva = -4 * AMPL * x * (1 - x);
-      }
+      //        t > k     ->  t                  (aún lejos: velocidad normal)
+      //        t < -k    ->  0                  (pegado del todo: quieto)
+      //        si no     ->  (t + k)² / 4k      (el empalme)
+      //
+      // Su derivada es (t+k)/2k, que vale exactamente 0 en t=-k y exactamente 1
+      // en t=+k. Ahí está la diferencia con el intento anterior: aquella curva
+      // valía 0 en los bordes pero su PENDIENTE no, así que en vez de quitar un
+      // salto de velocidad metía dos. Esta empalma pendiente con pendiente, y
+      // por eso no se nota nada: no hay ningún instante en el que la velocidad
+      // cambie de golpe.
+      //
+      // Al elemento se le aplica la diferencia entre dónde debería estar con la
+      // curva y dónde lo pone el sticky del navegador. Fuera de la zona esa
+      // diferencia es cero, así que el transform desaparece solo.
+      const K = vh * 0.25;
+      const suave = (t: number) => (t > K ? t : t < -K ? 0 : ((t + K) * (t + K)) / (4 * K));
+      // Entrada: t es lo que falta para tocar el tope.
+      let curva = suave(rect.top) - Math.max(0, rect.top);
+      // Salida: mismo empalme al revés, con lo que falta para soltarse. Así el
+      // elemento arranca ANTES de despegarse y llega al despegue ya en marcha,
+      // en vez de pasar de quieto a la velocidad del scroll en un frame.
+      const restante = total - scrolled;
+      curva -= suave(restante) - Math.max(0, restante);
       // Solo se escribe si cambia: esto corre en cada frame de scroll y
       // reescribir el mismo transform invalida estilo y pintado para nada.
       const curvaQ = Math.round(curva * 10) / 10;

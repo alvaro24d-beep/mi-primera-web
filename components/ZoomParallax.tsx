@@ -281,6 +281,10 @@ export default function ZoomParallax() {
       cerca = true;
     }
 
+    // Último desplazamiento de la curva del sticky, para no reescribir el
+    // mismo transform en cada frame de scroll.
+    let ultimaCurva = 0;
+
     function onScroll() {
       if (!cerca) return;
       const vh = window.innerHeight;
@@ -289,6 +293,42 @@ export default function ZoomParallax() {
       const rect = section!.getBoundingClientRect();
       const total = section!.offsetHeight - vh;
       const scrolled = -rect.top;
+
+      // ===== Curva de entrada y salida del sticky (V18.27) =====
+      // Un `position: sticky` es un ángulo recto: el elemento viaja a la
+      // velocidad del scroll y al tocar su tope pasa a velocidad CERO en un
+      // solo frame. Eso es lo que se siente como un frenazo, y lo mismo al
+      // revés cuando se despega.
+      //
+      // Se suaviza con un desplazamiento propio que vale 0 en los dos extremos
+      // de la zona y llega a su máximo en el centro: -4·A·x·(1-x), la parábola
+      // más simple con esa forma. Cerca del tope el elemento se adelanta un
+      // poco y luego frena hasta asentarse, en vez de chocar contra él; al
+      // final hace lo simétrico, empieza a moverse ANTES de soltarse y llega al
+      // despegue ya en marcha. Como en ambos bordes vale exactamente 0, no hay
+      // ningún salto al entrar ni al salir de la zona: la curva se acopla sola.
+      //
+      // La misma fórmula sirve para los dos extremos; lo único que cambia es de
+      // dónde sale la x. Y no descoloca las mallas de cristal de las cards:
+      // ZoomParallaxCardsLayer las posiciona con getBoundingClientRect(), que
+      // ya incluye este transform.
+      const ZONA = vh * 0.35;
+      const AMPL = vh * 0.08;
+      let curva = 0;
+      if (rect.top > 0 && rect.top < ZONA) {
+        const x = rect.top / ZONA;
+        curva = -4 * AMPL * x * (1 - x);
+      } else if (scrolled > total - ZONA && scrolled < total) {
+        const x = (total - scrolled) / ZONA;
+        curva = -4 * AMPL * x * (1 - x);
+      }
+      // Solo se escribe si cambia: esto corre en cada frame de scroll y
+      // reescribir el mismo transform invalida estilo y pintado para nada.
+      const curvaQ = Math.round(curva * 10) / 10;
+      if (curvaQ !== ultimaCurva) {
+        ultimaCurva = curvaQ;
+        sticky!.style.transform = curvaQ ? `translate3d(0, ${curvaQ}px, 0)` : "";
+      }
 
       // ===== Handoff reel→ZP en móvil (V16.21, "que vaya justo después
       // de la última card pero no encima"): el sticky del reel se funde en
@@ -587,6 +627,7 @@ export default function ZoomParallax() {
       window.clearInterval(twTimer);
       caret.remove();
       if (reelSticky) reelSticky.style.opacity = "";
+      if (sticky) sticky.style.transform = "";
     };
   }, []);
 

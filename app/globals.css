@@ -1839,7 +1839,15 @@ p.nxr-hero-mastery-line {
   /* Pantallas bajas: el hero ya va justo de alto (ver --vh-100), así que el
      indicador se acerca al CTA en vez de empujar el bloque fuera de la caja. */
   .nxr-hero-cue {
-    margin-top: 26px;
+    margin-top: 18px;
+  }
+  /* Y el bloque entero sube (V18.29). El indicador quedaba tan abajo que en un
+     teléfono se perdía contra el borde y la barra de navegación flotante. El
+     contenido va centrado por flex, así que reservar espacio por abajo desplaza
+     TODO el conjunto hacia arriba de una vez —titular, párrafo, CTA e
+     indicador— en vez de recolocar cada pieza por separado. */
+  .nxr-hero-fade {
+    padding-bottom: 12vh;
   }
 }
 
@@ -9247,5 +9255,68 @@ input[type="range"].nxr-ms-range::-moz-range-thumb {
   }
   .nxr-ip-sizer {
     transform: scale(0.6);
+  }
+}
+
+/* ===== Flecha de retroceso (V18.29) =====
+   Releva al header superior cuando este se retira con el scroll, en todas las
+   páginas menos la home. Fija arriba a la izquierda, en el mismo carril que
+   ocupaba el logo, para que el ojo la encuentre donde ya estaba mirando.
+   Se declara con opacidad y un pequeño desplazamiento en reposo y se enciende
+   con .nxr-visible: así entra y sale con la misma transición en las dos
+   direcciones, sin necesidad de montarla y desmontarla. `visibility` va en la
+   transición para que, oculta, no capture pulsaciones. */
+.nxr-volver {
+  position: fixed;
+  top: 18px;
+  left: 18px;
+  z-index: 9997;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 50%;
+  background: rgba(14, 17, 25, 0.55);
+  backdrop-filter: blur(12px) saturate(1.2);
+  color: var(--c-white);
+  cursor: pointer;
+  opacity: 0;
+  visibility: hidden;
+  transform: translateX(-6px);
+  transition: opacity 0.35s cubic-bezier(0.22, 1, 0.36, 1),
+    transform 0.35s cubic-bezier(0.22, 1, 0.36, 1), visibility 0.35s;
+}
+
+.nxr-volver.nxr-visible {
+  opacity: 1;
+  visibility: visible;
+  transform: translateX(0);
+}
+
+.nxr-volver svg {
+  width: 20px;
+  height: 20px;
+  stroke: currentColor;
+  fill: none;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.nxr-volver:focus-visible {
+  outline: 2px solid var(--c-lime);
+  outline-offset: 3px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .nxr-volver {
+    transition: opacity 0.2s linear, visibility 0.2s;
+    transform: none;
+  }
+  .nxr-volver.nxr-visible {
+    transform: none;
   }
 }

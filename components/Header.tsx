@@ -257,6 +257,32 @@ export default function Header() {
       <div id="nxr-bg-blur" className={srvOpen ? "nxr-open" : ""} />
       <div id="nxr-srv-overlay" className={srvOpen ? "nxr-open" : ""} onClick={closeDD} />
 
+      {/* Flecha de retroceso: RELEVA al header cuando este se retira. Solo
+          fuera de la home —en la home no hay a dónde volver— y solo mientras
+          el header está oculto, de modo que nunca hay dos formas de navegar
+          hacia atrás en pantalla a la vez.
+          Va aquí y no en un componente aparte porque las dos condiciones que
+          la gobiernan ya viven en este archivo: la ruta actual y el estado de
+          ocultación del header. Sacarla fuera obligaría a observar la clase
+          del header desde otro sitio para volver a saber lo que aquí ya se
+          sabe. */}
+      <button
+        type="button"
+        className={`nxr-volver${navHidden && pathname !== "/" ? " nxr-visible" : ""}`}
+        aria-label="Volver"
+        onClick={() => {
+          // history.back si hay algo a lo que volver; si se ha entrado directo
+          // a la página (enlace compartido, buscador), la home es el destino
+          // sensato en vez de un botón que no hace nada.
+          if (window.history.length > 1) window.history.back();
+          else window.location.href = "/";
+        }}
+      >
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M15 18l-6-6 6-6" />
+        </svg>
+      </button>
+
       <header id="nxr-header" className={navHidden ? "nxr-hidden" : ""}>
         <Link href="/" className="nxr-header-logo">
           arcfine<span>.</span>

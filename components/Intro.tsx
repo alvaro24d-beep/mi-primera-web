@@ -35,6 +35,10 @@ gsap.registerPlugin(ScrollTrigger, SplitText);
 // deslizamiento largo.
 const TRAVEL_Y = 34; // px, escritorio
 const TRAVEL_X = 46; // px, móvil
+// Fracción de ese recorrido que usa el PÁRRAFO al salir en móvil. Ver el
+// bloque `horizontal` del onUpdate: la salida se acorta para que no termine de
+// difuminarse contra el borde derecho de la pantalla.
+const SALIDA_X = 0.35;
 const MAX_BLUR = 10;
 // Cuánto se separan entre sí las líneas al entrar/salir, en fracción del
 // recorrido de fundido. 0.55 deja que la primera esté casi resuelta cuando la
@@ -260,8 +264,17 @@ export default function Intro() {
           if (horizontal) {
             // SOLO horizontal. y a 0 explícito: no puede haber ni un píxel de
             // componente vertical.
+            //
+            // La SALIDA del párrafo recorre mucho menos que su entrada
+            // (SALIDA_X, V18.29). Con el mismo recorrido en los dos sentidos se
+            // iba hacia el borde derecho mientras aún se estaba difuminando, y
+            // en un teléfono eso significa terminar de desaparecer contra el
+            // marco. Acortando solo ese tramo, el párrafo frena antes, se queda
+            // más a la izquierda y acaba de fundirse ahí, dentro de la pantalla.
+            // La entrada no se toca: viene de fuera y ahí el recorrido largo es
+            // lo que hace que se lea como que entra.
             gsap.set(title, { x: -k * TRAVEL_X, y: 0 });
-            gsap.set(texts, { x: k * TRAVEL_X, y: 0 });
+            gsap.set(texts, { x: k * TRAVEL_X * (k > 0 ? SALIDA_X : 1), y: 0 });
           } else {
             // Titular: k=−1 (entrando) lo pone ARRIBA; k=+1 (saliendo), abajo.
             gsap.set(title, { y: k * TRAVEL_Y, x: 0 });

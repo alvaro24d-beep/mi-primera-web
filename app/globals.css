@@ -5647,40 +5647,28 @@ input[type="range"].nxr-ms-range::-moz-range-thumb {
   display: none;
 }
 
-/* Typewriter de la frase central (V16.20, "entrada tipo escritura a
-   máquina"): todos los caracteres existen en el layout desde el primer
-   render (teclear = conmutar visibility, cero reflow ni salto de líneas).
-   Los spans solo existen si el JS troceó el texto — sin JS o con reduced
-   motion no hay .nxr-zp-tw y el texto queda plano y visible. */
-.nxr-zp-tw {
-  visibility: hidden;
-}
-.nxr-zp-tw.nxr-zp-tw-on {
-  visibility: visible;
-}
-/* Caret de bloque que persigue al último carácter tecleado. Dentro del span
-   degradado hereda el text-fill transparente, pero su background propio es
-   ajeno al background-clip del padre, así que se ve sólido. */
-.nxr-zp-twcaret {
-  display: inline-block;
-  width: 0.09em;
-  height: 0.82em;
-  margin-left: 0.04em;
-  vertical-align: -0.06em;
-  background: var(--c-lime);
-  animation: nxr-zp-caret 0.85s steps(1) infinite;
-}
-@keyframes nxr-zp-caret {
-  0%,
-  55% {
-    opacity: 1;
-  }
-  56%,
-  100% {
-    opacity: 0;
-  }
-}
+/* Entrada del texto central (V18.37). Antes era un tecleo carácter a carácter
+   con su caret; ahora el texto aparece QUIETO en su posición definitiva con un
+   fundido y desenfoque —"que aparezca en su posición central con un difuminado,
+   no saliendo desde abajo"—, disparado cuando la sección ya ha tocado su tope
+   (ver twGate en ZoomParallax.tsx).
 
+   El efecto va en el CONTENEDOR y no en los ~30 spans por carácter: es un solo
+   elemento que animar en vez de treinta capas de compositing con `filter`
+   propio, que en móvil no sale gratis. Los spans siguen existiendo porque el
+   glitch de salida corrompe letras sueltas, pero ya no llevan estado visible
+   (antes: .nxr-zp-tw con visibility hidden/visible).
+
+   La clase la pone el JS al montar, así que sin JS o con reduced motion el
+   texto queda plano y visible sin depender de que nadie se la quite. */
+.nxr-zp-hero-text {
+  transition: opacity 0.55s cubic-bezier(0.22, 1, 0.36, 1),
+    filter 0.55s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.nxr-zp-hero-text.nxr-zp-oculto {
+  opacity: 0;
+  filter: blur(14px);
+}
 .nxr-zp-card svg {
   width: calc(40px * var(--zp-max, 1));
   height: calc(40px * var(--zp-max, 1));

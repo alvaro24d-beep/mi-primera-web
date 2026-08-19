@@ -856,12 +856,37 @@ export default function Servicios() {
       // frase acompañando casi todo el prólogo, no tocando la geometría.
       const PROLOGUE = () => Math.round(window.innerHeight * (isDesktopUI ? 0.65 : 1.35));
       const startX = () => centredX() + entryOffset();
-      // Pin distance = prologue + actual track travel; the track only moves
-      // during the post-prologue stretch (1px of scroll = 1px of x, as
-      // before).
-      const moveAmount = () => entryOffset() + Math.max(0, track.scrollWidth - cardWidth());
+      // ENTRADA DE LA CARD 0, MÁS LENTA Y SIN TIRÓN (V18.37, "la primera card
+      // entra siempre muy rápido, que vaya más suave y despacio").
+      //
+      // El problema no era la distancia sino el PERFIL: acabado el prólogo
+      // —donde el track está completamente quieto— el movimiento arrancaba de
+      // golpe a 1px de x por 1px de scroll. Un salto de velocidad de 0 a 1 en
+      // un frame, justo cuando la card asoma por el borde.
+      //
+      // Ahora ese primer tramo recibe el DOBLE de scroll para la misma
+      // distancia y se recorre con `power1.in` (x ∝ p²). Los dos números van
+      // juntos y no son intercambiables: con duración 2·D y perfil cuadrático,
+      // la velocidad sale de 0 —empalma con el prólogo quieto— y llega
+      // exactamente a 1 al final, que es la velocidad del tramo lineal que
+      // sigue. Ni un salto ni al entrar ni al salir. Si se cambia el factor,
+      // el ease deja de casar: con 3·D haría falta un p³, y con cualquier
+      // otro par aparece un tirón en el empalme (el mismo error que se
+      // arrastró tres versiones en el sticky de ZoomParallax).
+      //
+      // Los PUNTOS DE ANCLAJE no se mueven: la card 0 sigue quedando centrada
+      // al terminar este tramo y las demás a un paso de distancia entre sí, en
+      // el tramo lineal. Por eso pOf() sigue siendo exacto —basta con contar
+      // el tramo alargado, ver allí— y con él la paginación y el snap.
+      const ENTRADA_SCROLL = 2;
+      // Distancia REAL que recorre el track en x. No cambia.
+      const recorridoX = () => entryOffset() + Math.max(0, track.scrollWidth - cardWidth());
+      // Scroll que consume: el mismo recorrido, pero con el tramo de entrada
+      // estirado. Es lo único que alarga el pin.
+      const moveAmount = () =>
+        entryOffset() * ENTRADA_SCROLL + Math.max(0, track.scrollWidth - cardWidth());
       const amount = () => PROLOGUE() + moveAmount();
-      const endX = () => startX() - moveAmount();
+      const endX = () => startX() - recorridoX();
 
       // Smaller arc on phones: the stretched glass there nearly fills the
       // space between heading and captions, so a tall arc would ride the
@@ -1265,8 +1290,14 @@ export default function Servicios() {
       let snapEntry = 0;
       let snapStep = 0;
       let snapAmount = 0;
+      // El tramo de entrada consume ENTRADA_SCROLL veces su distancia (V18.37,
+      // ver el tween en buildTl), así que la card 0 queda centrada en
+      // snapPro + snapEntry·ENTRADA_SCROLL. De ahí en adelante el track vuelve
+      // a ser 1:1, por eso las demás siguen sumando un snapStep limpio.
       const pOf = (i: number) =>
-        snapAmount && snapStep ? (snapPro + snapEntry + i * snapStep) / snapAmount : 0;
+        snapAmount && snapStep
+          ? (snapPro + snapEntry * ENTRADA_SCROLL + i * snapStep) / snapAmount
+          : 0;
       const progressNow = (st: ScrollTrigger) => (window.scrollY - st.start) / (st.end - st.start);
       const scrollAt = (st: ScrollTrigger, p: number) => st.start + p * (st.end - st.start);
       const nearestIdx = (p: number) => {
@@ -1405,7 +1436,16 @@ export default function Servicios() {
             pro * HOLD_FRASE
           );
         }
-        t.fromTo(track, { x: startX() }, { x: endX(), ease: "none", duration: moveAmount() }, pro);
+        // Dos tramos, no uno (V18.37 — ver ENTRADA_SCROLL arriba):
+        //  1) la entrada de la card 0, acelerando desde parado hasta la
+        //     velocidad de crucero, en el doble de scroll que su distancia;
+        //  2) el resto del reel, lineal 1px de scroll = 1px de x, como
+        //     siempre.
+        // Empalman a velocidad 1 exacta, así que el paso de uno a otro no se
+        // nota. La card 0 queda centrada justo en la juntura.
+        const entradaScroll = snapEntry * ENTRADA_SCROLL;
+        t.fromTo(track, { x: startX() }, { x: centredX(), ease: "power1.in", duration: entradaScroll }, pro);
+        t.to(track, { x: endX(), ease: "none", duration: moveAmount() - entradaScroll }, pro + entradaScroll);
       };
 
       const tl = gsap.timeline({
@@ -1524,6 +1564,7 @@ export default function Servicios() {
         // misma autoridad anti-carrera, sin corte visible.
         let clamping = false;
         let healing = false;
+        let curandoChars = false;
         let spacer: HTMLElement | null = null;
         // DOS CAPAS SEPARADAS (V17.66), y esto es lo que arregla el bug de
         // "algunas palabras desaparecen":
@@ -1608,6 +1649,46 @@ export default function Servicios() {
                 healing = false;
               },
             });
+          }
+
+          // RED DE SEGURIDAD SOBRE LOS CARACTERES (V18.37, "la frase a veces
+          // se bugea, desaparece").
+          //
+          // Todo lo de arriba vigila el WRAPPER, pero desde que el barrido va
+          // por caracteres son ELLOS quienes llevan opacity/filter (ver
+          // V17.58). Quedaba un agujero: si el wrapper está a 1 y los
+          // caracteres se quedan en su estado base (opacity 0, blur 18) porque
+          // el scrub de aproximación no llegó a correr —una navegación
+          // cliente, un refresh de ScrollTrigger a destiempo, un salto que
+          // cruza su rango entero entre dos frames—, no hay frase y NADA la
+          // recupera: el master switch mira el wrapper y lo encuentra
+          // perfecto.
+          //
+          // La ventana es deliberadamente estrecha: solo desde que el pin
+          // arranca (ahí el scrub ya terminó, end "top top") hasta la mitad
+          // del HOLD, muy por delante de que empiece el fade-out. Dentro de
+          // ella unos caracteres apagados no son un estado intermedio válido
+          // de ninguna animación, son el bug. Fuera de ella no se toca nada,
+          // para no pelearse nunca con el scrub ni con el fade-out.
+          if (headChars.length && y >= start && y < start + snapPro * HOLD_FRASE * 0.5) {
+            const c0 = headChars[0] as HTMLElement;
+            const cN = headChars[headChars.length - 1] as HTMLElement;
+            const apagados =
+              parseFloat(getComputedStyle(c0).opacity) < 0.01 &&
+              parseFloat(getComputedStyle(cN).opacity) < 0.01;
+            if (apagados && !curandoChars) {
+              curandoChars = true;
+              gsap.to(headChars, {
+                opacity: 1,
+                filter: "blur(0px)",
+                duration: 0.3,
+                ease: "power1.out",
+                overwrite: "auto",
+                onComplete: () => {
+                  curandoChars = false;
+                },
+              });
+            }
           }
         };
         gsap.ticker.add(clampTitle);

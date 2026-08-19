@@ -149,14 +149,15 @@ export default function ZoomParallax() {
     const frac = (n: number) => n - Math.floor(n);
     const hash = (n: number) => frac(Math.sin(n * 127.1) * 43758.5453);
 
-    // ===== Typewriter de entrada (V16.20, "animación de entrada de las
-    // frases de construido con maestría de tipo escritura a máquina"). El
-    // texto se trocea UNA vez en spans por carácter (los espacios quedan
-    // como nodos de texto para no alterar el word-wrap móvil); todos los
-    // caracteres existen desde el primer render, así que teclear = conmutar
-    // visibility, cero reflow. La escritura es temporal (no scrub) y se
-    // rebobina si vuelves a subir; la SALIDA (encogimiento + glitch móvil)
-    // no se toca. Reduced motion: no se trocea nada, el texto queda plano.
+    // ===== Entrada del texto central (V18.37: fundido con desenfoque, en su
+    // posición; antes era un tecleo carácter a carácter que además empezaba
+    // con la sección aún subiendo). El texto se sigue troceando UNA vez en
+    // spans por carácter —los espacios quedan como nodos de texto para no
+    // alterar el word-wrap móvil— pero YA NO es para revelarlo: los spans
+    // existen porque el glitch de salida corrompe letras sueltas. La entrada
+    // es temporal (no scrub) y se rebobina si vuelves a subir; la SALIDA
+    // (encogimiento + glitch móvil) no se toca. Reduced motion: no se trocea
+    // nada y el texto queda plano y visible.
     const heroText = heroBase?.querySelector<HTMLElement>(".nxr-zp-hero-text") ?? null;
     const twChars: HTMLElement[] = [];
     const sliceCharLists: HTMLElement[][] = [];
@@ -186,48 +187,49 @@ export default function ZoomParallax() {
     };
     if (heroText && !rmMql.matches) {
       splitChars(heroText, twChars);
+      // Estado inicial: oculto y desenfocado, listo para el fundido. Se pone
+      // desde JS y no en el CSS para que la rama de movimiento reducido —que
+      // no llega aquí— muestre el texto plano sin depender de que alguien le
+      // quite la clase.
+      heroText.classList.add("nxr-zp-oculto");
       // Los clones de los slices se trocean también para que el glitch
-      // pueda corromper caracteres de forma coherente con la base, pero
-      // nacen ya visibles: solo asoman dentro de la banda de glitch, mucho
-      // después de que el tecleo haya terminado.
+      // pueda corromper caracteres de forma coherente con la base. Solo
+      // asoman dentro de la banda de glitch, mucho después de la entrada.
       heroSlices.forEach((sl) => {
         const st = sl.querySelector<HTMLElement>(".nxr-zp-hero-text");
         const list: HTMLElement[] = [];
         if (st) splitChars(st, list);
-        list.forEach((c) => c.classList.add("nxr-zp-tw-on"));
         sliceCharLists.push(list);
       });
     }
-    const caret = document.createElement("span");
-    caret.className = "nxr-zp-twcaret";
-    caret.setAttribute("aria-hidden", "true");
-    let twTimer = 0;
     let twStarted = false;
     let twInit = false;
-    const revealAll = () => {
-      window.clearInterval(twTimer);
-      twChars.forEach((c) => c.classList.add("nxr-zp-tw-on"));
-      caret.remove();
+    // ENTRADA DEL TEXTO CENTRAL (V18.37). Antes se tecleaba carácter a
+    // carácter y, además, empezaba a escribirse ANTES de que la sección
+    // llegara a su tope: se veía subir mientras se escribía ("sale desde
+    // abajo"). Ahora aparece quieto en su posición final, con un fundido y
+    // desenfoque.
+    //
+    // El efecto va en el CONTENEDOR, no en los ~30 spans: un solo elemento
+    // que animar en vez de treinta capas de compositing con `filter` propio,
+    // que en móvil no sale gratis. Los spans por carácter siguen existiendo
+    // porque el glitch de salida los necesita para corromper letras sueltas;
+    // simplemente ya no se usan para revelar.
+    const mostrarTexto = (instantaneo = false) => {
+      if (!heroText) return;
+      if (instantaneo) heroText.style.transition = "none";
+      heroText.classList.remove("nxr-zp-oculto");
+      if (instantaneo) {
+        void heroText.offsetWidth; // fuerza el reflow antes de devolver la transición
+        heroText.style.transition = "";
+      }
     };
-    const startTyping = () => {
-      window.clearInterval(twTimer);
-      let k = 0;
-      twTimer = window.setInterval(() => {
-        const c = twChars[k];
-        if (!c) {
-          window.clearInterval(twTimer);
-          window.setTimeout(() => caret.remove(), 700);
-          return;
-        }
-        c.classList.add("nxr-zp-tw-on");
-        c.insertAdjacentElement("afterend", caret);
-        k++;
-      }, 30);
-    };
-    const resetTyping = () => {
-      window.clearInterval(twTimer);
-      caret.remove();
-      twChars.forEach((c) => c.classList.remove("nxr-zp-tw-on"));
+    const ocultarTexto = () => {
+      if (!heroText) return;
+      heroText.style.transition = "none";
+      heroText.classList.add("nxr-zp-oculto");
+      void heroText.offsetWidth;
+      heroText.style.transition = "";
     };
 
     // Deshace TODO lo que escribe el glitch de la card central: los clones de
@@ -281,39 +283,6 @@ export default function ZoomParallax() {
       cerca = true;
     }
 
-    // Último desplazamiento de la curva del sticky, para no reescribir el
-    // mismo transform en cada frame de scroll. Arranca en NaN (distinto de
-    // cualquier valor, también de 0) para que la PRIMERA pasada escriba
-    // siempre: así la capa de compositing queda promocionada desde el inicio
-    // en vez de aparecer al primer desplazamiento no nulo.
-    let ultimaCurva = NaN;
-
-    // ALTO DE VIEWPORT ESTABLE, solo para la curva del sticky (V18.33).
-    //
-    // Aquí no vale `window.innerHeight`, y es la razón de que la sección fuera
-    // a trompicones en móvil justo al principio y al final. La barra de
-    // direcciones se contrae al empezar a bajar y reaparece al parar o subir,
-    // y con ella `innerHeight` salta de golpe ~60-100px. La altura de la
-    // sección NO acompaña ese salto: sale del `height: 235vh` del CSS, y el
-    // `vh` de CSS es el viewport GRANDE, que la toolbar no toca. O sea que
-    // `offsetHeight - innerHeight` cambia sin que el contenido se haya movido.
-    //
-    // Como el desplazamiento de la curva es una posición en píxeles (no una
-    // escala proporcional, que es lo que absorbe estos saltos en el resto de
-    // la coreografía), ese cambio se ve entero: `K` se mueve, `restante` se
-    // mueve ~100px y el elemento pega un tirón de hasta K/4 (~45px) en un
-    // frame. Y ocurre exactamente en los dos momentos en que la toolbar se
-    // mueve: al arrancar el scroll y al frenar.
-    //
-    // Se congela al montar y solo se rehace cuando cambia el ANCHO — rotación
-    // o redimensión de verdad. Es el mismo criterio que el sitio ya aplica con
-    // ScrollTrigger.config({ ignoreMobileResize: true }) en SmoothScroll.
-    // Deliberadamente NO se toca el `vh` que usa el resto del handler: ese
-    // alimenta progress y escalas, está afinado así y es proporcional, así que
-    // el salto de la toolbar ahí no se percibe.
-    let vhCurva = window.innerHeight;
-    let anchoCurva = window.innerWidth;
-
     function onScroll() {
       if (!cerca) return;
       const vh = window.innerHeight;
@@ -323,61 +292,36 @@ export default function ZoomParallax() {
       const total = section!.offsetHeight - vh;
       const scrolled = -rect.top;
 
-      // ===== Acoplamiento suave del sticky (V18.28) =====
-      // Un `position: sticky` es la función max(0, distancia_al_tope): el
-      // elemento baja con el scroll hasta que toca su tope y ahí se queda. El
-      // frenazo que se siente es que esa función tiene un PICO — su pendiente
-      // salta de 1 a 0 en un solo punto, o sea la velocidad cae a cero de golpe.
+      // ===== POR QUÉ EL STICKY YA NO LLEVA CURVA DE ACOPLAMIENTO (V18.37) =====
       //
-      // Lo que arregla eso es sustituir ese max por su versión suavizada, que
-      // es un problema con solución conocida: el smooth max cuadrático.
+      // Hubo tres intentos de suavizar el momento en que el sticky se pega y
+      // se suelta —V18.27 una parábola, V18.28 un smooth max cuadrático,
+      // V18.33 arreglando el alto inestable de la toolbar y el ciclo de
+      // crear/destruir capa— y ninguno aguantó. El motivo es de raíz, no de
+      // afinado, así que queda escrito para que no haya un cuarto:
       //
-      //        t > k     ->  t                  (aún lejos: velocidad normal)
-      //        t < -k    ->  0                  (pegado del todo: quieto)
-      //        si no     ->  (t + k)² / 4k      (el empalme)
+      // La curva suavizaba respecto a la POSICIÓN DE SCROLL: repartía un
+      // desplazamiento de hasta ~45px a lo largo de una zona de 0,25·vh
+      // (~200px). Pero la fluidez se percibe respecto al TIEMPO, y cuántos
+      // frames caen dentro de esos 200px depende de lo rápido que scrollees.
+      // Yendo muy despacio hay decenas de frames y se ve bien —justo lo que
+      // describe Álvaro—; a velocidad normal de flick se cruzan los 200px en
+      // uno o dos frames, y entonces esos 45px de ida y otros 45 de vuelta
+      // ocurren en dos frames: un tirón, no una suavización. Cuanto más
+      // rápido va el scroll, peor se porta, que es exactamente al revés de lo
+      // que hace falta.
       //
-      // Su derivada es (t+k)/2k, que vale exactamente 0 en t=-k y exactamente 1
-      // en t=+k. Ahí está la diferencia con el intento anterior: aquella curva
-      // valía 0 en los bordes pero su PENDIENTE no, así que en vez de quitar un
-      // salto de velocidad metía dos. Esta empalma pendiente con pendiente, y
-      // por eso no se nota nada: no hay ningún instante en el que la velocidad
-      // cambie de golpe.
+      // A eso se suma que este handler corre en el evento `scroll` NATIVO,
+      // que el navegador coalesce y no garantiza en el mismo tick del rAF
+      // donde Lenis escribe la posición. A velocidad alta el transform se
+      // aplica sobre un rect ya viejo.
       //
-      // Al elemento se le aplica la diferencia entre dónde debería estar con la
-      // curva y dónde lo pone el sticky del navegador. Fuera de la zona esa
-      // diferencia es cero, así que la curva se apaga sola.
-      //
-      // Ojo con el alto: va con `vhCurva`, congelado (ver arriba), NO con el
-      // `vh` vivo del handler.
-      if (window.innerWidth !== anchoCurva) {
-        anchoCurva = window.innerWidth;
-        vhCurva = window.innerHeight;
-      }
-      const K = vhCurva * 0.25;
-      const suave = (t: number) => (t > K ? t : t < -K ? 0 : ((t + K) * (t + K)) / (4 * K));
-      // Entrada: t es lo que falta para tocar el tope.
-      let curva = suave(rect.top) - Math.max(0, rect.top);
-      // Salida: mismo empalme al revés, con lo que falta para soltarse. Así el
-      // elemento arranca ANTES de despegarse y llega al despegue ya en marcha,
-      // en vez de pasar de quieto a la velocidad del scroll en un frame.
-      const restante = section!.offsetHeight - vhCurva - scrolled;
-      curva -= suave(restante) - Math.max(0, restante);
-      // Solo se escribe si cambia: esto corre en cada frame de scroll y
-      // reescribir el mismo transform invalida estilo y pintado para nada.
-      const curvaQ = Math.round(curva * 10) / 10;
-      if (curvaQ !== ultimaCurva) {
-        ultimaCurva = curvaQ;
-        // SIEMPRE se escribe un transform, aunque valga 0 — nunca la cadena
-        // vacía. Quitar la propiedad destruye la capa de compositing del
-        // sticky y volver a ponerla la recrea, y como la curva pasa por 0 en
-        // los dos extremos (y con la cuantización a 0,1px llega a oscilar
-        // entre 0 y 0,1 en frames seguidos), ahí se producía un ciclo de
-        // crear/destruir capa: el segundo motivo de los tirones en el
-        // principio y el final. Con un translate3d permanente la capa se
-        // promociona una vez y el resto son solo cambios de transform, que el
-        // compositor resuelve sin repintar.
-        sticky!.style.transform = `translate3d(0, ${curvaQ}px, 0)`;
-      }
+      // Un `position: sticky` sin ayuda es exacto en todos los frames y a
+      // cualquier velocidad, que es lo que se pide: 100% fluido siempre. Si
+      // algún día vuelve a quererse el efecto, la vía NO es otra curva sobre
+      // la posición de scroll: sería amortiguar en el tiempo (un damping con
+      // dt sobre el desplazamiento) y aceptar el retardo respecto al
+      // contenido que eso trae.
 
       // ===== Handoff reel→ZP en móvil (V16.21, "que vaya justo después
       // de la última card pero no encima"): el sticky del reel se funde en
@@ -408,28 +352,32 @@ export default function ZoomParallax() {
         reelSticky.style.opacity = "";
       }
 
-      // Disparo del typewriter. Desktop: teclea con la sección a media
-      // pantalla, así termina de escribirse justo al quedar centrada.
-      // Móvil: a 0.30·vh — el fade del reel de arriba termina a 0.35·vh,
-      // así que la frase se escribe justo cuando la última card acaba de
-      // fundirse, nunca encima, y con ~250px de tecleo visible subiendo a
-      // su centro. Si la página CARGA ya dentro/pasada la sección
-      // (deep-link, teleport grande), se muestra completa al instante —
-      // teclear sobre estados avanzados (p. ej. el glitch) quedaría roto.
-      const twGate = vh * (isMobile ? 0.3 : 0.5);
+      // Disparo del fundido del texto central. El umbral es rect.top <= 0:
+      // la sección ya ha llegado a su tope y el sticky está en su posición
+      // definitiva, así que el texto aparece QUIETO, en su sitio. Antes se
+      // disparaba a 0.30·vh (móvil) / 0.50·vh (escritorio), o sea con media
+      // pantalla aún por subir, y por eso se veía salir desde abajo mientras
+      // se escribía.
+      //
+      // Dispararlo más tarde no rompe el anti-solape con el reel: su fade
+      // termina a 0.35·vh, muy por delante de 0. Si la página CARGA ya dentro
+      // o pasada la sección (deep-link, teleport), se muestra sin transición
+      // — un fundido sobre estados ya avanzados (p. ej. el glitch) se vería
+      // roto.
+      const twGate = 0;
       if (twChars.length) {
         if (!twInit) {
           twInit = true;
           if (rect.top <= twGate) {
             twStarted = true;
-            revealAll();
+            mostrarTexto(true);
           }
         } else if (!twStarted && rect.top <= twGate) {
-          // Cinturón anti-solape (V16.22): en móvil NO se empieza a
-          // escribir mientras el sticky del reel siga pintado (fade > 0.05
-          // y su caja aún en pantalla) — si algo desincronizara el fade en
-          // un dispositivo raro, el tecleo se RETRASA en vez de escribirse
-          // encima de la última card.
+          // Cinturón anti-solape (V16.22): en móvil NO se muestra mientras
+          // el sticky del reel siga pintado (fade > 0.05 y su caja aún en
+          // pantalla) — si algo desincronizara el fade en un dispositivo
+          // raro, el texto se RETRASA en vez de aparecer sobre la última
+          // card.
           const reelPainted =
             isMobile &&
             reelSticky &&
@@ -438,16 +386,13 @@ export default function ZoomParallax() {
             reelSticky.getBoundingClientRect().bottom > 0;
           if (!reelPainted) {
             twStarted = true;
-            // Solo un aterrizaje MUY profundo (media pantalla pasada la
-            // sección) revela al instante; un flick fuerte que cruza el
-            // umbral de golpe TECLEA igualmente — "quiero que sea
-            // animación de escritura", nunca el pop suave de antes.
-            if (rect.top < -vh * 0.6) revealAll();
-            else startTyping();
+            // Un aterrizaje MUY profundo (media pantalla pasada la sección)
+            // aparece sin transición; en el paso normal, con fundido.
+            mostrarTexto(rect.top < -vh * 0.6);
           }
         } else if (twStarted && rect.top > vh * 0.9) {
           twStarted = false;
-          resetTyping();
+          ocultarTexto();
         }
       }
 
@@ -673,10 +618,7 @@ export default function ZoomParallax() {
       window.removeEventListener("scroll", onScroll);
       window.removeEventListener("resize", onScroll);
       ioNear?.disconnect();
-      window.clearInterval(twTimer);
-      caret.remove();
       if (reelSticky) reelSticky.style.opacity = "";
-      if (sticky) sticky.style.transform = "";
     };
   }, []);
 

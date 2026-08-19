@@ -148,6 +148,9 @@ const fragmentShader = /* glsl */ `
   uniform float uLedGain;    // cuánto se realzan esas altas luces. Alto en
                              // desktop (el Bloom lo convierte en halo), bajo
                              // en móvil (sin composer, solo quemaría)
+  uniform float uBleedRadio; // sangrado de luz (V18.41): radio de las muestras
+                             // del halo, en UV del clip
+  uniform float uBleedGain;  // cuánta de esa luz derramada se suma
   uniform sampler2D uSourceB; // clip ENTRANTE del cambio de vídeo (V17.22)
   uniform vec2 uCoverScaleB;  // cover-crop del clip entrante
   uniform float uHasVideoB;   // 1 = uSourceB listo (ya reproduciendo)
@@ -266,6 +269,11 @@ const fragmentShader = /* glsl */ `
     float vig = smoothstep(1.2, 0.1, d);
 
     vec3 fill;
+    // Halo del sangrado de luz (V18.41). Se llena dentro del bloque del vídeo
+    // y se suma al final del main, después de las atenuaciones, para que sea
+    // luz AÑADIDA y no un tinte que uDim pueda apagar. Con la pantalla apagada
+    // se queda en cero y no cuesta nada.
+    vec3 sangrado = vec3(0.0);
     // uPower > 0 en la condición (V17.76, perf): con la pantalla APAGADA del
     // todo —la hero de la home— tileOn vale 0 en todos los paneles y el
     // resultado de este bloque lo descarta entero el mix(offCol, fill, tileOn)
@@ -320,10 +328,57 @@ const fragmentShader = /* glsl */ `
       tv = mix(vec3(dot(tv, vec3(0.2126, 0.7152, 0.0722))), tv, uVidSat);
       tv = max(tv, 0.0); // saturar puede empujar un canal por debajo de 0
       tv *= 0.78 + 0.22 * sin(uvW.y * refPixel.y * 6.28318);
-      // Dim + tint toward the site's dark base so overlaid text stays legible.
-      // (El "vídeo limpio en móvil" de V16.94 duró un día: V16.95 restaura
-      // el sombreado completo también ahí, ya con el clip de montañas.)
-      fill = mix(uBase * 0.7, tv, 0.5);
+
+      // ===== LA MEZCLA, AHORA POR BRILLO (V18.41) =====
+      // Aquí estaba el motivo real de que el muro nunca pareciera encendido, y
+      // no en ninguno de los sitios que se tocaron en V18.39/V18.40: el vídeo
+      // entraba mezclado AL 50% con un azul-gris plano, y después uDim 0.32 lo
+      // atenuaba otro 68%. Entre las dos cosas el clip llegaba a pantalla a un
+      // ~16% de su intensidad y lavado de gris. Ningún realce posterior podía
+      // arreglar eso, porque para cuando actuaba ya no quedaba ni color ni
+      // rango con los que trabajar.
+      //
+      // La mezcla existe por una razón buena —mantener legible el texto que va
+      // encima— así que no se quita: se hace DEPENDER DEL BRILLO del propio
+      // píxel. Las sombras y los medios conservan exactamente el 0.5 de
+      // siempre, que es donde cae el texto y por tanto donde la legibilidad se
+      // juega; las zonas encendidas del clip suben hasta entrar casi puras.
+      // Eso es justo lo que distingue un panel LED de una imagen: el rótulo
+      // brilla a tope mientras lo que hay alrededor sigue oscuro.
+      float lumTv = dot(tv, vec3(0.2126, 0.7152, 0.0722));
+      float peso = mix(0.5, 0.98, smoothstep(0.30, 0.80, lumTv));
+      fill = mix(uBase * 0.7, tv, peso);
+
+      // ===== SANGRADO DE LUZ (V18.41) =====
+      // Lo que hace que un panel se lea como FUENTE de luz y no como una
+      // superficie clara es que su luz se desborda: moja el aire de alrededor,
+      // los biseles, la pared entre paneles. Hasta ahora eso solo lo daba el
+      // Bloom del composer, y el composer es DESKTOP-ONLY — en el teléfono,
+      // que es desde donde se está mirando, no había absolutamente nada de
+      // esto. Por eso "sigue igual".
+      //
+      // Se calcula en el propio shader, así que funciona en todas partes: seis
+      // muestras del clip repartidas en círculo y a un radio ancho. Al
+      // promediarlas sale una versión muy desenfocada de la imagen, que es
+      // exactamente la forma del halo; sumándola después (ver el final del
+      // main) la luz de cada panel se derrama fuera de sus bordes.
+      // Seis y no más porque el coste es una muestra de textura por punto a
+      // pantalla completa; con el radio ancho, seis ya no se distinguen de
+      // dieciséis, porque lo que se busca es una mancha, no una imagen.
+      for (int i = 0; i < 6; i++) {
+        float ang = float(i) * 1.04719755;
+        vec2 off = vec2(cos(ang), sin(ang)) * uBleedRadio;
+        sangrado += sampleActive(puv + off, useB);
+      }
+      sangrado /= 6.0;
+      // El halo va SATURADO y solo con lo que de verdad brilla: un sangrado
+      // gris sería niebla, y lo que se quiere es el color del rótulo tiñendo
+      // el aire. Se resta un suelo para que las zonas oscuras del clip no
+      // aporten nada — si no, el muro entero se levantaría de forma uniforme,
+      // que es lo contrario de la noche.
+      sangrado = max(sangrado - 0.12, 0.0);
+      sangrado = mix(vec3(dot(sangrado, vec3(0.2126, 0.7152, 0.0722))), sangrado, 1.7);
+      sangrado = max(sangrado, 0.0);
     } else {
       fill = uBase;
     }
@@ -526,6 +581,12 @@ const fragmentShader = /* glsl */ `
     float altaLuz = smoothstep(uLedUmbral, uLedUmbral + 0.22, lumLed);
     col += col * altaLuz * uLedGain * uPower;
 
+    // El halo se SUMA aquí, al final y después de uDim y de la viñeta: es luz
+    // que el panel emite hacia fuera, no parte de la imagen, así que no debe
+    // ir atenuada con ella. Esta es la línea que hace que el muro se lea como
+    // encendido en el teléfono, donde no hay composer ni Bloom que lo hagan.
+    col += sangrado * uBleedGain * uPower;
+
     gl_FragColor = vec4(col, 1.0);
   }
 `;
@@ -616,6 +677,8 @@ export default function SceneBackground({
       uFrameShade: { value: 0 },
       uLedUmbral: { value: 0.34 },
       uLedGain: { value: 0 },
+      uBleedRadio: { value: 0.035 },
+      uBleedGain: { value: 0 },
       uSourceB: { value: blankTex as THREE.Texture },
       uCoverScaleB: { value: new THREE.Vector2(1, 1) },
       uHasVideoB: { value: 0 },
@@ -651,7 +714,14 @@ export default function SceneBackground({
     // móvil sin cambio.
     // 1.35 en móvil (V17.15 subió a 1.2; V17.16 otro punto, "se ve super
     // oscuro"): levanta el muro entero solo en portrait; desktop igual.
-    mat.uniforms.uDim.value = mode === WALL_MODES.portrait ? 1.35 : 0.32;
+    // Desktop 0.32 → 0.44 (V18.41). Era el segundo gran atenuador —después de
+    // la mezcla al 50% con la base, ya arreglada arriba— y entre los dos
+    // dejaban el clip a un ~16% de su intensidad. Se sube pero NO se quita: su
+    // trabajo, domar el brillo bajo el texto, lo sigue haciendo, y ahora con
+    // menos peso porque la mezcla por brillo ya mantiene las sombras —donde
+    // cae el texto— exactamente donde estaban. Lo que sube de verdad son los
+    // medios y las luces, que es la parte que tenía que parecer encendida.
+    mat.uniforms.uDim.value = mode === WALL_MODES.portrait ? 1.35 : 0.44;
     // Luz extra del estado APAGADO solo en móvil (V17.16 x3.2 → V17.17
     // x4.8, "aumenta más el brillo solo de la parte apagada"): multiplica
     // la base apagada; la cuadrícula y el parpadeo van con tope en el
@@ -680,6 +750,16 @@ export default function SceneBackground({
     // que se puede conseguir sin postproceso.
     mat.uniforms.uLedGain.value = mode === WALL_MODES.portrait ? 0.9 : 7.0;
     mat.uniforms.uLedUmbral.value = mode === WALL_MODES.portrait ? 0.5 : 0.07;
+    // Sangrado de luz (V18.41). EL MÓVIL LLEVA MÁS, y es deliberado: allí no
+    // hay composer, así que este halo del shader es la ÚNICA fuente de
+    // emisión — todo lo que hacen el Bloom y el búfer HDR en escritorio tiene
+    // que salir de aquí. En escritorio se suma al Bloom, así que con menos
+    // basta; pasarse dejaría dos halos encima del mismo panel y el conjunto se
+    // vuelve lechoso.
+    mat.uniforms.uBleedGain.value = mode === WALL_MODES.portrait ? 1.4 : 1.1;
+    // Radio en UV del clip. Más ancho en móvil por la misma razón: sin Bloom
+    // que difunda después, el halo tiene que nacer ya extendido.
+    mat.uniforms.uBleedRadio.value = mode === WALL_MODES.portrait ? 0.055 : 0.042;
     // Contraste del vídeo solo en desktop (V17.31, "se ven grisáceos"):
     // gamma 1.45 hunde los negros del clip; móvil neutro.
     mat.uniforms.uVidGamma.value = mode === WALL_MODES.portrait ? 1 : 1.45;
@@ -688,7 +768,7 @@ export default function SceneBackground({
     // la luminancia el ojo percibe menos color (efecto Hunt); móvil va con
     // uDim 1.35 y sin gamma, así que con menos ya llega. El mix con la base
     // (0.5) se lleva por delante ~la mitad de lo que se aplique aquí.
-    mat.uniforms.uVidSat.value = mode === WALL_MODES.portrait ? 1.5 : 1.85;
+    mat.uniforms.uVidSat.value = mode === WALL_MODES.portrait ? 1.9 : 2.35;
     invalidate();
   }, [mode, invalidate]);
 

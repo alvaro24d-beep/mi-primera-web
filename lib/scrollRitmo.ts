@@ -47,7 +47,6 @@ export const RECORRIDO = {
   aiaNoche: { movil: 300, escritorio: 340 },
   aiaPasos: { movil: 280, escritorio: 280 },
   seoHero: { movil: 300, escritorio: 340 },
-  seoPasos: { movil: 220, escritorio: 300 },
 } as const;
 
 /**

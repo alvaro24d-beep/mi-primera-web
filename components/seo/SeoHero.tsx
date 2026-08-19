@@ -149,9 +149,8 @@ export default function SeoHero() {
           invalidateOnRefresh: true,
         },
       });
-      // ===== A — el titular sale recto hacia arriba (autoAlpha incluido:
-      // el scrollhint vive en el mismo contenedor y sin fade se quedaba
-      // pegado al borde superior durante todo el pin) =====
+      // ===== A — el titular sale recto hacia arriba, con autoAlpha para que
+      // no se quede pegado al borde superior durante el resto del pin =====
       tl.to(head ?? {}, { y: () => -vh() * 0.9, autoAlpha: 0, duration: 1.1, ease: "power2.in" }, 0);
 
       // ===== B — la SERP entra con perspectiva y se asienta =====
@@ -335,7 +334,6 @@ export default function SeoHero() {
           <p className="nxr-seo-sub">
             Posicionamos tu negocio donde buscan tus clientes: en los primeros resultados.
           </p>
-          <span className="nxr-seo-scrollhint">Baja para subir posiciones</span>
         </div>
 
         <div className="nxr-seo-serp-wrap">

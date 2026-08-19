@@ -7970,37 +7970,42 @@ input[type="range"].nxr-ms-range::-moz-range-thumb {
   align-items: center;
   justify-content: center;
   text-align: center;
-  gap: 18px;
+  /* 20px, el mismo gap que .nxr-hero-center en la home (V18.36). */
+  gap: 20px;
   padding: 0 var(--pad-x);
+  /* TITULAR Y PÁRRAFO A LA ALTURA DE LA HOME (V18.36). Los dos heros centran
+     su bloque, pero el de la home lleva debajo el CTA y el indicador de
+     deslizar: 135px medidos, que al ir dentro del bloque centrado suben el
+     titular ~67px. Aquí no hay nada debajo, así que el titular caía esos 67px
+     más abajo y los dos heros no casaban al pasar de una página a otra.
+     Reservando el mismo hueco, el h1 y el párrafo quedan exactamente donde
+     los de la home. Va en px, no en vh, porque lo que se replica —botón e
+     indicador— también mide en px y no crece con la ventana. */
+  padding-bottom: 135px;
   pointer-events: none;
 }
 
+/* Mismos valores exactos que .nxr-hero-h1 de la home (V18.36): el titular de
+   SEO iba por su cuenta —38/84px, interlínea 1.04, caja de 900— y se veía
+   como otra tipografía. Si se cambia el de la home, cambiar también este. */
 .nxr-seo-h1 {
-  font-size: clamp(38px, 6vw, 84px);
-  line-height: 1.04;
+  font-size: clamp(34px, 6vw, 82px);
+  line-height: 1.05;
   letter-spacing: 0.01em;
   text-transform: uppercase;
   color: var(--c-white);
-  max-width: 900px;
+  max-width: 800px;
 }
 
+/* Igual que .nxr-hero-sub de la home (V18.36). */
 .nxr-seo-sub {
   font-size: clamp(14px, 1.6vw, 18px);
+  font-weight: 400;
   color: var(--c-salmon);
-  max-width: 520px;
-  line-height: 1.7;
+  max-width: 480px;
+  line-height: 1.6;
 }
 
-.nxr-seo-scrollhint {
-  position: absolute;
-  bottom: 26px;
-  left: 50%;
-  transform: translateX(-50%);
-  font-size: 12px;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-  color: rgba(255, 255, 255, 0.45);
-}
 
 /* Contenedor con perspectiva: la SERP entra tumbada (rotateX 24°) y se
    asienta casi plana — la sensación 3D de la entrada vive aquí. Oculta por
@@ -8291,6 +8296,10 @@ input[type="range"].nxr-ms-range::-moz-range-thumb {
 .nxr-seo-static .nxr-seo-head {
   position: static;
   pointer-events: auto;
+  /* En la rama de movimiento reducido el bloque va en flujo, no centrado
+     contra la pantalla, así que el hueco que compensa el CTA de la home (ver
+     la regla base) aquí solo dejaría un vacío. */
+  padding-bottom: 0;
 }
 
 .nxr-seo-serp-wrap.is-static {
@@ -8307,39 +8316,9 @@ input[type="range"].nxr-ms-range::-moz-range-thumb {
   transform: rotate(-8deg);
 }
 
-/* --- Pasos: badge de posición + relevos --- */
 
-#nxr-seo-pasos {
-  position: relative;
-}
 
-.nxr-seo-pasos-stage {
-  height: 100lvh;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  /* gap 0 (V16.41): el hueco título→contenido lo pone el margin-bottom
-     de 48px del .nxr-section-h2 base, como en todas las páginas. */
-  gap: 0;
-  padding: 0 var(--pad-x);
-  overflow: hidden;
-}
 
-.nxr-seo-pasos-header {
-  max-width: 1100px;
-  margin: 0 auto;
-  width: 100%;
-}
-
-.nxr-seo-pasos-grid {
-  max-width: 1100px;
-  margin: 0 auto;
-  width: 100%;
-  display: grid;
-  grid-template-columns: 340px 1fr;
-  gap: 28px;
-  align-items: stretch;
-}
 
 /* Anclas de cristal volumétrico (la escena global pinta el cuerpo): solo
    layout, nada de glass CSS — mismo contrato que .nxr-intro-card. */
@@ -8395,69 +8374,14 @@ input[type="range"].nxr-ms-range::-moz-range-thumb {
   font-variant-numeric: tabular-nums;
 }
 
-.nxr-seo-paso-card {
-  position: relative;
-  border-radius: var(--radius-lg);
-  min-height: 340px;
-}
 
-.nxr-seo-paso {
-  position: absolute;
-  inset: 0;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  gap: 14px;
-  padding: 40px 44px;
-}
 
-.nxr-seo-paso-num {
-  font-family: var(--font-rajdhani), system-ui, sans-serif;
-  font-weight: 700;
-  font-size: 13px;
-  letter-spacing: 0.16em;
-  color: var(--c-red);
-}
 
-.nxr-seo-paso-titulo {
-  font-size: clamp(24px, 2.6vw, 36px);
-  color: var(--c-white);
-  line-height: 1.15;
-}
 
-.nxr-seo-paso-desc {
-  font-size: 14px;
-  line-height: 1.75;
-  color: var(--c-salmon);
-  max-width: 460px;
-}
 
-.nxr-seo-pasos-static {
-  padding: var(--section-pad) var(--pad-x);
-}
 
-.nxr-seo-pasos-static-list {
-  max-width: 1100px;
-  margin: 40px auto 0;
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 20px;
-}
 
-.nxr-seo-paso-static {
-  border-radius: var(--radius-lg);
-  padding: 30px 26px;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
 
-.nxr-seo-paso-pos {
-  font-family: var(--font-rajdhani), system-ui, sans-serif;
-  font-weight: 700;
-  font-size: 40px;
-  color: var(--c-lime);
-}
 
 /* --- Resultados: la gráfica que se dibuja --- */
 
@@ -8549,10 +8473,6 @@ input[type="range"].nxr-ms-range::-moz-range-thumb {
 /* --- Responsive --- */
 
 @media (max-width: 900px) {
-  .nxr-seo-pasos-grid {
-    grid-template-columns: 1fr;
-    gap: 18px;
-  }
   .nxr-seo-pos {
     min-height: 250px;
     padding: 22px;
@@ -8560,16 +8480,6 @@ input[type="range"].nxr-ms-range::-moz-range-thumb {
   .nxr-seo-ring {
     width: min(200px, 70%);
     height: min(200px, 70%);
-  }
-  .nxr-seo-paso-card {
-    min-height: 300px;
-  }
-  .nxr-seo-paso {
-    padding: 28px 24px;
-    justify-content: flex-start;
-  }
-  .nxr-seo-pasos-static-list {
-    grid-template-columns: 1fr;
   }
   .nxr-seo-chips {
     grid-template-columns: 1fr;
@@ -8629,21 +8539,6 @@ input[type="range"].nxr-ms-range::-moz-range-thumb {
     right: 2px;
     font-size: 13px;
   }
-  .nxr-seo-scrollhint {
-    bottom: calc(96px + env(safe-area-inset-bottom));
-  }
-  /* Pasos móvil (V16.25, "las cards se tapan por el menú inferior"): el
-     stage reserva el hueco del nav flotante (~83px + safe-area) con
-     padding-bottom, y badge+card se compactan para caber SIEMPRE — la
-     suma se verifica en el harness también a 700px de alto. */
-  .nxr-seo-pasos-stage {
-    gap: 0;
-    justify-content: flex-start;
-    /* 92 → 40px (V16.40): menos banda muerta antes de "De invisible al
-       primer puesto" — sin nav superior en móvil, 40px de aire bastan. */
-    padding-top: 40px;
-    padding-bottom: calc(100px + env(safe-area-inset-bottom));
-  }
   .nxr-seo-pos {
     min-height: 185px;
     padding: 16px;
@@ -8654,19 +8549,6 @@ input[type="range"].nxr-ms-range::-moz-range-thumb {
   }
   .nxr-seo-pos-num {
     font-size: 46px;
-  }
-  .nxr-seo-paso-card {
-    min-height: 235px;
-  }
-  .nxr-seo-paso {
-    padding: 20px 18px;
-  }
-  .nxr-seo-paso-titulo {
-    font-size: 20px;
-  }
-  .nxr-seo-paso-desc {
-    font-size: 13px;
-    line-height: 1.65;
   }
   .nxr-seo-res-panel {
     padding: 18px 16px 12px;
@@ -8680,13 +8562,6 @@ input[type="range"].nxr-ms-range::-moz-range-thumb {
 /* Teléfonos bajos (toolbar visible / pantallas pequeñas): compactar un
    punto más para que badge+card sigan por encima del nav. */
 @media (max-width: 768px) and (max-height: 740px) {
-  .nxr-seo-pasos-stage {
-    padding-top: 78px;
-    gap: 12px;
-  }
-  .nxr-seo-pasos-header .nxr-section-h2 {
-    font-size: 24px;
-  }
   .nxr-seo-pos {
     min-height: 150px;
   }
@@ -8696,9 +8571,6 @@ input[type="range"].nxr-ms-range::-moz-range-thumb {
   }
   .nxr-seo-pos-num {
     font-size: 38px;
-  }
-  .nxr-seo-paso-card {
-    min-height: 205px;
   }
 }
 

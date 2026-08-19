@@ -282,8 +282,37 @@ export default function ZoomParallax() {
     }
 
     // Último desplazamiento de la curva del sticky, para no reescribir el
-    // mismo transform en cada frame de scroll.
-    let ultimaCurva = 0;
+    // mismo transform en cada frame de scroll. Arranca en NaN (distinto de
+    // cualquier valor, también de 0) para que la PRIMERA pasada escriba
+    // siempre: así la capa de compositing queda promocionada desde el inicio
+    // en vez de aparecer al primer desplazamiento no nulo.
+    let ultimaCurva = NaN;
+
+    // ALTO DE VIEWPORT ESTABLE, solo para la curva del sticky (V18.33).
+    //
+    // Aquí no vale `window.innerHeight`, y es la razón de que la sección fuera
+    // a trompicones en móvil justo al principio y al final. La barra de
+    // direcciones se contrae al empezar a bajar y reaparece al parar o subir,
+    // y con ella `innerHeight` salta de golpe ~60-100px. La altura de la
+    // sección NO acompaña ese salto: sale del `height: 235vh` del CSS, y el
+    // `vh` de CSS es el viewport GRANDE, que la toolbar no toca. O sea que
+    // `offsetHeight - innerHeight` cambia sin que el contenido se haya movido.
+    //
+    // Como el desplazamiento de la curva es una posición en píxeles (no una
+    // escala proporcional, que es lo que absorbe estos saltos en el resto de
+    // la coreografía), ese cambio se ve entero: `K` se mueve, `restante` se
+    // mueve ~100px y el elemento pega un tirón de hasta K/4 (~45px) en un
+    // frame. Y ocurre exactamente en los dos momentos en que la toolbar se
+    // mueve: al arrancar el scroll y al frenar.
+    //
+    // Se congela al montar y solo se rehace cuando cambia el ANCHO — rotación
+    // o redimensión de verdad. Es el mismo criterio que el sitio ya aplica con
+    // ScrollTrigger.config({ ignoreMobileResize: true }) en SmoothScroll.
+    // Deliberadamente NO se toca el `vh` que usa el resto del handler: ese
+    // alimenta progress y escalas, está afinado así y es proporcional, así que
+    // el salto de la toolbar ahí no se percibe.
+    let vhCurva = window.innerHeight;
+    let anchoCurva = window.innerWidth;
 
     function onScroll() {
       if (!cerca) return;
@@ -316,22 +345,38 @@ export default function ZoomParallax() {
       //
       // Al elemento se le aplica la diferencia entre dónde debería estar con la
       // curva y dónde lo pone el sticky del navegador. Fuera de la zona esa
-      // diferencia es cero, así que el transform desaparece solo.
-      const K = vh * 0.25;
+      // diferencia es cero, así que la curva se apaga sola.
+      //
+      // Ojo con el alto: va con `vhCurva`, congelado (ver arriba), NO con el
+      // `vh` vivo del handler.
+      if (window.innerWidth !== anchoCurva) {
+        anchoCurva = window.innerWidth;
+        vhCurva = window.innerHeight;
+      }
+      const K = vhCurva * 0.25;
       const suave = (t: number) => (t > K ? t : t < -K ? 0 : ((t + K) * (t + K)) / (4 * K));
       // Entrada: t es lo que falta para tocar el tope.
       let curva = suave(rect.top) - Math.max(0, rect.top);
       // Salida: mismo empalme al revés, con lo que falta para soltarse. Así el
       // elemento arranca ANTES de despegarse y llega al despegue ya en marcha,
       // en vez de pasar de quieto a la velocidad del scroll en un frame.
-      const restante = total - scrolled;
+      const restante = section!.offsetHeight - vhCurva - scrolled;
       curva -= suave(restante) - Math.max(0, restante);
       // Solo se escribe si cambia: esto corre en cada frame de scroll y
       // reescribir el mismo transform invalida estilo y pintado para nada.
       const curvaQ = Math.round(curva * 10) / 10;
       if (curvaQ !== ultimaCurva) {
         ultimaCurva = curvaQ;
-        sticky!.style.transform = curvaQ ? `translate3d(0, ${curvaQ}px, 0)` : "";
+        // SIEMPRE se escribe un transform, aunque valga 0 — nunca la cadena
+        // vacía. Quitar la propiedad destruye la capa de compositing del
+        // sticky y volver a ponerla la recrea, y como la curva pasa por 0 en
+        // los dos extremos (y con la cuantización a 0,1px llega a oscilar
+        // entre 0 y 0,1 en frames seguidos), ahí se producía un ciclo de
+        // crear/destruir capa: el segundo motivo de los tirones en el
+        // principio y el final. Con un translate3d permanente la capa se
+        // promociona una vez y el resto son solo cambios de transform, que el
+        // compositor resuelve sin repintar.
+        sticky!.style.transform = `translate3d(0, ${curvaQ}px, 0)`;
       }
 
       // ===== Handoff reel→ZP en móvil (V16.21, "que vaya justo después

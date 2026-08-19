@@ -172,7 +172,13 @@ export default function ZoomParallax() {
               fragment.appendChild(document.createTextNode(" "));
             } else {
               const s = document.createElement("span");
-              s.className = "nxr-zp-tw";
+              // Clase NEUTRA, sin estilo: solo marca el carácter para que el
+              // glitch de salida pueda corromper letras sueltas. Deliberadamente
+              // NO es `nxr-zp-tw`, que lleva `visibility: hidden` y la
+              // conmutan por carácter el hero de la home y el de /seo — aquí
+              // el texto entra con un fundido del contenedor, así que nadie le
+              // quitaría nunca ese hidden y no se vería jamás.
+              s.className = "nxr-zp-char";
               s.textContent = ch;
               fragment.appendChild(s);
               out.push(s);

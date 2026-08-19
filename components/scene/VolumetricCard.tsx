@@ -427,18 +427,44 @@ export default function VolumetricCard({
           // plain shader uniforms — raising them costs zero extra GPU (the
           // expensive knobs are `samples` and the capture resolution, which
           // stay untouched).
-          // envMapIntensity 1.6 → 1.0 → 0.4 → 0.15 y clearcoat 0.35 → 0.15 (V16.11, tercera bajada:
-          // 1.1 → 0.3 en el metálico) — V16.9/16.10, "que sean sutiles": los brochazos casi desaparecen — 
-          // brochazos de los Lightformers bajan ~35% de intensidad.
           distortion={1.35}
           distortionScale={0.006}
           temporalDistortion={0.55}
-          clearcoat={0.05}
-          clearcoatRoughness={0.3}
+          // ===== CRISTAL RETROILUMINADO (V18.39) =====
+          // Petición: "que las cards se vean retroiluminadas, como cuando
+          // enfocas a un cristal con una linterna".
+          //
+          // Las linternas ya existían: los <Lightformer> de SceneEnvironment
+          // (lima, salmón, rojo y dos blancos) son literalmente paneles de luz
+          // colocados alrededor de la escena. Lo que pasaba es que el material
+          // los tenía casi apagados — envMapIntensity 0.05 y clearcoat 0.05,
+          // el final de una cadena de bajadas de V16.9-V16.11 ("que sean
+          // sutiles") que dejó el cristal sin ningún brillo propio: solo
+          // refractaba el fondo, como una lente, sin leerse nunca como una
+          // pieza iluminada.
+          //
+          // Los tres números trabajan juntos y por eso suben juntos:
+          //  · envMapIntensity 0.05 → 0.5 — devuelve los brochazos de color de
+          //    los Lightformers sobre la superficie: el haz de la linterna.
+          //  · clearcoat 0.05 → 0.3 con clearcoatRoughness 0.3 → 0.16 — una
+          //    capa especular más nítida encima. Al ser las cards domos o
+          //    pliegues, su curvatura concentra ese especular en los CANTOS,
+          //    que es donde un cristal iluminado de verdad se enciende.
+          //  · reflectivity 0.2 → 0.34 — sube el Fresnel, así que el brillo
+          //    aparece sobre todo en los bordes que miran de perfil y no en
+          //    la cara plana, que seguiría leyéndose como plástico.
+          //
+          // El remate lo pone el Bloom (desktop): esos cantos especulares son
+          // lo bastante brillantes para cruzar su umbral, y el halo alrededor
+          // del canto es lo que hace que el cristal parezca emitir en vez de
+          // solo reflejar. Sin composer —móvil— el efecto se queda en el
+          // brillo, que es correcto: allí este material ni se usa.
+          clearcoat={0.3}
+          clearcoatRoughness={0.16}
           ior={1.5}
-          reflectivity={0.2}
+          reflectivity={0.34}
           metalness={0.04}
-          envMapIntensity={0.05}
+          envMapIntensity={0.5}
         />
       ) : isGlass ? (
         // ---- Opaque dark glass (mobile fallback — transmission off) ----

@@ -143,6 +143,11 @@ const fragmentShader = /* glsl */ `
                            // del teléfono
   uniform float uFrameShade; // marco de sombra del viewport (V17.21):
                              // 1 desktop, 0 móvil
+  uniform float uLedUmbral;  // emisión LED (V18.39): luminancia desde la que
+                             // el panel empieza a comportarse como fuente
+  uniform float uLedGain;    // cuánto se realzan esas altas luces. Alto en
+                             // desktop (el Bloom lo convierte en halo), bajo
+                             // en móvil (sin composer, solo quemaría)
   uniform sampler2D uSourceB; // clip ENTRANTE del cambio de vídeo (V17.22)
   uniform vec2 uCoverScaleB;  // cover-crop del clip entrante
   uniform float uHasVideoB;   // 1 = uSourceB listo (ya reproduciendo)
@@ -476,6 +481,37 @@ const fragmentShader = /* glsl */ `
     // la deformación se lea como refracción y no como un pandeo de la imagen.
     col *= 1.0 + ripW * 0.75;
 
+    // ===== EMISIÓN LED — el muro como FUENTE DE LUZ (V18.39) =====
+    // Petición: "que la pantalla del fondo se sienta real, como un panel de
+    // Times Square, que emita luz, que se note retroiluminada".
+    //
+    // Lo que separa una imagen de una pantalla no es el color, es el RANGO.
+    // Un panel LED real tiene sus zonas encendidas MUY por encima del blanco
+    // del papel que lo rodea, y por eso derrama luz. Aquí el vídeo salía ya
+    // domado —gamma 1.45 y uDim 0.32 en desktop— y se leía como una textura
+    // pintada en la pared, no como algo encendido.
+    //
+    // La curva realza SOLO las altas luces (smoothstep desde uLedUmbral) y lo
+    // hace multiplicando el propio color, no sumando blanco: los brillos
+    // suben de intensidad conservando su tono, que es como se comporta un LED
+    // al subirle corriente. Los medios y las sombras no se tocan, así que el
+    // texto que va por delante del muro conserva su contraste y uDim sigue
+    // haciendo su trabajo.
+    //
+    // En desktop el remate lo pone el Bloom del composer: al empujar estas
+    // zonas por encima de su luminanceThreshold (0.6) el halo aparece solo, y
+    // ESE halo es la retroiluminación. OJO: el umbral del Bloom no se toca —
+    // la nube de puntos está calibrada justo por debajo (pico 0.58) y bajarlo
+    // le devolvería el halo que costó varias versiones quitarle. Aquí se sube
+    // el muro hasta el umbral, no se baja el umbral hasta el muro.
+    //
+    // Móvil no tiene composer, así que allí uLedGain va mucho más bajo (ver
+    // JS): sin halo que ganar, un realce fuerte solo quemaría los blancos.
+    // Todo va multiplicado por uPower: una pantalla apagada no emite.
+    float lumLed = dot(col, vec3(0.2126, 0.7152, 0.0722));
+    float altaLuz = smoothstep(uLedUmbral, 1.0, lumLed);
+    col += col * altaLuz * uLedGain * uPower;
+
     gl_FragColor = vec4(col, 1.0);
   }
 `;
@@ -564,6 +600,8 @@ export default function SceneBackground({
       uTime: { value: 0 },
       uOffLift: { value: 1 },
       uFrameShade: { value: 0 },
+      uLedUmbral: { value: 0.34 },
+      uLedGain: { value: 0 },
       uSourceB: { value: blankTex as THREE.Texture },
       uCoverScaleB: { value: new THREE.Vector2(1, 1) },
       uHasVideoB: { value: 0 },
@@ -607,6 +645,15 @@ export default function SceneBackground({
     mat.uniforms.uOffLift.value = mode === WALL_MODES.portrait ? 4.8 : 1;
     // Marco de sombra del viewport solo en desktop (V17.21).
     mat.uniforms.uFrameShade.value = mode === WALL_MODES.portrait ? 0 : 1;
+    // Emisión LED (V18.39, "que emita luz, que se note retroiluminada"): el
+    // realce de altas luces del final del shader. Desktop 1.45 porque ahí el
+    // Bloom del composer convierte lo que pasa de su umbral en halo, y ese
+    // halo ES la retroiluminación; móvil 0.5 porque no hay composer y sin
+    // halo que ganar un realce fuerte solo quemaría los blancos. El umbral
+    // sube un punto en móvil: allí uDim 1.35 ya levanta el muro entero, así
+    // que con 0.34 entraría en emisión medio encuadre.
+    mat.uniforms.uLedGain.value = mode === WALL_MODES.portrait ? 0.5 : 1.45;
+    mat.uniforms.uLedUmbral.value = mode === WALL_MODES.portrait ? 0.46 : 0.34;
     // Contraste del vídeo solo en desktop (V17.31, "se ven grisáceos"):
     // gamma 1.45 hunde los negros del clip; móvil neutro.
     mat.uniforms.uVidGamma.value = mode === WALL_MODES.portrait ? 1 : 1.45;

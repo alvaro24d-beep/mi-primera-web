@@ -391,7 +391,21 @@ export default function SceneCanvas() {
                 exactamente lo que sobrevive a un reescalado. Es el ahorro de
                 GPU más grande disponible sin tocar dpr (y sin tocar dpr, la
                 silueta de las cards de cristal se mantiene igual de limpia). */}
-            <Bloom mipmapBlur resolutionScale={0.5} luminanceThreshold={0.6} luminanceSmoothing={0.3} intensity={0.35} />
+            {/* intensity 0.35 → 0.9 (V18.39, "que el muro emita luz, que se
+                note retroiluminado"): el halo del bloom ES la
+                retroiluminación, y a 0.35 apenas se insinuaba. Lo que emite
+                ahora es el realce de altas luces del final del shader del
+                muro y los reflejos especulares de los cantos del cristal.
+
+                luminanceThreshold SIGUE EN 0.6 Y NO SE TOCA: la nube de
+                puntos está calibrada justo por debajo (uOpacity·vBrillo pico
+                0.58) precisamente para no florecer, y devolverle el halo es
+                lo que la hacía leerse como ruido — costó varias versiones
+                quitárselo. Subir la intensidad no la afecta porque no cruza
+                el umbral; bajar el umbral sí lo haría. Si algún día hace
+                falta más emisión, se sube el brillo de lo que debe emitir,
+                nunca se baja este número. */}
+            <Bloom mipmapBlur resolutionScale={0.5} luminanceThreshold={0.6} luminanceSmoothing={0.3} intensity={0.9} />
             <Vignette eskil={false} offset={0.25} darkness={0.55} />
           </EffectComposer>
         )}

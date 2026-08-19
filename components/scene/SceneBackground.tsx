@@ -508,8 +508,22 @@ const fragmentShader = /* glsl */ `
     // Móvil no tiene composer, así que allí uLedGain va mucho más bajo (ver
     // JS): sin halo que ganar, un realce fuerte solo quemaría los blancos.
     // Todo va multiplicado por uPower: una pantalla apagada no emite.
+    // CUIDADO CON LA ESCALA (V18.40, el error de V18.39): esta luminancia NO
+    // va de 0 a 1. Aquí abajo el color ya ha pasado por uVidGamma 1.45 y por
+    // uDim 0.32, así que una zona CLARA del clip llega con ~0.19 y el muro
+    // entero vive entre 0.02 y 0.35. El primer intento puso el umbral en 0.34
+    // razonando sobre una escala 0-1 que no existe: el smoothstep daba cero en
+    // todo el encuadre y el realce no se activó ni una vez ("no veo ninguna
+    // diferencia"). Los números de abajo están medidos contra ESA escala.
+    //
+    // El rango del smoothstep es estrecho a propósito (+0.22): lo que hace la
+    // noche no es un degradado suave sino la SEPARACIÓN entre lo apagado y lo
+    // encendido. Con un rango corto los paneles con imagen saltan rápido a
+    // emisión plena mientras la pared entre ellos se queda en su negro, y esa
+    // distancia es el look — no un muro más brillante, que sería justo lo
+    // contrario.
     float lumLed = dot(col, vec3(0.2126, 0.7152, 0.0722));
-    float altaLuz = smoothstep(uLedUmbral, 1.0, lumLed);
+    float altaLuz = smoothstep(uLedUmbral, uLedUmbral + 0.22, lumLed);
     col += col * altaLuz * uLedGain * uPower;
 
     gl_FragColor = vec4(col, 1.0);
@@ -645,15 +659,27 @@ export default function SceneBackground({
     mat.uniforms.uOffLift.value = mode === WALL_MODES.portrait ? 4.8 : 1;
     // Marco de sombra del viewport solo en desktop (V17.21).
     mat.uniforms.uFrameShade.value = mode === WALL_MODES.portrait ? 0 : 1;
-    // Emisión LED (V18.39, "que emita luz, que se note retroiluminada"): el
-    // realce de altas luces del final del shader. Desktop 1.45 porque ahí el
-    // Bloom del composer convierte lo que pasa de su umbral en halo, y ese
-    // halo ES la retroiluminación; móvil 0.5 porque no hay composer y sin
-    // halo que ganar un realce fuerte solo quemaría los blancos. El umbral
-    // sube un punto en móvil: allí uDim 1.35 ya levanta el muro entero, así
-    // que con 0.34 entraría en emisión medio encuadre.
-    mat.uniforms.uLedGain.value = mode === WALL_MODES.portrait ? 0.5 : 1.45;
-    mat.uniforms.uLedUmbral.value = mode === WALL_MODES.portrait ? 0.46 : 0.34;
+    // Emisión LED (V18.39, recalibrada en V18.40). Los valores van contra la
+    // luminancia REAL que sale del shader, que en desktop está aplastada por
+    // uVidGamma 1.45 y uDim 0.32 —el muro vive entre 0.02 y 0.35, no entre 0
+    // y 1— y en móvil la levanta uDim 1.35 hasta rangos mucho más altos. Por
+    // eso los dos umbrales se parecen tan poco: es la misma decisión sobre dos
+    // escalas distintas.
+    //
+    // Desktop 7.0 de ganancia sobre un umbral de 0.07: un panel con imagen
+    // clara (~0.19) sale multiplicado unas 3 veces y cruza con margen el
+    // umbral 0.6 del Bloom, y los más brillantes se van por encima de 1 —lo
+    // que ahora es posible gracias al búfer HalfFloat, ver SceneCanvas—, que
+    // es donde el halo deja de ser un brillo y pasa a leerse como una fuente
+    // de luz. Sin ese margen por encima de 1 no hay noche de Blade Runner:
+    // hay una foto de una pantalla.
+    //
+    // Móvil 0.9 sobre 0.5: allí no hay composer, así que no hay halo que
+    // ganar y todo lo que pase de 1 se recorta a blanco plano. La ganancia
+    // solo abre el contraste entre panel encendido y pared, que es lo único
+    // que se puede conseguir sin postproceso.
+    mat.uniforms.uLedGain.value = mode === WALL_MODES.portrait ? 0.9 : 7.0;
+    mat.uniforms.uLedUmbral.value = mode === WALL_MODES.portrait ? 0.5 : 0.07;
     // Contraste del vídeo solo en desktop (V17.31, "se ven grisáceos"):
     // gamma 1.45 hunde los negros del clip; móvil neutro.
     mat.uniforms.uVidGamma.value = mode === WALL_MODES.portrait ? 1 : 1.45;

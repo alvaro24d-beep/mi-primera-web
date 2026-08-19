@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import { Environment, Lightformer } from "@react-three/drei";
 import { EffectComposer, Bloom, Vignette } from "@react-three/postprocessing";
+import { HalfFloatType } from "three";
 import SceneBackground from "./SceneBackground";
 import GearPoints from "./GearPoints";
 
@@ -380,7 +381,19 @@ export default function SceneCanvas() {
           // a dark blurred wall, where aliasing is invisible). Dropping the
           // last 2x unlocked the 60fps budget in the Servicios stretch
           // (p50 33.3ms → 16.7ms measured).
-          <EffectComposer multisampling={0}>
+          // frameBufferType HalfFloat (V18.40) — SIN ESTO NO HAY NOCHE.
+          // El composer trabajaba en 8 bits por canal, donde 1.0 es el techo
+          // absoluto: cualquier píxel más brillante que el blanco de pantalla
+          // se recortaba ANTES de llegar al Bloom. Una escena así no puede
+          // tener fuentes de luz, solo cosas claras — que es justo por lo que
+          // el muro se leía como una imagen y no como un panel encendido.
+          // En 16 bits el búfer guarda valores por encima de 1, el realce del
+          // shader del muro puede sobreexponer de verdad y el tone mapping
+          // ACES (el que R3F pone por defecto) los comprime en lugar de
+          // quemarlos a blanco plano: el reparto de un plano nocturno de
+          // cine. Cuesta el doble de ancho de banda en los búferes del
+          // composer, que solo existe en escritorio.
+          <EffectComposer multisampling={0} frameBufferType={HalfFloatType}>
             {/* resolutionScale 0.5 (V17.76): el bloom es el único efecto con
                 cadena de pases PROPIA — Vignette se fusiona en el EffectPass
                 final y sale casi gratis, pero mipmapBlur baja y sube una
@@ -405,7 +418,20 @@ export default function SceneCanvas() {
                 el umbral; bajar el umbral sí lo haría. Si algún día hace
                 falta más emisión, se sube el brillo de lo que debe emitir,
                 nunca se baja este número. */}
-            <Bloom mipmapBlur resolutionScale={0.5} luminanceThreshold={0.6} luminanceSmoothing={0.3} intensity={0.9} />
+            <Bloom
+              mipmapBlur
+              resolutionScale={0.5}
+              luminanceThreshold={0.6}
+              luminanceSmoothing={0.3}
+              intensity={1.5}
+              // radius 0.85 (V18.40): el halo por defecto es corto y se lee
+              // como un contorno brillante pegado al objeto. Lo que hace que
+              // una luz parezca luz es que SANGRE lejos, difusa, ocupando el
+              // aire alrededor — el halo ancho de un rótulo en una calle
+              // mojada. Sale casi gratis: mipmapBlur ya construye la pirámide,
+              // el radio solo decide hasta qué nivel se mezcla.
+              radius={0.85}
+            />
             <Vignette eskil={false} offset={0.25} darkness={0.55} />
           </EffectComposer>
         )}

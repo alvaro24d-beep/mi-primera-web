@@ -1839,7 +1839,7 @@ p.nxr-hero-mastery-line {
   /* Pantallas bajas: el hero ya va justo de alto (ver --vh-100), así que el
      indicador se acerca al CTA en vez de empujar el bloque fuera de la caja. */
   .nxr-hero-cue {
-    margin-top: 18px;
+    margin-top: 26px;
   }
 }
 
@@ -1925,20 +1925,27 @@ p.nxr-hero-mastery-line {
   .nxr-hero-fade,
   .nxr-hero-static {
     /* ESTE es el único sitio que decide dónde cae el bloque del hero en
-       teléfono. El contenido va centrado por flex dentro de `inset: 0`, así
-       que lo que lo desplaza es la ASIMETRÍA entre estos dos paddings: la
-       mitad del diferencial, hacia el lado con menos padding.
+       teléfono, y su posición actual está dada por buena — no la muevas sin
+       que se pida explícitamente.
 
-       Llevaba `padding-top: 120px` (bajaba el conjunto ~60px, de una petición
-       antigua de "baja más el contenido de la hero en móvil"), y en V18.29 se
-       intentó subirlo desde otra media query situada ANTES en el archivo —
-       que esta anulaba en silencio con su `padding-bottom: 0`. Por eso aquel
-       intento no movió nada. Ahora el peso va abajo y en un solo bloque: todo
-       el conjunto —titular, párrafo, CTA e indicador— sube ~4vh respecto al
-       centro. El área útil pasa de ~85vh a 92vh, más aire del que había, así
-       que tampoco se recorta nada por arriba. */
-    padding-top: 0;
-    padding-bottom: 8vh;
+       El contenido va centrado por flex dentro de `inset: 0`, así que lo que
+       lo desplaza es la ASIMETRÍA entre estos dos paddings: medio diferencial,
+       hacia el lado con menos padding. Con 120/0 el conjunto queda ~60px por
+       debajo del centro, que es donde se pidió ("baja más el contenido de la
+       hero en móvil") y donde se quiere.
+
+       Historial, porque este bloque ya ha costado dos idas y venidas:
+        · V18.29 intentó subirlo desde otra media query situada ANTES en el
+          archivo. No movió nada: esta regla la anula por orden con su
+          `padding-bottom: 0`, misma especificidad. Aquel bloque ya no existe.
+        · V18.31 invirtió la asimetría aquí (0 / 8vh) y entonces sí subió —
+          demasiado. Revertido.
+       Si en algún momento hay que subir SOLO el indicador sin mover el resto,
+       la vía es compensada, no global: recortar el `margin-top` de
+       .nxr-hero-cue en X px y añadir aquí `padding-bottom: X px`, que devuelve
+       el centrado a su sitio y deja el indicador X px más arriba. */
+    padding-top: 120px;
+    padding-bottom: 0;
   }
 
   /* "Construido con maestría / Entregado con precisión" pinned to the middle

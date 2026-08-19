@@ -800,11 +800,37 @@ export default function SceneBackground({
     const mat = matRef.current;
     if (!mat) return;
 
-    type Slot = { key: string | null; video: HTMLVideoElement; tex: THREE.VideoTexture; dispose: () => void };
+    // `parar` (se arma en cada transición) suelta el slot sin destruirlo:
+    // cancela su requestVideoFrameCallback y pausa. Es lo que permite que un
+    // clip salga de pantalla y siga en el caché sin costar nada.
+    type Slot = {
+      key: string | null;
+      video: HTMLVideoElement;
+      tex: THREE.VideoTexture;
+      dispose: () => void;
+      parar?: () => void;
+    };
     let front: Slot | null = null; // override visible (null = pipeline por defecto)
     let incoming: Slot | null = null; // slot B cargando / en cascada
     let currentKey: string | null = null; // null = clip por defecto
     let pending: string | null | undefined; // undefined = nada en cola
+
+    // CACHÉ DE CLIPS (V18.35) — el motivo de que el muro tardara en cambiar.
+    //
+    // Antes cada cambio de servicio creaba un <video> desde cero y la cascada
+    // no arrancaba hasta su `loadeddata`, o sea hasta que la RED entregaba el
+    // primer frame de un archivo de ~2,5 MB. Ese tiempo se veía entero como
+    // retraso, y encima al pasar a la siguiente card el clip anterior se
+    // destruía: volver atrás lo descargaba otra vez.
+    //
+    // Ahora los slots se guardan por clave y se reutilizan. Un clip ya visto
+    // vuelve INSTANTÁNEO (readyState >= 2, sin red y sin esperar evento), y
+    // con la precarga de abajo el primero también llega listo. Los slots del
+    // caché que no están en pantalla se quedan PAUSADOS: sin decodificación
+    // continua no le quitan CPU/GPU a la escena, que es la razón de no
+    // dejarlos simplemente reproduciendo de fondo.
+    const cache = new Map<string, Slot>();
+    const claveDe = (key: string | null) => key ?? "__default";
 
     const setCover = (video: HTMLVideoElement, cover: THREE.Vector2) => {
       // Mismo cover-crop + zoom-out que el pipeline por defecto (ver onReady
@@ -816,35 +842,87 @@ export default function SceneBackground({
       else cover.set(zoom, (va / wa) * zoom);
     };
 
+    // Desengancha el slot B de los uniforms. El slot NO se destruye: vuelve al
+    // caché pausado, listo para la próxima vez que se pida ese clip.
     const retireIncoming = () => {
       if (!incoming) return;
       const s = incoming;
       incoming = null;
-      s.dispose();
+      s.parar?.();
       mat.uniforms.uHasVideoB.value = 0;
       mat.uniforms.uSourceB.value = blankTex;
     };
 
-    const startTransition = (key: string | null) => {
-      retireIncoming();
+    // Crea (o recupera del caché) el slot de un clip. `reproducir` distingue
+    // los dos usos: en una transición el vídeo tiene que estar corriendo,
+    // mientras que en la precarga solo interesa que la RED traiga el primer
+    // frame — se queda pausado y no cuesta decodificación.
+    const obtenerSlot = (key: string | null, reproducir: boolean): Slot => {
+      const ck = claveDe(key);
+      const enCache = cache.get(ck);
+      if (enCache) {
+        if (reproducir && enCache.video.paused && !document.hidden) enCache.video.play().catch(() => {});
+        return enCache;
+      }
       const src = key ?? videoSrc;
       const video = document.createElement("video");
       video.setAttribute("muted", "");
       video.setAttribute("playsinline", "");
-      video.setAttribute("autoplay", "");
       video.muted = true;
       video.playsInline = true;
-      video.autoplay = true;
       video.loop = true;
       video.preload = "auto";
       video.src = src;
-      video.play().catch(() => {});
+      if (reproducir) {
+        video.setAttribute("autoplay", "");
+        video.autoplay = true;
+        video.play().catch(() => {});
+      }
       const tex = new THREE.VideoTexture(video);
       tex.colorSpace = THREE.SRGBColorSpace;
       tex.magFilter = THREE.NearestFilter;
       tex.minFilter = THREE.LinearFilter;
       tex.wrapS = THREE.MirroredRepeatWrapping;
       tex.wrapT = THREE.MirroredRepeatWrapping;
+      const onError = () => {
+        // El clip no existe o no decodifica: fuera del caché para no servirlo
+        // como "listo" más adelante.
+        cache.delete(ck);
+        if (incoming?.video !== video) return;
+        retireIncoming();
+        switchTargetRef.current = 0;
+        pending = undefined;
+        invalidate();
+        // Clip del servicio inexistente/roto (V17.25, "solo cuando está
+        // seleccionada esa card"): el fallback es volver al clip por
+        // DEFECTO, no quedarse con el del servicio anterior. Sin reintento
+        // si lo que falló era justamente el defecto (evita el bucle).
+        if (key !== null && currentKey !== null) startTransition(null);
+      };
+      video.addEventListener("error", onError);
+      const slot: Slot = {
+        key,
+        video,
+        tex,
+        // Se define UNA vez y lee `slot.parar` en el momento de ejecutarse.
+        // Envolverlo en cada transición (el slot puede mostrarse muchas veces)
+        // iría apilando cierres sobre el mismo objeto.
+        dispose: () => {
+          slot.parar?.();
+          video.removeEventListener("error", onError);
+          video.pause();
+          video.src = "";
+          tex.dispose();
+        },
+      };
+      cache.set(ck, slot);
+      return slot;
+    };
+
+    const startTransition = (key: string | null) => {
+      retireIncoming();
+      const slot = obtenerSlot(key, true);
+      const { video, tex } = slot;
       const supportsRVFC = typeof video.requestVideoFrameCallback === "function";
       let rvfcId: number | null = null;
       const onFrame = () => {
@@ -861,34 +939,62 @@ export default function SceneBackground({
         switchTargetRef.current = 1;
         invalidate();
       };
-      const onError = () => {
-        if (incoming?.video !== video) return;
-        retireIncoming();
-        switchTargetRef.current = 0;
-        pending = undefined;
-        invalidate();
-        // Clip del servicio inexistente/roto (V17.25, "solo cuando está
-        // seleccionada esa card"): el fallback es volver al clip por
-        // DEFECTO, no quedarse con el del servicio anterior. Sin reintento
-        // si lo que falló era justamente el defecto (evita el bucle).
-        if (key !== null && currentKey !== null) startTransition(null);
+      // El slot sobrevive en el caché, así que su limpieza se re-arma en cada
+      // transición: `parar` lo suelta —cancela el rVFC de ESTA pasada y
+      // pausa— dejándolo reutilizable. Destruirlo es cosa de `dispose`, que
+      // se definió al crearlo y solo corre en el cleanup del efecto.
+      slot.parar = () => {
+        video.removeEventListener("loadeddata", onReady);
+        if (rvfcId !== null && supportsRVFC) {
+          video.cancelVideoFrameCallback(rvfcId);
+          rvfcId = null;
+        }
+        video.pause();
       };
-      video.addEventListener("loadeddata", onReady);
-      video.addEventListener("error", onError);
-      incoming = {
-        key,
-        video,
-        tex,
-        dispose: () => {
-          video.removeEventListener("loadeddata", onReady);
-          video.removeEventListener("error", onError);
-          if (rvfcId !== null && supportsRVFC) video.cancelVideoFrameCallback(rvfcId);
-          video.pause();
-          video.src = "";
-          tex.dispose();
-        },
-      };
+      incoming = slot;
+      // Si ya tiene datos (clip cacheado o precargado) NO se espera al evento:
+      // `loadeddata` ya pasó y no volvería a dispararse. Esto es lo que hace
+      // que un cambio de servicio sea inmediato.
+      if (video.readyState >= 2) onReady();
+      else video.addEventListener("loadeddata", onReady, { once: true });
     };
+
+    // PRECARGA (evento `nxr:wall-precache`, lo emite Servicios al entrar la
+    // sección en pantalla). Trae los clips ANTES de que se pidan, de uno en
+    // uno para no competir por el ancho de banda entre ellos ni con el clip
+    // que se esté mostrando. Todo lo que llega aquí se queda pausado en el
+    // caché; el trabajo real lo hace luego `startTransition`, que ya se los
+    // encuentra con readyState >= 2.
+    let precargando = false;
+    const precargar = (srcs: string[]) => {
+      if (precargando) return;
+      const cola = srcs.filter((s) => !cache.has(claveDe(s)));
+      if (!cola.length) return;
+      precargando = true;
+      const siguiente = () => {
+        const src = cola.shift();
+        if (!src) {
+          precargando = false;
+          return;
+        }
+        if (cache.has(claveDe(src))) return siguiente();
+        const slot = obtenerSlot(src, false);
+        if (slot.video.readyState >= 2) return siguiente();
+        const paso = () => {
+          slot.video.removeEventListener("loadeddata", paso);
+          slot.video.removeEventListener("error", paso);
+          siguiente();
+        };
+        slot.video.addEventListener("loadeddata", paso, { once: true });
+        slot.video.addEventListener("error", paso, { once: true });
+      };
+      siguiente();
+    };
+    const onPrecache = (e: Event) => {
+      const srcs = (e as CustomEvent).detail?.srcs;
+      if (Array.isArray(srcs)) precargar(srcs.filter((s): s is string => typeof s === "string"));
+    };
+    window.addEventListener("nxr:wall-precache", onPrecache);
 
     finalizeSwitchRef.current = () => {
       if (!incoming) {
@@ -913,7 +1019,9 @@ export default function SceneBackground({
       incoming = null;
       currentKey = front.key;
       overrideVideoRef.current = front.video;
-      if (old) old.dispose();
+      // El clip saliente se PARA, no se destruye: queda en el caché ya
+      // descargado, así que volver a ese servicio no vuelve a pedir red.
+      if (old) old.parar?.();
       else videoElRef.current?.pause(); // el defecto duerme mientras haya override
       invalidate();
       // Cola: si llegó otro cambio durante la cascada, encadenarlo.
@@ -967,11 +1075,15 @@ export default function SceneBackground({
 
     return () => {
       window.removeEventListener("nxr:wall-video", onSetVideo);
+      window.removeEventListener("nxr:wall-precache", onPrecache);
       document.removeEventListener("visibilitychange", onVisibility);
       window.removeEventListener("touchstart", kick);
       window.removeEventListener("pointerdown", kick);
       retireIncoming();
-      if (front) front.dispose();
+      // Aquí sí se destruye todo: el caché guarda los clips mientras el muro
+      // vive, y este es el único punto donde deja de vivir.
+      cache.forEach((s) => s.dispose());
+      cache.clear();
       front = null;
       overrideVideoRef.current = null;
       finalizeSwitchRef.current = null;

@@ -421,6 +421,22 @@ const setWallVideo = (src: string | null) => {
   window.dispatchEvent(new CustomEvent("nxr:wall-video", { detail: { src } }));
 };
 
+// PRECARGA DE LOS CLIPS (V18.35). Se avisa al muro en cuanto la sección
+// asoma, no cuando se pide cada clip: hasta ahora la descarga de ~2,5 MB
+// arrancaba en el instante del cambio de card y la cascada esperaba a su
+// primer frame, así que la espera de red se veía entera como "el vídeo tarda
+// en cambiar". Avisando aquí, los clips llegan mientras se lee la primera
+// card y los cambios posteriores ya no tocan la red.
+// SceneBackground los descarga DE UNO EN UNO y los deja pausados en su caché;
+// es idempotente, así que reemitirlo en cada entrada no cuesta nada.
+const precacheWallVideos = () => {
+  window.dispatchEvent(
+    new CustomEvent("nxr:wall-precache", {
+      detail: { srcs: SERVICE_VIDEOS.filter((s): s is string => typeof s === "string") },
+    })
+  );
+};
+
 // (V17.76: cada entrada tenía además un `icon` con su SVG inline. La card del
 // reel es una PANTALLA desde el rediseño — solo muestra su mini-animación —,
 // así que ni GlassCard ni Caption lo renderizaban: cinco árboles de elementos
@@ -1834,6 +1850,9 @@ export default function Servicios() {
         // misma cascada (V17.22). Emitir null con el defecto ya puesto es
         // un no-op en SceneBackground.
         if (!entry.isIntersecting) setWallVideo(null);
+        // Al asomar, los clips de los cinco servicios empiezan a bajar en
+        // segundo plano para que ningún cambio de card espere a la red.
+        else precacheWallVideos();
       },
       { rootMargin: "150px 0px" }
     );

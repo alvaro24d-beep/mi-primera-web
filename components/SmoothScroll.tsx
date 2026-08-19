@@ -56,31 +56,29 @@ export default function SmoothScroll() {
     // rock-steady while the toolbar animates (pros do this on any pinned site).
     ScrollTrigger.config({ ignoreMobileResize: true });
 
-    // Base V16.17 (defaults de Lenis) + AJUSTE DE INERCIA (V18.30, petición:
-    // "que tarde mucho más en pararse y que no sea tan sensible").
+    // Base V16.17 (defaults de Lenis) + alcance del flick contenido (V18.31).
     //
-    // Las dos cosas que se piden NO son la misma y las gobiernan parámetros
-    // distintos, así que conviene no confundirlos al retocar esto:
-    //   · CUÁNTO TARDA EN PARARSE  -> el lerp. Es la fracción de la distancia
-    //     que queda pendiente que se recorre en cada frame, así que cuanto más
-    //     bajo, más larga es la cola de frenado.
-    //   · CUÁNTO LLEGA A AVANZAR   -> el exponente de inercia (táctil) y el
-    //     multiplicador de rueda (escritorio). Son los que hacen que un gesto
-    //     fuerte se coma media web.
-    // Bajar solo el lerp habría alargado el frenado pero dejando los mismos
-    // saltos largos; bajar solo el alcance habría cortado los saltos pero
-    // parando igual de seco. Van juntos.
+    // LO QUE HAY QUE SABER ANTES DE TOCAR ESTO, porque V18.30 se estrelló
+    // justo aquí: en Lenis el lerp NO gobierna solo la cola de frenado. Es la
+    // fracción del hueco pendiente que se recorre por frame, y ese hueco
+    // existe también MIENTRAS el gesto está activo — el dedo (o la rueda)
+    // mueve el objetivo y el contenido lo persigue. Así que bajar el lerp
+    // alarga el frenado, sí, pero al mismo precio hace que el contenido vaya
+    // por detrás del dedo todo el rato: eso es exactamente la sensación de
+    // "pesado" / arrastrado que devolvió V18.30 (lerp 0.07, syncTouchLerp
+    // 0.03). No hay forma de separar las dos cosas con este parámetro, y
+    // entre las dos manda la respuesta al gesto.
     //
-    //   - syncTouchLerp 0.05 -> 0.03 (default 0.075): el deslizamiento táctil
-    //     decelera bastante más despacio; es lo que se pidió como "que tarde
-    //     mucho más en pararse".
-    //   - touchInertiaExponent 1.9 -> 1.55 (default 1.7): AHORA POR DEBAJO del
-    //     default. Estaba subido para que el flick avanzara más, que es
-    //     justamente lo que hacía que las secciones se pasaran demasiado
-    //     rápido.
-    //   - lerp 0.07 (default 0.1) y wheelMultiplier 0.85: lo mismo para la
-    //     rueda, porque lo pedido es el scroll "en general en la web", no solo
-    //     el táctil.
+    // Por eso aquí solo queda tocado lo que NO afecta al seguimiento:
+    //   - touchInertiaExponent 1.9 -> 1.7 (el default). Solo entra en juego
+    //     DESPUÉS de soltar, escalando la velocidad de salida (|v|^n), así que
+    //     recorta cuánto vuela un flick fuerte sin volver pesado el arrastre.
+    //     Estaba en 1.9 para que el flick llegara más lejos, que es justo lo
+    //     que hacía que las secciones se pasaran de golpe.
+    //   - syncTouchLerp 0.05: el valor afinado en V16.52 y validado en
+    //     teléfono real. Se deja como estaba.
+    //   - lerp y wheelMultiplier: SIN valor propio, defaults de Lenis (0.1 y
+    //     1). La rueda vuelve a responder a la primera.
     //
     // (autoRaf false y syncTouch true son ESTRUCTURALES — ver V16.17: el rAF
     // lo llevamos nosotros junto a ScrollTrigger.update, y sin syncTouch las
@@ -90,17 +88,12 @@ export default function SmoothScroll() {
     // touchend (glideTo con escrituras immediate que anulan la inercia de
     // Lenis) y su muro de primera llegada clampa cualquier flick fuerte.
     // NO se toca el cap de 1.35·vh de abajo: está co-afinado con el prólogo del
-    // reel y bajarlo rompió su entrada dos veces en teléfono real. El alcance
-    // se reduce por el exponente, que no arrastra esa dependencia.
-    // Afinado anterior por si se revierte: syncTouchLerp 0.05,
-    // touchInertiaExponent 1.9, sin lerp ni wheelMultiplier propios.
+    // reel y bajarlo rompió su entrada dos veces en teléfono real.
     const lenis = new Lenis({
       autoRaf: false,
       syncTouch: true,
-      lerp: 0.07,
-      wheelMultiplier: 0.85,
-      syncTouchLerp: 0.03,
-      touchInertiaExponent: 1.55,
+      syncTouchLerp: 0.05,
+      touchInertiaExponent: 1.7,
     });
     window.__nxrLenis = lenis;
 

@@ -1841,14 +1841,6 @@ p.nxr-hero-mastery-line {
   .nxr-hero-cue {
     margin-top: 18px;
   }
-  /* Y el bloque entero sube (V18.29). El indicador quedaba tan abajo que en un
-     teléfono se perdía contra el borde y la barra de navegación flotante. El
-     contenido va centrado por flex, así que reservar espacio por abajo desplaza
-     TODO el conjunto hacia arriba de una vez —titular, párrafo, CTA e
-     indicador— en vez de recolocar cada pieza por separado. */
-  .nxr-hero-fade {
-    padding-bottom: 12vh;
-  }
 }
 
 /* Tipografía de títulos en el CTA ("en tipografía de los títulos con
@@ -1932,12 +1924,21 @@ p.nxr-hero-mastery-line {
      where it was, headline+sub 56px higher. */
   .nxr-hero-fade,
   .nxr-hero-static {
-    /* Was padding-bottom: 56px (lifted the block). Now the WHOLE hero
-       composition — h1, párrafo y CTA — sits visibly LOWER on phones
-       ("baja más el contenido de la hero en móvil"): asymmetric padding
-       shifts the flex-centred block ~88px down vs the previous tune. */
-    padding-top: 120px;
-    padding-bottom: 0;
+    /* ESTE es el único sitio que decide dónde cae el bloque del hero en
+       teléfono. El contenido va centrado por flex dentro de `inset: 0`, así
+       que lo que lo desplaza es la ASIMETRÍA entre estos dos paddings: la
+       mitad del diferencial, hacia el lado con menos padding.
+
+       Llevaba `padding-top: 120px` (bajaba el conjunto ~60px, de una petición
+       antigua de "baja más el contenido de la hero en móvil"), y en V18.29 se
+       intentó subirlo desde otra media query situada ANTES en el archivo —
+       que esta anulaba en silencio con su `padding-bottom: 0`. Por eso aquel
+       intento no movió nada. Ahora el peso va abajo y en un solo bloque: todo
+       el conjunto —titular, párrafo, CTA e indicador— sube ~4vh respecto al
+       centro. El área útil pasa de ~85vh a 92vh, más aire del que había, así
+       que tampoco se recorta nada por arriba. */
+    padding-top: 0;
+    padding-bottom: 8vh;
   }
 
   /* "Construido con maestría / Entregado con precisión" pinned to the middle

@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Contacto from "@/components/Contacto";
+import { setRequestLocale } from "next-intl/server";
 
 // Página de contacto dedicada (V16.88): SOLO el formulario — la misma
 // sección Contacto (multi-step + Resend) reutilizada tal cual, como manda
@@ -14,7 +15,11 @@ export const metadata: Metadata = {
     "Cuéntanos tu proyecto: respuesta en menos de 24h, primera conversación gratuita y sin compromiso, propuesta detallada en 48h.",
 };
 
-export default function ContactoPage() {
+export default async function ContactoPage({ params }: { params: Promise<{ locale: string }> }) {
+  // Mantiene la página PRERENDERIZADA (ver la nota larga en el layout).
+  const { locale } = await params;
+  setRequestLocale(locale);
+
   return (
     <main className="nxr-contacto-page">
       <Contacto />

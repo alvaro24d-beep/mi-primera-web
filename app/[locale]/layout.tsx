@@ -1,6 +1,11 @@
 import type { Metadata } from "next";
+import { notFound } from "next/navigation";
+import { hasLocale, NextIntlClientProvider } from "next-intl";
+import { getTranslations, setRequestLocale } from "next-intl/server";
 import { Manrope, Cormorant_Garamond, Rajdhani, Space_Mono } from "next/font/google";
-import "./globals.css";
+import { routing, HREFLANG } from "@/i18n/routing";
+import { SITE_URL } from "@/lib/site";
+import "../globals.css";
 import Header from "@/components/Header";
 import SceneCanvasLazy from "@/components/scene/SceneCanvasLazy";
 import RevealInit from "@/components/RevealInit";
@@ -42,20 +47,75 @@ const spaceMono = Space_Mono({
   subsets: ["latin"],
 });
 
-export const metadata: Metadata = {
-  title: "arcfine — Agencia de software & inteligencia artificial",
-  description:
-    "Webs, agentes de IA, automatizaciones y apps que trabajan por ti mientras tú te enfocas en crecer.",
-};
+/**
+ * Metadata por idioma. `alternates.languages` es lo que genera las etiquetas
+ * <link rel="alternate" hreflang> que le dicen a Google que estas dos URLs son
+ * la MISMA página en distintos idiomas —sin ellas las trataría como contenido
+ * duplicado y elegiría una— y `canonical` fija cuál es la dirección buena de
+ * la versión que se está sirviendo. `x-default` marca a dónde mandar a quien
+ * no encaje en ninguno de los dos.
+ */
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ locale: string }>;
+}): Promise<Metadata> {
+  const { locale } = await params;
+  const t = await getTranslations({ locale, namespace: "meta" });
 
-export default function RootLayout({
+  return {
+    metadataBase: new URL(SITE_URL),
+    title: t("title"),
+    description: t("description"),
+    alternates: {
+      canonical: locale === routing.defaultLocale ? "/" : `/${locale}`,
+      languages: {
+        [HREFLANG.es]: "/",
+        [HREFLANG.en]: "/en",
+        "x-default": "/",
+      },
+    },
+  };
+}
+
+/**
+ * Prerenderiza las dos variantes en el build en vez de generarlas a demanda:
+ * son dos, y así ambas salen estáticas como hasta ahora.
+ */
+export function generateStaticParams() {
+  return routing.locales.map((locale) => ({ locale }));
+}
+
+export default async function RootLayout({
   children,
+  params,
 }: Readonly<{
   children: React.ReactNode;
+  params: Promise<{ locale: string }>;
 }>) {
+  const { locale } = await params;
+  // El segmento viene de la URL: se valida contra la lista de idiomas antes de
+  // usarlo. Si no es uno de los nuestros, 404 en vez de renderizar a medias.
+  if (!hasLocale(routing.locales, locale)) notFound();
+
+  // IMPRESCINDIBLE PARA QUE LAS PÁGINAS SIGAN SIENDO ESTÁTICAS. Sin esta
+  // llamada, next-intl resuelve el idioma leyendo la cabecera de la petición,
+  // y en cuanto se lee una cabecera Next marca la ruta como dinámica: el
+  // primer build tras la migración pasó las 6 páginas de ○ (prerenderizadas)
+  // a ƒ (renderizadas a demanda), o sea de servirse desde CDN a ejecutar
+  // servidor en cada visita. Dándole el locale que ya tenemos de los params,
+  // no hace falta mirar cabecera alguna y vuelven a prerenderizarse.
+  setRequestLocale(locale);
+
   return (
-    <html lang="es" className={`${manrope.variable} ${cormorant.variable} ${rajdhani.variable} ${spaceMono.variable}`}>
+    <html
+      lang={locale}
+      className={`${manrope.variable} ${cormorant.variable} ${rajdhani.variable} ${spaceMono.variable}`}
+    >
       <body suppressHydrationWarning>
+        {/* Entrega el diccionario a los ~42 componentes de cliente del sitio.
+            Sin esto, cualquier useTranslations() de más abajo lanzaría. */}
+        <NextIntlClientProvider>
         {/* Start the wall video download IMMEDIATELY (the canvas itself
             mounts lazily on idle — without these the fetch only began ~1-2s
             in, which is why a placeholder used to show first). Orientation
@@ -107,6 +167,7 @@ export default function RootLayout({
         <GradualBlur position="bottom" height="2.5rem" strength={1.87} divCount={2} />
         <Header />
         {children}
+        </NextIntlClientProvider>
       </body>
     </html>
   );

@@ -1,0 +1,31 @@
+{
+  "meta": {
+    "title": "arcfine — Software & artificial intelligence agency",
+    "description": "Websites, AI agents, automations and apps that work for you while you focus on growing."
+  },
+  "idioma": {
+    "cambiar": "Change language",
+    "es": "Spanish",
+    "en": "English"
+  },
+  "hero": {
+    "titulo1": "Your business on",
+    "titulo2": "autopilot.",
+    "sub": "Websites, AI agents, automations and apps that work for you while you focus on growing.",
+    "cta": "Start a project",
+    "maestria1": "Built with mastery.",
+    "maestria2": "Delivered with precision.",
+    "desliza": "Scroll"
+  },
+  "intro": {
+    "titulo1": "We make",
+    "titulo2": "technology",
+    "titulo3": "work for you.",
+    "parrafo1a": "We are a ",
+    "parrafo1b": "software and artificial intelligence",
+    "parrafo1c": " agency specialised in building digital systems that automate tasks, attract customers and grow businesses — without you needing to understand the technology.",
+    "parrafo2a": "We work with ",
+    "parrafo2b": "companies in every sector",
+    "parrafo2c": " that know they could move faster but don't have the technical team to do it. We are that team."
+  }
+}

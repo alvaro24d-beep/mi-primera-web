@@ -3,6 +3,7 @@ import SeoHero from "@/components/seo/SeoHero";
 import SeoResultados from "@/components/seo/SeoResultados";
 import Contacto from "@/components/Contacto";
 import ClickSpark from "@/components/ClickSpark";
+import { setRequestLocale } from "next-intl/server";
 
 export const metadata: Metadata = {
   title: "SEO y posicionamiento — arcfine",
@@ -10,7 +11,11 @@ export const metadata: Metadata = {
     "Posicionamos tu negocio en los primeros resultados de Google: auditoría, optimización técnica y autoridad que se traducen en clientes.",
 };
 
-export default function SeoPage() {
+export default async function SeoPage({ params }: { params: Promise<{ locale: string }> }) {
+  // Mantiene la página PRERENDERIZADA (ver la nota larga en el layout).
+  const { locale } = await params;
+  setRequestLocale(locale);
+
   return (
     // Mismo remate interactivo que /desarrollo-web: chispas lima al click,
     // sin wrapper que afecte a los pins.

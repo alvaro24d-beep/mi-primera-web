@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import Link from "next/link";
 import gsap from "gsap";
 import { useReducedMotion } from "@/hooks/useReducedMotion";
+import LanguageSwitch from "./LanguageSwitch";
 
 const NAV_LINKS = [
   { href: "/", label: "Inicio" },
@@ -293,6 +294,7 @@ export default function Header() {
               {l.label}
             </Link>
           ))}
+          <LanguageSwitch />
           <Link href="/contacto" className="nxr-header-cta nxr-glass-edge">
             <span className="nxr-glass-edge-content">Hablemos</span>
           </Link>

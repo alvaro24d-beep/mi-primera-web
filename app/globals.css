@@ -9408,3 +9408,54 @@ input[type="range"].nxr-ms-range::-moz-range-thumb {
     transform: none;
   }
 }
+
+/* ===== Conmutador de idioma (V18.48) ===== */
+/* Las dos siglas van SIEMPRE en el DOM y solo cambia cuál se resalta, en vez
+   de renderizar una u otra: así el botón no cambia de ancho al pulsarlo y no
+   empuja al CTA de al lado. */
+.nxr-lang {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 6px 10px;
+  border: 0;
+  background: none;
+  font-family: var(--font-rajdhani), system-ui, sans-serif;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  color: rgba(255, 255, 255, 0.45);
+  cursor: pointer;
+  transition: opacity 0.25s;
+}
+.nxr-lang-op {
+  transition: color 0.25s;
+}
+.nxr-lang-op[data-on] {
+  color: var(--c-white);
+}
+/* Separador entre las dos siglas, dibujado y no escrito: un carácter "/" en
+   el markup lo leerían los lectores de pantalla. */
+.nxr-lang-op + .nxr-lang-op::before {
+  content: "";
+  display: inline-block;
+  width: 1px;
+  height: 9px;
+  margin-right: 6px;
+  vertical-align: -1px;
+  background: rgba(255, 255, 255, 0.25);
+}
+.nxr-lang:hover .nxr-lang-op:not([data-on]) {
+  color: rgba(255, 255, 255, 0.75);
+}
+/* Mientras el servidor devuelve la otra versión: sin esto el botón se queda
+   mudo y parece que no ha funcionado. */
+.nxr-lang[data-pending] {
+  opacity: 0.5;
+  pointer-events: none;
+}
+.nxr-lang:focus-visible {
+  outline: 2px solid var(--c-lime);
+  outline-offset: 3px;
+  border-radius: 6px;
+}

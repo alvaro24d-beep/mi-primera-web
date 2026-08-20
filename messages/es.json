@@ -1,0 +1,31 @@
+{
+  "meta": {
+    "title": "arcfine — Agencia de software & inteligencia artificial",
+    "description": "Webs, agentes de IA, automatizaciones y apps que trabajan por ti mientras tú te enfocas en crecer."
+  },
+  "idioma": {
+    "cambiar": "Cambiar idioma",
+    "es": "Español",
+    "en": "Inglés"
+  },
+  "hero": {
+    "titulo1": "Tu empresa en",
+    "titulo2": "piloto automático.",
+    "sub": "Webs, agentes de IA, automatizaciones y apps que trabajan por ti mientras tú te enfocas en crecer.",
+    "cta": "Empezar proyecto",
+    "maestria1": "Construido con maestría.",
+    "maestria2": "Entregado con precisión.",
+    "desliza": "Desliza"
+  },
+  "intro": {
+    "titulo1": "Hacemos que",
+    "titulo2": "la tecnología",
+    "titulo3": "trabaje por ti.",
+    "parrafo1a": "Somos una agencia de ",
+    "parrafo1b": "software e inteligencia artificial",
+    "parrafo1c": " especializada en construir sistemas digitales que automatizan tareas, captan clientes y hacen crecer negocios — sin que tengas que entender de tecnología.",
+    "parrafo2a": "Trabajamos con ",
+    "parrafo2b": "empresas de cualquier sector",
+    "parrafo2c": " que saben que pueden ir más rápido pero no tienen el equipo técnico para hacerlo. Nosotros somos ese equipo."
+  }
+}

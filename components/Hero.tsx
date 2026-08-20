@@ -1,7 +1,11 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import Link from "next/link";
+import { useTranslations } from "next-intl";
+// `Link` de i18n/navigation y NO el de next/link: este conserva el idioma
+// activo al navegar. Con el de Next, pulsar el CTA desde /en te devolvería a
+// la versión española.
+import { Link } from "@/i18n/navigation";
 import gsap from "gsap";
 import { useGSAP } from "@gsap/react";
 import { useReducedMotion } from "@/hooks/useReducedMotion";
@@ -26,23 +30,22 @@ const ARROW = (
 // V17.10: la animación de puntos que formaban el h1 (HeroTitleAssemble) se
 // eliminó a petición — el título entra con el reveal estándar en ambas ramas.
 function HeroCopy() {
+  const t = useTranslations("hero");
   return (
     <div className="nxr-hero-center">
       <h1 className="nxr-hero-h1 nxr-reveal nxr-reveal-delay-2">
         <span className="nxr-hero-h1-in">
-          Tu empresa en
+          {t("titulo1")}
           <br />
-          <span className="nxr-gradient-text-lime">piloto automático.</span>
+          <span className="nxr-gradient-text-lime">{t("titulo2")}</span>
         </span>
       </h1>
 
-      <p className="nxr-hero-sub nxr-reveal nxr-reveal-delay-3">
-        Webs, agentes de IA, automatizaciones y apps que trabajan por ti mientras tú te enfocas en crecer.
-      </p>
+      <p className="nxr-hero-sub nxr-reveal nxr-reveal-delay-3">{t("sub")}</p>
 
       <div className="nxr-hero-actions nxr-reveal nxr-reveal-delay-4">
         <Link href="/contacto" className="nxr-btn-secondary">
-          <span className="nxr-hero-cta-text">Empezar proyecto</span>
+          <span className="nxr-hero-cta-text">{t("cta")}</span>
           {ARROW}
         </Link>
       </div>
@@ -58,13 +61,14 @@ function HeroCopy() {
 }
 
 function MasteryLines() {
+  const t = useTranslations("hero");
   return (
     <>
       <span className="nxr-hero-mastery-line-wrap">
-        <span className="nxr-hero-mastery-line">Construido con maestría.</span>
+        <span className="nxr-hero-mastery-line">{t("maestria1")}</span>
       </span>
       <span className="nxr-hero-mastery-line-wrap">
-        <span className="nxr-hero-mastery-line">Entregado con precisión.</span>
+        <span className="nxr-hero-mastery-line">{t("maestria2")}</span>
       </span>
     </>
   );
@@ -74,6 +78,7 @@ export default function Hero() {
   const sectionRef = useRef<HTMLElement>(null);
   const stageRef = useRef<HTMLDivElement>(null);
   const reducedMotion = useReducedMotion();
+  const t = useTranslations("hero");
 
   // El CTA "Empezar proyecto" ya NO lleva cristal liquid-glass (petición:
   // "que quede solo el texto con la flecha"): se retiró su mesh volumétrico
@@ -256,12 +261,12 @@ export default function Hero() {
             <span className="nxr-scrollcue-wheel">
               <i />
             </span>
-            <span className="nxr-scrollcue-txt">Desliza</span>
+            <span className="nxr-scrollcue-txt">{t("desliza")}</span>
           </div>
         </section>
         <div className="nxr-hero-mastery-static">
-          <p className="nxr-hero-mastery-line">Construido con maestría.</p>
-          <p className="nxr-hero-mastery-line">Entregado con precisión.</p>
+          <p className="nxr-hero-mastery-line">{t("maestria1")}</p>
+          <p className="nxr-hero-mastery-line">{t("maestria2")}</p>
         </div>
       </>
     );
@@ -282,7 +287,7 @@ export default function Hero() {
             <span className="nxr-scrollcue-wheel">
               <i />
             </span>
-            <span className="nxr-scrollcue-txt">Desliza</span>
+            <span className="nxr-scrollcue-txt">{t("desliza")}</span>
           </div>
         </div>
         <h2 className="nxr-hero-mastery">

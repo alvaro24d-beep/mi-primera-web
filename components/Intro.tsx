@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef } from "react";
+import { useTranslations } from "next-intl";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { SplitText } from "gsap/SplitText";
@@ -89,6 +90,7 @@ export default function Intro() {
   const titleRef = useRef<HTMLHeadingElement>(null);
   const textsRef = useRef<HTMLDivElement>(null);
   const reducedMotion = useReducedMotion();
+  const t = useTranslations("intro");
 
   useGSAP(
     () => {
@@ -311,25 +313,31 @@ export default function Intro() {
         <div className="nxr-intro-inner">
           <div className="nxr-intro-left">
             <h2 className="nxr-intro-headline" ref={titleRef}>
-              Hacemos que
+              {t("titulo1")}
               <br />
-              la tecnología
+              {t("titulo2")}
               <br />
-              <span className="nxr-gradient-text-lime">trabaje por ti.</span>
+              <span className="nxr-gradient-text-lime">{t("titulo3")}</span>
             </h2>
           </div>
 
           <div className="nxr-intro-cards">
             <div className="nxr-intro-texts" ref={textsRef}>
               <div className="nxr-intro-textblock">
+                {/* El <strong> parte cada párrafo en tres claves en vez de
+                    usar interpolación con marcado: este texto lo trocea GSAP
+                    por caracteres para el barrido de entrada, y una etiqueta
+                    inyectada desde el diccionario complicaría ese troceo sin
+                    ganar nada. */}
                 <p className="nxr-intro-text">
-                  Somos una agencia de <strong>software e inteligencia artificial</strong> especializada en construir
-                  sistemas digitales que automatizan tareas, captan clientes y hacen crecer negocios — sin que tengas
-                  que entender de tecnología.
+                  {t("parrafo1a")}
+                  <strong>{t("parrafo1b")}</strong>
+                  {t("parrafo1c")}
                 </p>
                 <p className="nxr-intro-text">
-                  Trabajamos con <strong>empresas de cualquier sector</strong> que saben que pueden ir más rápido pero
-                  no tienen el equipo técnico para hacerlo. Nosotros somos ese equipo.
+                  {t("parrafo2a")}
+                  <strong>{t("parrafo2b")}</strong>
+                  {t("parrafo2c")}
                 </p>
               </div>
             </div>

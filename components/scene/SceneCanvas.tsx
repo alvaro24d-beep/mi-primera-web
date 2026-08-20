@@ -406,16 +406,19 @@ export default function SceneCanvas() {
                 exactamente lo que sobrevive a un reescalado. Es el ahorro de
                 GPU más grande disponible sin tocar dpr (y sin tocar dpr, la
                 silueta de las cards de cristal se mantiene igual de limpia). */}
-            {/* intensity 0.35 → 1.2 y radius 0.85 (V18.42). QUIÉN EMITE AQUÍ
-                ES EL CRISTAL, no el muro: el muro está deliberadamente oscuro
-                para que el contenido resalte, y su brillo ni se acerca al
-                umbral. Lo que sí lo cruza es el emissive azul de
-                VolumetricCard, y este halo es lo que convierte ese azul en luz
-                derramada alrededor de la card en vez de un simple tinte.
-                El radio ancho es lo que hace que la luz SANGRE lejos y difusa
-                —lo que separa una fuente de luz de un contorno brillante— y
-                sale casi gratis: mipmapBlur ya construye la pirámide, el radio
-                solo decide hasta qué nivel se mezcla.
+            {/* intensity 0.35 → 0.6 y radius 0.85. El 1.2 de V18.42 estaba
+                puesto al servicio del emissive azul del cristal, que se retiró
+                en V18.43; sin él ese valor dejaba halos gruesos sobre unos
+                cantos especulares que ya son más brillantes que los
+                originales (ver el clearcoat/reflectivity de VolumetricCard,
+                V18.39). 0.6 es el punto medio coherente: conserva el halo que
+                hace que el cristal parezca iluminado y no vuelve al 0.35 de
+                cuando esos cantos eran mates. El muro NO participa — está
+                deliberadamente oscuro y su brillo ni se acerca al umbral.
+                El radio ancho hace que la luz sangre difusa en vez de quedarse
+                como un contorno pegado, y sale casi gratis: mipmapBlur ya
+                construye la pirámide, el radio solo decide hasta qué nivel se
+                mezcla.
 
                 luminanceThreshold SIGUE EN 0.6 Y NO SE TOCA: la nube de
                 puntos está calibrada justo por debajo (uOpacity·vBrillo pico
@@ -430,7 +433,7 @@ export default function SceneCanvas() {
               resolutionScale={0.5}
               luminanceThreshold={0.6}
               luminanceSmoothing={0.3}
-              intensity={1.2}
+              intensity={0.6}
               radius={0.85}
             />
             <Vignette eskil={false} offset={0.25} darkness={0.55} />

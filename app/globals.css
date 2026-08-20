@@ -9459,3 +9459,54 @@ input[type="range"].nxr-ms-range::-moz-range-thumb {
   outline-offset: 3px;
   border-radius: 6px;
 }
+
+/* Colocación del conmutador en sus TRES sitios (V18.49). El componente es uno
+   solo; lo que cambia es dónde se ancla, porque en móvil el header superior se
+   esconde al scrollear y el desplegable solo existe abierto — la barra
+   inferior es la única presente siempre. */
+
+/* 1 · Barra superior. Va fuera de .nxr-header-links (que es display:none en
+   móvil) y por eso necesita separarse del botón de menú por su cuenta. */
+.nxr-header-lang {
+  margin-left: auto;
+}
+@media (max-width: 768px) {
+  .nxr-header-lang {
+    margin-right: 4px;
+  }
+}
+@media (min-width: 769px) {
+  /* En escritorio la fila de enlaces ya empuja hacia la derecha, así que aquí
+     el auto sobra y solo hace falta aire respecto al CTA. */
+  .nxr-header-lang {
+    margin-left: 4px;
+  }
+}
+
+/* 2 · Menú desplegable de móvil, al final de la columna y con una línea de
+   separación como el resto de bloques del panel. */
+.nxr-mm-lang {
+  margin-top: 18px;
+  padding-top: 16px;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  display: flex;
+  justify-content: flex-start;
+}
+.nxr-mm-lang .nxr-lang {
+  padding-left: 0;
+  font-size: 13px;
+}
+
+/* 3 · Barra inferior flotante, en todas las vistas. Compacto: comparte fila
+   con los enlaces y el CTA, y ahí el espacio es el que manda. */
+.nxr-nav-lang {
+  padding: 6px 8px;
+  font-size: 11px;
+}
+@media (max-width: 768px) {
+  .nxr-nav-lang {
+    padding: 6px 6px;
+    font-size: 10px;
+    letter-spacing: 0.06em;
+  }
+}

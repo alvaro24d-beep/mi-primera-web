@@ -1,24 +1,24 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { usePathname } from "next/navigation";
-import Link from "next/link";
+import { Link, usePathname } from "@/i18n/navigation";
 import gsap from "gsap";
 import { useReducedMotion } from "@/hooks/useReducedMotion";
+import { useTranslations } from "next-intl";
 import LanguageSwitch from "./LanguageSwitch";
 
+// `key` en vez de `label`: el texto sale del diccionario (ver tNav abajo).
 const NAV_LINKS = [
-  { href: "/", label: "Inicio" },
-  { href: "/servicios", label: "Servicios" },
-  { href: "/nosotros", label: "Nosotros" },
-  { href: "/precios", label: "Precios" },
-];
+  { href: "/", key: "inicio" },
+  { href: "/servicios", key: "servicios" },
+  { href: "/nosotros", key: "nosotros" },
+  { href: "/precios", key: "precios" },
+] as const;
 
 const SERVICIOS = [
   {
     href: "/desarrollo-web",
-    title: "Desarrollo web",
-    desc: "Webs que convierten",
+    key: "web",
     bg: "rgba(239,61,13,.15)",
     color: "var(--c-red)",
     icon: (
@@ -30,8 +30,7 @@ const SERVICIOS = [
   },
   {
     href: "/agentes-ia",
-    title: "Agentes IA",
-    desc: "Automatiza con inteligencia",
+    key: "ia",
     bg: "rgba(168,240,74,.12)",
     color: "var(--c-lime)",
     icon: (
@@ -43,8 +42,7 @@ const SERVICIOS = [
   },
   {
     href: "/automatizaciones",
-    title: "Automatizaciones",
-    desc: "Flujos sin intervención humana",
+    key: "auto",
     bg: "rgba(255,157,125,.12)",
     color: "var(--c-salmon)",
     icon: (
@@ -56,8 +54,7 @@ const SERVICIOS = [
   },
   {
     href: "/seo",
-    title: "SEO",
-    desc: "Visibilidad real en Google",
+    key: "seo",
     bg: "rgba(168,240,74,.12)",
     color: "var(--c-lime)",
     icon: (
@@ -70,8 +67,7 @@ const SERVICIOS = [
   },
   {
     href: "/apps-software",
-    title: "Apps & Software",
-    desc: "Soluciones a medida",
+    key: "apps",
     bg: "rgba(239,61,13,.15)",
     color: "var(--c-red)",
     icon: (
@@ -92,7 +88,7 @@ const SERVICIOS = [
 const EXTRA_MOVIL = [
   {
     href: "/nosotros",
-    title: "Nosotros",
+    titleKey: "nosotros",
     color: "var(--c-salmon)",
     icon: (
       <svg viewBox="0 0 24 24">
@@ -103,7 +99,7 @@ const EXTRA_MOVIL = [
   },
   {
     href: "/precios",
-    title: "Precios",
+    titleKey: "precios",
     color: "var(--c-lime)",
     icon: (
       <svg viewBox="0 0 24 24">
@@ -116,6 +112,9 @@ const EXTRA_MOVIL = [
 
 export default function Header() {
   const pathname = usePathname();
+  const t = useTranslations("nav");
+  const tNav = t;
+  const tSrv = useTranslations("servicios.menu");
   const [hamburgerOpen, setHamburgerOpen] = useState(false);
   const [navHidden, setNavHidden] = useState(false);
   const [navVisible, setNavVisible] = useState(false);
@@ -291,17 +290,21 @@ export default function Header() {
         <nav className="nxr-header-links">
           {NAV_LINKS.map((l) => (
             <Link key={l.href} href={l.href} className="nxr-header-link">
-              {l.label}
+              {tNav(l.key)}
             </Link>
           ))}
-          <LanguageSwitch />
           <Link href="/contacto" className="nxr-header-cta nxr-glass-edge">
-            <span className="nxr-glass-edge-content">Hablemos</span>
+            <span className="nxr-glass-edge-content">{t("hablemos")}</span>
           </Link>
         </nav>
+        {/* FUERA de .nxr-header-links a propósito: esa fila es `display: none`
+            en móvil (los enlaces se van al desplegable), así que un conmutador
+            metido dentro desaparecía justo en la vista donde más falta hace.
+            Aquí es hermano del logo y del botón de menú, y se ve en las dos. */}
+        <LanguageSwitch className="nxr-header-lang" />
         <button
           className={`nxr-hamburger${hamburgerOpen ? " open" : ""}`}
-          aria-label="Abrir menú"
+          aria-label={t("abrirMenu")}
           onClick={() => setHamburgerOpen((o) => !o)}
         >
           <span></span>
@@ -322,29 +325,36 @@ export default function Header() {
               <div className="nxr-mm-item" key={l.href}>
                 <Link href={l.href} className="nxr-mm-link" onClick={() => setHamburgerOpen(false)}>
                   <span className="nxr-mm-num">0{i + 1}</span>
-                  {l.label}
+                  {tNav(l.key)}
                 </Link>
               </div>
             ))}
           </nav>
           <div className="nxr-mm-sep" />
-          <div className="nxr-mm-srv-label">Servicios</div>
+          <div className="nxr-mm-srv-label">{t("servicios")}</div>
           <div className="nxr-mm-srv">
             {SERVICIOS.map((s) => (
               <Link key={s.href} href={s.href} className="nxr-mm-srv-item" onClick={() => setHamburgerOpen(false)}>
                 <span className="nxr-mm-srv-ico" style={{ color: s.color }}>
                   {s.icon}
                 </span>
-                {s.title}
+                {tSrv(`${s.key}.titulo`)}
               </Link>
             ))}
           </div>
           <Link href="/contacto" className="nxr-mm-cta" onClick={() => setHamburgerOpen(false)}>
-            Hablemos
+            {t("hablemos")}
             <svg viewBox="0 0 24 24">
               <path d="M7 17L17 7M7 7h10v10" />
             </svg>
           </Link>
+          {/* Idioma también dentro del desplegable: en móvil el conmutador de
+              la barra superior queda oculto con el resto del header al
+              scrollear, así que este es el que está siempre alcanzable con el
+              menú abierto. */}
+          <div className="nxr-mm-lang">
+            <LanguageSwitch onSwitch={() => setHamburgerOpen(false)} />
+          </div>
         </div>
       </div>
 
@@ -365,13 +375,13 @@ export default function Header() {
             // The inner "Inicio" span is display:none in the mobile pill
             // (icon-only), which axe flags as a link without discernible
             // text — the label keeps the name programmatically available.
-            aria-label="Inicio"
+            aria-label={t("inicio")}
           >
             <svg className="nxr-glass-edge-content" viewBox="0 0 24 24">
               <path d="M3 9.5L12 3l9 6.5V20a1 1 0 01-1 1H4a1 1 0 01-1-1V9.5z" />
               <path d="M9 21V12h6v9" />
             </svg>
-            <span className="nxr-glass-edge-content">Inicio</span>
+            <span className="nxr-glass-edge-content">{t("inicio")}</span>
           </Link>
           <button
             className="nxr-nav-link"
@@ -396,8 +406,8 @@ export default function Header() {
                 navegación que no cabe en la fila), así que el botón se llama
                 "Menú". Dos etiquetas alternadas por CSS en vez de por JS: sin
                 estado, sin re-render y sin riesgo de desajuste de hidratación. */}
-            <span className="nxr-srv-btn-txt">Servicios</span>
-            <span className="nxr-srv-btn-txt-movil">Menú</span>
+            <span className="nxr-srv-btn-txt">{t("servicios")}</span>
+            <span className="nxr-srv-btn-txt-movil">{t("menu")}</span>
             {/* Apunta hacia ARRIBA en reposo, que es hacia donde se abre el
                 panel: esta barra vive abajo del todo, así que un chevron
                 mirando al suelo señalaba justo al revés de lo que iba a pasar.
@@ -412,7 +422,7 @@ export default function Header() {
               <circle cx="12" cy="8" r="4" />
               <path d="M4 20c0-4 3.6-7 8-7s8 3 8 7" />
             </svg>
-            <span>Nosotros</span>
+            <span>{t("nosotros")}</span>
           </Link>
           <Link href="/precios" className={`nxr-nav-link${isActive("/precios") ? " active" : ""}`}>
             {/* Etiqueta de precio: sustituye a la línea de gráfica de "Casos"
@@ -422,15 +432,20 @@ export default function Header() {
               <path d="M20.6 13.4l-7.2 7.2a2 2 0 01-2.8 0l-7.2-7.2A2 2 0 013 12V5a2 2 0 012-2h7a2 2 0 011.4.6l7.2 7.2a2 2 0 010 2.8z" />
               <circle cx="7.5" cy="7.5" r="1.5" />
             </svg>
-            <span>Precios</span>
+            <span>{t("precios")}</span>
           </Link>
           {/* aria-label for the same reason as the home link: the text span
               hides in the icon-only mobile pill. */}
-          <Link href="/contacto" className="nxr-nav-cta nxr-glass-edge" aria-label="Hablemos">
+          {/* Idioma en la barra inferior, en TODAS las vistas: es la única
+              pieza de navegación que está siempre en pantalla —el header
+              superior se esconde al scrollear—, así que aquí el conmutador se
+              alcanza desde cualquier punto de cualquier página. */}
+          <LanguageSwitch className="nxr-nav-lang" />
+          <Link href="/contacto" className="nxr-nav-cta nxr-glass-edge" aria-label={t("hablemos")}>
             <svg className="nxr-glass-edge-content" viewBox="0 0 24 24">
               <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" />
             </svg>
-            <span className="nxr-glass-edge-content">Hablemos</span>
+            <span className="nxr-glass-edge-content">{t("hablemos")}</span>
           </Link>
         </div>
 
@@ -450,15 +465,15 @@ export default function Header() {
                 una lista de servicios y pasa a ser el menú entero. Sin ellas, las
                 páginas de abajo se leían como dos servicios más. En escritorio
                 siguen ocultas (aquí solo hay servicios, no hace falta rotular). */}
-            <div className="nxr-nav-srv-group">Servicios</div>
+            <div className="nxr-nav-srv-group">{t("servicios")}</div>
             {SERVICIOS.map((s) => (
               <Link key={s.href} href={s.href} className="nxr-nav-srv-item" onClick={closeDD}>
                 <div className="nxr-nav-srv-icon" style={{ background: s.bg, color: s.color }}>
                   {s.icon}
                 </div>
                 <div>
-                  <div className="nxr-nav-srv-title">{s.title}</div>
-                  <div className="nxr-nav-srv-desc">{s.desc}</div>
+                  <div className="nxr-nav-srv-title">{tSrv(`${s.key}.titulo`)}</div>
+                  <div className="nxr-nav-srv-desc">{tSrv(`${s.key}.desc`)}</div>
                 </div>
               </Link>
             ))}
@@ -477,7 +492,7 @@ export default function Header() {
                 <div className="nxr-nav-srv-extra-ico" style={{ color: s.color }}>
                   {s.icon}
                 </div>
-                <div className="nxr-nav-srv-title">{s.title}</div>
+                <div className="nxr-nav-srv-title">{t(s.titleKey)}</div>
               </Link>
             ))}
           </div>

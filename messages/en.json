@@ -27,5 +27,38 @@
     "parrafo2a": "We work with ",
     "parrafo2b": "companies in every sector",
     "parrafo2c": " that know they could move faster but don't have the technical team to do it. We are that team."
+  },
+  "nav": {
+    "inicio": "Home",
+    "servicios": "Services",
+    "nosotros": "About",
+    "precios": "Pricing",
+    "hablemos": "Let us talk",
+    "menu": "Menu",
+    "abrirMenu": "Open menu"
+  },
+  "servicios": {
+    "menu": {
+      "web": {
+        "titulo": "Web development",
+        "desc": "Websites that convert"
+      },
+      "ia": {
+        "titulo": "AI agents",
+        "desc": "Automate with intelligence"
+      },
+      "auto": {
+        "titulo": "Automations",
+        "desc": "Flows with no human input"
+      },
+      "seo": {
+        "titulo": "SEO",
+        "desc": "Real visibility on Google"
+      },
+      "apps": {
+        "titulo": "Apps & Software",
+        "desc": "Tailor-made solutions"
+      }
+    }
   }
 }

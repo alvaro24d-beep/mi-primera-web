@@ -22,7 +22,15 @@ import { routing, LOCALE_LABEL, type Locale } from "@/i18n/routing";
  * entra directamente en el idioma escogido en lugar de volver a decidir por
  * la cabecera del navegador.
  */
-export default function LanguageSwitch() {
+export default function LanguageSwitch({
+  className,
+  onSwitch,
+}: {
+  /** Clase extra para colocarlo en cada sitio (header, menú, barra inferior). */
+  className?: string;
+  /** Se llama tras cambiar: lo usa el menú móvil para cerrarse solo. */
+  onSwitch?: () => void;
+} = {}) {
   const locale = useLocale() as Locale;
   const pathname = usePathname();
   const router = useRouter();
@@ -37,11 +45,12 @@ export default function LanguageSwitch() {
   return (
     <button
       type="button"
-      className="nxr-lang"
+      className={className ? `nxr-lang ${className}` : "nxr-lang"}
       onClick={() => {
         startTransition(() => {
           router.replace(pathname, { locale: otro });
         });
+        onSwitch?.();
       }}
       // El aria-label nombra el idioma DE DESTINO: para un lector de pantalla,
       // "ES / EN" a secas no dice qué va a pasar al pulsar.

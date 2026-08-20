@@ -8,7 +8,7 @@ import { SplitText } from "gsap/SplitText";
 import { useTitleReveal } from "@/hooks/useTitleReveal";
 import { useReducedMotion } from "@/hooks/useReducedMotion";
 import { scrambleElement } from "@/hooks/useTextScramble";
-import Link from "next/link";
+import { Link } from "@/i18n/navigation";
 import { useServiciosCardsRegistry } from "@/store/useServiciosCardsRegistry";
 import { esMovil } from "@/lib/scrollRitmo";
 

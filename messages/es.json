@@ -27,5 +27,38 @@
     "parrafo2a": "Trabajamos con ",
     "parrafo2b": "empresas de cualquier sector",
     "parrafo2c": " que saben que pueden ir más rápido pero no tienen el equipo técnico para hacerlo. Nosotros somos ese equipo."
+  },
+  "nav": {
+    "inicio": "Inicio",
+    "servicios": "Servicios",
+    "nosotros": "Nosotros",
+    "precios": "Precios",
+    "hablemos": "Hablemos",
+    "menu": "Menú",
+    "abrirMenu": "Abrir menú"
+  },
+  "servicios": {
+    "menu": {
+      "web": {
+        "titulo": "Desarrollo web",
+        "desc": "Webs que convierten"
+      },
+      "ia": {
+        "titulo": "Agentes IA",
+        "desc": "Automatiza con inteligencia"
+      },
+      "auto": {
+        "titulo": "Automatizaciones",
+        "desc": "Flujos sin intervención humana"
+      },
+      "seo": {
+        "titulo": "SEO",
+        "desc": "Visibilidad real en Google"
+      },
+      "apps": {
+        "titulo": "Apps & Software",
+        "desc": "Soluciones a medida"
+      }
+    }
   }
 }

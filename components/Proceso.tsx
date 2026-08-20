@@ -1,21 +1,15 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { useTranslations } from "next-intl";
 import { useTitleReveal } from "@/hooks/useTitleReveal";
 import { useTextScramble } from "@/hooks/useTextScramble";
 import { esMovil } from "@/lib/scrollRitmo";
 
 const PASOS = [
   {
-    title: "Diagnóstico",
-    desc: "Analizamos tu negocio, procesos y objetivos para identificar dónde la tecnología genera más impacto.",
     color: "var(--c-red)",
     bg: "rgba(239,61,13,.15)",
-    detail: [
-      "Auditoría técnica y de negocio",
-      "Entrevistas con los equipos implicados",
-      "Informe de oportunidades priorizado",
-    ],
     anim: "buscar",
     icon: (
       <svg viewBox="0 0 24 24">
@@ -25,11 +19,8 @@ const PASOS = [
     ),
   },
   {
-    title: "Estrategia",
-    desc: "Diseñamos la hoja de ruta técnica: qué construir, en qué orden y con qué tecnologías.",
     color: "var(--c-salmon)",
     bg: "rgba(255,157,125,.15)",
-    detail: ["Roadmap técnico por fases", "Stack y arquitectura definidos", "Estimación de tiempos y costes"],
     anim: "ruta",
     icon: (
       <svg viewBox="0 0 24 24">
@@ -38,11 +29,8 @@ const PASOS = [
     ),
   },
   {
-    title: "Desarrollo",
-    desc: "Construimos con sprints cortos y entregas frecuentes para que veas el avance desde el primer día.",
     color: "var(--c-lime)",
     bg: "rgba(168,240,74,.12)",
-    detail: ["Sprints de 1-2 semanas", "Demo funcional en cada entrega", "Canal directo de feedback"],
     anim: "codigo",
     icon: (
       <svg viewBox="0 0 24 24">
@@ -52,15 +40,8 @@ const PASOS = [
     ),
   },
   {
-    title: "Lanzamiento",
-    desc: "Desplegamos, probamos en producción real y nos aseguramos de que todo funciona antes de abrir al público.",
     color: "var(--c-red)",
     bg: "rgba(239,61,13,.15)",
-    detail: [
-      "Pruebas en entorno real",
-      "Checklist de rendimiento y seguridad",
-      "Acompañamiento el día del lanzamiento",
-    ],
     anim: "lanzar",
     icon: (
       <svg viewBox="0 0 24 24">
@@ -69,11 +50,8 @@ const PASOS = [
     ),
   },
   {
-    title: "Evolución",
-    desc: "Monitorizamos, optimizamos y seguimos construyendo contigo. No desaparecemos tras el lanzamiento.",
     color: "var(--c-lime)",
     bg: "rgba(168,240,74,.12)",
-    detail: ["Monitorización continua", "Iteración basada en datos reales", "Soporte y mejoras a largo plazo"],
     anim: "ciclo",
     icon: (
       <svg viewBox="0 0 24 24">
@@ -90,6 +68,8 @@ const PASOS = [
 // whole session even with the section off-screen, and the user chose to drop
 // the effect rather than gate it.)
 export default function Proceso() {
+  const t = useTranslations("proceso");
+  const tP = useTranslations("proceso.pasos");
   const titleRef = useTitleReveal<HTMLHeadingElement>();
   const sectionRef = useRef<HTMLElement>(null);
   const trackRef = useRef<HTMLDivElement>(null);
@@ -240,15 +220,12 @@ export default function Proceso() {
           <div className="nxr-proceso-textblock">
             <div>
               <h2 className="nxr-section-h2" ref={titleRef}>
-                Un proceso claro,
+                {t("titulo1")}
                 <br />
-                <span className="nxr-gradient-text-lime">sin sorpresas.</span>
+                <span className="nxr-gradient-text-lime">{t("titulo2")}</span>
               </h2>
             </div>
-            <p className="nxr-proceso-header-right">
-              Cada proyecto sigue la misma metodología: entender bien antes de construir, construir rápido y mejorar
-              siempre. Sin reuniones infinitas, sin presupuestos que se disparan. Toca cada paso para ver el detalle.
-            </p>
+            <p className="nxr-proceso-header-right">{t("parrafo")}</p>
           </div>
         </div>
 
@@ -261,7 +238,7 @@ export default function Proceso() {
             return (
               <div
                 className="nxr-paso"
-                key={p.title}
+                key={p.anim}
                 ref={(el) => {
                   pasoRefs.current[i] = el;
                 }}
@@ -295,9 +272,9 @@ export default function Proceso() {
                       {p.icon}
                     </div>
                     <div className="nxr-paso-title" id={titleId}>
-                      {p.title}
+                      {tP(`${p.anim}.titulo`)}
                     </div>
-                    <p className="nxr-paso-desc">{p.desc}</p>
+                    <p className="nxr-paso-desc">{tP(`${p.anim}.desc`)}</p>
                     <svg className={`nxr-paso-chevron${isOpen ? " nxr-open" : ""}`} viewBox="0 0 24 24">
                       <path d="M6 9l6 6 6-6" />
                     </svg>
@@ -311,9 +288,9 @@ export default function Proceso() {
                   >
                     <div className="nxr-paso-detail-inner">
                       <ul className="nxr-paso-detail-list">
-                        {p.detail.map((d) => (
-                          <li key={d}>{d}</li>
-                        ))}
+                        {["d1", "d2", "d3"].map((k) => (
+                          <li key={k}>{tP(`${p.anim}.${k}`)}</li>
+                          ))}
                       </ul>
                     </div>
                   </div>

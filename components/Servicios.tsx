@@ -9,6 +9,7 @@ import { useTitleReveal } from "@/hooks/useTitleReveal";
 import { useReducedMotion } from "@/hooks/useReducedMotion";
 import { scrambleElement } from "@/hooks/useTextScramble";
 import { Link } from "@/i18n/navigation";
+import { useTranslations } from "next-intl";
 import { useServiciosCardsRegistry } from "@/store/useServiciosCardsRegistry";
 import { esMovil } from "@/lib/scrollRitmo";
 
@@ -29,6 +30,7 @@ gsap.registerPlugin(ScrollTrigger, SplitText);
 // su propia velocidad (parallax manual por capa) y un rótulo lateral
 // acompaña cada sección. El guion vive en el loopWeb de abajo.
 function Web3DAnim() {
+  const tUi = useTranslations("servicios.ui");
   return (
     <div className="anim-w3" aria-hidden="true">
       <div className="anim-w3-bar">
@@ -92,24 +94,24 @@ function Web3DAnim() {
             <div className="anim-w3-stats">
               <span className="anim-w3-stat">
                 <b>0</b>
-                <i>visitas</i>
+                <i>{tUi("visitas")}</i>
               </span>
               <span className="anim-w3-stat -b">
                 <b>0</b>
-                <i>conversión</i>
+                <i>{tUi("conversion")}</i>
               </span>
               <span className="anim-w3-stat -c">
                 <b>0</b>
-                <i>rendimiento</i>
+                <i>{tUi("rendimiento")}</i>
               </span>
             </div>
             <span className="anim-w3-foot" />
           </div>
         </div>
         {/* Rótulos laterales por sección */}
-        <span className="anim-w3-cap -c0">Inmersiva</span>
-        <span className="anim-w3-cap -c1">Fluida</span>
-        <span className="anim-w3-cap -c2">Convierte</span>
+        <span className="anim-w3-cap -c0">{tUi("inmersiva")}</span>
+        <span className="anim-w3-cap -c1">{tUi("fluida")}</span>
+        <span className="anim-w3-cap -c2">{tUi("convierte")}</span>
         {/* Rueda: el "scroll" que conduce el recorrido */}
         <span className="anim-w3-wheel">
           <i />
@@ -120,6 +122,7 @@ function Web3DAnim() {
 }
 
 function ChatAnim() {
+  const tUi = useTranslations("servicios.ui");
   return (
     <div className="anim-ia" aria-hidden="true">
       <div className="anim-ia-head">
@@ -127,18 +130,18 @@ function ChatAnim() {
           🤖<i />
         </span>
         <span className="anim-ia-who">
-          <b>Agente arcfine</b>
-          <span>en línea</span>
+          <b>{tUi("agente")}</b>
+          <span>{tUi("enLinea")}</span>
         </span>
       </div>
       <div className="anim-ia-msgs">
-        <div className="anim-ia-msg -user">¿Tenéis cita para el jueves?</div>
+        <div className="anim-ia-msg -user">{tUi("chat1")}</div>
         <div className="anim-ia-msg -bot -typing">
           <span />
           <span />
           <span />
         </div>
-        <div className="anim-ia-msg -bot">Déjame comprobar la agenda…</div>
+        <div className="anim-ia-msg -bot">{tUi("chat2")}</div>
         <div className="anim-ia-msg -bot -card">
           <svg viewBox="0 0 24 24">
             <rect x="3" y="5" width="18" height="16" rx="3" />
@@ -146,11 +149,11 @@ function ChatAnim() {
             <path className="anim-ia-check" d="M8.5 15l2.5 2.5 4.5-5" />
           </svg>
           <span>
-            <b>Cita confirmada</b>
-            <span>Jueves · 10:30</span>
+            <b>{tUi("chat3")}</b>
+            <span>{tUi("chat4")}</span>
           </span>
         </div>
-        <div className="anim-ia-msg -user">¡Perfecto, gracias!</div>
+        <div className="anim-ia-msg -user">{tUi("chat5")}</div>
         <div className="anim-ia-msg -bot">Te envío un recordatorio el día antes. 📅</div>
       </div>
       <div className="anim-ia-input">
@@ -167,6 +170,7 @@ function ChatAnim() {
 }
 
 function FlowAnim() {
+  const tUi = useTranslations("servicios.ui");
   // Los extremos de cada conexión son los MISMOS puntos fraccionales del
   // viewBox (300×150, preserveAspectRatio none) en los que se centran los
   // nodos DOM (left/top en % + translate(-50%,-50%)): las líneas llegan al
@@ -216,7 +220,7 @@ function FlowAnim() {
             <rect x="4" y="3" width="16" height="18" rx="2" />
             <path d="M8 8h8M8 12h8M8 16h5" />
           </svg>
-          <b>Formulario</b>
+          <b>{tUi("formulario")}</b>
           <span>Lead</span>
         </div>
         <div className="anim-fl-node -core" style={{ left: "50%", top: "46%" }}>
@@ -226,8 +230,8 @@ function FlowAnim() {
             <circle cx="14.5" cy="12" r="1.6" />
             <path d="M12 7V4M9 16h6" />
           </svg>
-          <b>Agente IA</b>
-          <span>Procesa</span>
+          <b>{tUi("agenteIa")}</b>
+          <span>{tUi("procesa")}</span>
         </div>
         <div className="anim-fl-node" style={{ left: "88%", top: "20%" }}>
           <svg viewBox="0 0 24 24">
@@ -236,7 +240,7 @@ function FlowAnim() {
             <path d="M4 12c0 1.7 3.6 3 8 3s8-1.3 8-3" />
           </svg>
           <b>CRM</b>
-          <span>Guarda</span>
+          <span>{tUi("guarda")}</span>
         </div>
         <div className="anim-fl-node" style={{ left: "88%", top: "72%" }}>
           <svg viewBox="0 0 24 24">
@@ -244,44 +248,45 @@ function FlowAnim() {
             <path d="M10.3 21a2 2 0 0 0 3.4 0" />
           </svg>
           <b>Slack</b>
-          <span>Avisa</span>
+          <span>{tUi("avisa")}</span>
         </div>
       </div>
       <div className="anim-fl-foot">
         <span className="anim-fl-count">
           Ejecuciones hoy: <b>247</b>
         </span>
-        <span className="anim-fl-ok">✓ sin errores</span>
+        <span className="anim-fl-ok">{tUi("sinErrores")}</span>
       </div>
     </div>
   );
 }
 
 function SeoAnim() {
+  const tUi = useTranslations("servicios.ui");
   return (
     <div className="anim-sc" aria-hidden="true">
       <div className="anim-sc-head">
-        <b>Rendimiento de búsqueda</b>
-        <span>Últimos 3 meses</span>
+        <b>{tUi("rendBusqueda")}</b>
+        <span>{tUi("ultimos3")}</span>
       </div>
       <div className="anim-sc-chips">
         <div className="anim-sc-chip -lime">
           <b className="anim-sc-chip-val" data-t="3482" data-fmt="int">
             0
           </b>
-          <span>Clics</span>
+          <span>{tUi("clics")}</span>
         </div>
         <div className="anim-sc-chip -salmon">
           <b className="anim-sc-chip-val" data-t="86400" data-fmt="k">
             0
           </b>
-          <span>Impresiones</span>
+          <span>{tUi("impresiones")}</span>
         </div>
         <div className="anim-sc-chip">
           <b className="anim-sc-chip-val" data-t="4" data-fmt="pct">
             0%
           </b>
-          <span>CTR medio</span>
+          <span>{tUi("ctr")}</span>
         </div>
       </div>
       <div className="anim-sc-chart">
@@ -311,7 +316,7 @@ function SeoAnim() {
           {/* Objetivo del trimestre: guía punteada que la curva casi alcanza. */}
           <path className="anim-sc-goal" d="M0,14 L260,14" />
         </svg>
-        <span className="anim-sc-badge">▲ 23% este mes</span>
+        <span className="anim-sc-badge">{tUi("esteMes")}</span>
         {/* Runner: cursor vertical + punto + tooltip que recorren la curva
             de clics en bucle (lo mueve el loop JS punto a punto). */}
         <div className="anim-sc-run">
@@ -327,6 +332,7 @@ function SeoAnim() {
 }
 
 function AppAnim() {
+  const tUi = useTranslations("servicios.ui");
   return (
     <div className="anim-ap" aria-hidden="true">
       <div className="anim-ap-phone">
@@ -334,7 +340,7 @@ function AppAnim() {
         <div className="anim-ap-screen">
           <span className="anim-ap-hi">Hola, Marta 👋</span>
           <div className="anim-ap-balance">
-            <span>Ventas hoy</span>
+            <span>{tUi("ventasHoy")}</span>
             <b className="anim-ap-count" data-t="2840">
               0
             </b>
@@ -367,8 +373,8 @@ function AppAnim() {
             <path d="M8 12l3 3 5-6" />
           </svg>
           <span>
-            <b>Pedido #1042</b>
-            <span>Pagado · 49 €</span>
+            <b>{tUi("pedido")}</b>
+            <span>{tUi("pagado")}</span>
           </span>
         </div>
         <div className="anim-ap-notif">
@@ -376,8 +382,8 @@ function AppAnim() {
             <path d="M12 3l2.7 5.6 6.1.8-4.5 4.2 1.1 6L12 16.8 6.6 19.6l1.1-6L3.2 9.4l6.1-.8z" />
           </svg>
           <span>
-            <b>Nueva reseña</b>
-            <span>★★★★★ · «Impecable»</span>
+            <b>{tUi("nuevaResena")}</b>
+            <span>{tUi("resena")}</span>
           </span>
         </div>
         <div className="anim-ap-ring">
@@ -387,7 +393,7 @@ function AppAnim() {
           </svg>
           <span>
             <b>99,9%</b>
-            <span>uptime</span>
+            <span>{tUi("uptime")}</span>
           </span>
         </div>
       </div>
@@ -444,48 +450,28 @@ const precacheWallVideos = () => {
 // servicio siguen donde sí se ven: el desplegable del nav, en Header.tsx.)
 const CARDS = [
   {
-    tag: "Desarrollo web",
-    title: "Web experiencial.",
-    desc: "Diseñamos y desarrollamos sitios web a medida con rendimiento real, experiencia de usuario cuidada y arquitectura pensada para escalar. Sin plantillas. Sin límites.",
-    pills: ["Landing", "Portales corporativos", "E-com", "SaaS"],
+    key: "web",
     anim: <Web3DAnim />,
-    cta: "Quiero mi web",
     href: "/desarrollo-web/",
   },
   {
-    tag: "Agentes IA",
-    title: "Agentes que trabajan por ti, 24/7.",
-    desc: "Asistentes inteligentes conectados a tus herramientas que atienden clientes, gestionan citas y ejecutan tareas sin intervención humana.",
-    pills: ["WhatsApp", "Web chat", "Email", "CRM"],
+    key: "ia",
     anim: <ChatAnim />,
-    cta: "Activar mi agente",
     href: "/agentes-ia/",
   },
   {
-    tag: "Automatizaciones",
-    title: "Flujos que eliminan el trabajo repetitivo.",
-    desc: "Conectamos tus apps y automatizamos procesos con n8n para que tu equipo dedique su tiempo a lo que importa.",
-    pills: ["n8n", "CRM", "Facturación", "Reportes"],
+    key: "auto",
     anim: <FlowAnim />,
-    cta: "Automatizar ahora",
     href: "/automatizaciones/",
   },
   {
-    tag: "SEO & Posicionamiento",
-    title: "Visibilidad real en Google.",
-    desc: "Estrategia SEO técnica y de contenido para que tus clientes te encuentren cuando te necesitan.",
-    pills: ["SEO técnico", "Contenido", "Local SEO", "Auditorías"],
+    key: "seo",
     anim: <SeoAnim />,
-    cta: "Subir posiciones",
     href: "/seo-posicionamiento/",
   },
   {
-    tag: "Apps & Software",
-    title: "Software a medida para tu negocio.",
-    desc: "Desarrollamos aplicaciones web y móviles que resuelven el problema exacto de tu empresa, integradas con tu ecosistema actual.",
-    pills: ["Web apps", "APIs REST", "Integraciones", "Dashboards"],
+    key: "apps",
     anim: <AppAnim />,
-    cta: "Crear mi app",
     href: "/apps-software/",
   },
 ];
@@ -523,6 +509,7 @@ function GlassCard({ c }: { c: (typeof CARDS)[number] }) {
 // card passes the centre; in the reduced-motion static list they flow
 // under their card normally.
 function Caption({ c }: { c: (typeof CARDS)[number] }) {
+  const t = useTranslations("servicios.cards");
   return (
     <div className="nxr-srv-caption">
       {/* Tilt wrapper: the caption CONTAINER spans nearly the full viewport
@@ -530,22 +517,22 @@ function Caption({ c }: { c: (typeof CARDS)[number] }) {
           near (left) edge's projection off-screen. Only this ~620px text
           block rides the perspective plane; the CTA stays at normal depth. */}
       <div className="nxr-srv-caption-tilt">
-        <span className="nxr-srv-tag">{c.tag}</span>
-        <h3 className="nxr-srv-title">{c.title}</h3>
-        <p className="nxr-srv-desc">{c.desc}</p>
+        <span className="nxr-srv-tag">{t(`${c.key}.tag`)}</span>
+        <h3 className="nxr-srv-title">{t(`${c.key}.titulo`)}</h3>
+        <p className="nxr-srv-desc">{t(`${c.key}.desc`)}</p>
         <div className="nxr-srv-pills">
-          {c.pills.map((p) => (
-            <span key={p} className="nxr-srv-pill">
-              {p}
+          {["p1", "p2", "p3", "p4"].map((k) => (
+            <span key={k} className="nxr-srv-pill">
+              {t(`${c.key}.${k}`)}
             </span>
-          ))}
+            ))}
         </div>
       </div>
       <div className="nxr-srv-cta-wrap">
         {/* Solo texto + flecha ("nada de fondo ni bordes", V16.3): fuera el
             nxr-glass-edge que pintaba el borde degradado vía máscara. */}
         <Link href={c.href} className="nxr-srv-cta">
-          <span>{c.cta}</span>
+          <span>{t(`${c.key}.cta`)}</span>
           {/* Flecha ↗ (arriba-derecha), estilo lucide arrow-up-right: la
               diagonal + la esquina superior derecha — el gesto "abrir"
               de la referencia alche.studio ("More Works ↗"). */}
@@ -559,6 +546,7 @@ function Caption({ c }: { c: (typeof CARDS)[number] }) {
 }
 
 export default function Servicios() {
+  const tSec = useTranslations("servicios.ui");
   const sectionRef = useRef<HTMLElement>(null);
   const stickyRef = useRef<HTMLDivElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
@@ -2733,8 +2721,8 @@ export default function Servicios() {
         <div className="nxr-servicios-inner">
           <div className="nxr-reveal">
             <h2 className="nxr-section-h2" ref={titleRef}>
-              Todo lo que tu negocio necesita para{" "}
-              <span className="nxr-gradient-text-salmon">crecer en la era de la IA.</span>
+              {tSec("fraseA")}{" "}
+              <span className="nxr-gradient-text-salmon">{tSec("fraseB")}</span>
             </h2>
           </div>
           <div className="nxr-servicios-static-list">
@@ -2765,8 +2753,8 @@ export default function Servicios() {
           its position is screen-centred from the first moment to the last. */}
       <div className="nxr-servicios-head">
         <h2 className="nxr-section-h2">
-          Todo lo que tu negocio necesita para{" "}
-          <span className="nxr-gradient-text-salmon">crecer en la era de la IA.</span>
+          {tSec("fraseA")}{" "}
+          <span className="nxr-gradient-text-salmon">{tSec("fraseB")}</span>
         </h2>
       </div>
       <div className="nxr-servicios-sticky" ref={stickyRef}>

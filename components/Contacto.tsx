@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
+import { useTranslations } from "next-intl";
 import { useTitleReveal } from "@/hooks/useTitleReveal";
 import { useGlassPanels } from "@/hooks/useGlassPanels";
 import { useTextScramble } from "@/hooks/useTextScramble";
@@ -18,26 +19,29 @@ const BUDGET_VALUES = [
 ];
 
 const NEGOCIO_OPTS = [
-  { val: "startup", icon: "🚀", label: "Startup" },
-  { val: "pyme", icon: "🏢", label: "PYME" },
-  { val: "autonomo", icon: "🤝", label: "Autónomo" },
-  { val: "ecommerce", icon: "🛒", label: "E-commerce" },
-  { val: "empresa", icon: "🏛️", label: "Gran empresa" },
-  { val: "otro", icon: "💡", label: "Otro" },
+  { val: "startup", icon: "🚀" },
+  { val: "pyme", icon: "🏢" },
+  { val: "autonomo", icon: "🤝" },
+  { val: "ecommerce", icon: "🛒" },
+  { val: "empresa", icon: "🏛️" },
+  { val: "otro", icon: "💡" },
 ];
 
 const SERVICIO_OPTS = [
-  { val: "web", icon: "🌐", label: "Web / Landing" },
-  { val: "agente", icon: "🤖", label: "Agente de IA" },
-  { val: "automatizacion", icon: "⚡", label: "Automatización" },
-  { val: "seo", icon: "🔍", label: "SEO" },
-  { val: "app", icon: "📱", label: "App / Software" },
-  { val: "no-lo-se", icon: "🤷", label: "Otra cosa" },
+  { val: "web", icon: "🌐" },
+  { val: "agente", icon: "🤖" },
+  { val: "automatizacion", icon: "⚡" },
+  { val: "seo", icon: "🔍" },
+  { val: "app", icon: "📱" },
+  { val: "no-lo-se", icon: "🤷" },
 ];
 
 const TOTAL_STEPS = 5;
 
 export default function Contacto() {
+  const t = useTranslations("contacto");
+  const tNeg = useTranslations("contacto.neg");
+  const tSrv = useTranslations("contacto.srv");
   const titleRef = useTitleReveal<HTMLHeadingElement>();
   const sectionRef = useRef<HTMLElement>(null);
   const [step, setStep] = useState(1);
@@ -73,25 +77,27 @@ export default function Contacto() {
   };
 
   const next1 = () => {
-    if (!negocio) return showError(1, "Selecciona una opción para continuar.");
+    if (!negocio) return showError(1, t("errOpcion"));
     goTo(2);
   };
   const next2 = () => {
-    if (!servicios.length) return showError(2, "Selecciona al menos una opción.");
+    if (!servicios.length) return showError(2, t("errUna"));
     goTo(3);
   };
   const next3 = () => goTo(4);
   const next4 = () => {
     const okEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim());
     if (!nombre.trim() || !mensaje.trim() || !okEmail) {
-      return showError(4, "Rellena nombre, email válido y cuéntanos algo.");
+      return showError(4, t("errCampos"));
     }
     goTo(5);
   };
 
-  const negocioLabel = NEGOCIO_OPTS.find((o) => o.val === negocio)?.label ?? "";
+  // Se traducen igual que los chips: lo que va al resumen —y al correo— debe
+  // leerse en el idioma en el que el visitante rellenó el formulario.
+  const negocioLabel = negocio ? tNeg(negocio) : "";
   const serviciosLabel = SERVICIO_OPTS.filter((o) => servicios.includes(o.val))
-    .map((o) => o.label)
+    .map((o) => tSrv(o.val))
     .join(", ");
 
   const submit = async () => {
@@ -113,11 +119,11 @@ export default function Contacto() {
       if (data.success) {
         setSubmitted(true);
       } else {
-        showError(5, "Error al enviar. Inténtalo de nuevo.");
+        showError(5, t("errEnvio"));
         setSubmitting(false);
       }
     } catch {
-      showError(5, "Error al enviar. Inténtalo de nuevo.");
+      showError(5, t("errEnvio"));
       setSubmitting(false);
     }
   };
@@ -132,14 +138,13 @@ export default function Contacto() {
             <div className="nxr-contacto-textblock">
               <div>
                 <h2 className="nxr-section-h2" ref={titleRef}>
-                  Cuéntanos tu
+                  {t("titulo1")}
                   <br />
-                  <span className="nxr-gradient-text-lime">proyecto.</span>
+                  <span className="nxr-gradient-text-lime">{t("titulo2")}</span>
                 </h2>
               </div>
               <p className="nxr-contacto-desc">
-                Nos tomamos en serio cada proyecto. Antes de darte un presupuesto, queremos entender tu negocio. La
-                primera conversación es gratuita y sin compromiso.
+                {t("parrafo")}
               </p>
               <div className="nxr-contacto-items">
                 <div className="nxr-contacto-item">
@@ -149,8 +154,8 @@ export default function Contacto() {
                     </svg>
                   </div>
                   <div>
-                    <div className="nxr-contacto-item-title">Respuesta en menos de 24h</div>
-                    <div className="nxr-contacto-item-desc">Revisamos cada mensaje personalmente.</div>
+                    <div className="nxr-contacto-item-title">{t("item1t")}</div>
+                    <div className="nxr-contacto-item-desc">{t("item1d")}</div>
                   </div>
                 </div>
                 <div className="nxr-contacto-item">
@@ -160,8 +165,8 @@ export default function Contacto() {
                     </svg>
                   </div>
                   <div>
-                    <div className="nxr-contacto-item-title">Sin compromisos</div>
-                    <div className="nxr-contacto-item-desc">La primera reunión es gratuita y sin presión.</div>
+                    <div className="nxr-contacto-item-title">{t("item2t")}</div>
+                    <div className="nxr-contacto-item-desc">{t("item2d")}</div>
                   </div>
                 </div>
                 <div className="nxr-contacto-item">
@@ -172,8 +177,8 @@ export default function Contacto() {
                     </svg>
                   </div>
                   <div>
-                    <div className="nxr-contacto-item-title">Propuesta en 48h</div>
-                    <div className="nxr-contacto-item-desc">Presupuesto detallado y hoja de ruta técnica.</div>
+                    <div className="nxr-contacto-item-title">{t("item3t")}</div>
+                    <div className="nxr-contacto-item-desc">{t("item3d")}</div>
                   </div>
                 </div>
               </div>
@@ -210,16 +215,16 @@ export default function Contacto() {
                       <path d="M20 6L9 17l-5-5" />
                     </svg>
                   </div>
-                  <h3>¡Mensaje enviado!</h3>
-                  <p>Te contactamos en menos de 24h. Revisa tu bandeja de entrada.</p>
+                  <h3>{t("enviadoTitulo")}</h3>
+                  <p>{t("enviadoTexto")}</p>
                 </div>
               ) : (
                 <>
                   {step === 1 && (
                     <div className="nxr-ms-panel active">
                       <div>
-                        <p className="nxr-ms-label">Paso 1 de 5</p>
-                        <h2 className="nxr-ms-question">¿Cómo describirías tu negocio?</h2>
+                        <p className="nxr-ms-label">{t("paso", { n: 1, total: TOTAL_STEPS })}</p>
+                        <h2 className="nxr-ms-question">{t("q1")}</h2>
                       </div>
                       <div className="nxr-ms-chips">
                         {NEGOCIO_OPTS.map((o) => (
@@ -228,7 +233,7 @@ export default function Contacto() {
                             className={`nxr-ms-chip${negocio === o.val ? " selected" : ""}`}
                             onClick={() => setNegocio(o.val)}
                           >
-                            <span className="nxr-ms-chip-icon">{o.icon}</span> {o.label}
+                            <span className="nxr-ms-chip-icon">{o.icon}</span> {tNeg(o.val)}
                           </button>
                         ))}
                       </div>
@@ -236,7 +241,7 @@ export default function Contacto() {
                       <div className="nxr-ms-nav">
                         <span></span>
                         <button className="nxr-ms-next" onClick={next1}>
-                          Siguiente{" "}
+                          {t("siguiente")}{" "}
                           <svg viewBox="0 0 24 24">
                             <path d="M5 12h14M12 5l7 7-7 7" />
                           </svg>
@@ -248,8 +253,8 @@ export default function Contacto() {
                   {step === 2 && (
                     <div className="nxr-ms-panel active">
                       <div>
-                        <p className="nxr-ms-label">Paso 2 de 5</p>
-                        <h2 className="nxr-ms-question">¿Qué necesitas?</h2>
+                        <p className="nxr-ms-label">{t("paso", { n: 2, total: TOTAL_STEPS })}</p>
+                        <h2 className="nxr-ms-question">{t("q2")}</h2>
                         <p className="nxr-ms-sub">Puedes elegir más de uno.</p>
                       </div>
                       <div className="nxr-ms-chips">
@@ -259,7 +264,7 @@ export default function Contacto() {
                             className={`nxr-ms-chip${servicios.includes(o.val) ? " selected" : ""}`}
                             onClick={() => toggleServicio(o.val)}
                           >
-                            <span className="nxr-ms-chip-icon">{o.icon}</span> {o.label}
+                            <span className="nxr-ms-chip-icon">{o.icon}</span> {tSrv(o.val)}
                           </button>
                         ))}
                       </div>
@@ -272,7 +277,7 @@ export default function Contacto() {
                           Atrás
                         </button>
                         <button className="nxr-ms-next" onClick={next2}>
-                          Siguiente{" "}
+                          {t("siguiente")}{" "}
                           <svg viewBox="0 0 24 24">
                             <path d="M5 12h14M12 5l7 7-7 7" />
                           </svg>
@@ -284,8 +289,8 @@ export default function Contacto() {
                   {step === 3 && (
                     <div className="nxr-ms-panel active">
                       <div>
-                        <p className="nxr-ms-label">Paso 3 de 5</p>
-                        <h2 className="nxr-ms-question">¿Cuál es tu presupuesto aproximado?</h2>
+                        <p className="nxr-ms-label">{t("paso", { n: 3, total: TOTAL_STEPS })}</p>
+                        <h2 className="nxr-ms-question">{t("q3")}</h2>
                         <p className="nxr-ms-sub">Sin compromiso, nos ayuda a orientar la propuesta.</p>
                       </div>
                       <div>
@@ -320,7 +325,7 @@ export default function Contacto() {
                           Atrás
                         </button>
                         <button className="nxr-ms-next" onClick={next3}>
-                          Siguiente{" "}
+                          {t("siguiente")}{" "}
                           <svg viewBox="0 0 24 24">
                             <path d="M5 12h14M12 5l7 7-7 7" />
                           </svg>
@@ -332,27 +337,27 @@ export default function Contacto() {
                   {step === 4 && (
                     <div className="nxr-ms-panel active">
                       <div>
-                        <p className="nxr-ms-label">Paso 4 de 5</p>
-                        <h2 className="nxr-ms-question">Cuéntanos un poco más</h2>
+                        <p className="nxr-ms-label">{t("paso", { n: 4, total: TOTAL_STEPS })}</p>
+                        <h2 className="nxr-ms-question">{t("q4")}</h2>
                       </div>
                       <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
                         <input
                           className="nxr-ms-input"
                           type="text"
-                          placeholder="Tu nombre *"
+                          placeholder={t("phNombre")}
                           value={nombre}
                           onChange={(e) => setNombre(e.target.value)}
                         />
                         <input
                           className="nxr-ms-input"
                           type="email"
-                          placeholder="Tu email de contacto *"
+                          placeholder={t("phEmail")}
                           value={email}
                           onChange={(e) => setEmail(e.target.value)}
                         />
                         <textarea
                           className="nxr-ms-textarea"
-                          placeholder="¿Qué quieres conseguir? Cuanto más detallado, mejor..."
+                          placeholder={t("phMensaje")}
                           value={mensaje}
                           onChange={(e) => setMensaje(e.target.value)}
                         />
@@ -378,17 +383,17 @@ export default function Contacto() {
                   {step === 5 && (
                     <div className="nxr-ms-panel active">
                       <div>
-                        <p className="nxr-ms-label">Paso 5 de 5</p>
-                        <h2 className="nxr-ms-question">¿Todo correcto?</h2>
+                        <p className="nxr-ms-label">{t("paso", { n: 5, total: TOTAL_STEPS })}</p>
+                        <h2 className="nxr-ms-question">{t("q5")}</h2>
                       </div>
                       <div className="nxr-ms-summary">
                         {[
-                          ["Negocio", negocioLabel],
-                          ["Necesita", serviciosLabel],
-                          ["Presupuesto", BUDGET_VALUES[budgetIndex]],
-                          ["Nombre", nombre],
-                          ["Email", email],
-                          ["Proyecto", mensaje],
+                          [t("resNegocio"), negocioLabel],
+                          [t("resNecesita"), serviciosLabel],
+                          [t("resPresupuesto"), BUDGET_VALUES[budgetIndex]],
+                          [t("resNombre"), nombre],
+                          [t("resEmail"), email],
+                          [t("resProyecto"), mensaje],
                         ].map(([label, val]) => (
                           <div className="nxr-ms-summary-row" key={label}>
                             <span className="nxr-ms-summary-label">{label}</span>
@@ -405,7 +410,7 @@ export default function Contacto() {
                           Editar
                         </button>
                         <button className="nxr-ms-next" onClick={submit} disabled={submitting}>
-                          {submitting ? "Enviando..." : "Enviar mensaje"}{" "}
+                          {submitting ? t("enviando") : t("enviar")}{" "}
                           <svg viewBox="0 0 24 24">
                             <path d="M5 12h14M12 5l7 7-7 7" />
                           </svg>

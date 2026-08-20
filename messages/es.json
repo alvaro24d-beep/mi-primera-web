@@ -70,6 +70,228 @@
         "titulo": "Apps & Software",
         "desc": "Soluciones a medida"
       }
+    },
+    "cards": {
+      "web": {
+        "tag": "Desarrollo web",
+        "titulo": "Web experiencial.",
+        "desc": "Diseñamos y desarrollamos sitios web a medida con rendimiento real, experiencia de usuario cuidada y arquitectura pensada para escalar. Sin plantillas. Sin límites.",
+        "p1": "Landing",
+        "p2": "Portales corporativos",
+        "p3": "E-com",
+        "p4": "SaaS",
+        "cta": "Quiero mi web"
+      },
+      "ia": {
+        "tag": "Agentes IA",
+        "titulo": "Agentes que trabajan por ti, 24/7.",
+        "desc": "Asistentes inteligentes conectados a tus herramientas que atienden clientes, gestionan citas y ejecutan tareas sin intervención humana.",
+        "cta": "Activar mi agente",
+        "p1": "WhatsApp",
+        "p2": "Web chat",
+        "p3": "Email",
+        "p4": "CRM"
+      },
+      "auto": {
+        "tag": "Automatizaciones",
+        "titulo": "Flujos que eliminan el trabajo repetitivo.",
+        "desc": "Conectamos tus apps y automatizamos procesos con n8n para que tu equipo dedique su tiempo a lo que importa.",
+        "cta": "Automatizar ahora",
+        "p1": "n8n",
+        "p2": "CRM",
+        "p3": "Facturación",
+        "p4": "Reportes"
+      },
+      "seo": {
+        "tag": "SEO & Posicionamiento",
+        "titulo": "Visibilidad real en Google.",
+        "desc": "Estrategia SEO técnica y de contenido para que tus clientes te encuentren cuando te necesitan.",
+        "cta": "Subir posiciones",
+        "p1": "SEO técnico",
+        "p2": "Contenido",
+        "p3": "Local SEO",
+        "p4": "Auditorías"
+      },
+      "apps": {
+        "tag": "Apps & Software",
+        "titulo": "Software a medida para tu negocio.",
+        "desc": "Desarrollamos aplicaciones web y móviles que resuelven el problema exacto de tu empresa, integradas con tu ecosistema actual.",
+        "cta": "Crear mi app",
+        "p1": "Web apps",
+        "p2": "APIs REST",
+        "p3": "Integraciones",
+        "p4": "Dashboards"
+      }
+    },
+    "ui": {
+      "fraseA": "Todo lo que tu negocio necesita para",
+      "fraseB": "crecer en la era de la IA.",
+      "fluida": "Fluida",
+      "inmersiva": "Inmersiva",
+      "convierte": "Convierte",
+      "agente": "Agente arcfine",
+      "enLinea": "en línea",
+      "chat1": "¿Tenéis cita para el jueves?",
+      "chat2": "Déjame comprobar la agenda…",
+      "chat3": "Cita confirmada",
+      "chat4": "Jueves · 10:30",
+      "chat5": "¡Perfecto, gracias!",
+      "procesa": "Procesa",
+      "guarda": "Guarda",
+      "avisa": "Avisa",
+      "formulario": "Formulario",
+      "agenteIa": "Agente IA",
+      "sinErrores": "✓ sin errores",
+      "rendBusqueda": "Rendimiento de búsqueda",
+      "ultimos3": "Últimos 3 meses",
+      "impresiones": "Impresiones",
+      "clics": "Clics",
+      "ctr": "CTR medio",
+      "ventasHoy": "Ventas hoy",
+      "pedido": "Pedido #1042",
+      "pagado": "Pagado · 49 €",
+      "nuevaResena": "Nueva reseña",
+      "resena": "★★★★★ · «Impecable»",
+      "esteMes": "▲ 23% este mes",
+      "visitas": "visitas",
+      "conversion": "conversión",
+      "rendimiento": "rendimiento",
+      "uptime": "uptime"
+    }
+  },
+  "tech": {
+    "titulo1": "Las herramientas",
+    "titulo2": "que ",
+    "titulo3": "hacen la magia.",
+    "parrafo": "Trabajamos con el stack más avanzado del mercado. No usamos tecnología por moda — cada herramienta está aquí porque resuelve un problema real mejor que cualquier alternativa.",
+    "stat1": "Tecnologías dominadas en producción real",
+    "stat2": "Proyectos entregados en plazo acordado",
+    "stat3": "ROI medio en el primer año de implantación",
+    "stat4": "Sistemas funcionando sin intervención humana",
+    "cat": {
+      "automatizacion": "Automatización",
+      "backend": "Backend",
+      "bd": "Base de datos",
+      "cache": "Caché",
+      "cms": "CMS",
+      "datos": "Datos",
+      "devops": "DevOps",
+      "frontend": "Frontend",
+      "ia": "IA & LLMs",
+      "infra": "Infraestructura",
+      "mensajeria": "Mensajería",
+      "pagos": "Pagos",
+      "scraping": "Scraping",
+      "vector": "Vector DB"
+    }
+  },
+  "proceso": {
+    "titulo1": "Un proceso claro,",
+    "titulo2": "sin sorpresas.",
+    "parrafo": "Cada proyecto sigue la misma metodología: entender bien antes de construir, construir rápido y mejorar siempre. Sin reuniones infinitas, sin presupuestos que se disparan. Toca cada paso para ver el detalle.",
+    "pasos": {
+      "buscar": {
+        "titulo": "Diagnóstico",
+        "desc": "Analizamos tu negocio, procesos y objetivos para identificar dónde la tecnología genera más impacto.",
+        "d1": "Auditoría técnica y de negocio",
+        "d2": "Entrevistas con los equipos implicados",
+        "d3": "Informe de oportunidades priorizado"
+      },
+      "ruta": {
+        "titulo": "Estrategia",
+        "desc": "Diseñamos la hoja de ruta técnica: qué construir, en qué orden y con qué tecnologías.",
+        "d1": "Roadmap técnico por fases",
+        "d2": "Stack y arquitectura definidos",
+        "d3": "Estimación de tiempos y costes"
+      },
+      "codigo": {
+        "titulo": "Desarrollo",
+        "desc": "Construimos con sprints cortos y entregas frecuentes para que veas el avance desde el primer día.",
+        "d1": "Sprints de 1-2 semanas",
+        "d2": "Demo funcional en cada entrega",
+        "d3": "Canal directo de feedback"
+      },
+      "lanzar": {
+        "titulo": "Lanzamiento",
+        "desc": "Desplegamos, probamos en producción real y nos aseguramos de que todo funciona antes de abrir al público.",
+        "d1": "Pruebas en entorno real",
+        "d2": "Checklist de rendimiento y seguridad",
+        "d3": "Acompañamiento el día del lanzamiento"
+      },
+      "ciclo": {
+        "titulo": "Evolución",
+        "desc": "Monitorizamos, optimizamos y seguimos construyendo contigo. No desaparecemos tras el lanzamiento.",
+        "d1": "Monitorización continua",
+        "d2": "Iteración basada en datos reales",
+        "d3": "Soporte y mejoras a largo plazo"
+      }
+    }
+  },
+  "zp": {
+    "heroA": "Los números",
+    "heroB": "hablan por nosotros.",
+    "t1": "Proyectos entregados",
+    "d1": "con éxito",
+    "t2": "Desarrollo web",
+    "d2": "Webs que convierten",
+    "t3": "Clientes satisfechos",
+    "t4": "Automatizaciones",
+    "d4": "Sin intervención humana",
+    "t5": "ROI medio",
+    "d5": "primer año",
+    "t6": "SEO",
+    "d6": "Visibilidad real en Google"
+  },
+  "contacto": {
+    "titulo1": "Cuéntanos tu",
+    "titulo2": "proyecto.",
+    "parrafo": "Nos tomamos en serio cada proyecto. Antes de darte un presupuesto, queremos entender tu negocio. La primera conversación es gratuita y sin compromiso.",
+    "item1t": "Respuesta en menos de 24h",
+    "item1d": "Revisamos cada mensaje personalmente.",
+    "item2t": "Sin compromisos",
+    "item2d": "La primera reunión es gratuita y sin presión.",
+    "item3t": "Propuesta en 48h",
+    "item3d": "Presupuesto detallado y hoja de ruta técnica.",
+    "enviadoTitulo": "¡Mensaje enviado!",
+    "enviadoTexto": "Te contactamos en menos de 24h. Revisa tu bandeja de entrada.",
+    "paso": "Paso {n} de {total}",
+    "siguiente": "Siguiente",
+    "anterior": "Anterior",
+    "enviar": "Enviar mensaje",
+    "enviando": "Enviando...",
+    "q1": "¿Cómo describirías tu negocio?",
+    "q2": "¿Qué necesitas?",
+    "q3": "¿Cuál es tu presupuesto aproximado?",
+    "q4": "Cuéntanos un poco más",
+    "q5": "¿Todo correcto?",
+    "phNombre": "Tu nombre *",
+    "phEmail": "Tu email de contacto *",
+    "phMensaje": "¿Qué quieres conseguir? Cuanto más detallado, mejor...",
+    "errOpcion": "Selecciona una opción para continuar.",
+    "errUna": "Selecciona al menos una opción.",
+    "errCampos": "Rellena nombre, email válido y cuéntanos algo.",
+    "errEnvio": "Error al enviar. Inténtalo de nuevo.",
+    "resNegocio": "Negocio",
+    "resNecesita": "Necesita",
+    "resPresupuesto": "Presupuesto",
+    "resNombre": "Nombre",
+    "resEmail": "Email",
+    "resProyecto": "Proyecto",
+    "neg": {
+      "startup": "Startup",
+      "pyme": "PYME",
+      "autonomo": "Autónomo",
+      "ecommerce": "E-commerce",
+      "empresa": "Gran empresa",
+      "otro": "Otro"
+    },
+    "srv": {
+      "web": "Web / Landing",
+      "agente": "Agente de IA",
+      "automatizacion": "Automatización",
+      "seo": "SEO",
+      "app": "App / Software",
+      "no-lo-se": "Otra cosa"
     }
   }
 }

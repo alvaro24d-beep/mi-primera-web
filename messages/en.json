@@ -70,6 +70,228 @@
         "titulo": "Apps & Software",
         "desc": "Tailor-made solutions"
       }
+    },
+    "cards": {
+      "web": {
+        "tag": "Web development",
+        "titulo": "Experiential web.",
+        "desc": "We design and build bespoke websites with real performance, careful user experience and an architecture made to scale. No templates. No limits.",
+        "p1": "Landing",
+        "p2": "Corporate portals",
+        "p3": "E-com",
+        "p4": "SaaS",
+        "cta": "I want my website"
+      },
+      "ia": {
+        "tag": "AI agents",
+        "titulo": "Agents that work for you, 24/7.",
+        "desc": "Intelligent assistants connected to your tools that handle customers, manage bookings and run tasks with no human input.",
+        "cta": "Activate my agent",
+        "p1": "WhatsApp",
+        "p2": "Web chat",
+        "p3": "Email",
+        "p4": "CRM"
+      },
+      "auto": {
+        "tag": "Automations",
+        "titulo": "Flows that remove repetitive work.",
+        "desc": "We connect your apps and automate processes with n8n so your team spends its time on what matters.",
+        "cta": "Automate now",
+        "p1": "n8n",
+        "p2": "CRM",
+        "p3": "Invoicing",
+        "p4": "Reports"
+      },
+      "seo": {
+        "tag": "SEO & Rankings",
+        "titulo": "Real visibility on Google.",
+        "desc": "Technical and content SEO strategy so your customers find you exactly when they need you.",
+        "cta": "Climb the rankings",
+        "p1": "Technical SEO",
+        "p2": "Content",
+        "p3": "Local SEO",
+        "p4": "Audits"
+      },
+      "apps": {
+        "tag": "Apps & Software",
+        "titulo": "Bespoke software for your business.",
+        "desc": "We build web and mobile applications that solve your company's exact problem, integrated with your current ecosystem.",
+        "cta": "Build my app",
+        "p1": "Web apps",
+        "p2": "REST APIs",
+        "p3": "Integrations",
+        "p4": "Dashboards"
+      }
+    },
+    "ui": {
+      "fraseA": "Everything your business needs to",
+      "fraseB": "grow in the age of AI.",
+      "fluida": "Fluid",
+      "inmersiva": "Immersive",
+      "convierte": "Converts",
+      "agente": "arcfine agent",
+      "enLinea": "online",
+      "chat1": "Do you have a slot on Thursday?",
+      "chat2": "Let me check the calendar…",
+      "chat3": "Appointment confirmed",
+      "chat4": "Thursday · 10:30",
+      "chat5": "Perfect, thank you!",
+      "procesa": "Processes",
+      "guarda": "Saves",
+      "avisa": "Notifies",
+      "formulario": "Form",
+      "agenteIa": "AI agent",
+      "sinErrores": "✓ no errors",
+      "rendBusqueda": "Search performance",
+      "ultimos3": "Last 3 months",
+      "impresiones": "Impressions",
+      "clics": "Clicks",
+      "ctr": "Average CTR",
+      "ventasHoy": "Sales today",
+      "pedido": "Order #1042",
+      "pagado": "Paid · €49",
+      "nuevaResena": "New review",
+      "resena": "★★★★★ · “Flawless”",
+      "esteMes": "▲ 23% this month",
+      "visitas": "visits",
+      "conversion": "conversion",
+      "rendimiento": "performance",
+      "uptime": "uptime"
+    }
+  },
+  "tech": {
+    "titulo1": "The tools",
+    "titulo2": "that ",
+    "titulo3": "work the magic.",
+    "parrafo": "We work with the most advanced stack on the market. We do not use technology because it is fashionable — every tool is here because it solves a real problem better than any alternative.",
+    "stat1": "Technologies mastered in real production",
+    "stat2": "Projects delivered on the agreed date",
+    "stat3": "Average ROI in the first year after rollout",
+    "stat4": "Systems running with no human input",
+    "cat": {
+      "automatizacion": "Automation",
+      "backend": "Backend",
+      "bd": "Database",
+      "cache": "Cache",
+      "cms": "CMS",
+      "datos": "Data",
+      "devops": "DevOps",
+      "frontend": "Frontend",
+      "ia": "AI & LLMs",
+      "infra": "Infrastructure",
+      "mensajeria": "Messaging",
+      "pagos": "Payments",
+      "scraping": "Scraping",
+      "vector": "Vector DB"
+    }
+  },
+  "proceso": {
+    "titulo1": "A clear process,",
+    "titulo2": "no surprises.",
+    "parrafo": "Every project follows the same method: understand properly before building, build fast and keep improving. No endless meetings, no budgets that spiral. Tap any step to see the detail.",
+    "pasos": {
+      "buscar": {
+        "titulo": "Discovery",
+        "desc": "We analyse your business, processes and goals to find where technology creates the most impact.",
+        "d1": "Technical and business audit",
+        "d2": "Interviews with the teams involved",
+        "d3": "Prioritised report of opportunities"
+      },
+      "ruta": {
+        "titulo": "Strategy",
+        "desc": "We design the technical roadmap: what to build, in what order and with which technologies.",
+        "d1": "Technical roadmap by phases",
+        "d2": "Stack and architecture defined",
+        "d3": "Estimate of time and cost"
+      },
+      "codigo": {
+        "titulo": "Development",
+        "desc": "We build in short sprints with frequent deliveries so you see progress from day one.",
+        "d1": "Sprints of 1-2 weeks",
+        "d2": "A working demo at every delivery",
+        "d3": "A direct channel for feedback"
+      },
+      "lanzar": {
+        "titulo": "Launch",
+        "desc": "We deploy, test in real production and make sure everything works before opening to the public.",
+        "d1": "Testing in a real environment",
+        "d2": "Performance and security checklist",
+        "d3": "Support on launch day"
+      },
+      "ciclo": {
+        "titulo": "Evolution",
+        "desc": "We monitor, optimise and keep building with you. We do not disappear after launch.",
+        "d1": "Continuous monitoring",
+        "d2": "Iteration based on real data",
+        "d3": "Long-term support and improvements"
+      }
+    }
+  },
+  "zp": {
+    "heroA": "The numbers",
+    "heroB": "speak for us.",
+    "t1": "Projects delivered",
+    "d1": "successfully",
+    "t2": "Web development",
+    "d2": "Websites that convert",
+    "t3": "Happy clients",
+    "t4": "Automations",
+    "d4": "With no human input",
+    "t5": "Average ROI",
+    "d5": "first year",
+    "t6": "SEO",
+    "d6": "Real visibility on Google"
+  },
+  "contacto": {
+    "titulo1": "Tell us about your",
+    "titulo2": "project.",
+    "parrafo": "We take every project seriously. Before quoting, we want to understand your business. The first conversation is free and with no strings attached.",
+    "item1t": "An answer in under 24h",
+    "item1d": "We read every message personally.",
+    "item2t": "No commitment",
+    "item2d": "The first meeting is free and with no pressure.",
+    "item3t": "A proposal in 48h",
+    "item3d": "A detailed quote and a technical roadmap.",
+    "enviadoTitulo": "Message sent!",
+    "enviadoTexto": "We will be in touch within 24h. Keep an eye on your inbox.",
+    "paso": "Step {n} of {total}",
+    "siguiente": "Next",
+    "anterior": "Back",
+    "enviar": "Send message",
+    "enviando": "Sending...",
+    "q1": "How would you describe your business?",
+    "q2": "What do you need?",
+    "q3": "What is your approximate budget?",
+    "q4": "Tell us a bit more",
+    "q5": "All correct?",
+    "phNombre": "Your name *",
+    "phEmail": "Your contact email *",
+    "phMensaje": "What do you want to achieve? The more detail, the better...",
+    "errOpcion": "Pick an option to continue.",
+    "errUna": "Pick at least one option.",
+    "errCampos": "Fill in your name, a valid email and tell us something.",
+    "errEnvio": "Could not send. Please try again.",
+    "resNegocio": "Business",
+    "resNecesita": "Needs",
+    "resPresupuesto": "Budget",
+    "resNombre": "Name",
+    "resEmail": "Email",
+    "resProyecto": "Project",
+    "neg": {
+      "startup": "Startup",
+      "pyme": "SME",
+      "autonomo": "Freelancer",
+      "ecommerce": "E-commerce",
+      "empresa": "Large company",
+      "otro": "Other"
+    },
+    "srv": {
+      "web": "Website / Landing",
+      "agente": "AI agent",
+      "automatizacion": "Automation",
+      "seo": "SEO",
+      "app": "App / Software",
+      "no-lo-se": "Something else"
     }
   }
 }

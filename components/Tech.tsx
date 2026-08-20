@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef } from "react";
+import { useTranslations } from "next-intl";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { useGSAP } from "@gsap/react";
@@ -17,31 +18,33 @@ gsap.registerPlugin(ScrollTrigger);
 // abre, se despliega y se APLANA hasta quedar en una retícula ordenada.
 
 const TOOLS = [
-  { name: "OpenAI GPT-4", cat: "IA & LLMs", color: "#A8F04A" },
-  { name: "n8n", cat: "Automatización", color: "#EF3D0D" },
-  { name: "Supabase", cat: "Base de datos", color: "#A8F04A" },
-  { name: "Claude AI", cat: "IA & LLMs", color: "#FF9D7D" },
-  { name: "WordPress", cat: "CMS", color: "#EF3D0D" },
-  { name: "React", cat: "Frontend", color: "#A8F04A" },
-  { name: "Node.js", cat: "Backend", color: "#FF9D7D" },
-  { name: "Stripe", cat: "Pagos", color: "#EF3D0D" },
-  { name: "Pinecone", cat: "Vector DB", color: "#A8F04A" },
-  { name: "WhatsApp API", cat: "Mensajería", color: "#FF9D7D" },
-  { name: "PostgreSQL", cat: "Base de datos", color: "#A8F04A" },
-  { name: "Gemini", cat: "IA & LLMs", color: "#EF3D0D" },
-  { name: "Hostinger VPS", cat: "Infraestructura", color: "#FF9D7D" },
-  { name: "Tailwind CSS", cat: "Frontend", color: "#A8F04A" },
-  { name: "EasyPanel", cat: "DevOps", color: "#EF3D0D" },
-  { name: "Redis", cat: "Caché", color: "#FF9D7D" },
-  { name: "Firecrawl", cat: "Scraping", color: "#A8F04A" },
-  { name: "Gmail API", cat: "Mensajería", color: "#EF3D0D" },
-  { name: "Google Sheets", cat: "Datos", color: "#FF9D7D" },
-  { name: "ManyChat", cat: "Automatización", color: "#A8F04A" },
+  { name: "OpenAI GPT-4", cat: "ia", color: "#A8F04A" },
+  { name: "n8n", cat: "automatizacion", color: "#EF3D0D" },
+  { name: "Supabase", cat: "bd", color: "#A8F04A" },
+  { name: "Claude AI", cat: "ia", color: "#FF9D7D" },
+  { name: "WordPress", cat: "cms", color: "#EF3D0D" },
+  { name: "React", cat: "frontend", color: "#A8F04A" },
+  { name: "Node.js", cat: "backend", color: "#FF9D7D" },
+  { name: "Stripe", cat: "pagos", color: "#EF3D0D" },
+  { name: "Pinecone", cat: "vector", color: "#A8F04A" },
+  { name: "WhatsApp API", cat: "mensajeria", color: "#FF9D7D" },
+  { name: "PostgreSQL", cat: "bd", color: "#A8F04A" },
+  { name: "Gemini", cat: "ia", color: "#EF3D0D" },
+  { name: "Hostinger VPS", cat: "infra", color: "#FF9D7D" },
+  { name: "Tailwind CSS", cat: "frontend", color: "#A8F04A" },
+  { name: "EasyPanel", cat: "devops", color: "#EF3D0D" },
+  { name: "Redis", cat: "cache", color: "#FF9D7D" },
+  { name: "Firecrawl", cat: "scraping", color: "#A8F04A" },
+  { name: "Gmail API", cat: "mensajeria", color: "#EF3D0D" },
+  { name: "Google Sheets", cat: "datos", color: "#FF9D7D" },
+  { name: "ManyChat", cat: "automatizacion", color: "#A8F04A" },
 ];
 
 const GOLDEN_ANGLE = 2.399963229728653;
 
 export default function Tech() {
+  const t = useTranslations("tech");
+  const tCat = useTranslations("tech.cat");
   const titleRef = useTitleReveal<HTMLHeadingElement>();
   const sectionRef = useRef<HTMLElement>(null);
   const stageRef = useRef<HTMLDivElement>(null);
@@ -262,25 +265,24 @@ export default function Tech() {
             <div className="nxr-tech-header">
               <div>
                 <h2 className="nxr-section-h2" ref={titleRef}>
-                  Las herramientas
+                  {t("titulo1")}
                   <br />
-                  que <span className="nxr-gradient-text-salmon">hacen la magia.</span>
+                  {t("titulo2")}<span className="nxr-gradient-text-salmon">{t("titulo3")}</span>
                 </h2>
               </div>
-              <p className="nxr-tech-header-right">
-                Trabajamos con el stack más avanzado del mercado. No usamos tecnología por moda — cada herramienta
-                está aquí porque resuelve un problema real mejor que cualquier alternativa.
-              </p>
+              <p className="nxr-tech-header-right">{t("parrafo")}</p>
             </div>
           </div>
 
           <div className={`nxr-tech-sphere-wrap${reducedMotion ? " is-static" : ""}`} ref={sphereRef}>
-            {TOOLS.map((t) => (
-              <div className="nxr-tech-card" key={t.name}>
-                <div className="nxr-tech-card-dot" style={{ background: t.color }}></div>
+            {/* `item` y no `t`: la variable del map se llamaba t, y ese nombre
+                es ahora el traductor del componente. */}
+            {TOOLS.map((item) => (
+              <div className="nxr-tech-card" key={item.name}>
+                <div className="nxr-tech-card-dot" style={{ background: item.color }}></div>
                 <div>
-                  <div className="nxr-tech-card-name">{t.name}</div>
-                  <div className="nxr-tech-card-cat">{t.cat}</div>
+                  <div className="nxr-tech-card-name">{item.name}</div>
+                  <div className="nxr-tech-card-cat">{tCat(item.cat)}</div>
                 </div>
               </div>
             ))}
@@ -293,25 +295,25 @@ export default function Tech() {
           <div className="nxr-tech-strip-num">
             20<span>+</span>
           </div>
-          <div className="nxr-tech-strip-label">Tecnologías dominadas en producción real</div>
+          <div className="nxr-tech-strip-label">{t("stat1")}</div>
         </div>
         <div className="nxr-tech-strip-card nxr-reveal nxr-reveal-delay-2">
           <div className="nxr-tech-strip-num">
             100<span>%</span>
           </div>
-          <div className="nxr-tech-strip-label">Proyectos entregados en plazo acordado</div>
+          <div className="nxr-tech-strip-label">{t("stat2")}</div>
         </div>
         <div className="nxr-tech-strip-card nxr-reveal nxr-reveal-delay-3">
           <div className="nxr-tech-strip-num">
             3<span>x</span>
           </div>
-          <div className="nxr-tech-strip-label">ROI medio en el primer año de implantación</div>
+          <div className="nxr-tech-strip-label">{t("stat3")}</div>
         </div>
         <div className="nxr-tech-strip-card nxr-reveal nxr-reveal-delay-4">
           <div className="nxr-tech-strip-num">
             24<span>/7</span>
           </div>
-          <div className="nxr-tech-strip-label">Sistemas funcionando sin intervención humana</div>
+          <div className="nxr-tech-strip-label">{t("stat4")}</div>
         </div>
       </div>
     </section>

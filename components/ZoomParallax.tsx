@@ -1,9 +1,14 @@
 "use client";
 
 import { useEffect, useRef } from "react";
+import { useTranslations } from "next-intl";
 import { useZoomParallaxCardsRegistry } from "@/store/useZoomParallaxCardsRegistry";
 
-const CARDS: { scale: number; mobileScale?: number; content: React.ReactNode }[] = [
+type T = (clave: string) => string;
+// `content` es una FUNCION y no JSX fijo: este array vive a nivel de modulo,
+// donde no se puede llamar a useTranslations, asi que recibe el traductor
+// desde el componente en cada render.
+const CARDS: { scale: number; mobileScale?: number; content: (t: T) => React.ReactNode }[] = [
   {
     scale: 3.5,
     // On mobile this card needs a wider resting box (see globals.css) to fit
@@ -15,62 +20,62 @@ const CARDS: { scale: number; mobileScale?: number; content: React.ReactNode }[]
     // "Construido con maestría / Entregado con precisión" es la frase del
     // HERO y estaba duplicada aquí. Esta habla de las stats que hacen zoom
     // alrededor (+40 proyectos, 98%, 3x ROI).
-    content: (
+    content: (t: T) => (
       <div className="nxr-zp-card" style={{ gap: "calc(4px * var(--zp-max, 1))" }}>
         <div className="nxr-zp-hero-text">
-          Los números
+          {t("heroA")}
           <br />
-          <span className="nxr-gradient-text-lime">hablan por nosotros.</span>
+          <span className="nxr-gradient-text-lime">{t("heroB")}</span>
         </div>
       </div>
     ),
   },
   {
     scale: 5,
-    content: (
+    content: (t: T) => (
       <div className="nxr-zp-card">
         <div className="nxr-zp-card-num" style={{ color: "var(--c-lime)" }}>
           +40
         </div>
-        <div className="nxr-zp-card-title">Proyectos entregados</div>
-        <div className="nxr-zp-card-desc">con éxito</div>
+        <div className="nxr-zp-card-title">{t("t1")}</div>
+        <div className="nxr-zp-card-desc">{t("d1")}</div>
       </div>
     ),
   },
   {
     scale: 6,
-    content: (
+    content: (t: T) => (
       <div className="nxr-zp-card">
         <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#EF3D0D" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
           <rect x="3" y="3" width="18" height="18" rx="3" />
           <path d="M3 9h18M9 21V9" />
         </svg>
-        <div className="nxr-zp-card-title">Desarrollo web</div>
-        <div className="nxr-zp-card-desc">Webs que convierten</div>
+        <div className="nxr-zp-card-title">{t("t2")}</div>
+        <div className="nxr-zp-card-desc">{t("d2")}</div>
       </div>
     ),
   },
   {
     scale: 8,
-    content: (
+    content: (t: T) => (
       <div className="nxr-zp-card">
         <div className="nxr-zp-card-num" style={{ color: "var(--c-salmon)" }}>
           98%
         </div>
-        <div className="nxr-zp-card-title">Clientes satisfechos</div>
+        <div className="nxr-zp-card-title">{t("t3")}</div>
       </div>
     ),
   },
   {
     scale: 9,
-    content: (
+    content: (t: T) => (
       <div className="nxr-zp-card">
         <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#A8F04A" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
           <path d="M12 3L3 8.5v7L12 21l9-5.5v-7L12 3z" />
           <path d="M12 12l9-3.5M12 12L3 8.5M12 12v9" />
         </svg>
-        <div className="nxr-zp-card-title">Automatizaciones</div>
-        <div className="nxr-zp-card-desc">Sin intervención humana</div>
+        <div className="nxr-zp-card-title">{t("t4")}</div>
+        <div className="nxr-zp-card-desc">{t("d4")}</div>
       </div>
     ),
   },
@@ -84,13 +89,13 @@ const CARDS: { scale: number; mobileScale?: number; content: React.ReactNode }[]
     // tamaño FINALES no cambian — la caja CSS móvil se redujo en la misma
     // proporción (ver nth-child(6) en globals.css).
     mobileScale: 3.5,
-    content: (
+    content: (t: T) => (
       <div className="nxr-zp-card">
         <div className="nxr-zp-card-num" style={{ color: "var(--c-lime)" }}>
           3x
         </div>
-        <div className="nxr-zp-card-title">ROI medio</div>
-        <div className="nxr-zp-card-desc">primer año</div>
+        <div className="nxr-zp-card-title">{t("t5")}</div>
+        <div className="nxr-zp-card-desc">{t("d5")}</div>
       </div>
     ),
   },
@@ -98,20 +103,21 @@ const CARDS: { scale: number; mobileScale?: number; content: React.ReactNode }[]
     scale: 9,
     // V16.87 móvil: ídem — ver nth-child(7) en globals.css.
     mobileScale: 4.5,
-    content: (
+    content: (t: T) => (
       <div className="nxr-zp-card">
         <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#FF9D7D" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
           <circle cx="11" cy="11" r="7" />
           <path d="M16.5 16.5L21 21" />
         </svg>
-        <div className="nxr-zp-card-title">SEO</div>
-        <div className="nxr-zp-card-desc">Visibilidad real en Google</div>
+        <div className="nxr-zp-card-title">{t("t6")}</div>
+        <div className="nxr-zp-card-desc">{t("d6")}</div>
       </div>
     ),
   },
 ];
 
 export default function ZoomParallax() {
+  const t = useTranslations("zp");
   const sectionRef = useRef<HTMLElement>(null);
   const stickyRef = useRef<HTMLDivElement>(null);
   const layerRefs = useRef<(HTMLDivElement | null)[]>([]);
@@ -647,7 +653,7 @@ export default function ZoomParallax() {
                 imgRefs.current[i] = el;
               }}
             >
-              {item.content}
+              {item.content(t)}
               {/* Slice layers for the centre card's mobile glitch-death:
                   full clones of the content, each clipped to a horizontal
                   band and displaced independently per scroll frame (see the
@@ -656,7 +662,7 @@ export default function ZoomParallax() {
               {i === 0 &&
                 Array.from({ length: 5 }, (_, k) => (
                   <div className="nxr-zp-glslice" aria-hidden="true" key={`gs${k}`}>
-                    {item.content}
+                    {item.content(t)}
                   </div>
                 ))}
             </div>

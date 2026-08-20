@@ -9515,15 +9515,20 @@ input[type="range"].nxr-ms-range::-moz-range-thumb {
   display: none;
 }
 @media (max-width: 768px) {
+  /* ARRIBA A LA DERECHA del desplegable, no al final. Va posicionado en
+     absoluto contra `#nxr-nav-services` para no entrar en el flujo de las
+     columnas: colgado del borde superior derecho queda en el primer sitio
+     donde cae la vista al abrir el menú, y no empuja ni reordena nada de lo
+     que ya había. */
   .nxr-nav-lang-wrap {
     display: flex;
-    justify-content: center;
-    margin-top: 14px;
-    padding-top: 14px;
-    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    position: absolute;
+    top: 10px;
+    right: 12px;
+    z-index: 2;
   }
   .nxr-nav-lang-wrap .nxr-lang {
     font-size: 13px;
-    padding: 8px 12px;
+    padding: 6px 10px;
   }
 }

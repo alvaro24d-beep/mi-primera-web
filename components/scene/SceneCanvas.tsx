@@ -381,18 +381,20 @@ export default function SceneCanvas() {
           // a dark blurred wall, where aliasing is invisible). Dropping the
           // last 2x unlocked the 60fps budget in the Servicios stretch
           // (p50 33.3ms → 16.7ms measured).
-          // frameBufferType HalfFloat (V18.40) — SIN ESTO NO HAY NOCHE.
+          // frameBufferType HalfFloat (V18.40, y ahora al servicio del cristal).
           // El composer trabajaba en 8 bits por canal, donde 1.0 es el techo
           // absoluto: cualquier píxel más brillante que el blanco de pantalla
-          // se recortaba ANTES de llegar al Bloom. Una escena así no puede
-          // tener fuentes de luz, solo cosas claras — que es justo por lo que
-          // el muro se leía como una imagen y no como un panel encendido.
-          // En 16 bits el búfer guarda valores por encima de 1, el realce del
-          // shader del muro puede sobreexponer de verdad y el tone mapping
-          // ACES (el que R3F pone por defecto) los comprime en lugar de
-          // quemarlos a blanco plano: el reparto de un plano nocturno de
-          // cine. Cuesta el doble de ancho de banda en los búferes del
-          // composer, que solo existe en escritorio.
+          // se recortaba ANTES de llegar al Bloom, así que la escena no podía
+          // tener fuentes de luz, solo cosas claras. En 16 bits el búfer guarda
+          // valores por encima de 1 y el tone mapping ACES (el que R3F pone por
+          // defecto) los comprime en vez de quemarlos a blanco plano.
+          //
+          // Nació para hacer emitir al MURO; el muro volvió a su versión oscura
+          // en V18.42 —se quiere apagado para que el contenido resalte— y esto
+          // se queda porque ahora lo aprovecha la luz azul de las cards de
+          // cristal, que es lo que debe destacar contra ese fondo. Cuesta el
+          // doble de ancho de banda en los búferes del composer, que solo
+          // existe en escritorio.
           <EffectComposer multisampling={0} frameBufferType={HalfFloatType}>
             {/* resolutionScale 0.5 (V17.76): el bloom es el único efecto con
                 cadena de pases PROPIA — Vignette se fusiona en el EffectPass
@@ -404,11 +406,16 @@ export default function SceneCanvas() {
                 exactamente lo que sobrevive a un reescalado. Es el ahorro de
                 GPU más grande disponible sin tocar dpr (y sin tocar dpr, la
                 silueta de las cards de cristal se mantiene igual de limpia). */}
-            {/* intensity 0.35 → 0.9 (V18.39, "que el muro emita luz, que se
-                note retroiluminado"): el halo del bloom ES la
-                retroiluminación, y a 0.35 apenas se insinuaba. Lo que emite
-                ahora es el realce de altas luces del final del shader del
-                muro y los reflejos especulares de los cantos del cristal.
+            {/* intensity 0.35 → 1.2 y radius 0.85 (V18.42). QUIÉN EMITE AQUÍ
+                ES EL CRISTAL, no el muro: el muro está deliberadamente oscuro
+                para que el contenido resalte, y su brillo ni se acerca al
+                umbral. Lo que sí lo cruza es el emissive azul de
+                VolumetricCard, y este halo es lo que convierte ese azul en luz
+                derramada alrededor de la card en vez de un simple tinte.
+                El radio ancho es lo que hace que la luz SANGRE lejos y difusa
+                —lo que separa una fuente de luz de un contorno brillante— y
+                sale casi gratis: mipmapBlur ya construye la pirámide, el radio
+                solo decide hasta qué nivel se mezcla.
 
                 luminanceThreshold SIGUE EN 0.6 Y NO SE TOCA: la nube de
                 puntos está calibrada justo por debajo (uOpacity·vBrillo pico
@@ -423,13 +430,7 @@ export default function SceneCanvas() {
               resolutionScale={0.5}
               luminanceThreshold={0.6}
               luminanceSmoothing={0.3}
-              intensity={1.5}
-              // radius 0.85 (V18.40): el halo por defecto es corto y se lee
-              // como un contorno brillante pegado al objeto. Lo que hace que
-              // una luz parezca luz es que SANGRE lejos, difusa, ocupando el
-              // aire alrededor — el halo ancho de un rótulo en una calle
-              // mojada. Sale casi gratis: mipmapBlur ya construye la pirámide,
-              // el radio solo decide hasta qué nivel se mezcla.
+              intensity={1.2}
               radius={0.85}
             />
             <Vignette eskil={false} offset={0.25} darkness={0.55} />

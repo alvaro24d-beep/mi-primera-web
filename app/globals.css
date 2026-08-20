@@ -5973,12 +5973,20 @@ input[type="range"].nxr-ms-range::-moz-range-thumb {
   /* (V17.54) La sección solo aporta RECORRIDO de scroll: su contenido vive en
      un contenedor fijo al viewport (abajo), así que aquí no hay nada que
      maquetar.
-     170 -> 200 -> 240vh: más pista para que el fundido de entrada y salida se
-     pueda ver, sin tocar su ritmo. Como el contenido es fijo, esta altura no
-     maqueta nada — solo es scroll disponible. El último tramo (V17.60) es para
-     que la DESAPARICIÓN se aprecie en escritorio; móvil se queda en 200 (ver
-     el media query). */
-  height: 240vh;
+     170 -> 200 -> 240 -> 320vh: más pista para que el fundido de entrada y
+     salida se pueda ver, sin tocar su ritmo. Como el contenido es fijo, esta
+     altura no maqueta nada — solo es scroll disponible.
+
+     El salto a 320 (V18.42) responde a "que haya que hacer más scroll en la
+     parte en la que la sección se ve completa, para que sea más difícil
+     saltársela sin querer". Se hace ALARGANDO la sección y NO subiendo SLOW_K,
+     que sería la otra vía y es la equivocada: ese reparto es de suma cero
+     —cuanto más frena el centro, más se aceleran los extremos— y además su
+     propio comentario en Intro.tsx documenta que a 0.85 el texto recorría ~7px
+     en el 20% central, indistinguible de estar parado. Alargando la sección
+     gana scroll TODO el recorrido, el central incluido, y la relación entre
+     movimiento y scroll que ya estaba afinada se conserva intacta. */
+  height: 320vh;
   padding: 0;
 }
 
@@ -6135,7 +6143,11 @@ input[type="range"].nxr-ms-range::-moz-range-thumb {
      —algo más de pista y menos tiempo quieto— sale menos scroll que el original
      y transiciones más largas que antes. */
   #nxr-intro {
-    height: 170vh;
+    /* 170 -> 225vh (V18.42, misma petición que en escritorio: más scroll con
+       la sección a la vista). Mismo criterio — se alarga la pista y no se toca
+       SLOW_K, que en móvil está en 0.3 precisamente para que la entrada y la
+       salida no se aceleren. */
+    height: 225vh;
   }
 
   .nxr-intro-inner {

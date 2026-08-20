@@ -465,6 +465,35 @@ export default function VolumetricCard({
           reflectivity={0.34}
           metalness={0.04}
           envMapIntensity={0.5}
+          // ===== LUZ AZUL PROPIA (V18.42) =====
+          // "Que emitan luz azulada — no que se vean más claras, que emitan
+          // luz que contraste con el fondo más oscuro."
+          //
+          // La diferencia entre las dos cosas está en el COLOR, no en la
+          // cantidad. Un emissive blanco o gris sube las tres componentes por
+          // igual: eso es literalmente "más claro", y encima lava el cristal
+          // hasta dejarlo lechoso. Este azul casi no lleva rojo, así que la
+          // luminancia que añade es baja —la card NO se aclara— pero su canal
+          // azul sube mucho por encima del muro, que es gris azulado muy
+          // oscuro. El ojo lee esa diferencia de color contra un fondo apagado
+          // como una fuente de luz, no como una superficie iluminada.
+          //
+          // El remate lo pone el Bloom en escritorio: el azul se va por encima
+          // de su umbral —el búfer HDR de V18.40 le deja pasar de 1— y suelta
+          // un halo azul alrededor de la card. En móvil no hay composer, así
+          // que allí queda el tinte sin halo, que sigue funcionando porque lo
+          // que contrasta es el color.
+          // ESTE NÚMERO ES MUY SENSIBLE, calibrado a ojo contra capturas. El
+          // emissive se suma UNIFORME sobre toda la cara y el fondo que hay
+          // detrás es casi negro, así que el azul domina enseguida: a 1.15
+          // (primer intento) la card era un bloque azul opaco que tapaba el
+          // mockup entero, y a 0.28 seguía siendo un azul primario más que un
+          // cristal azulado. A 0.12 queda como luz dentro del vidrio —se nota
+          // que emite, contrasta contra el muro oscuro— y el contenido de la
+          // card se sigue leyendo, que es lo que tiene que resaltar. Si se
+          // quiere más o menos azul, ES ESTE el número, y en pasos pequeños.
+          emissive="#1746ff"
+          emissiveIntensity={0.12}
         />
       ) : isGlass ? (
         // ---- Opaque dark glass (mobile fallback — transmission off) ----
@@ -485,6 +514,11 @@ export default function VolumetricCard({
           reflectivity={0.2}
           metalness={0.04}
           envMapIntensity={0.05}
+          // Misma luz azul que la rama de cristal (V18.42), algo más contenida:
+          // esta es la card OPACA del móvil, sin transmisión que reparta el
+          // color por dentro, así que el mismo valor se leería más plano.
+          emissive="#1746ff"
+          emissiveIntensity={0.09}
         />
       ) : (
         <meshPhysicalMaterial

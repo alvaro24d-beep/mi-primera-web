@@ -17,6 +17,9 @@ import { useEffect } from "react";
  * ningún límite cerca y aquí no pasa nada; solo actúa donde el problema existe
  * de verdad, que es al borde entre dos secciones.
  *
+ * Y solo HACIA ADELANTE (V18.45): nunca devuelve el scroll a un límite que ya
+ * has pasado. Ver la guarda en `asentar`.
+ *
  * El deslizamiento se escribe con un bucle rAF propio a través de
  * `lenis.scrollTo(..., immediate)`, y no con las dos vías obvias, porque las dos
  * fallan con Lenis en medio (comprobado en su día para el snap del reel, ver el
@@ -82,6 +85,21 @@ export default function ScrollSnap() {
       // Y por debajo de 3px ya está puesto — sin esta guarda, el propio glide
       // volvería a dispararse al terminar y no pararía nunca.
       if (dist > vh * PROXIMIDAD || dist < 3) return;
+
+      // NUNCA HACIA ATRÁS (V18.45). Buscar el límite más cercano en valor
+      // absoluto significaba que, nada más entrar en una sección, el borde de
+      // arriba seguía siendo el más próximo y el asentamiento tiraba del
+      // scroll de vuelta a él: "la cámara vuelve automáticamente a poner el
+      // título de la sección arriba cuando ya estoy dentro". Deshacer avance
+      // que el usuario acaba de hacer es lo más molesto que puede hacer un
+      // asentamiento — se lee como que la página te lleva la contraria.
+      //
+      // Con esta guarda solo se completa el gesto hacia donde ya ibas: si el
+      // límite más próximo queda por detrás, no se toca nada y el scroll se
+      // queda exactamente donde lo dejaste. Lo que motivó este componente
+      // —no quedarse a medio camino ENTRE dos secciones— se sigue cubriendo,
+      // porque en ese caso el borde de la sección siguiente está por delante.
+      if (destino < y) return;
 
       const desde = y;
       const delta = destino - desde;

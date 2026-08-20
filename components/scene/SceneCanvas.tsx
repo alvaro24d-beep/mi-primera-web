@@ -16,7 +16,6 @@ import PixelCamera, { CAMERA_DISTANCE } from "./PixelCamera";
 import { nearSections, canvasBox } from "@/store/sceneActivity";
 import { useReducedMotion } from "@/hooks/useReducedMotion";
 
-
 // Procedural HDRI: `<Environment>` + `<Lightformer>` only — never the
 // `preset` prop, which downloads an HDRI from drei's CDN at runtime. That
 // was confirmed slow/unreliable enough to hang a page load while building
@@ -233,7 +232,7 @@ export default function SceneCanvas() {
       "nxr-aia-casos",
       "nxr-aia-noche",
       "nxr-aia-pasos",
-      "nxr-precios",
+
       "nxr-seo-resultados",
     ];
     // The hero hosts one mostly-static panel (the CTA button): it needs its

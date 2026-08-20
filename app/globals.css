@@ -7943,10 +7943,30 @@ input[type="range"].nxr-ms-range::-moz-range-thumb {
 }
 /* Ancla de cristal: el mesh del canvas global es el cuerpo; aquí solo un
    scrim mínimo por si el mesh tarda un frame. */
+/* V18.44: mismo acabado que .nxr-paso-card ("Un proceso claro, sin sorpresas")
+   en lugar del cristal volumétrico del canvas. Los valores son los suyos —
+   fondo al 42% y blur 16 con saturate 1.3— y no otros parecidos: el saturate
+   está ahí porque detrás de estas cards el muro es casi negro y uniforme, y
+   desenfocar algo uniforme no cambia nada; lo que da la lectura de cristal es
+   revivir los azules que asoman.
+
+   TRES COSAS QUE NO SE PUEDEN TOCAR SIN ROMPER EL DESENFOQUE, todas aprendidas
+   en las cards de Proceso:
+    · La card no lleva `nxr-reveal` (va en su -inner). El reveal anima opacity
+      y transform, y cualquiera de los dos sobre el elemento que lleva el
+      backdrop-filter lo anula.
+    · El borde es propio y NO `.nxr-glass-edge`: esa clase arrastra una regla
+      del sistema de reveal que pone `backdrop-filter: none` mientras no está
+      revelada, y dejaba las cards sin desenfoque según el scroll.
+    · Ningún ancestro puede tener transform, filter, perspective ni opacity < 1:
+      cualquiera de ellos crea un backdrop root y desde ahí el blur deja de ver
+      el fondo real de la página — que aquí es el canvas WebGL. */
 .nxr-precios-card {
   position: relative;
   border-radius: var(--radius-lg);
-  background: rgba(10, 14, 20, 0.25);
+  background: rgba(14, 17, 25, 0.42);
+  backdrop-filter: blur(16px) saturate(1.3);
+  border: 1px solid rgba(255, 255, 255, 0.1);
 }
 .nxr-precios-card-inner {
   position: relative;

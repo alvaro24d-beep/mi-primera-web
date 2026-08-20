@@ -1,15 +1,13 @@
 "use client";
 
 // Página /precios: las respuestas claras sobre presupuesto, plazos, alcance
-// internacional y forma de pago — en el lenguaje de la casa (cards de
-// cristal volumétrico del canvas global + reveals de RevealInit). Se
-// consultó el catálogo (21st.dev) y sus componentes de pricing son tablas
-// de planes por niveles — no encajan con una página de política de precios;
-// las FAQ-cards de cristal propias mantienen la identidad.
+// internacional y forma de pago — en el lenguaje de la casa (cards con
+// desenfoque de fondo + reveals de RevealInit). Se consultó el catálogo
+// (21st.dev) y sus componentes de pricing son tablas de planes por niveles —
+// no encajan con una página de política de precios; las FAQ-cards propias
+// mantienen la identidad.
 
 import { useRef } from "react";
-import { useGlassPanels } from "@/hooks/useGlassPanels";
-import { useReducedMotion } from "@/hooks/useReducedMotion";
 import { useTitleReveal } from "@/hooks/useTitleReveal";
 
 const FAQS = [
@@ -38,17 +36,19 @@ const FAQS = [
 export default function PreciosFaq() {
   const sectionRef = useRef<HTMLElement>(null);
   const titleRef = useTitleReveal<HTMLHeadingElement>();
-  const reducedMotion = useReducedMotion();
 
   // Título UNIFICADO con la home (V16.41, "los títulos tienen que estar
   // unificados"): mismo reveal por palabras (useTitleReveal), mismo bow
   // dinámico y mismo tilt (el tier wide-block de globals.css) — solo
   // cambian las letras.
 
-  // Cristal volumétrico del canvas global sobre cada card (las anclas DOM
-  // son cáscaras transparentes; "nxr-precios" está en alwaysIds de
-  // SceneCanvas — sin eso los meshes quedarían invisibles para siempre).
-  useGlassPanels(sectionRef, ".nxr-precios-card", "#10141c", [reducedMotion]);
+  // V18.44: estas cards YA NO llevan cristal volumétrico del canvas global.
+  // Pasan al mismo acabado que las de "Un proceso claro, sin sorpresas"
+  // (.nxr-paso-card): fondo semitransparente + backdrop-filter. Con ello se
+  // retira el useGlassPanels y, como la sección se queda sin ningún mesh
+  // registrado, también su id del alwaysIds de SceneCanvas — dejarlo allí
+  // mantendría el frameloop en `always` para dibujar cristal que ya no
+  // existe (mismo caso que nxr-dwh-proceso en V17.99).
 
   return (
     <section id="nxr-precios" ref={sectionRef}>
@@ -62,8 +62,13 @@ export default function PreciosFaq() {
         </p>
         <div className="nxr-precios-grid">
           {FAQS.map((f, i) => (
-            <div key={f.q} className="nxr-precios-card nxr-reveal">
-              <div className="nxr-precios-card-inner">
+            // El `nxr-reveal` va en el CONTENIDO, no en la card. Es el mismo
+            // patrón que .nxr-paso-card y por el mismo motivo: el reveal anima
+            // opacity y transform, y cualquiera de los dos sobre el elemento
+            // que lleva el backdrop-filter le rompe el desenfoque. La card se
+            // queda quieta y lo que entra es lo de dentro.
+            <div key={f.q} className="nxr-precios-card">
+              <div className="nxr-precios-card-inner nxr-reveal">
                 <span className="nxr-precios-num" style={{ color: f.color }}>
                   0{i + 1}
                 </span>

@@ -35,7 +35,18 @@
     "precios": "Precios",
     "hablemos": "Hablemos",
     "menu": "Menú",
-    "abrirMenu": "Abrir menú"
+    "abrirMenu": "Abrir menú",
+    "activos": "activos",
+    "proyectos": "proyectos",
+    "enPlazo": "en plazo",
+    "asideTitulo": "¿Hablamos de tu proyecto?",
+    "asideDesc": "Primera conversación gratuita y respuesta en menos de 24 h.",
+    "asideGo": "Empezar",
+    "asidePreciosTitulo": "Cómo presupuestamos",
+    "asidePreciosDesc": "Propuesta cerrada a medida, de 4 a 8 semanas.",
+    "menuMovil": "Menú móvil",
+    "menuPrincipal": "Menú principal",
+    "laAgencia": "La agencia"
   },
   "servicios": {
     "menu": {

@@ -1303,9 +1303,15 @@ p.nxr-hero-mastery-line {
   }
 
   /* Restringido a la FILA (V16.8): un selector a nivel de #nxr-nav
-     ocultaba también el tile móvil de Nosotros (mismo href). */
-  #nxr-nav-row a[href="/nosotros"],
-  #nxr-nav-row a[href="/precios"] {
+     ocultaba también el tile móvil de Nosotros (mismo href).
+
+     `$=` y no `=` (V18.50): con el sitio en inglés estos enlaces pasan a ser
+     /en/nosotros y /en/precios, así que la coincidencia EXACTA dejaba de
+     aplicar y los dos botones reaparecían en la fila al cambiar de idioma —
+     justo en móvil, que es donde no caben. Con "termina en" el selector vale
+     para los dos idiomas y para cualquiera que se añada después. */
+  #nxr-nav-row a[href$="/nosotros"],
+  #nxr-nav-row a[href$="/precios"] {
     display: none;
   }
 
@@ -1330,13 +1336,17 @@ p.nxr-hero-mastery-line {
     justify-content: space-between;
   }
 
-  #nxr-nav a[href="/"] {
+  /* Por CLASE y no por href (V18.50), por lo mismo que los dos de arriba: en
+     inglés la portada es /en, así que `[href="/"]` dejaba de coincidir y el
+     botón de Inicio perdía su forma de píldora compacta y mostraba su texto,
+     rompiendo la fila. La clase no depende del idioma. */
+  #nxr-nav .nxr-nav-home {
     padding: 11px 20px;
     font-size: 14px;
     flex-shrink: 0;
     justify-content: center;
   }
-  #nxr-nav a[href="/"] span {
+  #nxr-nav .nxr-nav-home span {
     display: none;
   }
 
@@ -9497,16 +9507,23 @@ input[type="range"].nxr-ms-range::-moz-range-thumb {
   font-size: 13px;
 }
 
-/* 3 · Barra inferior flotante, en todas las vistas. Compacto: comparte fila
-   con los enlaces y el CTA, y ahí el espacio es el que manda. */
-.nxr-nav-lang {
-  padding: 6px 8px;
-  font-size: 11px;
+/* 3 (V18.50) · Dentro del DESPLEGABLE de la barra inferior, no en su fila. En
+   móvil esa fila solo tiene sitio para Inicio · Menú · Hablemos y el botón la
+   apretaba; aquí queda a un toque del botón "Menú". Solo en móvil: en
+   escritorio el de la barra superior está siempre a la vista. */
+.nxr-nav-lang-wrap {
+  display: none;
 }
 @media (max-width: 768px) {
-  .nxr-nav-lang {
-    padding: 6px 6px;
-    font-size: 10px;
-    letter-spacing: 0.06em;
+  .nxr-nav-lang-wrap {
+    display: flex;
+    justify-content: center;
+    margin-top: 14px;
+    padding-top: 14px;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+  }
+  .nxr-nav-lang-wrap .nxr-lang {
+    font-size: 13px;
+    padding: 8px 12px;
   }
 }

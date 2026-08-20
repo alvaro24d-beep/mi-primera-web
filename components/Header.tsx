@@ -317,7 +317,7 @@ export default function Header() {
         <div className="nxr-mm-layer nxr-mm-layer-a" />
         <div className="nxr-mm-layer nxr-mm-layer-b" />
         <div className="nxr-mm-panel">
-          <nav className="nxr-mm-links" aria-label="Menú móvil">
+          <nav className="nxr-mm-links" aria-label={t("menuMovil")}>
             {NAV_LINKS.map((l, i) => (
               // The overflow-hidden wrapper is the reveal MASK: the link
               // animates yPercent 130→0 inside it (StaggeredMenu's
@@ -362,7 +362,7 @@ export default function Header() {
         id="nxr-nav"
         ref={navRef}
         role="navigation"
-        aria-label="Menú principal"
+        aria-label={t("menuPrincipal")}
         className={`nxr-glass-edge${navVisible ? " nxr-visible" : ""}`}
         onMouseLeave={() => {
           if (isDesktopRef.current) closeDD();
@@ -436,11 +436,6 @@ export default function Header() {
           </Link>
           {/* aria-label for the same reason as the home link: the text span
               hides in the icon-only mobile pill. */}
-          {/* Idioma en la barra inferior, en TODAS las vistas: es la única
-              pieza de navegación que está siempre en pantalla —el header
-              superior se esconde al scrollear—, así que aquí el conmutador se
-              alcanza desde cualquier punto de cualquier página. */}
-          <LanguageSwitch className="nxr-nav-lang" />
           <Link href="/contacto" className="nxr-nav-cta nxr-glass-edge" aria-label={t("hablemos")}>
             <svg className="nxr-glass-edge-content" viewBox="0 0 24 24">
               <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" />
@@ -477,7 +472,7 @@ export default function Header() {
                 </div>
               </Link>
             ))}
-            <div className="nxr-nav-srv-group nxr-nav-srv-group-sec">La agencia</div>
+            <div className="nxr-nav-srv-group nxr-nav-srv-group-sec">{t("laAgencia")}</div>
             {/* Formato deliberadamente MÁS LIGERO que el de un servicio: icono
                 pequeño y sin pastilla de color, sin descripción y una sola línea.
                 Un servicio es la oferta (tarjeta completa); esto son páginas de
@@ -504,12 +499,10 @@ export default function Header() {
               no números nuevos inventados para rellenar. */}
           <aside className="nxr-nav-aside">
             <Link href="/contacto" className="nxr-nav-aside-cta" onClick={closeDD}>
-              <span className="nxr-nav-aside-title">¿Hablamos de tu proyecto?</span>
-              <span className="nxr-nav-aside-desc">
-                Primera conversación gratuita y respuesta en menos de 24 h.
-              </span>
+              <span className="nxr-nav-aside-title">{t("asideTitulo")}</span>
+              <span className="nxr-nav-aside-desc">{t("asideDesc")}</span>
               <span className="nxr-nav-aside-go">
-                Empezar
+                {t("asideGo")}
                 <svg viewBox="0 0 24 24" aria-hidden="true">
                   <path d="M5 12h14M12 5l7 7-7 7" />
                 </svg>
@@ -517,27 +510,34 @@ export default function Header() {
             </Link>
 
             <Link href="/precios" className="nxr-nav-aside-card" onClick={closeDD}>
-              <span className="nxr-nav-aside-title">Cómo presupuestamos</span>
-              <span className="nxr-nav-aside-desc">
-                Propuesta cerrada a medida, de 4 a 8 semanas.
-              </span>
+              <span className="nxr-nav-aside-title">{t("asidePreciosTitulo")}</span>
+              <span className="nxr-nav-aside-desc">{t("asidePreciosDesc")}</span>
             </Link>
 
             <div className="nxr-nav-aside-stats">
               <div className="nxr-nav-aside-stat">
                 <b style={{ color: "var(--c-lime)" }}>+40</b>
-                <span>proyectos</span>
+                <span>{t("proyectos")}</span>
               </div>
               <div className="nxr-nav-aside-stat">
                 <b style={{ color: "var(--c-salmon)" }}>100%</b>
-                <span>en plazo</span>
+                <span>{t("enPlazo")}</span>
               </div>
               <div className="nxr-nav-aside-stat">
                 <b style={{ color: "var(--c-red)" }}>24/7</b>
-                <span>activos</span>
+                <span>{t("activos")}</span>
               </div>
             </div>
           </aside>
+          {/* Conmutador de idioma DENTRO del desplegable. En móvil la fila de
+              abajo solo tiene sitio para Inicio · Menú · Hablemos, así que el
+              botón vivía ahí a costa de apretar la fila; aquí queda a un toque
+              del botón "Menú", que es lo pedido. El CSS lo muestra solo en
+              móvil: en escritorio el de la barra superior está siempre a la
+              vista y este sobraría. */}
+          <div className="nxr-nav-lang-wrap">
+            <LanguageSwitch onSwitch={closeDD} />
+          </div>
         </div>
       </nav>
     </>

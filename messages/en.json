@@ -35,7 +35,18 @@
     "precios": "Pricing",
     "hablemos": "Let us talk",
     "menu": "Menu",
-    "abrirMenu": "Open menu"
+    "abrirMenu": "Open menu",
+    "activos": "active",
+    "proyectos": "projects",
+    "enPlazo": "on time",
+    "asideTitulo": "Shall we talk about your project?",
+    "asideDesc": "First conversation free, and an answer in under 24 h.",
+    "asideGo": "Get started",
+    "asidePreciosTitulo": "How we quote",
+    "asidePreciosDesc": "A closed, tailor-made proposal in 4 to 8 weeks.",
+    "menuMovil": "Mobile menu",
+    "menuPrincipal": "Main menu",
+    "laAgencia": "The agency"
   },
   "servicios": {
     "menu": {

@@ -4434,6 +4434,138 @@ p.nxr-hero-mastery-line {
   transform: scale(1.1);
 }
 
+/* ===== Iconos animados de los pasos (V18.46) =====
+   Cada animación REPRESENTA lo que hace su paso, que es la regla de la casa
+   para cualquier animación nueva (ver AGENTS.md): la lupa barre buscando, la
+   ruta se traza sola, el código late como quien escribe, el cohete despega y
+   el ciclo gira sin parar. Nada de movimiento decorativo genérico.
+
+   DOS COSAS QUE SOSTIENEN ESTO Y NO SE PUEDEN QUITAR:
+
+   1. Solo animan con `.nxr-paso-active`, la clase que el IntersectionObserver
+      de Proceso.tsx pone y quita según la card esté a la vista. Una animación
+      CSS en bucle sigue costando trabajo de compositor aunque nadie la vea, y
+      aquí son CINCO corriendo a la vez sobre una página que ya lleva el muro
+      de vídeo repintando a ~30fps. Fuera de pantalla se paran solas.
+   2. Se anima el `svg` (o sus trazos), NUNCA el `.nxr-paso-icon`: ese
+      contenedor ya tiene su propio `transform: scale(1.1)` en estado activo, y
+      dos reglas escribiendo transform sobre el mismo elemento se pisan — la
+      última en aplicarse gana y la otra desaparece sin error.
+
+   Los trazos internos llevan `transform-box: fill-box` porque sin él
+   `transform-origin: center` se resuelve contra el viewport del SVG y no
+   contra la propia forma, que es la causa clásica de que un icono rote
+   describiendo una órbita en vez de sobre sí mismo. */
+
+/* 1 · DESCUBRIMIENTO — la lupa barre el área, como quien inspecciona. */
+@keyframes nxr-icono-buscar {
+  0%,
+  100% {
+    transform: translate(-2px, -1px);
+  }
+  35% {
+    transform: translate(2px, 1px);
+  }
+  70% {
+    transform: translate(1px, -2px);
+  }
+}
+.nxr-paso.nxr-paso-active .nxr-paso-icon[data-anim="buscar"] svg {
+  animation: nxr-icono-buscar 3.4s ease-in-out infinite;
+}
+
+/* 2 · ESTRATEGIA — la hoja de ruta se dibuja sola, por fases.
+   El dasharray TIENE que ser >= el largo real del path: por debajo, el patrón
+   se repite y al terminar la animación el final del icono se queda sin pintar.
+   Medido con getTotalLength() sobre el path real: 75,9 unidades, así que 90 va
+   holgado. Si algún día se cambia el dibujo, hay que volver a medirlo. */
+@keyframes nxr-icono-ruta {
+  0% {
+    stroke-dashoffset: 90;
+  }
+  55%,
+  100% {
+    stroke-dashoffset: 0;
+  }
+}
+.nxr-paso.nxr-paso-active .nxr-paso-icon[data-anim="ruta"] svg path {
+  stroke-dasharray: 90;
+  animation: nxr-icono-ruta 4s ease-in-out infinite;
+}
+
+/* 3 · DESARROLLO — los dos chevrons se abren y cierran: el pulso de estar
+   escribiendo código. Van en direcciones opuestas, cada uno hacia su lado. */
+@keyframes nxr-icono-codigo-der {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  50% {
+    transform: translateX(2px);
+  }
+}
+@keyframes nxr-icono-codigo-izq {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  50% {
+    transform: translateX(-2px);
+  }
+}
+.nxr-paso.nxr-paso-active .nxr-paso-icon[data-anim="codigo"] svg polyline {
+  transform-box: fill-box;
+}
+.nxr-paso.nxr-paso-active .nxr-paso-icon[data-anim="codigo"] svg polyline:nth-child(1) {
+  animation: nxr-icono-codigo-der 1.8s ease-in-out infinite;
+}
+.nxr-paso.nxr-paso-active .nxr-paso-icon[data-anim="codigo"] svg polyline:nth-child(2) {
+  animation: nxr-icono-codigo-izq 1.8s ease-in-out infinite;
+}
+
+/* 4 · LANZAMIENTO — el cohete despega en la diagonal a la que apunta y
+   vuelve a la rampa. La pausa larga al final es a propósito: un despegue es
+   un evento, no un vaivén. */
+@keyframes nxr-icono-lanzar {
+  0%,
+  60%,
+  100% {
+    transform: translate(0, 0);
+  }
+  30% {
+    transform: translate(2.5px, -2.5px);
+  }
+}
+.nxr-paso.nxr-paso-active .nxr-paso-icon[data-anim="lanzar"] svg {
+  animation: nxr-icono-lanzar 3.2s ease-in-out infinite;
+}
+
+/* 5 · EVOLUCIÓN — el ciclo gira, continuo y sin fin, que es exactamente lo
+   que dice el paso: no desaparecemos tras el lanzamiento. Lineal y lento
+   para que se lea como algo sostenido y no como un spinner de carga. */
+@keyframes nxr-icono-ciclo {
+  to {
+    transform: rotate(360deg);
+  }
+}
+.nxr-paso.nxr-paso-active .nxr-paso-icon[data-anim="ciclo"] svg {
+  transform-origin: center;
+  animation: nxr-icono-ciclo 9s linear infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .nxr-paso.nxr-paso-active .nxr-paso-icon svg,
+  .nxr-paso.nxr-paso-active .nxr-paso-icon svg path,
+  .nxr-paso.nxr-paso-active .nxr-paso-icon svg polyline {
+    animation: none;
+  }
+  /* El trazo de la ruta se queda COMPLETO, no a medias: sin animación que lo
+     recorra, un dasharray heredado dejaría el icono partido. */
+  .nxr-paso.nxr-paso-active .nxr-paso-icon[data-anim="ruta"] svg path {
+    stroke-dasharray: none;
+  }
+}
+
 .nxr-paso-icon svg {
   width: 18px;
   height: 18px;

@@ -16,6 +16,7 @@ const PASOS = [
       "Entrevistas con los equipos implicados",
       "Informe de oportunidades priorizado",
     ],
+    anim: "buscar",
     icon: (
       <svg viewBox="0 0 24 24">
         <circle cx="11" cy="11" r="7" />
@@ -29,6 +30,7 @@ const PASOS = [
     color: "var(--c-salmon)",
     bg: "rgba(255,157,125,.15)",
     detail: ["Roadmap técnico por fases", "Stack y arquitectura definidos", "Estimación de tiempos y costes"],
+    anim: "ruta",
     icon: (
       <svg viewBox="0 0 24 24">
         <path d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6-10l6-3m0 16l5.447-2.724A1 1 0 0021 19.382V8.618a1 1 0 00-1.447-.894L15 10m0 10V10" />
@@ -41,6 +43,7 @@ const PASOS = [
     color: "var(--c-lime)",
     bg: "rgba(168,240,74,.12)",
     detail: ["Sprints de 1-2 semanas", "Demo funcional en cada entrega", "Canal directo de feedback"],
+    anim: "codigo",
     icon: (
       <svg viewBox="0 0 24 24">
         <polyline points="16 18 22 12 16 6" />
@@ -58,6 +61,7 @@ const PASOS = [
       "Checklist de rendimiento y seguridad",
       "Acompañamiento el día del lanzamiento",
     ],
+    anim: "lanzar",
     icon: (
       <svg viewBox="0 0 24 24">
         <path d="M4.5 16.5c-1.5 1.5-1.5 4.5 0 4.5s4.5-1.5 4.5-3L21 6a3 3 0 00-3-3L6 15c-1.5 0-3 1.5-1.5 1.5" />
@@ -70,6 +74,7 @@ const PASOS = [
     color: "var(--c-lime)",
     bg: "rgba(168,240,74,.12)",
     detail: ["Monitorización continua", "Iteración basada en datos reales", "Soporte y mejoras a largo plazo"],
+    anim: "ciclo",
     icon: (
       <svg viewBox="0 0 24 24">
         <path d="M3 12a9 9 0 109 9" />
@@ -276,7 +281,17 @@ export default function Proceso() {
                     aria-controls={detailId}
                     onClick={() => setExpanded((cur) => (cur === i ? null : i))}
                   >
-                    <div className="nxr-paso-icon" style={{ background: p.bg, color: p.color }}>
+                    {/* `data-anim` elige la animación del icono en globals.css.
+                        Va por NOMBRE y no por índice a propósito: cada
+                        animación representa lo que hace ese paso —la lupa
+                        barre, la ruta se traza, el código late, el cohete
+                        despega, el ciclo gira— así que reordenar los pasos no
+                        debe reasignar los movimientos. */}
+                    <div
+                      className="nxr-paso-icon"
+                      data-anim={p.anim}
+                      style={{ background: p.bg, color: p.color }}
+                    >
                       {p.icon}
                     </div>
                     <div className="nxr-paso-title" id={titleId}>

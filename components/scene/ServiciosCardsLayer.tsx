@@ -6,6 +6,7 @@ import * as THREE from "three";
 import VolumetricCard from "./VolumetricCard";
 import { useServiciosCardsRegistry, type CardStyle } from "@/store/useServiciosCardsRegistry";
 import { nearSections, canvasBox } from "@/store/sceneActivity";
+import { cristalConTransmision } from "@/lib/calidadEscena";
 
 const MAX_CARDS = 5;
 const DEFAULT_STYLE: CardStyle = { color: "#0d1520", material: "glass", curveX: 0.06, curveY: 0 };
@@ -23,7 +24,8 @@ const SRV_BEND = 0.26;
 // SceneCanvas.tsx), so the extra cost on phones is one small pass — the
 // per-card shader cost is trimmed there via a lower `samples` count instead
 // of dropping the effect entirely.
-const SRV_TRANSMISSION = 1;
+// 1 en escritorio, 0 en móvil (V18.57): ver cristalConTransmision.
+const SRV_TRANSMISSION = cristalConTransmision() ? 1 : 0;
 // Servicios.tsx's entrance/tilt math is ported from the CSS/GSAP DOM version,
 // where rotationX/rotationY are degrees (CSS transform convention) — but
 // Object3D.rotation is in radians, so convert at this R3F consumption boundary.

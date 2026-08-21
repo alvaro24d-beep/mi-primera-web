@@ -6,6 +6,7 @@ import * as THREE from "three";
 import VolumetricCard from "./VolumetricCard";
 import { useZoomParallaxCardsRegistry, ZP_MAX_CARDS } from "@/store/useZoomParallaxCardsRegistry";
 import { nearSections, canvasBox } from "@/store/sceneActivity";
+import { cristalConTransmision } from "@/lib/calidadEscena";
 
 const DEG2RAD = Math.PI / 180;
 // Ambient mouse tilt, shared by every card equally — a small "the whole
@@ -63,7 +64,10 @@ const BEHIND_Z = -30;
 // the diffuse path and read as milky grey next to the other cards ("se ven
 // más opacas y grises, tienen que ser como las demás"). Text contrast is
 // carried by the mesh's frosted blur alone, like everywhere else.
-const ZP_TRANSMISSION = 1;
+// 1 en escritorio, 0 en móvil (V18.57): ver la nota de cristalConTransmision.
+// En teléfono la captura de transmisión —un render de escena entero por frame—
+// era la causa principal de la caída de fps de esta sección.
+const ZP_TRANSMISSION = cristalConTransmision() ? 1 : 0;
 
 export default function ZoomParallaxCardsLayer({ isMobile }: { isMobile: boolean }) {
   const { size } = useThree();

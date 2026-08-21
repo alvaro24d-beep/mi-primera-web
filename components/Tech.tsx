@@ -129,11 +129,30 @@ export default function Tech() {
         // caben de sobra) para que la retícula nunca desborde el viewport.
         const cellW = isMobile ? Math.min(maxW + gap, (W - gap) / cols) : maxW + gap;
         const cellH = maxH + gap;
-        const rows = Math.ceil(N / cols);
+
+        // REPARTO POR FILAS. En escritorio, filas iguales de 5. En MÓVIL, filas
+        // ALTERNAS de 3 y 2 (V18.57): con 3 fijas, las 20 herramientas caían en
+        // seis filas de tres y una última coja de dos, y esa fila suelta al
+        // final se leía como un sobrante. Alternando 3-2-3-2… el patrón es
+        // intencionado de arriba abajo, queda centrado y de paso las filas de
+        // dos dan aire lateral en una pantalla estrecha.
+        const filas: number[] = [];
+        for (let quedan = N, i = 0; quedan > 0; i++) {
+          const n = isMobile ? (i % 2 === 0 ? 3 : 2) : cols;
+          filas.push(Math.min(n, quedan));
+          quedan -= n;
+        }
+        const rows = filas.length;
+        // Índice del primer chip de cada fila, para situar cada uno sin tener
+        // que recorrer la lista otra vez.
+        const inicio: number[] = [];
+        filas.reduce((acc, n) => (inicio.push(acc), acc + n), 0);
+
         gridGeo = Array.from({ length: N }, (_, i) => {
-          const r = Math.floor(i / cols);
-          const c = i % cols;
-          const inRow = Math.min(cols, N - r * cols);
+          let r = 0;
+          while (r + 1 < rows && i >= inicio[r + 1]) r++;
+          const c = i - inicio[r];
+          const inRow = filas[r];
           return { x: (c - (inRow - 1) / 2) * cellW, y: (r - (rows - 1) / 2) * cellH };
         });
         // Retardo por chip proporcional a su distancia al centro de la

@@ -67,6 +67,7 @@ export const esMovil = () => typeof window !== "undefined" && window.innerWidth 
 export const RECORRIDO = {
   hero: { movil: 130, escritorio: 360 },
   dwhHero: { movil: 250, escritorio: 380 },
+  aiaHero: { movil: 355, escritorio: 540 },
   aiaPasos: { movil: 220, escritorio: 280 },
   seoHero: { movil: 235, escritorio: 340 },
 } as const;

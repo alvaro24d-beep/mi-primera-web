@@ -6,6 +6,7 @@ import { useGSAP } from "@gsap/react";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { useReducedMotion } from "@/hooks/useReducedMotion";
 import { useGlassPanels } from "@/hooks/useGlassPanels";
+import { recorridoPin } from "@/lib/scrollRitmo";
 import SiriSplash from "./aia/SiriSplash";
 
 gsap.registerPlugin(ScrollTrigger);
@@ -258,31 +259,30 @@ export default function AgentesIaHero() {
           .to(q(".nxr-scrollcue"), { autoAlpha: 1, duration: 0.4 }, 1.75);
       }
 
-      // REPRODUCCIÓN POR TIEMPO, NO POR SCROLL (V18.55, "que se ejecuten
-      // suavemente al llegar a la sección sin tener que hacer scroll").
+      // VUELVE AL SCRUB SOBRE PIN (V18.57, revirtiendo V18.55).
       //
-      // Antes esto era una timeline `scrub` sobre un `pin`: la escena solo
-      // avanzaba mientras el visitante empujaba el scroll, y la sección
-      // retenía 3,5 pantallas de recorrido para poder contarla entera. Ahora
-      // se dispara sola al entrar y se reproduce a su propio ritmo.
+      // Aquel intento la pasó a reproducción por tiempo con `once`, disparada
+      // al entrar en pantalla. Pero ESTA es la primera sección de la página,
+      // así que su disparador se cumple nada más cargar: la escena del agente
+      // se ejecutaba de golpe encima del splash de Siri y el titular no
+      // llegaba a verse. El orden correcto es el de siempre — splash, titular
+      // y, al scrollear, la escena del agente.
       //
-      // `once: true` y no `toggleActions`: es una secuencia con desenlace —el
-      // agente resuelve la gestión— y rebobinarla al salir dejaría la escena a
-      // medias en pantalla. Se reproduce una vez y se queda en su estado
-      // final, que es exactamente lo que debe verse al terminar.
-      //
-      // timeScale 1.35 porque las duraciones estaban escritas para el scrub,
-      // donde el reparto importa más que el reloj: tal cual, la secuencia
-      // completa pasaba de seis segundos y se hacía lenta viéndola sola.
+      // LA LECCIÓN, para no repetirla: automatizar por tiempo solo tiene
+      // sentido en secciones a las que se LLEGA. En la primera de una página
+      // no hay "llegar", ya estás en ella. (La sección de la noche sí se
+      // quedó automática, y por eso allí funciona.)
       const tl = gsap.timeline({
         scrollTrigger: {
           trigger: section,
-          start: "top 60%",
-          once: true,
+          start: "top top",
+          end: recorridoPin("aiaHero"),
+          scrub: 0.6,
+          pin: stage,
+          anticipatePin: 1,
           invalidateOnRefresh: true,
         },
       });
-      tl.timeScale(1.35);
 
       // ===== PHASE A — the title hands the stage to the pipeline =====
       tl.to(head ?? {}, { y: () => -(restTop + hh * S + vh * 0.08), duration: 1.15, ease: "power2.in" }, 0);

@@ -896,7 +896,14 @@ export default function Servicios() {
       // saltar de un flick — por debajo de ahí deja de leerse en un scroll
       // normal. NO se toca PROLOGUE: esa geometría está validada en teléfono
       // físico y bajarla rompió la entrada dos veces (ver su comentario).
-      const HOLD_FRASE = isDesktopUI ? 0.65 : 0.52;
+      // Móvil 0.52 -> 0.42 (V18.57, "que no haya que hacer tanto scroll para
+      // pasar la parte en la que está descubierta"): sobre el prólogo de
+      // 1.35·vh son ~57vh de frase a plena legibilidad en vez de ~70. Se queda
+      // justo en el suelo de lo que hace falta para que un flick no pueda
+      // saltársela entera, que es el motivo por el que no baja más. Lo que se
+      // recorta es tiempo con la frase QUIETA; su fundido de salida no cambia,
+      // porque arranca en esta misma constante y sigue durando lo mismo.
+      const HOLD_FRASE = isDesktopUI ? 0.65 : 0.42;
       const ARC_AMPLITUDE = isDesktopUI ? 130 : 28;
       // Half-angle of the carousel drum: how far a card has turned by the
       // time it reaches the viewport edge. Bigger angle = tighter cylinder

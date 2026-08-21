@@ -15,6 +15,7 @@ import ScrollSnap from "@/components/ScrollSnap";
 import LoadProgress from "@/components/LoadProgress";
 import CursorDrift from "@/components/CursorDrift";
 import GradualBlur from "@/components/GradualBlur";
+import Footer from "@/components/Footer";
 
 const manrope = Manrope({
   variable: "--font-primary",
@@ -167,6 +168,7 @@ export default async function RootLayout({
         <GradualBlur position="bottom" height="2.5rem" strength={1.87} divCount={2} />
         <Header />
         {children}
+        <Footer />
         </NextIntlClientProvider>
       </body>
     </html>

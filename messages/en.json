@@ -339,5 +339,16 @@
     "g3d4": "The changes needed to leave the site exactly as you asked for are part of the project, not extras.",
     "plazoT": "From 2 to 8 weeks",
     "plazoD": "Depending on scope: a well-built landing page ships in a couple of weeks; a project with integrations, an admin panel and several languages runs to eight. The date is agreed before we start, not as we go."
+  },
+  "footer": {
+    "tagline": "Digital systems that automate tasks, attract customers and grow businesses.",
+    "nav": "Footer links",
+    "servicios": "Services",
+    "sitio": "Site",
+    "contacto": "Contact",
+    "ctaTitulo": "Got a project in mind?",
+    "ctaBoton": "Let us talk",
+    "derechos": "All rights reserved.",
+    "hecho": "Designed and built in-house."
   }
 }

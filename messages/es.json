@@ -339,5 +339,16 @@
     "g3d4": "Las modificaciones necesarias para dejar la web exactamente como la pediste van dentro del proyecto, no como extras.",
     "plazoT": "De 2 a 8 semanas",
     "plazoD": "Según el alcance: una landing bien hecha sale en un par de semanas; un proyecto con integraciones, panel de gestión y varios idiomas se va a ocho. La fecha se cierra antes de empezar, no sobre la marcha."
+  },
+  "footer": {
+    "tagline": "Sistemas digitales que automatizan tareas, captan clientes y hacen crecer negocios.",
+    "nav": "Enlaces del pie de página",
+    "servicios": "Servicios",
+    "sitio": "Sitio",
+    "contacto": "Contacto",
+    "ctaTitulo": "¿Tienes un proyecto en mente?",
+    "ctaBoton": "Hablemos",
+    "derechos": "Todos los derechos reservados.",
+    "hecho": "Diseñado y construido en casa."
   }
 }

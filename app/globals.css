@@ -9826,3 +9826,154 @@ input[type="range"].nxr-ms-range::-moz-range-thumb {
     white-space: normal;
   }
 }
+
+/* ===== Pie de página (V18.62) =====
+   Sin cristal ni desenfoque a propósito: es el cierre de la página y su trabajo
+   es asentarla, no competir con el muro de vídeo. Un fondo casi opaco separa el
+   pie del resto y de paso evita una capa más de backdrop-filter que el
+   compositor tendría que rehacer en cada frame del canvas (que repinta ~30
+   veces por segundo en toda la web). */
+.nxr-footer {
+  position: relative;
+  z-index: 2;
+  background: rgba(8, 10, 14, 0.92);
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  padding: 64px var(--pad-x) 0;
+}
+
+.nxr-footer-inner {
+  max-width: var(--max-w);
+  margin: 0 auto;
+}
+
+.nxr-footer-top {
+  display: grid;
+  grid-template-columns: 1.4fr 1.6fr 1fr;
+  gap: 48px;
+  padding-bottom: 44px;
+}
+
+.nxr-footer-logo {
+  font-family: var(--font-rajdhani), system-ui, sans-serif;
+  font-size: 26px;
+  font-weight: 700;
+  color: var(--c-white);
+  letter-spacing: -0.01em;
+}
+.nxr-footer-logo span {
+  color: var(--c-lime);
+}
+
+.nxr-footer-tagline {
+  margin-top: 12px;
+  max-width: 320px;
+  font-size: 14px;
+  line-height: 1.7;
+  color: rgba(255, 255, 255, 0.72);
+}
+
+.nxr-footer-cols {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 32px;
+}
+
+.nxr-footer-col-t {
+  font-family: var(--font-rajdhani), system-ui, sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--c-white);
+  margin-bottom: 14px;
+}
+
+.nxr-footer-col ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.nxr-footer-col a {
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.72);
+  transition: color 0.2s;
+}
+.nxr-footer-col a:hover {
+  color: var(--c-white);
+}
+
+.nxr-footer-cta-t {
+  font-family: var(--font-rajdhani), system-ui, sans-serif;
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--c-white);
+  margin-bottom: 14px;
+  line-height: 1.3;
+}
+
+.nxr-footer-cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  padding: 11px 20px;
+  border-radius: 999px;
+  background: var(--c-red);
+  color: var(--c-white);
+  font-family: var(--font-rajdhani), system-ui, sans-serif;
+  font-size: 15px;
+  font-weight: 600;
+  transition: transform 0.25s cubic-bezier(0.22, 1, 0.36, 1), filter 0.25s;
+}
+.nxr-footer-cta svg {
+  width: 16px;
+  height: 16px;
+  stroke: currentColor;
+  fill: none;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.nxr-footer-cta:hover {
+  transform: translateX(3px);
+  filter: brightness(1.1);
+}
+
+.nxr-footer-bottom {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  padding: 20px 0 28px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.55);
+}
+
+@media (max-width: 900px) {
+  .nxr-footer {
+    padding-top: 48px;
+  }
+  .nxr-footer-top {
+    grid-template-columns: 1fr;
+    gap: 34px;
+    padding-bottom: 32px;
+  }
+  .nxr-footer-tagline {
+    max-width: none;
+  }
+  .nxr-footer-bottom {
+    flex-direction: column;
+    gap: 8px;
+    /* HUECO PARA LA BARRA FLOTANTE. #nxr-nav es position:fixed con z-index 9999
+       y vive a 28px del borde inferior: sin esta reserva se comía la línea de
+       copyright, que es justo lo último de la página y donde el scroll termina.
+       El safe-area cubre además la barra de gestos de los teléfonos sin botón. */
+    padding-bottom: calc(104px + env(safe-area-inset-bottom));
+  }
+  .nxr-footer-hecho {
+    order: -1;
+  }
+}

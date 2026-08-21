@@ -3,7 +3,9 @@ import DesarrolloWebHero from "@/components/DesarrolloWebHero";
 import ProcesoReel from "@/components/ProcesoReel";
 import CapacidadesWeb from "@/components/CapacidadesWeb";
 import DwhClaims from "@/components/DwhClaims";
+import DwhAeo from "@/components/DwhAeo";
 import DwhTechStack from "@/components/DwhTechStack";
+import DwhIncluido from "@/components/DwhIncluido";
 import Contacto from "@/components/Contacto";
 import ClickSpark from "@/components/ClickSpark";
 import { setRequestLocale } from "next-intl/server";
@@ -27,8 +29,10 @@ export default async function DesarrolloWebPage({ params }: { params: Promise<{ 
       <DesarrolloWebHero />
       <ProcesoReel />
       <CapacidadesWeb />
+      <DwhAeo />
       <DwhClaims />
       <DwhTechStack />
+      <DwhIncluido />
       <Contacto />
     </ClickSpark>
   );

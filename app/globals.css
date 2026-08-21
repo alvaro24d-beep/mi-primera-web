@@ -9532,3 +9532,208 @@ input[type="range"].nxr-ms-range::-moz-range-thumb {
     padding: 6px 10px;
   }
 }
+
+/* ===== /desarrollo-web · Visibilidad (SEO + AEO) y Todo incluido (V18.52) =====
+   Dos secciones de LECTURA: sin pin, sin scrub y sin cristal volumétrico. La
+   página ya tiene el hero pineado y la pila sticky de capacidades; una tercera
+   que secuestre el scroll la haría interminable. El acabado de las tarjetas es
+   el de .nxr-paso-card —fondo semitransparente + backdrop-filter y borde
+   propio— y por los mismos motivos: nada de `.nxr-glass-edge` (arrastra un
+   `backdrop-filter: none` mientras no está revelada) y el `nxr-reveal` puede ir
+   en la tarjeta porque aquí NO hay desenfoque que un transform pueda romper…
+   salvo que lo hay, así que va igualmente en la tarjeta pero el desenfoque se
+   declara en un pseudo-elemento. Ver la nota de .nxr-aeo-card abajo. */
+
+#nxr-dwh-aeo,
+#nxr-dwh-incluido {
+  position: relative;
+  padding: var(--section-pad) var(--pad-x);
+  z-index: 1;
+}
+
+.nxr-aeo-inner,
+.nxr-inc-inner {
+  max-width: var(--max-w);
+  margin: 0 auto;
+}
+
+.nxr-aeo-head,
+.nxr-inc-head {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 32px;
+  align-items: end;
+  margin-bottom: 46px;
+}
+
+.nxr-aeo-intro,
+.nxr-inc-intro {
+  color: var(--c-salmon);
+  max-width: 520px;
+  line-height: 1.7;
+}
+
+.nxr-aeo-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px;
+}
+
+/* El desenfoque va en un PSEUDO-ELEMENTO y no en la propia tarjeta: la tarjeta
+   lleva `nxr-reveal`, que anima opacity y transform, y cualquiera de los dos
+   sobre el elemento que declara `backdrop-filter` lo anula (la lección de
+   .nxr-paso-card). Con el ::before el efecto vive en una capa que el reveal no
+   toca, así que se puede tener entrada animada Y cristal a la vez. */
+.nxr-aeo-card,
+.nxr-inc-card {
+  position: relative;
+  border-radius: var(--radius-md);
+  padding: 24px 22px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  overflow: hidden;
+}
+.nxr-aeo-card::before,
+.nxr-inc-card::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: rgba(14, 17, 25, 0.42);
+  backdrop-filter: blur(16px) saturate(1.3);
+}
+
+.nxr-aeo-icon,
+.nxr-inc-icon {
+  width: 38px;
+  height: 38px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  margin-bottom: 14px;
+}
+.nxr-aeo-icon svg,
+.nxr-inc-icon svg {
+  width: 19px;
+  height: 19px;
+  stroke: currentColor;
+  fill: none;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.nxr-aeo-card-title,
+.nxr-inc-card-title {
+  font-family: var(--font-rajdhani), system-ui, sans-serif;
+  font-size: 19px;
+  font-weight: 600;
+  color: var(--c-white);
+  margin-bottom: 8px;
+}
+
+.nxr-aeo-card-desc,
+.nxr-inc-card-desc {
+  font-size: 14px;
+  line-height: 1.65;
+  color: rgba(255, 255, 255, 0.62);
+}
+
+.nxr-aeo-cierre {
+  margin-top: 34px;
+  text-align: center;
+  color: rgba(255, 255, 255, 0.72);
+  font-size: 16px;
+  line-height: 1.7;
+  max-width: 720px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+/* ---- Todo incluido: tres grupos con encabezado ---- */
+.nxr-inc-grupo + .nxr-inc-grupo {
+  margin-top: 40px;
+}
+
+.nxr-inc-grupo-label {
+  font-family: var(--font-rajdhani), system-ui, sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.45);
+  margin-bottom: 16px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.nxr-inc-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px;
+}
+.nxr-inc-card {
+  display: flex;
+  gap: 16px;
+  align-items: flex-start;
+}
+.nxr-inc-card .nxr-inc-icon {
+  margin-bottom: 0;
+}
+
+/* El plazo, en su propia franja: es un dato que se busca activamente y no debe
+   quedar enterrado entre las tarjetas. */
+.nxr-inc-plazo {
+  margin-top: 44px;
+  padding: 30px 28px;
+  border-radius: var(--radius-lg);
+  border: 1px solid rgba(168, 240, 74, 0.28);
+  background: rgba(168, 240, 74, 0.06);
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 28px;
+  align-items: center;
+}
+.nxr-inc-plazo-t {
+  font-family: var(--font-rajdhani), system-ui, sans-serif;
+  font-size: clamp(26px, 3vw, 38px);
+  font-weight: 600;
+  line-height: 1.1;
+  color: var(--c-lime);
+  white-space: nowrap;
+}
+.nxr-inc-plazo-d {
+  font-size: 15px;
+  line-height: 1.7;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+@media (max-width: 900px) {
+  .nxr-aeo-head,
+  .nxr-inc-head {
+    grid-template-columns: 1fr;
+    gap: 18px;
+    align-items: start;
+    margin-bottom: 34px;
+  }
+  .nxr-aeo-grid,
+  .nxr-inc-grid {
+    grid-template-columns: 1fr;
+    gap: 14px;
+  }
+  .nxr-aeo-card,
+  .nxr-inc-card {
+    padding: 20px 18px;
+  }
+  .nxr-inc-plazo {
+    grid-template-columns: 1fr;
+    gap: 12px;
+    padding: 24px 20px;
+  }
+  /* En una columna el titular del plazo ya no compite por el ancho, así que
+     puede partir si hace falta en lugar de desbordar. */
+  .nxr-inc-plazo-t {
+    white-space: normal;
+  }
+}

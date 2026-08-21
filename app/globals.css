@@ -5155,7 +5155,8 @@ p.nxr-hero-mastery-line {
   justify-content: center;
   font-size: 12px;
   font-weight: 700;
-  color: rgba(255, 255, 255, 0.3);
+  /* V18.61: Indicador de paso: sube, pero NO a blanco — compite con el paso activo. */
+  color: rgba(255, 255, 255, 0.75);
   flex-shrink: 0;
   transition: background 0.35s, color 0.35s;
   position: relative;
@@ -5310,7 +5311,8 @@ p.nxr-hero-mastery-line {
   border-radius: 12px;
   border: 1px solid rgba(255, 255, 255, 0.12);
   background: rgba(255, 255, 255, 0.04);
-  color: rgba(255, 255, 255, 0.6);
+  /* V18.61: Las opciones son texto que hay que LEER para elegir, no una etiqueta de apoyo. */
+  color: var(--c-white);
   font-size: 14px;
   font-weight: 500;
   font-family: var(--font);
@@ -5361,9 +5363,13 @@ p.nxr-hero-mastery-line {
   transition: border-color 0.2s, background 0.2s;
 }
 
+/* V18.61: 0.2 -> 0.55. Estaba tan bajo que las pistas del formulario (que
+   dicen QUE hay que escribir en cada campo) practicamente no se leian. No sube
+   a blanco a proposito: un placeholder con el mismo color que el texto escrito
+   se confunde con un campo ya relleno, y la gente se salta el campo. */
 .nxr-ms-input::placeholder,
 .nxr-ms-textarea::placeholder {
-  color: rgba(255, 255, 255, 0.2);
+  color: rgba(255, 255, 255, 0.55);
 }
 
 .nxr-ms-input:focus,
@@ -5381,7 +5387,8 @@ p.nxr-hero-mastery-line {
   display: flex;
   justify-content: space-between;
   font-size: 11px;
-  color: rgba(255, 255, 255, 0.25);
+  /* V18.61: Son las cifras del presupuesto: si no se leen, el paso no se puede completar. */
+  color: var(--c-white);
   margin-top: 10px;
   padding: 0 2px;
 }
@@ -5480,7 +5487,8 @@ input[type="range"].nxr-ms-range::-moz-range-thumb {
   border-radius: 100px;
   background: rgba(255, 255, 255, 0.04);
   backdrop-filter: blur(6px);
-  color: rgba(255, 255, 255, 0.5);
+  /* V18.61: Volver es una accion, no un detalle: al 50% se leia como desactivada. */
+  color: var(--c-white);
   font-size: 14px;
   font-weight: 500;
   font-family: var(--font);
@@ -5599,7 +5607,8 @@ input[type="range"].nxr-ms-range::-moz-range-thumb {
   font-weight: 600;
   letter-spacing: 0.06em;
   text-transform: uppercase;
-  color: rgba(255, 255, 255, 0.3);
+  /* V18.61: En el resumen final hay que poder repasar QUE campo es cada valor. */
+  color: var(--c-white);
   min-width: 90px;
   padding-top: 1px;
 }

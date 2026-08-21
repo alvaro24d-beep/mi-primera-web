@@ -6,7 +6,7 @@ import * as THREE from "three";
 import VolumetricCard from "./VolumetricCard";
 import { useZoomParallaxCardsRegistry, ZP_MAX_CARDS } from "@/store/useZoomParallaxCardsRegistry";
 import { nearSections, canvasBox } from "@/store/sceneActivity";
-import { cristalConTransmision } from "@/lib/calidadEscena";
+import { muestrasTransmision } from "@/lib/calidadEscena";
 
 const DEG2RAD = Math.PI / 180;
 // Ambient mouse tilt, shared by every card equally — a small "the whole
@@ -64,10 +64,11 @@ const BEHIND_Z = -30;
 // the diffuse path and read as milky grey next to the other cards ("se ven
 // más opacas y grises, tienen que ser como las demás"). Text contrast is
 // carried by the mesh's frosted blur alone, like everywhere else.
-// 1 en escritorio, 0 en móvil (V18.57): ver la nota de cristalConTransmision.
-// En teléfono la captura de transmisión —un render de escena entero por frame—
-// era la causa principal de la caída de fps de esta sección.
-const ZP_TRANSMISSION = cristalConTransmision() ? 1 : 0;
+// SIEMPRE 1, también en móvil (V18.58 lo puso a 0 allí y las tarjetas salían
+// NEGRAS: sin transmisión, VolumetricCard cae a su material opaco, que era un
+// fallback pobre y no un acabado). El ahorro en teléfono se hace bajando la
+// RESOLUCIÓN de la captura, no quitándola — ver lib/calidadEscena.ts.
+const ZP_TRANSMISSION = 1;
 
 export default function ZoomParallaxCardsLayer({ isMobile }: { isMobile: boolean }) {
   const { size } = useThree();
@@ -339,8 +340,8 @@ export default function ZoomParallaxCardsLayer({ isMobile }: { isMobile: boolean
               curveX={style.curveX}
               curveY={style.curveY}
               transmission={ZP_TRANSMISSION}
-              // Perf pass: 2 (was 6, then 4/3) — see ServiciosCardsLayer.
-              samples={2}
+              // 2 en escritorio, 1 en móvil: es coste POR TARJETA y aquí hay siete.
+              samples={muestrasTransmision()}
               color={style.color}
               material="glass"
             />

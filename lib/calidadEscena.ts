@@ -7,30 +7,45 @@
  */
 export const MOVIL_GPU_MAX = 768;
 
+export const esMovilGPU = () => typeof window !== "undefined" && window.innerWidth <= MOVIL_GPU_MAX;
+
 /**
- * ¿Puede este dispositivo permitirse el cristal con TRANSMISIÓN REAL?
+ * RESOLUCIÓN DE LA CAPTURA DE TRANSMISIÓN — la palanca de rendimiento más
+ * importante de la escena, y la que hay que mover antes que cualquier otra.
  *
- * Esta es la decisión de rendimiento más cara de toda la escena, y conviene
- * entender por qué antes de tocarla. `MeshTransmissionMaterial` necesita saber
- * qué hay DETRÁS de la superficie, y para eso three.js renderiza la escena
- * entera a una textura aparte. Todas las tarjetas comparten esa captura
- * (`transmissionSampler` + `transmissionResolutionScale` 0.35), así que el
- * coste no crece con el número de tarjetas — pero es un RENDER COMPLETO DE
- * ESCENA ADICIONAL POR FRAME en cuanto haya una sola tarjeta visible con
- * transmisión > 0.
+ * `MeshTransmissionMaterial` necesita saber qué hay DETRÁS del cristal, y para
+ * eso three.js renderiza la escena entera a una textura aparte. Todas las
+ * tarjetas comparten esa captura (`transmissionSampler`), así que su coste no
+ * crece con el número de tarjetas — pero se paga en cuanto haya UNA sola
+ * visible, y se paga por frame. En un teléfono eso cae encima de un shader de
+ * vídeo que ya está llenando la pantalla, y de ahí la caída de fps al entrar
+ * en cualquier sección con cristal.
  *
- * En escritorio se paga sin problema. En un teléfono se paga sobre una escena
- * que ya está llenando la pantalla con el shader del muro de vídeo, y el
- * resultado es la caída de fps que se nota al entrar en cualquier sección con
- * cristal — ZoomParallax la peor, con sus siete tarjetas escalando a la vez.
+ * V18.58 probó lo obvio —apagar la transmisión en móvil— y fue un error: sin
+ * ella las tarjetas caen al material opaco de VolumetricCard, que es casi
+ * negro. Ese material era un fallback pobre, nunca un acabado. Así que el
+ * cristal se queda y lo que baja es la RESOLUCIÓN de la captura:
  *
- * Con transmisión 0 las tarjetas caen al material opaco de VolumetricCard: se
- * ven como cristal oscuro en vez de refractar el fondo, y a cambio la captura
- * NO SE HACE. No es una rebaja de calidad progresiva, es quitar un render
- * entero por frame.
+ *     escritorio 0.35  →  ~12% de los píxeles de pantalla
+ *     móvil      0.12  →  ~1,4%  (unas 8 veces más barata que 0.35)
  *
- * Se lee en el render de las capas (nunca por frame) y siempre dentro del
- * canvas, que se monta con ssr:false — de ahí que pueda tocar `window`.
+ * Se puede bajar tanto porque la captura de transmisión ya se usa BORROSA a
+ * propósito: es lo que da el aspecto escarchado sin pedirle todo el trabajo a
+ * la `roughness` (ver VolumetricCard). En una pantalla de teléfono, donde las
+ * tarjetas son pequeñas, esa pérdida de detalle no se distingue; lo que sí se
+ * distingue es que el fondo siga viéndose a través del cristal en vez de un
+ * bloque negro.
+ *
+ * NO bajar de ~0.10: por debajo, la captura ampliada deja de parecerse a lo
+ * que hay detrás y el cristal se lee como un panel gris sucio (eso fue lo que
+ * pasó en escritorio con 0.2, y por eso subió a 0.35).
  */
-export const cristalConTransmision = () =>
-  typeof window !== "undefined" && window.innerWidth > MOVIL_GPU_MAX;
+export const escalaCapturaTransmision = () => (esMovilGPU() ? 0.12 : 0.35);
+
+/**
+ * Muestras de refracción por tarjeta. Es un coste POR TARJETA y por frame, a
+ * diferencia de la captura: bajarlo a 1 en móvil quita trabajo justo donde hay
+ * siete tarjetas a la vez (ZoomParallax). Con la captura ya muy borrosa, la
+ * diferencia entre 1 y 2 muestras allí no se aprecia.
+ */
+export const muestrasTransmision = () => (esMovilGPU() ? 1 : 2);

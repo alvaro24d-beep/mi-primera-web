@@ -6,6 +6,7 @@ import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import { Environment, Lightformer } from "@react-three/drei";
 import { EffectComposer, Bloom, Vignette } from "@react-three/postprocessing";
 import { HalfFloatType } from "three";
+import { escalaCapturaTransmision } from "@/lib/calidadEscena";
 import SceneBackground from "./SceneBackground";
 import GearPoints from "./GearPoints";
 
@@ -330,7 +331,12 @@ export default function SceneCanvas() {
           // read as a murky grey pane rather than "I can see through this".
           // 0.35 keeps the image legible through the cards (clearly
           // transparent) while still costing only ~12% of full-res pixels.
-          gl.transmissionResolutionScale = 0.35;
+          // Por dispositivo (V18.58): 0.35 en escritorio y 0.12 en móvil, que es
+          // ~8 veces más barata. La captura se usa BORROSA a propósito, así que
+          // en una pantalla de teléfono esa pérdida de detalle no se aprecia —
+          // y sí se aprecia que el fondo siga viéndose a través del cristal.
+          // Ver lib/calidadEscena.ts.
+          gl.transmissionResolutionScale = escalaCapturaTransmision();
         }}
       >
         <PixelCamera />

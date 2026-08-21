@@ -6,7 +6,7 @@ import * as THREE from "three";
 import VolumetricCard from "./VolumetricCard";
 import { useGlassPanelsRegistry, type GlassPanel } from "@/store/useGlassPanelsRegistry";
 import { nearSections, canvasBox } from "@/store/sceneActivity";
-import { cristalConTransmision } from "@/lib/calidadEscena";
+import { muestrasTransmision } from "@/lib/calidadEscena";
 
 // Renders one flat fluid-glass mesh docked to a registered DOM anchor (see
 // hooks/useGlassPanels.ts). Geometry is built ONCE from the panel's
@@ -99,9 +99,9 @@ function PanelSlot({ panel }: { panel: GlassPanel }) {
         // refraction to read at the rims (a perfectly flat face shows none).
         curveX={0.05}
         curveY={0.05}
-        transmission={cristalConTransmision() ? 1 : 0}
+        transmission={1}
         // Perf pass: 2 (was 6, then 4/3) — see ServiciosCardsLayer.
-        samples={2}
+        samples={muestrasTransmision()}
         color={panel.style.color}
         material="glass"
       />

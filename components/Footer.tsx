@@ -86,7 +86,6 @@ export default async function Footer() {
           <span>
             © {anio} arcfine. {t("derechos")}
           </span>
-          <span className="nxr-footer-hecho">{t("hecho")}</span>
         </div>
       </div>
     </footer>

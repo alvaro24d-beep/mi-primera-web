@@ -9914,31 +9914,33 @@ input[type="range"].nxr-ms-range::-moz-range-thumb {
   line-height: 1.3;
 }
 
+/* Solo texto y flecha, sin pastilla de color: el mismo tratamiento que los
+   CTA de Servicios y del hero, donde ya se decidió que el botón no llevara ni
+   fondo ni bordes. Al quitar el relleno rojo la flecha se queda como único
+   indicio de accion, asi que es ella la que se desplaza en el hover. */
 .nxr-footer-cta {
   display: inline-flex;
   align-items: center;
   gap: 9px;
-  padding: 11px 20px;
-  border-radius: 999px;
-  background: var(--c-red);
   color: var(--c-white);
   font-family: var(--font-rajdhani), system-ui, sans-serif;
-  font-size: 15px;
+  font-size: 16px;
   font-weight: 600;
-  transition: transform 0.25s cubic-bezier(0.22, 1, 0.36, 1), filter 0.25s;
+  letter-spacing: 0.01em;
 }
 .nxr-footer-cta svg {
-  width: 16px;
-  height: 16px;
+  width: 17px;
+  height: 17px;
   stroke: currentColor;
   fill: none;
   stroke-width: 2;
   stroke-linecap: round;
   stroke-linejoin: round;
+  color: var(--c-lime);
+  transition: transform 0.25s cubic-bezier(0.22, 1, 0.36, 1);
 }
-.nxr-footer-cta:hover {
-  transform: translateX(3px);
-  filter: brightness(1.1);
+.nxr-footer-cta:hover svg {
+  transform: translateX(4px);
 }
 
 .nxr-footer-bottom {
@@ -9972,8 +9974,5 @@ input[type="range"].nxr-ms-range::-moz-range-thumb {
        copyright, que es justo lo último de la página y donde el scroll termina.
        El safe-area cubre además la barra de gestos de los teléfonos sin botón. */
     padding-bottom: calc(104px + env(safe-area-inset-bottom));
-  }
-  .nxr-footer-hecho {
-    order: -1;
   }
 }

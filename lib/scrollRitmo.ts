@@ -70,6 +70,13 @@ export const RECORRIDO = {
   aiaHero: { movil: 355, escritorio: 540 },
   aiaPasos: { movil: 220, escritorio: 280 },
   seoHero: { movil: 235, escritorio: 340 },
+  // /automatizaciones (V18.64). Nace con la tabla ya aligerada, así que sus
+  // dos números son los definitivos y no una versión anterior recortada. La
+  // coreografía es prima hermana de la de /seo —titular que sale, panel que
+  // entra tumbado, la escena que se monta por fases y un sello al final— pero
+  // tiene un tramo más (el flujo se construye nodo a nodo ANTES de echar a
+  // andar), de ahí las ~20 unidades extra sobre seoHero.
+  autoHero: { movil: 255, escritorio: 360 },
 } as const;
 
 /**

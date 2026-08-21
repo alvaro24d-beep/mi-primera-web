@@ -10,7 +10,7 @@ import { SITE_URL } from "@/lib/site";
  * no existen. Un sitemap que promete URLs que devuelven 404 le cuesta
  * credibilidad al dominio, así que aquí solo va lo que está construido.
  */
-const RUTAS = ["", "/desarrollo-web", "/agentes-ia", "/seo", "/precios", "/contacto"];
+const RUTAS = ["", "/desarrollo-web", "/agentes-ia", "/automatizaciones", "/seo", "/precios", "/contacto"];
 
 /**
  * Un sitemap con las dos versiones de cada página y sus `alternates`, que es

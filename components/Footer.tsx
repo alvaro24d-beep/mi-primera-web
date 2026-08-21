@@ -10,17 +10,17 @@ import { Link } from "@/i18n/navigation";
  * resuelve al construir, que es exactamente lo que se quiere: se actualiza en
  * cada despliegue y no obliga a la página a renderizarse a demanda.
  *
- * SOLO SE ENLAZA LO QUE EXISTE. De los cinco servicios, únicamente tres tienen
- * página construida (/desarrollo-web, /agentes-ia y /seo); automatizaciones y
- * apps-software devuelven 404 hoy. El menú de la cabecera sí los enlaza —es un
- * problema conocido, anterior a esto— pero aquí no se repite: un pie lleno de
- * enlaces rotos es de las cosas que más rápido restan credibilidad, y encima
- * los rastreadores lo siguen entero en todas las páginas. Cuando esas dos
- * páginas existan, se añaden a SERVICIOS de abajo.
+ * SOLO SE ENLAZA LO QUE EXISTE. De los cinco servicios hay cuatro con página
+ * construida; /apps-software todavía devuelve 404 y por eso no aparece. El
+ * menú de la cabecera sí lo enlaza —es un problema conocido, anterior a esto—
+ * pero aquí no se repite: un pie lleno de enlaces rotos es de las cosas que
+ * más rápido restan credibilidad, y encima los rastreadores lo siguen entero
+ * desde todas las páginas. Cuando esa página exista, se añade a SERVICIOS.
  */
 const SERVICIOS = [
   { href: "/desarrollo-web", clave: "web" },
   { href: "/agentes-ia", clave: "ia" },
+  { href: "/automatizaciones", clave: "auto" },
   { href: "/seo", clave: "seo" },
 ] as const;
 

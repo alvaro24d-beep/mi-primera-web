@@ -5793,9 +5793,10 @@ input[type="range"].nxr-ms-range::-moz-range-thumb {
 /* ===== Typewriter por carácter — COMPARTIDO POR TRES COMPONENTES =====
    OJO AL NOMBRE: el prefijo `zp-` es histórico (nació en ZoomParallax) pero
    estas clases las usan también el TITULAR DEL HERO de la home (Hero.tsx, sus
-   frases "Construido con maestría." / "Entregado con precisión.") y el hero de
-   /seo (SeoHero.tsx). Los dos crean sus spans con `className = "nxr-zp-tw"` y
-   conmutan `nxr-zp-tw-on` por carácter.
+   frases "Construido con maestría." / "Entregado con precisión."), el hero de
+   /seo (SeoHero.tsx) y el de /automatizaciones (auto/AutoHero.tsx, el nombre
+   del flujo en la barra del editor). Los tres crean sus spans con
+   `className = "nxr-zp-tw"` y conmutan `nxr-zp-tw-on` por carácter.
 
    Borrarlas rompe esos dos heros de una forma que no salta a la vista en
    ZoomParallax: sin el `visibility: hidden` sus caracteres se ven TODOS desde
@@ -9974,5 +9975,831 @@ input[type="range"].nxr-ms-range::-moz-range-thumb {
        copyright, que es justo lo último de la página y donde el scroll termina.
        El safe-area cubre además la barra de gestos de los teléfonos sin botón. */
     padding-bottom: calc(104px + env(safe-area-inset-bottom));
+  }
+}
+
+/* ===================================================================
+   /automatizaciones (V18.64)
+   ===================================================================
+   Cinco secciones: el hero pineado con el editor de flujos que se monta y se
+   pone a ejecutar, y cuatro de LECTURA sin pin ni scrub (antes/después, casos,
+   herramientas y pasos). El reparto es el de /desarrollo-web y por el mismo
+   motivo: aquí una sola sección secuestra el scroll; si lo hicieran tres, la
+   página sería interminable.
+
+   Ninguna tarjeta usa cristal volumétrico. Van todas con .nxr-card —la
+   superficie única del sitio— porque un MeshTransmissionMaterial visible
+   obliga a la escena a capturar todo lo que hay detrás una vez por frame, y
+   aquí no hay nada en movimiento que lo justifique (misma decisión que DwhAeo
+   y las cards de Proceso). */
+
+/* ---------- Hero: el editor de flujos ---------- */
+
+#nxr-auto-hero {
+  position: relative;
+}
+
+.nxr-auto-stage {
+  position: relative;
+  height: 100lvh;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.nxr-auto-head {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  gap: 20px;
+  padding: 0 var(--pad-x);
+  /* Reserva el mismo hueco que el CTA + el indicador de deslizar de la home
+     (135px medidos) para que el titular caiga EXACTAMENTE a la misma altura al
+     pasar de una página a otra. Misma razón y mismo número que en /seo; si
+     cambia allí, cambia aquí. */
+  padding-bottom: 135px;
+  pointer-events: none;
+}
+
+/* Mismos valores que .nxr-hero-h1 de la home y que .nxr-seo-h1. */
+.nxr-auto-h1 {
+  font-size: clamp(34px, 6vw, 82px);
+  line-height: 1.05;
+  letter-spacing: 0.01em;
+  text-transform: uppercase;
+  color: var(--c-white);
+  max-width: 800px;
+}
+
+.nxr-auto-sub {
+  font-size: clamp(14px, 1.6vw, 18px);
+  font-weight: 400;
+  color: var(--c-salmon);
+  max-width: 500px;
+  line-height: 1.6;
+}
+
+/* Contenedor con perspectiva: el editor entra tumbado (rotateX 22deg) y se
+   asienta casi plano. Oculto por CSS hasta que el efecto de GSAP fija su
+   estado inicial (suelo anti-flash en navegaciones de cliente). */
+.nxr-auto-wrap {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  perspective: 1200px;
+  visibility: hidden;
+  padding: 0 var(--pad-x);
+}
+
+.nxr-auto-float {
+  width: min(940px, 94vw);
+}
+
+/* FONDO OPACO, NO CRISTAL, y es deliberado: este panel vive dentro de
+   .nxr-auto-float, al que GSAP le anima el transform. Cualquier ancestro
+   transformado es el BACKDROP ROOT de sus descendientes, así que un
+   backdrop-filter aquí quedaría declarado sin desenfocar nada (la lección de
+   .nxr-card-solido). Además un editor de nodos se lee mejor sobre superficie
+   plana: lo que tiene que destacar son las líneas y los nodos. */
+.nxr-auto-panel {
+  position: relative;
+  border-radius: var(--radius-lg);
+  background: rgba(9, 12, 19, 0.82);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: var(--glass-shine);
+  padding: 0 0 4px;
+}
+
+.nxr-auto-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 11px 16px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.nxr-auto-file {
+  font-family: var(--font-space-mono), ui-monospace, monospace;
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.62);
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+.nxr-auto-live {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-family: var(--font-rajdhani), system-ui, sans-serif;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  color: var(--c-lime);
+  white-space: nowrap;
+  /* Apagado hasta que la línea de tiempo lo enciende: el indicador de ACTIVO
+     no puede estar encendido mientras el flujo aún se está montando. */
+  opacity: 0.25;
+}
+.nxr-auto-live i {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+  box-shadow: 0 0 8px currentColor;
+}
+
+/* Rejilla de puntos: la textura que hace que se lea como un lienzo de editor
+   y no como una tarjeta cualquiera. */
+.nxr-auto-canvas {
+  position: relative;
+  padding: 18px 64px;
+  background-image: radial-gradient(circle, rgba(255, 255, 255, 0.075) 1px, transparent 1px);
+  background-size: 22px 22px;
+}
+
+/* El PLANO es el sistema de coordenadas: el SVG lo cubre entero y los nodos se
+   posicionan en % del mismo cuadro, así que las líneas siempre llegan al
+   centro de cada nodo. El acolchado del lienzo de arriba es lo que le deja
+   sitio a los nodos de los extremos para asomar sin salirse del panel. */
+.nxr-auto-plane {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 400 / 230;
+}
+
+.nxr-auto-svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+.nxr-auto-conn {
+  fill: none;
+  stroke: rgba(255, 255, 255, 0.26);
+  stroke-width: 1.4;
+  stroke-linecap: round;
+  vector-effect: non-scaling-stroke;
+}
+
+.nxr-auto-pulse {
+  fill: var(--c-salmon);
+  filter: drop-shadow(0 0 5px rgba(255, 157, 125, 0.85));
+}
+.nxr-auto-pulse.-lime {
+  fill: var(--c-lime);
+  filter: drop-shadow(0 0 5px rgba(168, 240, 74, 0.85));
+}
+
+.nxr-auto-node {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 9px 12px;
+  border-radius: 11px;
+  background: rgba(20, 25, 36, 0.95);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  white-space: nowrap;
+}
+
+/* Los dos nodos que marcan el relato: por dónde ENTRA el trabajo y dónde se
+   DECIDE. El resto son salidas y van neutros a propósito, para que el ojo siga
+   el recorrido en vez de repartirse entre seis acentos. */
+.nxr-auto-node.-trigger {
+  border-color: rgba(168, 240, 74, 0.45);
+  box-shadow: 0 0 22px rgba(168, 240, 74, 0.14);
+}
+.nxr-auto-node.-ia {
+  border-color: rgba(255, 157, 125, 0.45);
+  box-shadow: 0 0 22px rgba(255, 157, 125, 0.14);
+}
+
+.nxr-auto-node-ico {
+  display: flex;
+  flex-shrink: 0;
+  color: rgba(255, 255, 255, 0.75);
+}
+.nxr-auto-node.-trigger .nxr-auto-node-ico {
+  color: var(--c-lime);
+}
+.nxr-auto-node.-ia .nxr-auto-node-ico {
+  color: var(--c-salmon);
+}
+.nxr-auto-node-ico svg {
+  width: 18px;
+  height: 18px;
+  stroke: currentColor;
+  fill: none;
+  stroke-width: 1.7;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.nxr-auto-node-txt {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  line-height: 1.2;
+}
+.nxr-auto-node-txt b {
+  font-family: var(--font-rajdhani), system-ui, sans-serif;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--c-white);
+}
+.nxr-auto-node-txt small {
+  font-family: var(--font-space-mono), ui-monospace, monospace;
+  font-size: 10px;
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.nxr-auto-stats {
+  display: flex;
+  align-items: center;
+  gap: 30px;
+  padding: 13px 18px 14px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.nxr-auto-stat {
+  display: flex;
+  align-items: baseline;
+  gap: 7px;
+  font-family: var(--font-space-mono), ui-monospace, monospace;
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.55);
+}
+.nxr-auto-stat b {
+  font-family: var(--font-rajdhani), system-ui, sans-serif;
+  font-size: 20px;
+  font-weight: 600;
+  color: var(--c-white);
+}
+.nxr-auto-stat.-ok b {
+  color: var(--c-lime);
+}
+
+/* El sello: lo último que entra y lo que queda en pantalla al soltar el pin. */
+.nxr-auto-stamp {
+  position: absolute;
+  top: -16px;
+  right: 14px;
+  z-index: 3;
+  transform: rotate(-8deg);
+  padding: 7px 14px;
+  border-radius: 8px;
+  background: var(--c-lime);
+  color: #0a0d14;
+  font-family: var(--font-rajdhani), system-ui, sans-serif;
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  box-shadow: 0 8px 26px rgba(168, 240, 74, 0.3);
+  /* Oculto hasta que la línea de tiempo lo trae; la variante estática lo
+     reactiva más abajo. */
+  opacity: 0;
+}
+
+/* Variante SIN movimiento: el estado final de la historia, sin pin. */
+.nxr-auto-static {
+  padding: 120px var(--pad-x) 80px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 48px;
+}
+.nxr-auto-static .nxr-auto-head {
+  position: static;
+  padding: 0;
+  gap: 18px;
+}
+.nxr-auto-wrap.is-static {
+  position: static;
+  visibility: visible;
+  perspective: none;
+  padding: 0;
+  width: min(940px, 94vw);
+}
+.nxr-auto-wrap.is-static .nxr-auto-stamp,
+.nxr-auto-wrap.is-static .nxr-auto-live {
+  opacity: 1;
+}
+
+/* ---------- Secciones de lectura: tronco común ---------- */
+
+#nxr-auto-ahorro,
+#nxr-auto-casos,
+#nxr-auto-conecta,
+#nxr-auto-pasos {
+  position: relative;
+  padding: var(--section-pad) var(--pad-x);
+  z-index: 1;
+}
+/* La cinta de herramientas sangra hasta el borde: su desvanecido lateral es
+   parte del efecto. */
+#nxr-auto-conecta {
+  padding-left: 0;
+  padding-right: 0;
+  overflow: hidden;
+}
+
+.nxr-auto-ah-inner,
+.nxr-auto-cs-inner,
+.nxr-auto-ps-inner {
+  max-width: var(--max-w);
+  margin: 0 auto;
+}
+
+.nxr-auto-ah-head,
+.nxr-auto-cs-head,
+.nxr-auto-ps-head,
+.nxr-auto-tool-head {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 32px;
+  align-items: end;
+  margin-bottom: 46px;
+}
+
+.nxr-auto-ah-intro,
+.nxr-auto-cs-intro,
+.nxr-auto-ps-intro,
+.nxr-auto-tool-intro {
+  color: var(--c-salmon);
+  max-width: 520px;
+  line-height: 1.7;
+}
+
+/* ---------- Antes / después ---------- */
+
+.nxr-auto-ah-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 18px;
+  align-items: start;
+}
+
+.nxr-auto-ah-col {
+  padding: 26px 24px;
+}
+
+.nxr-auto-ah-col-t {
+  font-family: var(--font-rajdhani), system-ui, sans-serif;
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  margin-bottom: 18px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+}
+.nxr-auto-ah-col.-antes .nxr-auto-ah-col-t {
+  color: rgba(255, 255, 255, 0.62);
+}
+.nxr-auto-ah-col.-despues .nxr-auto-ah-col-t {
+  color: var(--c-lime);
+}
+
+.nxr-auto-ah-col ul {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+}
+.nxr-auto-ah-col li {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  /* Alto MÍNIMO igual en las dos columnas: es lo que hace que cada tarea se lea
+     en horizontal contra su versión automatizada. Si las filas se ajustaran a
+     su texto, las dos listas dejarían de casar fila a fila. */
+  min-height: 62px;
+  padding: 8px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+}
+.nxr-auto-ah-col li:last-child {
+  border-bottom: 0;
+}
+
+.nxr-auto-ah-tarea {
+  flex: 1;
+  font-size: 14px;
+  line-height: 1.5;
+  font-family: var(--font-space-mono), ui-monospace, monospace;
+}
+.nxr-auto-ah-col.-antes .nxr-auto-ah-tarea {
+  color: rgba(255, 255, 255, 0.62);
+}
+.nxr-auto-ah-col.-despues .nxr-auto-ah-tarea {
+  color: rgba(255, 255, 255, 0.88);
+}
+
+.nxr-auto-ah-coste {
+  flex-shrink: 0;
+  font-family: var(--font-rajdhani), system-ui, sans-serif;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--c-red);
+  white-space: nowrap;
+}
+
+.nxr-auto-ah-check {
+  flex-shrink: 0;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(168, 240, 74, 0.14);
+  color: var(--c-lime);
+}
+.nxr-auto-ah-check svg {
+  width: 13px;
+  height: 13px;
+  stroke: currentColor;
+  fill: none;
+  stroke-width: 2.4;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.nxr-auto-ah-total {
+  margin-top: 22px;
+  padding: 28px 30px;
+  display: flex;
+  align-items: center;
+  gap: 26px;
+}
+.nxr-auto-ah-num {
+  font-family: var(--font-rajdhani), system-ui, sans-serif;
+  font-size: clamp(44px, 6vw, 72px);
+  font-weight: 700;
+  line-height: 1;
+  color: var(--c-lime);
+  /* Ancho reservado: el contador sube de 0 a 14 y sin esto la frase se
+     desplazaría lateralmente durante toda la cuenta. */
+  min-width: 2ch;
+  text-align: right;
+}
+.nxr-auto-ah-total-d {
+  font-size: 15px;
+  line-height: 1.65;
+  color: rgba(255, 255, 255, 0.85);
+  max-width: 620px;
+}
+
+/* ---------- Casos por área ---------- */
+
+.nxr-auto-cs-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 18px;
+}
+
+.nxr-auto-cs-card {
+  padding: 24px 22px;
+  display: flex;
+  flex-direction: column;
+}
+
+.nxr-auto-cs-ico {
+  width: 38px;
+  height: 38px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  margin-bottom: 14px;
+}
+.nxr-auto-cs-ico svg {
+  width: 19px;
+  height: 19px;
+  stroke: currentColor;
+  fill: none;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.nxr-auto-cs-t {
+  font-family: var(--font-rajdhani), system-ui, sans-serif;
+  font-size: 19px;
+  font-weight: 600;
+  color: var(--c-white);
+  margin-bottom: 8px;
+}
+.nxr-auto-cs-d {
+  font-size: 14px;
+  line-height: 1.65;
+  color: rgba(255, 255, 255, 0.78);
+  margin-bottom: 16px;
+}
+
+/* El ejemplo concreto va en mono y con su propia caja: es la traducción
+   literal del párrafo a un flujo, y se lee como un fragmento de editor. */
+.nxr-auto-cs-ej {
+  margin-top: auto;
+  font-family: var(--font-space-mono), ui-monospace, monospace;
+  font-size: 11.5px;
+  line-height: 1.5;
+  color: rgba(255, 255, 255, 0.6);
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 8px;
+  padding: 9px 11px;
+}
+
+/* ---------- Herramientas (LogoLoop) ---------- */
+
+.nxr-auto-tool-head {
+  max-width: var(--max-w);
+  margin: 0 auto 40px;
+  padding: 0 var(--pad-x);
+}
+
+/* Ocultas hasta que useGSAP fija su estado inicial (mismo suelo anti-flash que
+   las filas de DwhTechStack). */
+.nxr-auto-tool-row {
+  visibility: hidden;
+  margin-bottom: 20px;
+}
+.nxr-auto-tool-row:last-of-type {
+  margin-bottom: 0;
+}
+
+/* LogoLoop trae su propio CSS con colores de desvanecido que siguen el
+   esquema del sistema operativo; aquí se fija al fondo real del sitio. */
+.nxr-auto-tool-row .logoloop {
+  --logoloop-fadeColor: #050810;
+}
+
+.nxr-auto-tool-pill {
+  display: inline-block;
+  background: var(--glass-bg);
+  backdrop-filter: var(--glass-blur);
+  border-radius: var(--radius-md);
+  transition: background 0.25s, transform 0.25s;
+}
+.logoloop--scale-hover .nxr-auto-tool-pill:hover {
+  background: rgba(255, 255, 255, 0.09);
+}
+.nxr-auto-tool-inner {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 22px;
+  white-space: nowrap;
+}
+.nxr-auto-tool-ico {
+  display: flex;
+  flex-shrink: 0;
+  color: rgba(255, 255, 255, 0.8);
+}
+.nxr-auto-tool-ico svg {
+  width: 22px;
+  height: 22px;
+  stroke: currentColor;
+  fill: none;
+  stroke-width: 1.7;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.nxr-auto-tool-name {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--c-white);
+}
+
+.nxr-auto-tool-cierre {
+  max-width: 720px;
+  margin: 34px auto 0;
+  padding: 0 var(--pad-x);
+  text-align: center;
+  color: var(--c-white);
+  font-size: 16px;
+  line-height: 1.7;
+}
+
+/* ---------- Cómo se monta ---------- */
+
+.nxr-auto-ps-grid {
+  list-style: none;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 18px;
+}
+
+.nxr-auto-ps-card {
+  padding: 26px 22px;
+}
+
+.nxr-auto-ps-num {
+  display: block;
+  font-family: var(--font-rajdhani), system-ui, sans-serif;
+  font-size: 30px;
+  font-weight: 700;
+  line-height: 1;
+  color: var(--c-lime);
+  margin-bottom: 14px;
+}
+.nxr-auto-ps-t {
+  font-family: var(--font-rajdhani), system-ui, sans-serif;
+  font-size: 19px;
+  font-weight: 600;
+  color: var(--c-white);
+  margin-bottom: 8px;
+}
+.nxr-auto-ps-d {
+  font-size: 14px;
+  line-height: 1.65;
+  color: rgba(255, 255, 255, 0.78);
+}
+
+.nxr-auto-ps-cierre {
+  margin: 34px auto 0;
+  max-width: 760px;
+  text-align: center;
+  color: var(--c-white);
+  font-size: 16px;
+  line-height: 1.7;
+}
+
+/* ---------- Pantallas cortas: el editor no puede pasarse de alto ---------- */
+@media (min-width: 901px) and (max-height: 820px) {
+  .nxr-auto-float {
+    width: min(760px, 92vw);
+  }
+  .nxr-auto-canvas {
+    padding: 12px 54px;
+  }
+}
+
+/* ---------- Móvil / tablet ---------- */
+@media (max-width: 900px) {
+  .nxr-auto-stage {
+    height: calc(var(--auto-vh, 100lvh) - 120px);
+  }
+  .nxr-auto-h1 {
+    font-size: clamp(36px, 10.5vw, 54px);
+  }
+  .nxr-auto-wrap {
+    /* Despeja el nav flotante inferior (~63px + borde). */
+    padding-bottom: 90px;
+  }
+  .nxr-auto-float {
+    width: min(560px, 94vw);
+  }
+
+  .nxr-auto-canvas {
+    padding: 12px 30px;
+    background-size: 16px 16px;
+  }
+  /* El lienzo se hace MÁS ALTO en móvil (400/230 → 400/320) y no es estética:
+     es la única holgura que había. Los tres nodos de salida se reparten el
+     alto del plano, y a 366px de ancho —un teléfono de 390— con la proporción
+     de escritorio se quedaban pegados uno a otro sin un píxel entre medias.
+     Estirar el plano los separa ~23px sin tocar ni el viewBox ni una sola
+     coordenada. El precio es que, con preserveAspectRatio="none", los pulsos
+     dejan de ser círculos perfectos y se estiran un 30% en vertical: a 3px de
+     radio no se aprecia, y es más barato que mantener dos geometrías. */
+  .nxr-auto-plane {
+    aspect-ratio: 400 / 320;
+  }
+  /* Los nodos pasan a columna: a esta escala los seis no caben en fila con el
+     icono al lado del texto (los centros quedan a ~78px y una etiqueta
+     horizontal mide más que eso). Apilados miden lo que mide su etiqueta, y el
+     subtítulo se retira porque a este cuerpo ya no aporta. */
+  .nxr-auto-node {
+    flex-direction: column;
+    gap: 4px;
+    padding: 7px 6px;
+    border-radius: 9px;
+    max-width: 66px;
+    white-space: normal;
+    text-align: center;
+  }
+  .nxr-auto-node-ico svg {
+    width: 15px;
+    height: 15px;
+  }
+  .nxr-auto-node-txt {
+    align-items: center;
+  }
+  .nxr-auto-node-txt b {
+    font-size: 9px;
+    line-height: 1.15;
+  }
+  .nxr-auto-node-txt small {
+    display: none;
+  }
+
+  .nxr-auto-bar {
+    padding: 9px 12px;
+  }
+  .nxr-auto-file {
+    font-size: 10.5px;
+  }
+  .nxr-auto-live {
+    font-size: 10px;
+    letter-spacing: 0.1em;
+  }
+  .nxr-auto-stats {
+    gap: 14px;
+    justify-content: space-between;
+    padding: 11px 12px 12px;
+  }
+  .nxr-auto-stat {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 2px;
+    font-size: 9.5px;
+  }
+  .nxr-auto-stat b {
+    font-size: 17px;
+  }
+  .nxr-auto-stamp {
+    top: -12px;
+    right: 8px;
+    font-size: 12px;
+    padding: 6px 11px;
+  }
+
+  .nxr-auto-ah-head,
+  .nxr-auto-cs-head,
+  .nxr-auto-ps-head,
+  .nxr-auto-tool-head {
+    grid-template-columns: 1fr;
+    gap: 18px;
+    align-items: start;
+    margin-bottom: 34px;
+  }
+  .nxr-auto-ah-grid,
+  .nxr-auto-cs-grid,
+  .nxr-auto-ps-grid {
+    grid-template-columns: 1fr;
+    gap: 14px;
+  }
+  /* En una columna las filas ya no tienen que casar con nada enfrente, así que
+     el alto mínimo sobra y solo dejaría huecos. */
+  .nxr-auto-ah-col li {
+    min-height: 0;
+  }
+  .nxr-auto-ah-col,
+  .nxr-auto-cs-card,
+  .nxr-auto-ps-card {
+    padding: 20px 18px;
+  }
+  .nxr-auto-ah-total {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 22px 20px;
+  }
+  .nxr-auto-ah-num {
+    text-align: left;
+  }
+}
+
+@media (max-width: 768px) {
+  .nxr-auto-tool-inner {
+    padding: 11px 16px;
+    gap: 9px;
+  }
+  .nxr-auto-tool-ico svg {
+    width: 18px;
+    height: 18px;
+  }
+  .nxr-auto-tool-name {
+    font-size: 13.5px;
+  }
+}
+
+/* Teléfonos estrechos (320-380px). Aquí el que aprieta ya no es el alto sino
+   el ANCHO: cuatro columnas de nodos en 240px de plano dejan 60px por columna,
+   menos de lo que mide un nodo. Se recorta el acolchado lateral del lienzo y
+   el nodo, que vuelven a dejar ~14px entre cajas. Medido a 320px. */
+@media (max-width: 380px) {
+  .nxr-auto-canvas {
+    padding: 10px 20px;
+  }
+  .nxr-auto-node {
+    max-width: 54px;
+    padding: 6px 4px;
+  }
+  .nxr-auto-node-txt b {
+    font-size: 8.5px;
   }
 }

@@ -9633,17 +9633,21 @@ input[type="range"].nxr-ms-range::-moz-range-thumb {
   margin-bottom: 8px;
 }
 
+/* 0.62 -> 0.78 (V18.53): sobre el muro oscuro y con 14px, el gris anterior
+   pedía esfuerzo para leerse. */
 .nxr-aeo-card-desc,
 .nxr-inc-card-desc {
   font-size: 14px;
   line-height: 1.65;
-  color: rgba(255, 255, 255, 0.62);
+  color: rgba(255, 255, 255, 0.78);
 }
 
+/* La frase de cierre resume la sección entera: va en BLANCO pleno, no en un
+   gris, porque es la conclusión y no un pie de página. */
 .nxr-aeo-cierre {
   margin-top: 34px;
   text-align: center;
-  color: rgba(255, 255, 255, 0.72);
+  color: var(--c-white);
   font-size: 16px;
   line-height: 1.7;
   max-width: 720px;
@@ -9656,16 +9660,21 @@ input[type="range"].nxr-ms-range::-moz-range-thumb {
   margin-top: 40px;
 }
 
+/* En BLANCO (V18.53). A 13px, en versales y con tracking abierto, un gris al
+   45% se perdía contra el fondo — y estos rótulos son justamente lo que
+   separa los tres grupos: si no se leen, las once tarjetas vuelven a parecer
+   una lista plana. La jerarquía frente a los títulos de tarjeta la marcan el
+   tamaño y las versales, no el color. */
 .nxr-inc-grupo-label {
   font-family: var(--font-rajdhani), system-ui, sans-serif;
   font-size: 13px;
   font-weight: 600;
   letter-spacing: 0.16em;
   text-transform: uppercase;
-  color: rgba(255, 255, 255, 0.45);
+  color: var(--c-white);
   margin-bottom: 16px;
   padding-bottom: 12px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.14);
 }
 
 .nxr-inc-grid {
@@ -9685,15 +9694,32 @@ input[type="range"].nxr-ms-range::-moz-range-thumb {
 /* El plazo, en su propia franja: es un dato que se busca activamente y no debe
    quedar enterrado entre las tarjetas. */
 .nxr-inc-plazo {
+  position: relative;
+  overflow: hidden;
   margin-top: 44px;
   padding: 30px 28px;
   border-radius: var(--radius-lg);
   border: 1px solid rgba(168, 240, 74, 0.28);
+  /* Solo el TINTE verde, que identifica la franja. El cuerpo oscuro y el
+     desenfoque van en el ::before de abajo. */
   background: rgba(168, 240, 74, 0.06);
   display: grid;
   grid-template-columns: auto 1fr;
   gap: 28px;
   align-items: center;
+}
+/* Mismo cristal que las tarjetas (V18.53). Va en el pseudo-elemento por lo
+   mismo que allí: la franja lleva `nxr-reveal`, que anima opacity y transform,
+   y cualquiera de los dos sobre el elemento que declara backdrop-filter lo
+   anula. Con z-index -1 queda DEBAJO del tinte verde del propio elemento, así
+   que el orden que se ve es desenfoque → cuerpo oscuro → verde. */
+.nxr-inc-plazo::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: rgba(14, 17, 25, 0.42);
+  backdrop-filter: blur(16px) saturate(1.3);
 }
 .nxr-inc-plazo-t {
   font-family: var(--font-rajdhani), system-ui, sans-serif;
@@ -9706,7 +9732,7 @@ input[type="range"].nxr-ms-range::-moz-range-thumb {
 .nxr-inc-plazo-d {
   font-size: 15px;
   line-height: 1.7;
-  color: rgba(255, 255, 255, 0.7);
+  color: rgba(255, 255, 255, 0.85);
 }
 
 @media (max-width: 900px) {

@@ -74,7 +74,7 @@ export default function AgentesIaPasos() {
   const pathRef = useRef<SVGPathElement>(null);
   const glowRef = useRef<SVGPathElement>(null);
   const reducedMotion = useReducedMotion();
-
+
 
   useGSAP(
     () => {
@@ -87,6 +87,14 @@ export default function AgentesIaPasos() {
 
       const q = gsap.utils.selector(stage);
       const cards = q(".nxr-aia-paso") as HTMLElement[];
+      // Se anima el INNER y no la card: la card lleva .nxr-card y esa clase
+      // exige no animarse (opacity/scale la convertirían en backdrop root y su
+      // desenfoque dejaria de ver el fondo real — ver la nota de .nxr-card en
+      // globals.css). La card se queda quieta y sirve de caja de cristal; lo
+      // que entra es su contenido.
+      const inners = cards
+        .map((c) => c.querySelector<HTMLElement>(".nxr-aia-paso-inner"))
+        .filter(Boolean) as HTMLElement[];
       if (cards.length < 3) return;
       const mobile = window.innerWidth < 768;
 
@@ -185,12 +193,17 @@ export default function AgentesIaPasos() {
       const onRefreshInit = () => buildPath();
       ScrollTrigger.addEventListener("refreshInit", onRefreshInit);
 
+      // El estado inicial del movimiento va en el INNER; minis y líneas viven
+      // dentro de él y se buscan desde la card, que sigue siendo su contenedor.
+      inners.forEach((el) => gsap.set(el, { opacity: 0.35, scale: 0.94, y: 10 }));
       cards.forEach((c) => {
-        gsap.set(c, { opacity: 0.35, scale: 0.94, y: 10 });
         gsap.set(minisOf(c), { opacity: 0, y: 12, scale: 0.85 });
         gsap.set(linesOf(c), { scaleX: 0, transformOrigin: "left center" });
       });
-      gsap.set(cards, { visibility: "visible" });
+      // visibility a pelo y NO por GSAP: al tocar la card, GSAP le escribe un
+      // `transform: translate(0px, 0px)` de cortesía, y un transform aunque sea
+      // la identidad ya la convierte en backdrop root y le apaga el cristal.
+      cards.forEach((c) => (c.style.visibility = "visible"));
 
       const DRAW = 2.6;
       const START = 0.15;
@@ -210,6 +223,13 @@ export default function AgentesIaPasos() {
               end: recorridoPin("aiaPasos"),
               scrub: 0.6,
               pin: stage,
+              // pinType "fixed" y no el "transform" que ScrollTrigger elige
+              // por su cuenta: con transform el stage se convierte en BACKDROP
+              // ROOT y ninguna card de dentro puede tener cristal real — su
+              // backdrop-filter deja de ver el fondo de la página. Lenis mueve
+              // el scroll NATIVO del documento, así que "fixed" es válido aquí
+              // y no hay ningún contenedor con scroll propio que lo impida.
+              pinType: "fixed",
               anticipatePin: 1,
               invalidateOnRefresh: true,
             },
@@ -260,7 +280,7 @@ export default function AgentesIaPasos() {
 
         <div className="nxr-aia-ps-cards">
           {PASOS.map((p, i) => (
-            <div key={p.num} className="nxr-aia-paso">
+            <div key={p.num} className="nxr-aia-paso nxr-card nxr-card-lg nxr-card-solido">
               <span className="nxr-aia-paso-inner">
                 <span className="nxr-aia-paso-num" style={{ color: p.color }}>
                   {p.num}

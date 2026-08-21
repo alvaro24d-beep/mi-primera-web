@@ -16,11 +16,20 @@ import { recorridoPin } from "@/lib/scrollRitmo";
 const HeroScene = dynamic(() => import("./dwh/HeroScene"), { ssr: false });
 import { FACETS } from "./dwh/facets";
 import { useReducedMotion } from "@/hooks/useReducedMotion";
+import { useAutoScroll } from "@/hooks/useAutoScroll";
 
 export default function DesarrolloWebHero() {
   const sectionRef = useRef<HTMLElement>(null);
   const stageRef = useRef<HTMLDivElement>(null);
   const reducedMotion = useReducedMotion();
+
+  // El scroll de esta sección se hace SOLO a partir del 14% del recorrido, que
+  // es justo después de que el titular haya salido: el visitante empuja lo
+  // justo para pasar el h1 y de ahí en adelante el navegador se construye sin
+  // que tenga que seguir empujando. No se toca el pin ni el scrub, así que
+  // volver atrás y rebobinar funciona igual que antes. Cualquier gesto suyo lo
+  // cancela y ya no vuelve. Ver hooks/useAutoScroll.ts.
+  useAutoScroll(sectionRef, { desde: 0.14, hasta: 0.96, velocidad: 460 });
 
   // Mouse-driven 3D tilt of the iPhone rig (separate from the scroll
   // timeline): with the scene's strong perspective, even ±6° reads deep.

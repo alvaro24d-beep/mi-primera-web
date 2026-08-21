@@ -67,7 +67,7 @@ export default function PreciosFaq() {
             // opacity y transform, y cualquiera de los dos sobre el elemento
             // que lleva el backdrop-filter le rompe el desenfoque. La card se
             // queda quieta y lo que entra es lo de dentro.
-            <div key={f.q} className="nxr-precios-card">
+            <div key={f.q} className="nxr-precios-card nxr-card nxr-card-lg">
               <div className="nxr-precios-card-inner nxr-reveal">
                 <span className="nxr-precios-num" style={{ color: f.color }}>
                   0{i + 1}

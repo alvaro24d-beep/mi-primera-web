@@ -92,8 +92,8 @@ export default function DwhAeo() {
         </div>
 
         <div className="nxr-aeo-grid">
-          {BLOQUES.map((b, i) => (
-            <div className={`nxr-aeo-card nxr-reveal nxr-reveal-delay-${i + 1}`} key={b.k}>
+          {BLOQUES.map((b) => (
+            <div className="nxr-aeo-card nxr-card" key={b.k}>
               <div className="nxr-aeo-icon" style={{ background: b.bg, color: b.color }}>
                 {b.icon}
               </div>

@@ -109,7 +109,7 @@ export default function ProcesoReel() {
 
       <div className="nxr-dwh-step-grid">
         {STEPS.map((s) => (
-          <div key={s.n} className="nxr-dwh-step-card" data-step={s.n}>
+          <div key={s.n} className="nxr-dwh-step-card nxr-card" data-step={s.n}>
             <span className="nxr-dwh-step-inner">
               <span className="nxr-dwh-step-num">{s.n}</span>
               <span className="nxr-dwh-step-title">{s.title}</span>

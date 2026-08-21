@@ -112,7 +112,7 @@ function CapCard({ c, i }: { c: (typeof CAPACIDADES)[number]; i: number }) {
     // desde su borde superior (transform-origin en el CSS) para que al
     // encogerse deje ver la que llega por debajo.
     <div className="nxr-dwh-cap-sticky" style={{ ["--i" as string]: i }}>
-      <div className="nxr-dwh-cap-card">
+      <div className="nxr-dwh-cap-card nxr-card nxr-card-lg nxr-card-solido">
         <span className="nxr-dwh-cap-inner">
           <div className="nxr-dwh-cap-icon" style={{ background: c.bg, color: c.color }}>
             {c.icon}

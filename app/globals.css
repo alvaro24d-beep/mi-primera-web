@@ -4375,21 +4375,13 @@ p.nxr-hero-mastery-line {
    transparencia deja ver el fondo, el saturate revive los azules del muro que
    asoman, y así el cristal se lee como cristal. Es el mismo tratamiento que
    `.nxr-tech-card` (blur + saturate 1.25) usa desde hace versiones. */
+/* Fondo, desenfoque, borde y radio: .nxr-card en el markup. Esta fue la
+   primera card que resolvió el problema del backdrop root y de ella salió la
+   regla que hoy documenta .nxr-card: la card NO se anima —ni transform, ni
+   opacity, ni filter— y la entrada la hace su contenido. */
 .nxr-paso-card {
-  border-radius: var(--radius-md);
   padding: 24px 20px;
   width: 100%;
-  background: rgba(14, 17, 25, 0.42);
-  backdrop-filter: blur(16px) saturate(1.3);
-  /* Borde propio en vez de `.nxr-glass-edge`: aquella clase arrastra una regla
-     del sistema de reveal que pone `backdrop-filter: none` a todo
-     `.nxr-glass-edge` que no esté revelado todavía. Un acoplamiento invisible
-     que dejaba estas cards sin desenfoque según el estado del scroll. Una línea
-     de borde no lo necesita. */
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  /* La card NO se anima: ni transform, ni opacity, ni filter. Nada que pueda
-     interferir con su propio desenfoque. La entrada la hace su contenido (ver
-     abajo), que es lo único que se mueve. */
   cursor: pointer;
   font: inherit;
   color: inherit;
@@ -6545,20 +6537,11 @@ input[type="range"].nxr-ms-range::-moz-range-thumb {
    mucho más barato que la malla retirada aun así: el blur cubre solo el área de
    las cinco cards y solo mientras están en pantalla, mientras que la captura de
    transmisión era de la escena entera, cada frame. */
+/* Acabado: .nxr-card en el markup. */
 .nxr-dwh-step-card {
   flex: 1 1 300px;
   max-width: 360px;
   padding: 30px 28px;
-  /* Mismos valores que .nxr-paso-card en la home (ver la nota de V18.05 allí):
-     el desenfoque solo se aprecia si el fondo se transparenta lo bastante y se
-     le sube la saturación, porque el muro que hay detrás es casi negro. */
-  background: rgba(14, 17, 25, 0.42);
-  backdrop-filter: blur(16px) saturate(1.3);
-  /* Borde propio, no `.nxr-glass-edge`: esa clase arrastra una regla del
-     sistema de reveal que apaga el backdrop-filter mientras el elemento no
-     esté revelado. Ver la nota en .nxr-paso-card. */
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: var(--radius-lg);
 }
 
 
@@ -6674,15 +6657,8 @@ input[type="range"].nxr-ms-range::-moz-range-thumb {
   min-height: 232px;
   box-sizing: border-box;
   padding: 34px;
-  /* Mismo acabado que las demás cards de la web (ver .nxr-paso-card): fondo
-     semitransparente + desenfoque del fondo + borde propio. Nada de
-     `.nxr-glass-edge` aquí — esa clase arrastra una regla del sistema de
-     reveal que apaga el backdrop-filter mientras el elemento no esté
-     revelado. */
-  background: rgba(14, 17, 25, 0.42);
-  backdrop-filter: blur(16px) saturate(1.3);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: var(--radius-lg);
+  /* Acabado: .nxr-card + .nxr-card-solido en el markup (esta es una de las dos
+     tarjetas donde el cristal es imposible — ver la nota de .nxr-card-solido). */
   /* Encoge desde el BORDE SUPERIOR: así, al reducirse, descubre por abajo a la
      card que llega, que es lo que hace legible la pila. */
   transform-origin: top center;
@@ -7432,19 +7408,7 @@ input[type="range"].nxr-ms-range::-moz-range-thumb {
    toca. */
 .nxr-aia-caso {
   position: relative;
-  overflow: hidden;
   padding: 30px;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: var(--radius-lg);
-  will-change: transform, opacity;
-}
-.nxr-aia-caso::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  z-index: -1;
-  background: rgba(14, 17, 25, 0.42);
-  backdrop-filter: blur(16px) saturate(1.3);
 }
 
 .nxr-aia-caso-inner {
@@ -7740,19 +7704,7 @@ input[type="range"].nxr-ms-range::-moz-range-thumb {
 /* Anchor of a volumetric glass mesh — scrim only. */
 .nxr-aia-paso {
   position: relative;
-  overflow: hidden;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: var(--radius-lg);
   visibility: hidden;
-  will-change: transform, opacity;
-}
-.nxr-aia-paso::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  z-index: -1;
-  background: rgba(14, 17, 25, 0.42);
-  backdrop-filter: blur(16px) saturate(1.3);
 }
 
 .nxr-aia-paso-inner {
@@ -8123,12 +8075,10 @@ input[type="range"].nxr-ms-range::-moz-range-thumb {
     · Ningún ancestro puede tener transform, filter, perspective ni opacity < 1:
       cualquiera de ellos crea un backdrop root y desde ahí el blur deja de ver
       el fondo real de la página — que aquí es el canvas WebGL. */
+/* El acabado (fondo, desenfoque, borde y radio) lo pone .nxr-card en el
+   markup — ver su bloque en este archivo. Aquí solo queda lo propio. */
 .nxr-precios-card {
   position: relative;
-  border-radius: var(--radius-lg);
-  background: rgba(14, 17, 25, 0.42);
-  backdrop-filter: blur(16px) saturate(1.3);
-  border: 1px solid rgba(255, 255, 255, 0.1);
 }
 .nxr-precios-card-inner {
   position: relative;
@@ -9439,6 +9389,85 @@ input[type="range"].nxr-ms-range::-moz-range-thumb {
   }
 }
 
+
+/* ===================================================================
+   .nxr-card — LA SUPERFICIE DE TARJETA DEL SITIO, EN UN SOLO SITIO
+   ===================================================================
+   Todas las tarjetas de la web usan esta clase y ninguna vuelve a declarar
+   fondo, desenfoque ni borde por su cuenta. Lo específico de cada sección
+   (padding, rejilla, tipografía interna) sigue en su propia clase; el ACABADO
+   vive aquí y solo aquí.
+
+   LA REGLA QUE HACE QUE FUNCIONE SIEMPRE, y la única que hay que respetar al
+   usarla:
+
+       EL ELEMENTO QUE LLEVA .nxr-card NO SE ANIMA.
+
+   Ni transform, ni opacity, ni filter. Nada. La animación de entrada va en un
+   hijo (normalmente un -inner con .nxr-reveal). El motivo es que cualquiera de
+   esas tres propiedades convierte al elemento en BACKDROP ROOT, y desde ese
+   momento su backdrop-filter deja de ver el fondo real de la página —el canvas
+   WebGL— y solo desenfoca lo que haya pintado dentro de sí mismo, que es
+   transparente: el cristal desaparece sin que nada falle ni avise.
+
+   Y NO, MOVER EL BLUR A UN ::before NO LO ARREGLA (se intentó en V18.52-55 y
+   es la razón de que las tarjetas de /agentes-ia se vieran sin desenfoque): el
+   pseudo-elemento es DESCENDIENTE de la tarjeta, así que si la tarjeta está
+   animada sigue siendo su backdrop root. El problema no es dónde se declara el
+   filtro, es quién tiene el transform.
+
+   Tampoco se usa ".nxr-glass-edge" para el borde: esa clase arrastra una regla
+   del sistema de reveal que pone "backdrop-filter: none" mientras el elemento
+   no está revelado, y dejaba tarjetas sin cristal según el estado del scroll.
+   Una línea de borde no lo necesita.
+
+   Los valores (42% de fondo, blur 16, saturate 1.3) están calibrados contra
+   ESTE fondo: detrás de las tarjetas el muro es casi negro y uniforme, y
+   desenfocar algo uniforme no cambia nada — lo que da la lectura de cristal es
+   el saturate reviviendo los azules que asoman. */
+.nxr-card {
+  background: rgba(14, 17, 25, 0.42);
+  backdrop-filter: blur(16px) saturate(1.3);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: var(--radius-md);
+}
+
+/* Variante de radio grande, para las tarjetas anchas. */
+.nxr-card-lg {
+  border-radius: var(--radius-lg);
+}
+
+/* VARIANTE SÓLIDA — para las tarjetas donde el cristal es IMPOSIBLE, no
+   opcional. Son las que viven dentro de un contenedor transformado y no pueden
+   dejar de estarlo porque ese transform ES su animación:
+
+     · .nxr-aia-paso   — dentro del stage pineado de "listo en 3 pasos", que
+                          ScrollTrigger transforma para sostener el pin.
+     · .nxr-dwh-cap-card — GSAP la ESCALA: la pila encoge para descubrir por
+                          debajo a la card que llega.
+
+   En esos dos casos un backdrop-filter queda declarado sin hacer nada (el
+   ancestro transformado es su backdrop root y solo desenfoca lo pintado
+   dentro, que es transparente). Antes que fingir cristal, fondo opaco: 0.72 en
+   vez de 0.42 porque sin desenfoque que separe la tarjeta del muro, la
+   opacidad tiene que hacer sola todo el trabajo de legibilidad.
+
+   Se mantiene EL MISMO borde y el mismo radio que .nxr-card para que la
+   diferencia sea de fondo y no de forma. */
+.nxr-card-solido {
+  backdrop-filter: none;
+  background: rgba(14, 17, 25, 0.72);
+}
+
+/* Variante acentuada: mismo cristal con un tinte y un borde de color. La usa
+   la franja de plazos de /desarrollo-web. */
+.nxr-card-lime {
+  border-color: rgba(168, 240, 74, 0.28);
+  background:
+    linear-gradient(rgba(168, 240, 74, 0.06), rgba(168, 240, 74, 0.06)),
+    rgba(14, 17, 25, 0.42);
+}
+
 /* ===== Conmutador de idioma (V18.48) ===== */
 /* Las dos siglas van SIEMPRE en el DOM y solo cambia cuál se resalta, en vez
    de renderizar una u otra: así el botón no cambia de ancho al pulsarlo y no
@@ -9607,19 +9636,7 @@ input[type="range"].nxr-ms-range::-moz-range-thumb {
 .nxr-aeo-card,
 .nxr-inc-card {
   position: relative;
-  border-radius: var(--radius-md);
   padding: 24px 22px;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  overflow: hidden;
-}
-.nxr-aeo-card::before,
-.nxr-inc-card::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  z-index: -1;
-  background: rgba(14, 17, 25, 0.42);
-  backdrop-filter: blur(16px) saturate(1.3);
 }
 
 .nxr-aeo-icon,
@@ -9724,33 +9741,16 @@ input[type="range"].nxr-ms-range::-moz-range-thumb {
 
 /* El plazo, en su propia franja: es un dato que se busca activamente y no debe
    quedar enterrado entre las tarjetas. */
+/* Cristal, tinte verde y borde: .nxr-card + .nxr-card-lg + .nxr-card-lime, en
+   el markup. Aquí solo la disposición. */
 .nxr-inc-plazo {
   position: relative;
-  overflow: hidden;
   margin-top: 44px;
   padding: 30px 28px;
-  border-radius: var(--radius-lg);
-  border: 1px solid rgba(168, 240, 74, 0.28);
-  /* Solo el TINTE verde, que identifica la franja. El cuerpo oscuro y el
-     desenfoque van en el ::before de abajo. */
-  background: rgba(168, 240, 74, 0.06);
   display: grid;
   grid-template-columns: auto 1fr;
   gap: 28px;
   align-items: center;
-}
-/* Mismo cristal que las tarjetas (V18.53). Va en el pseudo-elemento por lo
-   mismo que allí: la franja lleva `nxr-reveal`, que anima opacity y transform,
-   y cualquiera de los dos sobre el elemento que declara backdrop-filter lo
-   anula. Con z-index -1 queda DEBAJO del tinte verde del propio elemento, así
-   que el orden que se ve es desenfoque → cuerpo oscuro → verde. */
-.nxr-inc-plazo::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  z-index: -1;
-  background: rgba(14, 17, 25, 0.42);
-  backdrop-filter: blur(16px) saturate(1.3);
 }
 .nxr-inc-plazo-t {
   font-family: var(--font-rajdhani), system-ui, sans-serif;

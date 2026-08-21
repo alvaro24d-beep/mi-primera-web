@@ -87,7 +87,7 @@ const CASOS = [
 export default function AgentesIaCasos() {
   const titleRef = useTitleReveal<HTMLHeadingElement>();
   const sectionRef = useRef<HTMLElement>(null);
-
+
 
   return (
     <section id="nxr-aia-casos" className="nxr-aia-casos" ref={sectionRef}>
@@ -99,8 +99,8 @@ export default function AgentesIaCasos() {
 
       <div className="nxr-aia-casos-grid">
         {CASOS.map((c, i) => (
-          <div key={c.title} className="nxr-aia-caso nxr-reveal" style={{ transitionDelay: `${(i % 3) * 90}ms` }}>
-            <span className="nxr-aia-caso-inner">
+          <div key={c.title} className="nxr-aia-caso nxr-card nxr-card-lg">
+            <span className="nxr-aia-caso-inner nxr-reveal" style={{ transitionDelay: `${(i % 3) * 90}ms` }}>
               <span className="nxr-aia-caso-icon" style={{ background: c.bg, color: c.color }}>
                 {c.icon}
               </span>

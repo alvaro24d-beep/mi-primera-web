@@ -143,8 +143,8 @@ export default function DwhIncluido() {
           <div className="nxr-inc-grupo" key={g.k}>
             <h3 className="nxr-inc-grupo-label nxr-reveal">{t(g.k)}</h3>
             <div className="nxr-inc-grid">
-              {g.items.map((it, i) => (
-                <div className={`nxr-inc-card nxr-reveal nxr-reveal-delay-${i + 1}`} key={it.k}>
+              {g.items.map((it) => (
+                <div className="nxr-inc-card nxr-card" key={it.k}>
                   <div className="nxr-inc-icon" style={{ background: it.bg, color: it.color }}>
                     {ICONOS[`${g.k}${it.k}`]}
                   </div>
@@ -158,7 +158,7 @@ export default function DwhIncluido() {
           </div>
         ))}
 
-        <div className="nxr-inc-plazo nxr-reveal">
+        <div className="nxr-inc-plazo nxr-card nxr-card-lg nxr-card-lime">
           <div className="nxr-inc-plazo-t">{t("plazoT")}</div>
           <p className="nxr-inc-plazo-d">{t("plazoD")}</p>
         </div>

@@ -250,7 +250,7 @@ export default function Proceso() {
                 <div className="nxr-paso-tilt">
                   <button
                     type="button"
-                    className="nxr-paso-card"
+                    className="nxr-paso-card nxr-card"
                     ref={(el) => {
                       tiltRefs.current[i] = el;
                     }}

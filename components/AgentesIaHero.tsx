@@ -7,6 +7,7 @@ import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { useReducedMotion } from "@/hooks/useReducedMotion";
 import { useGlassPanels } from "@/hooks/useGlassPanels";
 import { recorridoPin } from "@/lib/scrollRitmo";
+import { useAutoScroll } from "@/hooks/useAutoScroll";
 import SiriSplash from "./aia/SiriSplash";
 
 gsap.registerPlugin(ScrollTrigger);
@@ -161,6 +162,19 @@ export default function AgentesIaHero() {
   // su contexto WebGL (ver SiriSplash.tsx).
   const [splashDone, setSplashDone] = useState(false);
   const reducedMotion = useReducedMotion();
+
+  // ASISTENTE DE SCROLL (V18.60). La escena SIGUE atada al scroll con su pin y
+  // su scrub —el orden splash → titular → agente se mantiene intacto y se puede
+  // rebobinar—; lo que se automatiza es el scroll. A partir del 12% del
+  // recorrido la página avanza sola, así que no hay que estar empujando para
+  // que el agente resuelva la gestión, que es lo incómodo de una escena larga
+  // atada al dedo.
+  //
+  // Ese 12% es lo que deja pasar primero al splash de Siri y al titular: hasta
+  // ahí el visitante aún no está "dentro" de la escena. Cualquier gesto suyo lo
+  // cancela y no vuelve. Mismo mecanismo que el hero de /desarrollo-web — ver
+  // hooks/useAutoScroll.ts.
+  useAutoScroll(sectionRef, { desde: 0.12, hasta: 0.96, velocidad: 440 });
 
   // Volumetric fluid glass from the global SceneCanvas on the story's
   // surfaces (anchors stay transparent DOM shells — the mesh IS the glass).

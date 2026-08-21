@@ -9,22 +9,21 @@ import { useEffect } from "react";
  * visitante la empuja. Quien llega y se queda mirando no ve nada, y quien pasa
  * deprisa se la salta entera.
  *
- * Esto NO convierte la animación a reproducción por tiempo —eso es lo que se
- * hizo en /agentes-ia y allí tiene sentido porque aquellas escenas no
- * necesitaban volver atrás—. Aquí se conserva el pin y el scrub intactos: lo
- * que se automatiza es el SCROLL. La página avanza sola a lo largo del
- * recorrido del pin y la animación la sigue como siempre, de modo que se puede
- * volver atrás y rebobinar exactamente igual que antes.
+ * NO convierte la animación a reproducción por tiempo. El pin y el scrub se
+ * conservan intactos: lo que se automatiza es el SCROLL. La página avanza sola
+ * a lo largo del recorrido del pin y la animación lo sigue como siempre, así
+ * que se puede volver atrás y rebobinar igual que antes — que es justo lo que
+ * se pierde al pasar una escena a reproducción por tiempo.
  *
  * Cómo se comporta:
  *  · Arranca cuando la sección lleva `desde` de su recorrido consumido, no al
- *    entrar. Sirve para dejar que el h1 salga primero por el gesto del propio
- *    visitante y que el automatismo recoja la escena a partir de ahí.
- *  · CUALQUIER intención del usuario lo cancela —rueda, dedo, tecla— y no se
- *    reanuda. Es un acompañamiento, no un secuestro: en cuanto alguien decide
- *    moverse por su cuenta, manda él.
- *  · Solo una vez por sesión y sección: reactivarlo al volver a subir haría
- *    imposible releer nada.
+ *    entrar. Deja que el titular salga primero por el gesto del propio
+ *    visitante y recoge la escena a partir de ahí.
+ *  · Un gesto del usuario lo PAUSA, y se reanuda tras 700 ms de quietud. No lo
+ *    mata: mientras alguien mueve el scroll manda él y el asistente no le pelea
+ *    el control; en cuanto suelta, la escena sigue sola.
+ *  · Se apaga del todo, y ya no vuelve, al llegar al final del rango. Quien
+ *    quiera salirse antes no tiene que luchar: sigue scrolleando y sale.
  *  · Escribe a través de Lenis con `immediate`, igual que ScrollSnap, porque
  *    las dos alternativas obvias fallan con Lenis en medio (ver el comentario
  *    largo de ScrollSnap.tsx).
@@ -53,13 +52,41 @@ export function useAutoScroll(
     let corriendo = false;
     let terminado = false;
     let ultimo = 0;
+    let reanudar = 0;
 
-    const parar = () => {
+    /**
+     * Un gesto del usuario PAUSA el asistente y lo reanuda tras un momento de
+     * quietud. No lo mata.
+     *
+     * La primera versión sí lo mataba, y era un error que lo dejaba inservible:
+     * para llegar al punto de arranque hay que scrollear, ese scroll dispara
+     * `wheel`, y el asistente se cancelaba para siempre ANTES de haber llegado
+     * a arrancar. Nunca se veía funcionar.
+     *
+     * Con pausa-y-reanuda el reparto es el correcto: mientras el usuario mueve
+     * el scroll manda él —el asistente no le pelea el control— y en cuanto
+     * suelta, la escena sigue avanzando sola. Quien quiera salirse del todo no
+     * tiene que luchar contra nada: sigue scrolleando y sale del rango, que es
+     * donde el asistente se apaga solo y ya no vuelve.
+     */
+    const PAUSA_MS = 700;
+
+    const pausar = () => {
       if (raf) cancelAnimationFrame(raf);
       raf = 0;
       corriendo = false;
-      // No se reanuda: a partir de aquí el recorrido es del usuario.
+      ultimo = 0;
+      if (terminado) return;
+      window.clearTimeout(reanudar);
+      reanudar = window.setTimeout(vigilar, PAUSA_MS);
+    };
+
+    const acabar = () => {
+      if (raf) cancelAnimationFrame(raf);
+      raf = 0;
+      corriendo = false;
       terminado = true;
+      window.clearTimeout(reanudar);
     };
 
     // El recorrido real de la sección se mide del pin-spacer que crea
@@ -83,7 +110,7 @@ export function useAutoScroll(
       const p = (y - top) / total;
 
       if (p >= hasta) {
-        parar();
+        acabar();
         return;
       }
       const lenis = window.__nxrLenis;
@@ -96,7 +123,7 @@ export function useAutoScroll(
     // Vigila el progreso para saber cuándo arrancar. Va en el evento de scroll
     // y no en un rAF permanente: mientras no se cumpla la condición esto no
     // debe costar nada.
-    const vigilar = () => {
+    function vigilar() {
       if (terminado || corriendo) return;
       const { top, total } = rango();
       const p = (window.scrollY - top) / total;
@@ -105,22 +132,28 @@ export function useAutoScroll(
         ultimo = 0;
         raf = requestAnimationFrame(paso);
       }
-    };
+    }
 
-    // Nota: `wheel`/`touchstart`/`keydown` cancelan, pero el evento `scroll`
-    // NO — lo dispara el propio auto-scroll y se cancelaría a sí mismo.
+    // OJO al reparto: los gestos (`wheel`, `touchstart`, `touchmove`,
+    // `keydown`) PAUSAN, mientras que el evento `scroll` solo VIGILA. Es
+    // deliberado y no se puede intercambiar: el propio asistente genera
+    // `scroll` en cada frame, así que si ese evento pausara se pararía a sí
+    // mismo en cuanto arrancase.
     window.addEventListener("scroll", vigilar, { passive: true });
-    window.addEventListener("wheel", parar, { passive: true });
-    window.addEventListener("touchstart", parar, { passive: true });
-    window.addEventListener("keydown", parar);
+    window.addEventListener("wheel", pausar, { passive: true });
+    window.addEventListener("touchstart", pausar, { passive: true });
+    window.addEventListener("touchmove", pausar, { passive: true });
+    window.addEventListener("keydown", pausar);
     vigilar();
 
     return () => {
       if (raf) cancelAnimationFrame(raf);
+      window.clearTimeout(reanudar);
       window.removeEventListener("scroll", vigilar);
-      window.removeEventListener("wheel", parar);
-      window.removeEventListener("touchstart", parar);
-      window.removeEventListener("keydown", parar);
+      window.removeEventListener("wheel", pausar);
+      window.removeEventListener("touchstart", pausar);
+      window.removeEventListener("touchmove", pausar);
+      window.removeEventListener("keydown", pausar);
     };
   }, [ref, desde, hasta, velocidad]);
 }

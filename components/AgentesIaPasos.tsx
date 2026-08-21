@@ -280,7 +280,7 @@ export default function AgentesIaPasos() {
 
         <div className="nxr-aia-ps-cards">
           {PASOS.map((p, i) => (
-            <div key={p.num} className="nxr-aia-paso nxr-card nxr-card-lg nxr-card-solido">
+            <div key={p.num} className="nxr-aia-paso nxr-card nxr-card-lg">
               <span className="nxr-aia-paso-inner">
                 <span className="nxr-aia-paso-num" style={{ color: p.color }}>
                   {p.num}

@@ -7706,6 +7706,29 @@ input[type="range"].nxr-ms-range::-moz-range-thumb {
   position: relative;
   visibility: hidden;
 }
+/* CRISTAL EN MÓVIL, SÓLIDO EN ESCRITORIO — y la asimetría no es un capricho.
+   Esta sección SOLO SE PINEA EN ESCRITORIO (ver el ternario `mobile ? … : …`
+   de su ScrollTrigger en AgentesIaPasos.tsx: en teléfono las tarjetas apiladas
+   desbordarían un viewport pequeño y un pin las atraparía). Y es el pin el que
+   hace que ScrollTrigger transforme el stage, con lo que este pasa a ser
+   BACKDROP ROOT y el desenfoque de las tarjetas de dentro deja de ver el fondo
+   real de la página.
+
+   Conclusión: en móvil no hay pin, no hay transform y el cristal funciona de
+   verdad — así que ahí se queda .nxr-card tal cual. En escritorio el
+   backdrop-filter quedaría declarado sin hacer nada, y en vez de fingirlo se
+   cae a la variante sólida. V18.56 aplicó el sólido en AMBOS y por eso en
+   teléfono se veían oscuras y sin desenfoque sin necesidad ninguna. */
+@media (min-width: 769px) {
+  /* `.nxr-aia-paso.nxr-card` y no `.nxr-aia-paso` a secas: las dos clases
+     tienen la MISMA especificidad y .nxr-card se declara más abajo en este
+     archivo, así que ganaba ella y esta anulación no llegaba a aplicarse
+     nunca. Encadenando las dos, esta regla sube a 0-2-0 y manda. */
+  .nxr-aia-paso.nxr-card {
+    backdrop-filter: none;
+    background: rgba(14, 17, 25, 0.72);
+  }
+}
 
 .nxr-aia-paso-inner {
   position: relative;

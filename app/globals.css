@@ -6575,10 +6575,21 @@ input[type="range"].nxr-ms-range::-moz-range-thumb {
   letter-spacing: -0.02em;
 }
 
+/* Rajdhani como TODOS los demás títulos del sitio (V18.54). Estos van en
+   <span> y no en <h3>, así que la regla global de h1-h6 no los alcanza y su
+   clase no declaraba familia: heredaban Manrope del body y eran los únicos
+   títulos de la página en otra tipografía. No es que cambiaran —llevaban así
+   desde siempre—, es que al quedar rodeados de secciones que sí usan Rajdhani
+   el desajuste se hizo evidente. El número de paso hereda de aquí. */
 .nxr-dwh-step-title {
-  font-size: 20px;
-  font-weight: 700;
+  font-family: var(--font-rajdhani), system-ui, sans-serif;
+  font-size: 21px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
   color: var(--c-white);
+}
+.nxr-dwh-step-num {
+  font-family: var(--font-rajdhani), system-ui, sans-serif;
 }
 
 /* Más grande y con más contraste que en el reel (14.5px y 0.6 de blanco): allí
@@ -7905,27 +7916,6 @@ input[type="range"].nxr-ms-range::-moz-range-thumb {
   font-weight: 700;
   text-transform: uppercase;
   line-height: 1;
-}
-
-/* La cinta de claims entre Capacidades y el stack: tipografía outline
-   (relleno casi nulo + trazo) — las palabras del oficio pasando en bucle. */
-.nxr-dwh-claims {
-  padding: 12px 0 28px;
-  overflow: hidden;
-}
-
-.nxr-dwh-claims-text {
-  fill: rgba(255, 255, 255, 0.06);
-  stroke: rgba(255, 255, 255, 0.34);
-  stroke-width: 1.4px;
-  letter-spacing: 0.05em;
-  paint-order: stroke;
-}
-
-@media (max-width: 768px) {
-  .nxr-dwh-claims {
-    padding: 4px 0 16px;
-  }
 }
 
 /* ===== Deriva global con el cursor (components/CursorDrift.tsx) =====
@@ -9667,14 +9657,25 @@ input[type="range"].nxr-ms-range::-moz-range-thumb {
    tamaño y las versales, no el color. */
 .nxr-inc-grupo-label {
   font-family: var(--font-rajdhani), system-ui, sans-serif;
-  font-size: 13px;
+  /* 13 -> 22px (V18.54). Con el tracking abierto de las versales, 13px era
+     tamaño de etiqueta y estos son los rótulos que dividen la sección en tres
+     bloques: tienen que leerse como encabezados. El tracking baja de 0.16 a
+     0.10 porque a este cuerpo ya no hace falta tanto para que las versales
+     respiren, y con 0.16 la línea se hacía demasiado larga en móvil. */
+  font-size: 22px;
   font-weight: 600;
-  letter-spacing: 0.16em;
+  letter-spacing: 0.1em;
   text-transform: uppercase;
   color: var(--c-white);
-  margin-bottom: 16px;
-  padding-bottom: 12px;
+  margin-bottom: 18px;
+  padding-bottom: 14px;
   border-bottom: 1px solid rgba(255, 255, 255, 0.14);
+}
+@media (max-width: 900px) {
+  .nxr-inc-grupo-label {
+    font-size: 18px;
+    letter-spacing: 0.08em;
+  }
 }
 
 .nxr-inc-grid {

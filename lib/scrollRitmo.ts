@@ -40,13 +40,31 @@ export const esMovil = () => typeof window !== "undefined" && window.innerWidth 
  * El hero es el ratio más bajo (160/360) y es deliberado: en móvil las frases
  * de maestría pedían demasiados swipes para pasarlas.
  */
+/**
+ * ALIGERADO EN MÓVIL (V18.54, "aligera el scroll en móvil en general"): los
+ * recorridos táctiles bajan ~22%, suficiente para notarse sin comprimir
+ * ninguna coreografía hasta volverla ilegible. El ESCRITORIO no se toca: allí
+ * la rueda recorre mucho más por gesto y el ritmo estaba dado por bueno.
+ *
+ * Los pins de las páginas de servicio son los que más bajan porque son los que
+ * más margen tenían — el hero de /agentes-ia pedía casi cinco pantallas para
+ * atravesarse.
+ *
+ * DOS RECORRIDOS QUE NO ESTÁN AQUÍ Y QUE NO SE HAN TOCADO, a propósito:
+ *  · El prólogo del reel de Servicios (PROLOGUE, 1.35 en móvil). Validado en
+ *    teléfono físico; bajarlo rompió su entrada dos veces y va co-afinado con
+ *    el tope de flick de SmoothScroll.
+ *  · La altura de #nxr-intro (225vh), que se SUBIÓ hace dos versiones a
+ *    petición expresa para que no se pudiera saltar sin querer. Recortarla
+ *    ahora desharía justo eso.
+ */
 export const RECORRIDO = {
-  hero: { movil: 160, escritorio: 360 },
-  dwhHero: { movil: 320, escritorio: 380 },
-  aiaHero: { movil: 460, escritorio: 540 },
-  aiaNoche: { movil: 300, escritorio: 340 },
-  aiaPasos: { movil: 280, escritorio: 280 },
-  seoHero: { movil: 300, escritorio: 340 },
+  hero: { movil: 130, escritorio: 360 },
+  dwhHero: { movil: 250, escritorio: 380 },
+  aiaHero: { movil: 355, escritorio: 540 },
+  aiaNoche: { movil: 235, escritorio: 340 },
+  aiaPasos: { movil: 220, escritorio: 280 },
+  seoHero: { movil: 235, escritorio: 340 },
 } as const;
 
 /**

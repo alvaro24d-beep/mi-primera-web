@@ -229,9 +229,7 @@ export default function SceneCanvas() {
       // sus cards pasaron de ser anclas de cristal volumétrico a llevar
       // backdrop-filter, así que ya no hay ninguna malla que seguir ahí.)
       "nxr-aia-hero",
-      "nxr-aia-casos",
       "nxr-aia-noche",
-      "nxr-aia-pasos",
 
       "nxr-seo-resultados",
     ];

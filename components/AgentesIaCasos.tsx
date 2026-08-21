@@ -2,8 +2,6 @@
 
 import { useRef } from "react";
 import { useTitleReveal } from "@/hooks/useTitleReveal";
-import { useReducedMotion } from "@/hooks/useReducedMotion";
-import { useGlassPanels } from "@/hooks/useGlassPanels";
 
 const CASOS = [
   {
@@ -89,9 +87,7 @@ const CASOS = [
 export default function AgentesIaCasos() {
   const titleRef = useTitleReveal<HTMLHeadingElement>();
   const sectionRef = useRef<HTMLElement>(null);
-  const reducedMotion = useReducedMotion();
-
-  useGlassPanels(sectionRef, ".nxr-aia-caso", "#12141c", [reducedMotion]);
+
 
   return (
     <section id="nxr-aia-casos" className="nxr-aia-casos" ref={sectionRef}>

@@ -6,7 +6,6 @@ import { useGSAP } from "@gsap/react";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { useTitleReveal } from "@/hooks/useTitleReveal";
 import { useReducedMotion } from "@/hooks/useReducedMotion";
-import { useGlassPanels } from "@/hooks/useGlassPanels";
 import { recorridoPin } from "@/lib/scrollRitmo";
 
 gsap.registerPlugin(ScrollTrigger);
@@ -75,8 +74,7 @@ export default function AgentesIaPasos() {
   const pathRef = useRef<SVGPathElement>(null);
   const glowRef = useRef<SVGPathElement>(null);
   const reducedMotion = useReducedMotion();
-
-  useGlassPanels(sectionRef, ".nxr-aia-paso", "#11141b", [reducedMotion]);
+
 
   useGSAP(
     () => {

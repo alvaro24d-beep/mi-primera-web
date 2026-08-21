@@ -7,7 +7,6 @@ import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { useReducedMotion } from "@/hooks/useReducedMotion";
 import { useGlassPanels } from "@/hooks/useGlassPanels";
 import SiriSplash from "./aia/SiriSplash";
-import { recorridoPin } from "@/lib/scrollRitmo";
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -259,17 +258,31 @@ export default function AgentesIaHero() {
           .to(q(".nxr-scrollcue"), { autoAlpha: 1, duration: 0.4 }, 1.75);
       }
 
+      // REPRODUCCIÓN POR TIEMPO, NO POR SCROLL (V18.55, "que se ejecuten
+      // suavemente al llegar a la sección sin tener que hacer scroll").
+      //
+      // Antes esto era una timeline `scrub` sobre un `pin`: la escena solo
+      // avanzaba mientras el visitante empujaba el scroll, y la sección
+      // retenía 3,5 pantallas de recorrido para poder contarla entera. Ahora
+      // se dispara sola al entrar y se reproduce a su propio ritmo.
+      //
+      // `once: true` y no `toggleActions`: es una secuencia con desenlace —el
+      // agente resuelve la gestión— y rebobinarla al salir dejaría la escena a
+      // medias en pantalla. Se reproduce una vez y se queda en su estado
+      // final, que es exactamente lo que debe verse al terminar.
+      //
+      // timeScale 1.35 porque las duraciones estaban escritas para el scrub,
+      // donde el reparto importa más que el reloj: tal cual, la secuencia
+      // completa pasaba de seis segundos y se hacía lenta viéndola sola.
       const tl = gsap.timeline({
         scrollTrigger: {
           trigger: section,
-          start: "top top",
-          end: recorridoPin("aiaHero"),
-          scrub: 0.6,
-          pin: stage,
-          anticipatePin: 1,
+          start: "top 60%",
+          once: true,
           invalidateOnRefresh: true,
         },
       });
+      tl.timeScale(1.35);
 
       // ===== PHASE A — the title hands the stage to the pipeline =====
       tl.to(head ?? {}, { y: () => -(restTop + hh * S + vh * 0.08), duration: 1.15, ease: "power2.in" }, 0);
@@ -308,18 +321,12 @@ export default function AgentesIaHero() {
       // chains ignore it, so beam anchors stay put).
       gsap.to(chat ?? [], { yPercent: -1.2, duration: 3.6, ease: "sine.inOut", yoyo: true, repeat: -1 });
 
-      // Client-nav race (Bug-Log-Pin-Nace-Con-Scroll-Viejo): this effect runs
-      // BEFORE the template's scroll reset, so the ScrollTrigger can be born
-      // at the OLD page's scroll (progress ≈ 1 → resolved scene) and the
-      // scrub would visibly chase back to 0. One frame later — scroll already
-      // reset — complete the scrub's internal tween instantly.
-      requestAnimationFrame(() => {
-        const st = tl.scrollTrigger;
-        if (!st) return;
-        st.update();
-        const scrubTween = typeof st.getTween === "function" ? st.getTween() : null;
-        if (scrubTween) scrubTween.progress(1);
-      });
+      // (Aquí vivía el parche del race de navegación cliente
+      // —Bug-Log-Pin-Nace-Con-Scroll-Viejo—: el ScrollTrigger podía nacer con
+      // el scroll de la página ANTERIOR, con la escena ya resuelta, y el scrub
+      // se veía volver a cero. Sin scrub no hay tween interno que perseguir y
+      // el problema desaparece por construcción: la timeline se dispara al
+      // entrar y avanza sola.)
     },
     { scope: sectionRef, dependencies: [reducedMotion] }
   );

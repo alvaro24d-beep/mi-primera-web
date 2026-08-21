@@ -7,7 +7,6 @@ import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { useTitleReveal } from "@/hooks/useTitleReveal";
 import { useReducedMotion } from "@/hooks/useReducedMotion";
 import { useGlassPanels } from "@/hooks/useGlassPanels";
-import { recorridoPin } from "@/lib/scrollRitmo";
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -130,17 +129,25 @@ export default function AgentesIaNoche() {
         return ((mins - CLOCK_START) / (CLOCK_END - CLOCK_START)) * CLOCK_DUR;
       };
 
+      // POR TIEMPO Y NO POR SCROLL (V18.55) — misma conversión que el hero de
+      // esta página, y por el mismo motivo: la noche pasaba solo mientras el
+      // visitante empujaba, y la sección retenía casi tres pantallas para
+      // poder contarla. Ahora el reloj corre de 23:00 a 07:00 por su cuenta en
+      // cuanto la sección entra en pantalla.
+      //
+      // `once: true` porque la escena tiene desenlace (amanece y las gestiones
+      // quedan resueltas): rebobinarla al salir devolvería la noche a mitad.
       const tl = gsap.timeline({
         scrollTrigger: {
           trigger: stage,
-          start: "top top",
-          end: recorridoPin("aiaNoche"),
-          scrub: 0.6,
-          pin: stage,
-          anticipatePin: 1,
+          start: "top 65%",
+          once: true,
           invalidateOnRefresh: true,
         },
       });
+      // Las duraciones estaban repartidas para el scrub; a reloj, el ciclo
+      // entero se hacía largo.
+      tl.timeScale(1.3);
 
       // Night falls… and lifts again as the clock approaches 07:00.
       tl.to(veil ?? {}, { opacity: 0.55, duration: 0.9, ease: "none" }, 0);

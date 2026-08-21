@@ -50,6 +50,12 @@ export const esMovil = () => typeof window !== "undefined" && window.innerWidth 
  * más margen tenían — el hero de /agentes-ia pedía casi cinco pantallas para
  * atravesarse.
  *
+ * DOS ENTRADAS DESAPARECIERON EN V18.55, y no por recorte: el hero de
+ * /agentes-ia y su sección de noche dejaron de estar pineadas. Sus animaciones
+ * pasaron de avanzar con el scroll a reproducirse solas al entrar en pantalla,
+ * así que ya no reservan recorrido — entre las dos liberaron casi seis
+ * pantallas de scroll en móvil.
+ *
  * DOS RECORRIDOS QUE NO ESTÁN AQUÍ Y QUE NO SE HAN TOCADO, a propósito:
  *  · El prólogo del reel de Servicios (PROLOGUE, 1.35 en móvil). Validado en
  *    teléfono físico; bajarlo rompió su entrada dos veces y va co-afinado con
@@ -61,8 +67,6 @@ export const esMovil = () => typeof window !== "undefined" && window.innerWidth 
 export const RECORRIDO = {
   hero: { movil: 130, escritorio: 360 },
   dwhHero: { movil: 250, escritorio: 380 },
-  aiaHero: { movil: 355, escritorio: 540 },
-  aiaNoche: { movil: 235, escritorio: 340 },
   aiaPasos: { movil: 220, escritorio: 280 },
   seoHero: { movil: 235, escritorio: 340 },
 } as const;

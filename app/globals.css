@@ -7420,11 +7420,31 @@ input[type="range"].nxr-ms-range::-moz-range-thumb {
 }
 
 /* Anchor of a volumetric fluid-glass mesh — scrim + layout only. */
+/* V18.55: fuera el cristal volumétrico del canvas; estas cards pasan al mismo
+   acabado de desenfoque que las de Proceso y las nuevas de /desarrollo-web.
+   Un MeshTransmissionMaterial visible obliga a la escena a capturar todo lo
+   que hay detrás una vez por frame, y aqui son nueve + tres tarjetas quietas.
+
+   El blur va en el ::before y NO en la propia card: ambas se animan con
+   transform y opacity (GSAP en los pasos, el reveal en los casos) y
+   cualquiera de los dos sobre el elemento que declara backdrop-filter lo
+   anula. En el pseudo-elemento el efecto vive en una capa que la animacion no
+   toca. */
 .nxr-aia-caso {
+  position: relative;
+  overflow: hidden;
   padding: 30px;
-  background: rgba(8, 10, 14, 0.34);
+  border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: var(--radius-lg);
   will-change: transform, opacity;
+}
+.nxr-aia-caso::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: rgba(14, 17, 25, 0.42);
+  backdrop-filter: blur(16px) saturate(1.3);
 }
 
 .nxr-aia-caso-inner {
@@ -7719,10 +7739,20 @@ input[type="range"].nxr-ms-range::-moz-range-thumb {
 
 /* Anchor of a volumetric glass mesh — scrim only. */
 .nxr-aia-paso {
-  background: rgba(8, 10, 14, 0.34);
+  position: relative;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: var(--radius-lg);
   visibility: hidden;
   will-change: transform, opacity;
+}
+.nxr-aia-paso::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: rgba(14, 17, 25, 0.42);
+  backdrop-filter: blur(16px) saturate(1.3);
 }
 
 .nxr-aia-paso-inner {
